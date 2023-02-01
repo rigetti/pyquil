@@ -1,0 +1,24 @@
+# name: TestGate.test_controlled_modifier[CPHASE-params1-qubits1]
+  'CONTROLLED CPHASE(pi/2) 5 0 1'
+# ---
+# name: TestGate.test_controlled_modifier[X-params0-qubits0]
+  'CONTROLLED X 5 0'
+# ---
+# name: TestGate.test_dagger_modifier[CPHASE-params1-qubits1]
+  'DAGGER CPHASE(pi/2) 0 1'
+# ---
+# name: TestGate.test_dagger_modifier[X-params0-qubits0]
+  'DAGGER X 0'
+# ---
+# name: TestGate.test_repr[CPHASE-params1-qubits1]
+  '<Gate CPHASE(pi/2) 0 1>'
+# ---
+# name: TestGate.test_repr[X-params0-qubits0]
+  '<Gate X 0>'
+# ---
+# name: TestGate.test_str[CPHASE-params1-qubits1]
+  'CPHASE(pi/2) 0 1'
+# ---
+# name: TestGate.test_str[X-params0-qubits0]
+  'X 0'
+# ---
