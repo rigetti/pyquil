@@ -723,7 +723,6 @@ def test_prog_merge():
     prog_0.inst(TEST(0))
     prog_1.inst(test_def)
     prog_1.inst(TEST(0))
-    print(merge_programs([prog_0, prog_1]).out())
     assert (
         merge_programs([prog_0, prog_1]).out()
         == """DEFGATE test:
@@ -805,7 +804,6 @@ def test_merge_with_pauli_noise(snapshot):
     p = Program(X(0)).inst(Z(0))
     probs = [0.0, 1.0, 0.0, 0.0]
     merged = merge_with_pauli_noise(p, probs, [0])
-    print(merged.out())
     assert merged.out() == snapshot
 
 

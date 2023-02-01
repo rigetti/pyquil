@@ -236,7 +236,7 @@ class Program:
                 self.inst(QuilProgram(instruction.out()))
             elif isinstance(instruction, QuilInstruction):
                 self._program.add_instruction(instruction)
-            elif isinstance(instruction, QuilProgram):  # TODO: Add programs together in rs
+            elif isinstance(instruction, QuilProgram):
                 self._program += instruction
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
@@ -1103,13 +1103,12 @@ def merge_with_pauli_noise(
 def merge_programs(prog_list: Sequence[Program]) -> Program:
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
-    If multiple programs in the list contain the same gate and/or noisy gate definition
-    with identical name, this definition will only be applied once. If different definitions
-    with the same name appear multiple times in the program list, each will be applied once
-    in the order of last occurrence.
 
     :param prog_list: A list of pyquil programs
     :return: a single pyQuil program
+    .. deprecated:: 4.0
+       This function will be removed in future versions. Instead, use addition to combine
+       programs together.
     """
     merged_program = Program()
     for prog in prog_list:
@@ -1148,20 +1147,11 @@ def percolate_declares(program: Program) -> Program:
 
     :param program: Perhaps jumbled program.
     :return: Program with DECLAREs all at the top and otherwise the same sorted contents.
+    .. deprecated:: 4.0
+        The Program class sorts instructions independently. This is now a no-op and will be removed
+        in future versions of pyQuil.
     """
-    declare_program = Program()
-    instrs_program = Program()
-
-    for instr in program:
-        if isinstance(instr, Declare):
-            declare_program += instr
-        else:
-            instrs_program += instr
-
-    p = declare_program + instrs_program
-    p._defined_gates = program._defined_gates
-
-    return p
+    return program
 
 
 def validate_protoquil(program: Program, quilt: bool = False) -> None:
@@ -1179,8 +1169,8 @@ def validate_protoquil(program: Program, quilt: bool = False) -> None:
     :param program: The Quil program to validate.
 
     .. deprecated:: 4.0
-       This function will be removed, used the validate_protoquil and validate_quilt
-       methods on the Program instead.
+       This function will be removed, use the validate_protoquil and validate_quilt
+       methods on Program instead.
     """
     if quilt:
         program.validate_quilt()
@@ -1195,24 +1185,9 @@ def validate_supported_quil(program: Program) -> None:
     on that qubit. PRAGMAs and DECLAREs are always allowed.
 
     :param program: The Quil program to validate.
+
+    :deprecated: ..4.0
+        This client side check is now a no-op and will be removed in future versions of pyQuil.
+        Attempting to run a program against on a QPU is the best way to validate if it is supported.
     """
-    gates_seen = False
-    measured_qubits: Set[int] = set()
-    for instr in program.instructions:
-        if isinstance(instr, Pragma) or isinstance(instr, Declare):
-            continue
-        elif isinstance(instr, Gate):
-            gates_seen = True
-            if any(q.index in measured_qubits for q in instr.qubits):
-                raise ValueError("Cannot apply gates to qubits that were already measured.")
-        elif isinstance(instr, Reset):
-            if gates_seen:
-                raise ValueError("RESET can only be applied before any gate applications.")
-        elif isinstance(instr, ResetQubit):
-            raise ValueError("Only global RESETs are currently supported.")
-        elif isinstance(instr, Measurement):
-            if instr.qubit.index in measured_qubits:
-                raise ValueError("Multiple measurements per qubit is not supported.")
-            measured_qubits.add(instr.qubit.index)
-        else:
-            raise ValueError(f"Unhandled instruction type in supported Quil validation: {instr}")
+    pass

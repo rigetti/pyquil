@@ -156,6 +156,11 @@ def _get_frame_qubits(frame: Frame, index: bool = True) -> Set[QubitDesignator]:
     return {_extract_qubit_index(q, index) for q in cast(List[Qubit], frame.qubits)}
 
 
+def _format_qubits(qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]]) -> str:
+    return " ".join([str(qubit) for qubit in qubits])
+
+
+# TODO: Remove these formatters once they've been replaced with _format_qubits
 def _format_qubit_str(qubit: Union[Qubit, QubitPlaceholder, FormalArgument]) -> str:
     if isinstance(qubit, QubitPlaceholder):
         return "{%s}" % str(qubit)
@@ -218,19 +223,12 @@ class Gate(AbstractInstruction):
         return {_extract_qubit_index(q, indices) for q in self.qubits}
 
     def out(self) -> str:
-        if self.params:
-            return "{}{}{} {}".format(
-                " ".join(self.modifiers) + " " if self.modifiers else "",
-                self.name,
-                _format_params(self.params),
-                _format_qubits_out(self.qubits),
-            )
-        else:
-            return "{}{} {}".format(
-                " ".join(self.modifiers) + " " if self.modifiers else "",
-                self.name,
-                _format_qubits_out(self.qubits),
-            )
+        """
+        .. deprecated:: 4.0
+           This method defers to __str__ and will be removed in future versions. Calls to gate.out() should be replaced
+           with str(gate).
+        """
+        return self.__str__()
 
     def controlled(self, control_qubit: Union[QubitDesignator, Sequence[QubitDesignator]]) -> "Gate":
         """
@@ -279,13 +277,13 @@ class Gate(AbstractInstruction):
                 " ".join(self.modifiers) + " " if self.modifiers else "",
                 self.name,
                 _format_params(self.params),
-                _format_qubits_str(self.qubits),
+                _format_qubits(self.qubits),
             )
         else:
             return "{}{} {}".format(
                 " ".join(self.modifiers) + " " if self.modifiers else "",
                 self.name,
-                _format_qubits_str(self.qubits),
+                _format_qubits(self.qubits),
             )
 
 
