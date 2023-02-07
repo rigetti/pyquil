@@ -161,11 +161,6 @@ def _get_frame_qubits(frame: Frame, index: bool = True) -> Set[QubitDesignator]:
     return {_extract_qubit_index(q, index) for q in cast(List[Qubit], frame.qubits)}
 
 
-def _format_qubits(qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]]) -> str:
-    return " ".join([str(qubit) for qubit in qubits])
-
-
-# TODO: Remove these formatters once they've been replaced with _format_qubits
 def _format_qubit_str(qubit: Union[Qubit, QubitPlaceholder, FormalArgument]) -> str:
     if isinstance(qubit, QubitPlaceholder):
         return "{%s}" % str(qubit)

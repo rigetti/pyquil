@@ -99,6 +99,7 @@ DEFGATE XGATE:
 """
 
 
+# TODO: isinstance compatibility
 def test_remove_reset_from_program(snapshot):
     p = Program(DEFGATE_X)
     p += RESET()

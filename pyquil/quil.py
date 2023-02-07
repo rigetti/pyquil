@@ -100,7 +100,7 @@ from pyquil.quiltcalibrations import (
 )
 
 from qcs_sdk.quil import Program as QuilProgram
-from qcs_sdk.quil.instructions import Instruction as RSInstruction
+from qcs_sdk.quil.instructions import Instruction as RSInstruction, Gate as RSGate
 
 InstructionDesignator = Union[
     AbstractInstruction,
@@ -243,7 +243,11 @@ class Program:
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
             else:
-                raise TypeError("Invalid instruction: {}".format(repr(instruction)))
+                try:
+                    self.inst(RSInstruction(instruction))
+                except Exception as e:
+                    print(e)
+                    raise TypeError("Invalid instruction: {}".format(repr(instruction)))
 
         return self
 
@@ -757,9 +761,6 @@ class Program:
         """
         pass
 
-    # TODO: Why and where is this needed?
-    # Ask Mark about it
-    # If needed, should be in rs
     def dagger(self, inv_dict: Optional[Any] = None, suffix: str = "-INV") -> "Program":
         """
         Creates the conjugate transpose of the Quil program. The program must
@@ -770,14 +771,7 @@ class Program:
 
         :return: The Quil program's inverse
         """
-        if any(not isinstance(instr, Gate) for instr in self.instructions):
-            raise ValueError("Program to be daggered must contain only gate applications")
-
-        # This is a bit hacky. Gate.dagger() mutates the gate object, rather than returning a fresh
-        # (and daggered) copy. Also, mypy doesn't understand that we already asserted that every
-        # instr in _instructions is a Gate, above, so help mypy out with a cast.
-        surely_gate_instructions = cast(List[Gate], Program(self.out()).instructions)
-        return Program([instr.dagger() for instr in reversed(surely_gate_instructions)])
+        return Program(self._program.dagger())
 
     def pop(self) -> "Program":
         """

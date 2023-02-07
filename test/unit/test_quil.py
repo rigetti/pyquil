@@ -364,7 +364,6 @@ def test_measure_all(snapshot):
     assert p.out() == ""
 
 
-# TODO: Deprecate or rewrite in quil-rs
 def test_dagger():
     p = Program(X(0), H(0))
     assert p.dagger().out() == "DAGGER H 0\nDAGGER X 0\n"
@@ -387,8 +386,8 @@ def test_dagger():
     p += PHASE(pi, target).controlled(control)
     p += CNOT(cnot_control, target).controlled(control)
 
-    for instr, instr_dagger in zip(reversed(p._instructions), p.dagger()._instructions):
-        assert "DAGGER " + instr.out() == instr_dagger.out()
+    for instr, instr_dagger in zip(reversed(p.instructions), p.dagger().instructions):
+        assert "DAGGER " + str(instr) == str(instr_dagger)
 
 
 def test_construction_syntax(snapshot):
@@ -489,8 +488,7 @@ def test_multiqubit_gate(snapshot):
     assert p.out() == snapshot
 
 
-# TODO: CPHASE param parsing fix CPHASE(expr) gets returned as CPHASE((expr))
-def test_define_qft():
+def test_define_qft(snapshot):
     def qft3(q0, q1, q2):
         p = Program()
         p.inst(
@@ -509,7 +507,7 @@ def test_define_qft():
 
     prog = state_prep + qft3(0, 1, 2)
     output = prog.out()
-    assert output == "X 0\nH 2\nCPHASE(pi/2) 1 2\nH 1\nCPHASE(pi/4) 0 " "2\nCPHASE(pi/2) 0 1\nH 0\nSWAP 0 2\n"
+    assert output == snapshot
 
 
 # TODO: Rework control flow methods

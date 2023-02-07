@@ -1,26 +1,82 @@
 # name: test_binary_classicals
-  None
+  '''
+  AND ro[0] ro[1]
+  MOVE ro[0] ro[1]
+  CONVERT ro[0] ro[1]
+  IOR ro[0] ro[1]
+  XOR ro[0] ro[1]
+  ADD ro[0] ro[1]
+  SUB ro[0] ro[1]
+  MUL ro[0] ro[1]
+  DIV ro[0] ro[1]
+  EXCHANGE ro[0] ro[1]
+  
+  '''
 # ---
 # name: test_construction_syntax
-  None
+  '''
+  DECLARE ro BIT[2]
+  X 0
+  Y 1
+  Z 0
+  MEASURE 0 ro[1]
+  
+  '''
 # ---
 # name: test_construction_syntax.1
-  None
+  '''
+  DECLARE ro BIT[3]
+  X 0
+  Y 1
+  MEASURE 0 ro[1]
+  MEASURE 1 ro[2]
+  
+  '''
 # ---
 # name: test_construction_syntax.2
-  None
+  '''
+  DECLARE ro BIT[2]
+  X 0
+  MEASURE 0 ro[1]
+  Y 1
+  X 0
+  MEASURE 0 ro[0]
+  
+  '''
 # ---
 # name: test_controlled_gates
-  None
+  '''
+  CNOT 0 1
+  CCNOT 0 1 2
+  
+  '''
 # ---
 # name: test_copy
-  None
+  '''
+  H 0
+  CNOT 0 1
+  
+  '''
 # ---
 # name: test_copy.1
-  None
+  '''
+  DECLARE ro BIT[2]
+  H 0
+  CNOT 0 1
+  MEASURE 0 ro[0]
+  MEASURE 1 ro[1]
+  
+  '''
 # ---
 # name: test_def_gate
-  None
+  '''
+  DEFGATE SQRT-X AS MATRIX:
+  	(0.5+0.5i), (0.5-0.5i)
+  	(0.5-0.5i), (0.5+0.5i)
+  
+  SQRT-X 0
+  
+  '''
 # ---
 # name: test_defgate
   '''
@@ -47,72 +103,235 @@
 # name: test_defgate_param.1
   'TEST 1'
 # ---
+# name: test_define_qft
+  '''
+  X 0
+  H 2
+  CPHASE(1.5707963267948966) 1 2
+  H 1
+  CPHASE(0.7853981633974483) 0 2
+  CPHASE(1.5707963267948966) 0 1
+  H 0
+  SWAP 0 2
+  
+  '''
+# ---
 # name: test_gate
   'TEST 1 2'
 # ---
 # name: test_inst_gates
-  None
+  '''
+  H 0
+  X 1
+  
+  '''
 # ---
 # name: test_inst_string
-  None
+  '''
+  Y 0
+  X 1
+  
+  '''
 # ---
 # name: test_inst_tuple
-  None
+  '''
+  Y 0
+  X 1
+  
+  '''
 # ---
 # name: test_measure_all
-  None
+  '''
+  DECLARE ro BIT[4]
+  MEASURE 0 ro[0]
+  MEASURE 1 ro[1]
+  MEASURE 2 ro[3]
+  
+  '''
 # ---
 # name: test_measure_all_noncontig
-  None
+  '''
+  DECLARE ro BIT[11]
+  H 0
+  H 10
+  MEASURE 0 ro[0]
+  MEASURE 10 ro[10]
+  
+  '''
 # ---
 # name: test_measurement_calls
-  None
+  '''
+  DECLARE ro BIT[2]
+  MEASURE 0 ro[1]
+  MEASURE 0 ro[1]
+  
+  '''
 # ---
 # name: test_memory_reference_unpacking
-  None
+  '''
+  AND ro[0] ro[1]
+  MOVE ro[0] ro[1]
+  CONVERT ro[0] ro[1]
+  IOR ro[0] ro[1]
+  XOR ro[0] ro[1]
+  ADD ro[0] ro[1]
+  SUB ro[0] ro[1]
+  MUL ro[0] ro[1]
+  DIV ro[0] ro[1]
+  EXCHANGE ro[0] ro[1]
+  
+  '''
 # ---
 # name: test_merge_with_pauli_noise
-  None
+  '''
+  DEFGATE pauli_noise AS MATRIX:
+  	1, 0
+  	0, 1
+  
+  PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
+  PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 1.0 1.0 0.0)"
+  PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
+  PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 -0.0)"
+  X 0
+  pauli_noise 0
+  Z 0
+  pauli_noise 0
+  
+  '''
 # ---
 # name: test_multiqubit_gate
-  None
+  '''
+  DEFGATE X-SQRT-X AS MATRIX:
+  	0, (0.5+0.5i), 0, (0.5-0.5i)
+  	(0.5+0.5i), 0, (0.5-0.5i), 0
+  	0, (0.5-0.5i), 0, (0.5+0.5i)
+  	(0.5-0.5i), 0, (0.5+0.5i), 0
+  
+  X-SQRT-X 0 1
+  
+  '''
 # ---
 # name: test_phases
-  None
+  '''
+  PHASE(3.141592653589793) 1
+  CPHASE00(3.141592653589793) 0 1
+  CPHASE01(3.141592653589793) 0 1
+  CPHASE10(3.141592653589793) 0 1
+  CPHASE(3.141592653589793) 0 1
+  
+  '''
 # ---
 # name: test_plus_operator
-  None
+  '''
+  H 0
+  X 0
+  Y 0
+  Z 0
+  
+  '''
 # ---
 # name: test_prog_init
-  None
+  '''
+  DECLARE ro BIT[1]
+  X 0
+  MEASURE 0 ro[0]
+  
+  '''
 # ---
 # name: test_program_pop
-  None
+  '''
+  X 0
+  
+  '''
 # ---
 # name: test_program_pop.1
-  None
+  '''
+  X 1
+  
+  '''
 # ---
 # name: test_program_string
-  None
+  '''
+  Y 0
+  X 1
+  
+  '''
 # ---
 # name: test_program_tuple
-  None
+  '''
+  Y 0
+  X 1
+  
+  '''
 # ---
 # name: test_rotations
-  None
+  '''
+  RX(0.5) 0
+  RY(0.1) 1
+  RZ(1.4) 2
+  
+  '''
 # ---
 # name: test_simple_instructions
-  None
+  '''
+  HALT
+  WAIT
+  RESET
+  NOP
+  
+  '''
 # ---
 # name: test_singles
-  None
+  '''
+  I 0
+  X 0
+  Y 1
+  Z 1
+  H 2
+  T 2
+  S 1
+  
+  '''
 # ---
 # name: test_swaps
-  None
+  '''
+  SWAP 0 1
+  CSWAP 0 1 2
+  ISWAP 0 1
+  PSWAP(3.141592653589793) 0 1
+  
+  '''
 # ---
 # name: test_ternary_classicals
-  None
+  '''
+  LOAD ro[0] ro n[0]
+  STORE ro n[0] ro[0]
+  STORE ro n[0] 0
+  STORE ro n[0] 0.1
+  EQ ro[0] ro[1] 0
+  EQ ro[0] ro[1] 0
+  EQ ro[0] ro[1] ro[0]
+  GE ro[0] ro[1] 1
+  GE ro[0] ro[1] 1.1
+  GE ro[0] ro[1] ro[1]
+  GT ro[0] ro[1] 2
+  GT ro[0] ro[1] 2.2
+  GT ro[0] ro[1] ro[2]
+  LE ro[0] ro[1] 3
+  LE ro[0] ro[1] 3.3
+  LE ro[0] ro[1] ro[3]
+  LT ro[0] ro[1] 4
+  LT ro[0] ro[1] 4.4
+  LT ro[0] ro[1] ro[4]
+  
+  '''
 # ---
 # name: test_unary_classicals
-  None
+  '''
+  MOVE ro[0] 1
+  MOVE ro[1] 0
+  NOT ro[2]
+  NEG ro[3]
+  
+  '''
 # ---
