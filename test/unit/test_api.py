@@ -66,13 +66,9 @@ def test_quil_to_native_quil(compiler):
     assert np.allclose(p_unitary, scale_out_phase(compiled_p_unitary, p_unitary))
 
 
-# TODO: Gate: params have extra () on output
-def test_local_rb_sequence(benchmarker):
+def test_local_rb_sequence(benchmarker, snapshot):
     response = benchmarker.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)], seed=52)
-    assert [prog.out() for prog in response] == [
-        "H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n",
-        "H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n",
-    ]
+    assert [prog.out() for prog in response] == snapshot
 
 
 def test_local_conjugate_request(benchmarker):

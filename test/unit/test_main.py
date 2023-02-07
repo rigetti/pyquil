@@ -156,8 +156,6 @@ def test_generate_experiment_program():
     test_exp += RESET()
     ro = test_exp.declare("ro", "BIT")
     test_exp += MEASURE(0, ro[0])
-    print("exp\n", exp.out())
-    print("exp\n", test_exp.out())
     assert exp.out() == test_exp.out()
     assert exp.num_shots == 1
 

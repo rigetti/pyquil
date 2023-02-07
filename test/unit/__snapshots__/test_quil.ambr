@@ -51,23 +51,6 @@
   
   '''
 # ---
-# name: test_copy
-  '''
-  H 0
-  CNOT 0 1
-  
-  '''
-# ---
-# name: test_copy.1
-  '''
-  DECLARE ro BIT[2]
-  H 0
-  CNOT 0 1
-  MEASURE 0 ro[0]
-  MEASURE 1 ro[1]
-  
-  '''
-# ---
 # name: test_def_gate
   '''
   DEFGATE SQRT-X AS MATRIX:
@@ -146,16 +129,6 @@
   MEASURE 0 ro[0]
   MEASURE 1 ro[1]
   MEASURE 2 ro[3]
-  
-  '''
-# ---
-# name: test_measure_all_noncontig
-  '''
-  DECLARE ro BIT[11]
-  H 0
-  H 10
-  MEASURE 0 ro[0]
-  MEASURE 10 ro[10]
   
   '''
 # ---
