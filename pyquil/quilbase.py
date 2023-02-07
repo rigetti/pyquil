@@ -204,7 +204,7 @@ class Gate(AbstractInstruction):
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """
         .. deprecated:: 4.0
-            The indices flag will be separated, use get_qubit_indices instead
+            The indices flag will be separated, use get_qubit_indices() instead
         """
         if indices:
             return self.get_qubit_indices()
