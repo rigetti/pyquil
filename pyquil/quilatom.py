@@ -22,6 +22,7 @@ from typing import (
     Callable,
     ClassVar,
     List,
+    Iterable,
     Mapping,
     NoReturn,
     Optional,
@@ -33,6 +34,13 @@ from typing import (
 )
 
 import numpy as np
+
+from qcs_sdk.quil.instructions import (
+    Qubit as RSQubit,
+    FunctionCallExpression as RSFunctionCallExpression,
+    MemoryReference as RSMemoryReference,
+    Expression as RSExpression,
+)
 
 
 class QuilAtom(object):
@@ -155,7 +163,23 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
+QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, RSQubit, int]
+
+
+def convert_to_rs_qubit(qubit: QubitDesignator) -> RSQubit:
+    if isinstance(qubit, Qubit):
+        return RSQubit.from_fixed(qubit.index)
+    if isinstance(qubit, QubitPlaceholder):
+        raise NotImplementedError("QubitPlaceholders aren't implemented in quil-rs")
+    if isinstance(qubit, FormalArgument):
+        return RSQubit.from_variable(qubit.name)
+    if isinstance(qubit, int):
+        return RSQubit.from_fixed(qubit)
+    return qubit
+
+
+def convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[RSQubit]:
+    return [convert_to_rs_qubit(qubit) for qubit in qubits]
 
 
 def unpack_qubit(qubit: Union[QubitDesignator, FormalArgument]) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
@@ -196,7 +220,7 @@ def qubit_index(qubit: QubitDesignator) -> int:
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
 # List[Any] here.
-MemoryReferenceDesignator = Union["MemoryReference", Tuple[str, int], List[Any], str]
+MemoryReferenceDesignator = Union["MemoryReference", RSMemoryReference, Tuple[str, int], List[Any], str]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
@@ -271,7 +295,17 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", np.int_, int, float, complex]
+ParameterDesignator = Union["Expression", "MemoryReference", RSExpression, np.int_, int, float, complex]
+
+
+def convert_to_rs_expression(parameter: ParameterDesignator) -> RSExpression:
+    if isinstance(parameter, RSExpression):
+        return parameter
+    return RSExpression.parse_from_str(str(parameter))
+
+
+def convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> List[ParameterDesignator]:
+    return [convert_to_rs_expression(parameter) for parameter in parameters]
 
 
 def format_parameter(element: ParameterDesignator) -> str:
@@ -317,7 +351,7 @@ def format_parameter(element: ParameterDesignator) -> str:
 
 
 ExpressionValueDesignator = Union[int, float, complex]
-ExpressionDesignator = Union["Expression", ExpressionValueDesignator]
+ExpressionDesignator = Union["Expression", RSExpression, ExpressionValueDesignator]
 
 
 class Expression(object):

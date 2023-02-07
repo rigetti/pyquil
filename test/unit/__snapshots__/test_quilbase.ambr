@@ -1,59 +1,59 @@
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
-  'CONTROLLED CPHASE(pi/2) 5 0 1'
+  'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---
 # name: TestGate.test_controlled_modifier[RZ-MemoryReference-Expression]
-  'CONTROLLED RZ(alpha[0] - beta[0]) 5 0'
+  'CONTROLLED RZ((alpha[0]-beta[0])) 5 0'
 # ---
 # name: TestGate.test_controlled_modifier[RZ-MemoryReference]
-  'CONTROLLED RZ(theta) 5 0'
+  'CONTROLLED RZ(theta[0]) 5 0'
 # ---
 # name: TestGate.test_controlled_modifier[X-Gate]
   'CONTROLLED X 5 0'
 # ---
 # name: TestGate.test_dagger_modifier[CPHASE-Expression]
-  'DAGGER CPHASE(pi/2) 0 1'
+  'DAGGER CPHASE(1.5707963267948966) 0 1'
 # ---
 # name: TestGate.test_dagger_modifier[RZ-MemoryReference-Expression]
-  'DAGGER RZ(alpha[0] - beta[0]) 0'
+  'DAGGER RZ((alpha[0]-beta[0])) 0'
 # ---
 # name: TestGate.test_dagger_modifier[RZ-MemoryReference]
-  'DAGGER RZ(theta) 0'
+  'DAGGER RZ(theta[0]) 0'
 # ---
 # name: TestGate.test_dagger_modifier[X-Gate]
   'DAGGER X 0'
 # ---
 # name: TestGate.test_forked_modifier[CPHASE-Expression]
-  'FORKED CPHASE(pi/2,0) 5 0 1'
+  'FORKED CPHASE(1.57079632679489660) 5 0 1'
 # ---
 # name: TestGate.test_forked_modifier[RZ-MemoryReference-Expression]
-  'FORKED RZ(alpha[0] - beta[0],0) 5 0'
+  'FORKED RZ((alpha[0]-beta[0])0) 5 0'
 # ---
 # name: TestGate.test_forked_modifier[RZ-MemoryReference]
-  'FORKED RZ(theta,0) 5 0'
+  'FORKED RZ(theta[0]0) 5 0'
 # ---
 # name: TestGate.test_forked_modifier[X-Gate]
   'FORKED X 5 0'
 # ---
 # name: TestGate.test_repr[CPHASE-Expression]
-  '<Gate CPHASE(pi/2) 0 1>'
+  '<Gate CPHASE(1.5707963267948966) 0 1>'
 # ---
 # name: TestGate.test_repr[RZ-MemoryReference-Expression]
-  '<Gate RZ(alpha[0] - beta[0]) 0>'
+  '<Gate RZ((alpha[0]-beta[0])) 0>'
 # ---
 # name: TestGate.test_repr[RZ-MemoryReference]
-  '<Gate RZ(theta) 0>'
+  '<Gate RZ(theta[0]) 0>'
 # ---
 # name: TestGate.test_repr[X-Gate]
   '<Gate X 0>'
 # ---
 # name: TestGate.test_str[CPHASE-Expression]
-  'CPHASE(pi/2) 0 1'
+  'CPHASE(1.5707963267948966) 0 1'
 # ---
 # name: TestGate.test_str[RZ-MemoryReference-Expression]
-  'RZ(alpha[0] - beta[0]) 0'
+  'RZ((alpha[0]-beta[0])) 0'
 # ---
 # name: TestGate.test_str[RZ-MemoryReference]
-  'RZ(theta) 0'
+  'RZ(theta[0]) 0'
 # ---
 # name: TestGate.test_str[X-Gate]
   'X 0'

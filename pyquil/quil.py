@@ -99,10 +99,12 @@ from pyquil.quiltcalibrations import (
     match_calibration,
 )
 
-from qcs_sdk.quil import Program as QuilProgram, Instruction as QuilInstruction
+from qcs_sdk.quil import Program as QuilProgram
+from qcs_sdk.quil.instructions import Instruction as RSInstruction
 
 InstructionDesignator = Union[
     AbstractInstruction,
+    RSInstruction,
     "Program",
     List[Any],
     Tuple[Any, ...],
@@ -191,7 +193,7 @@ class Program:
         return self._program.defined_gates
 
     @property
-    def instructions(self) -> List[QuilInstruction]:
+    def instructions(self) -> List[RSInstruction]:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
@@ -234,7 +236,7 @@ class Program:
                 self.inst(QuilProgram(instruction.strip()))
             elif isinstance(instruction, AbstractInstruction):
                 self.inst(QuilProgram(instruction.out()))
-            elif isinstance(instruction, QuilInstruction):
+            elif isinstance(instruction, RSInstruction):
                 self._program.add_instruction(instruction)
             elif isinstance(instruction, QuilProgram):
                 self._program += instruction
@@ -580,9 +582,9 @@ class Program:
 
         # TODO: program str without calibrations
         if calibrations:
-            str(self._program)
+            return str(self._program)
         else:
-            str(self._program.into_simplified())
+            return str(self._program.into_simplified())
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """

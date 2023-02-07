@@ -54,6 +54,9 @@ from pyquil.quilatom import (
     QubitPlaceholder,
     FormalArgument,
     _contained_parameters,
+    convert_to_rs_expressions,
+    convert_to_rs_qubit,
+    convert_to_rs_qubits,
     format_parameter,
     unpack_qubit,
     _complex_str,
@@ -63,6 +66,8 @@ if TYPE_CHECKING:
     from pyquil.paulis import PauliSum
 
 from dataclasses import dataclass
+
+from qcs_sdk.quil.instructions import Gate as RSGate, Qubit as RSQubit, Expression as RSExpression
 
 
 class AbstractInstruction(object):
@@ -194,52 +199,32 @@ class Gate(AbstractInstruction):
         params: Iterable[ParameterDesignator],
         qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]],
     ):
-        if not isinstance(name, str):
-            raise TypeError("Gate name must be a string")
-
-        if name in RESERVED_WORDS:
-            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
-
-        if not isinstance(params, collections.abc.Iterable):
-            raise TypeError("Gate params must be an Iterable")
-
-        if not isinstance(qubits, collections.abc.Iterable):
-            raise TypeError("Gate arguments must be an Iterable")
-
-        for qubit in qubits:
-            if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
-                raise TypeError("Gate arguments must all be Qubits")
-
-        qubits_list = list(qubits)
-        if len(qubits_list) == 0:
-            raise TypeError("Gate arguments must be non-empty")
-
-        self.name = name
-        self.params = list(params)
-        self.qubits = qubits_list
-        self.modifiers: List[str] = []
+        self._gate = RSGate(name, convert_to_rs_expressions(params), convert_to_rs_qubits(qubits), [])
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return {_extract_qubit_index(q, indices) for q in self.qubits}
-
-    def out(self) -> str:
         """
         .. deprecated:: 4.0
-           This method defers to __str__ and will be removed in future versions. Calls to gate.out() should be replaced
-           with str(gate).
+            The indices flag will be separated, use get_qubit_indices instead
         """
-        return self.__str__()
+        if indices:
+            return self.get_qubit_indices()
+        else:
+            return set(self._gate.qubits)
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.as_fixed() for qubit in self._gate.qubits}
 
     def controlled(self, control_qubit: Union[QubitDesignator, Sequence[QubitDesignator]]) -> "Gate":
         """
         Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
         qubits.
         """
-        control_qubit = control_qubit if isinstance(control_qubit, Sequence) else [control_qubit]
-        for qubit in control_qubit:
-            qubit = unpack_qubit(qubit)
-            self.modifiers.insert(0, "CONTROLLED")
-            self.qubits.insert(0, qubit)
+        if isinstance(control_qubit, Sequence):
+            for qubit in control_qubit:
+                self._gate = self._gate.controlled(convert_to_rs_qubit(qubit))
+        else:
+            self._gate = self._gate.controlled(convert_to_rs_qubit(control_qubit))
+
         return self
 
     def forked(self, fork_qubit: QubitDesignator, alt_params: List[ParameterDesignator]) -> "Gate":
@@ -247,16 +232,7 @@ class Gate(AbstractInstruction):
         Add the FORKED modifier to the gate with the given fork qubit and given additional
         parameters.
         """
-        if not isinstance(alt_params, list):
-            raise TypeError("Gate params must be a list")
-        if len(self.params) != len(alt_params):
-            raise ValueError("Expected {} parameters but received {}".format(len(self.params), len(alt_params)))
-
-        fork_qubit = unpack_qubit(fork_qubit)
-
-        self.modifiers.insert(0, "FORKED")
-        self.qubits.insert(0, fork_qubit)
-        self.params += alt_params
+        self._gate = self._gate.forked(convert_to_rs_qubit(fork_qubit), convert_to_rs_expressions(alt_params))
 
         return self
 
@@ -264,27 +240,22 @@ class Gate(AbstractInstruction):
         """
         Add the DAGGER modifier to the gate.
         """
-        self.modifiers.insert(0, "DAGGER")
-
+        self._gate = self._gate.dagger()
         return self
 
     def __repr__(self) -> str:
         return "<Gate " + str(self) + ">"
 
     def __str__(self) -> str:
-        if self.params:
-            return "{}{}{} {}".format(
-                " ".join(self.modifiers) + " " if self.modifiers else "",
-                self.name,
-                _format_params(self.params),
-                _format_qubits(self.qubits),
-            )
-        else:
-            return "{}{} {}".format(
-                " ".join(self.modifiers) + " " if self.modifiers else "",
-                self.name,
-                _format_qubits(self.qubits),
-            )
+        return str(self._gate)
+
+    def out(self) -> str:
+        """
+        .. deprecated:: 4.0
+           This method defers to __str__ and will be removed in future versions of pyQuil. Calls to out() should be
+           replaced with str(gate).
+        """
+        return self.__str__()
 
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
@@ -1223,7 +1194,6 @@ class RawCapture(AbstractInstruction):
 
 class DelayFrames(AbstractInstruction):
     def __init__(self, frames: List[Frame], duration: float):
-
         # all frames should be on the same qubits
         if len(frames) == 0:
             raise ValueError("DELAY expected nonempty list of frames.")
