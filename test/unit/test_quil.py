@@ -855,8 +855,7 @@ def test_eq():
     assert not p1 != p2
 
 
-# TODO: Kraus? noisy gates in quil-rs?
-def test_kraus():
+def test_kraus(snapshot):
     pq = Program(X(0))
     pq.define_noisy_gate("X", (0,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
     pq.inst(X(1))
@@ -891,13 +890,7 @@ PRAGMA ADD-KRAUS X 1 "(0.0 0.0 0.0 0.0)"
     pq_nn.no_noise()
     pq_nn.inst(X(1))
 
-    assert (
-        pq_nn.out()
-        == """X 0
-PRAGMA NO-NOISE
-X 1
-"""
-    )
+    assert pq_nn.out() == snapshot
 
 
 def test_define_noisy_readout():

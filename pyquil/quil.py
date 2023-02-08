@@ -16,10 +16,10 @@
 """
 Module for creating and defining Quil programs.
 """
-import itertools
 import types
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from typing import (
     Any,
     Dict,
@@ -43,7 +43,6 @@ from pyquil._memory import Memory
 from pyquil.gates import MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
-    Label,
     LabelPlaceholder,
     MemoryReference,
     MemoryReferenceDesignator,
@@ -63,30 +62,13 @@ from pyquil.quilbase import (
     Gate,
     Measurement,
     Pragma,
-    Halt,
     AbstractInstruction,
     Jump,
-    JumpConditional,
     JumpTarget,
     JumpUnless,
     JumpWhen,
     Declare,
-    Reset,
     ResetQubit,
-    DelayFrames,
-    DelayQubits,
-    Fence,
-    FenceAll,
-    Pulse,
-    Capture,
-    RawCapture,
-    SetFrequency,
-    ShiftFrequency,
-    SetPhase,
-    ShiftPhase,
-    SwapPhase,
-    SetScale,
-    DefPermutationGate,
     DefCalibration,
     DefFrame,
     DefMeasureCalibration,
@@ -99,7 +81,7 @@ from pyquil.quiltcalibrations import (
     match_calibration,
 )
 
-from qcs_sdk.quil import Program as QuilProgram
+from qcs_sdk.quil import Program as RSProgram
 from qcs_sdk.quil.instructions import Instruction as RSInstruction, Gate as RSGate
 
 InstructionDesignator = Union[
@@ -128,7 +110,7 @@ class Program:
     """Contents of memory to be used as program parameters during execution"""
 
     def __init__(self, *instructions: InstructionDesignator):
-        self._program = QuilProgram("")
+        self._program = RSProgram("")
         self.inst(*instructions)
 
         # default number of shots to loop through
@@ -179,11 +161,7 @@ class Program:
 
         :return: a new Program
         """
-        copy = Program(self)
-        copy.num_shots = self.num_shots
-        copy._memory = self._memory
-
-        return copy
+        return deepcopy(self)
 
     @property
     def defined_gates(self) -> List[DefGate]:
@@ -193,7 +171,7 @@ class Program:
         return self._program.defined_gates
 
     @property
-    def instructions(self) -> List[RSInstruction]:
+    def instructions(self) -> List[AbstractInstruction]:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
@@ -233,20 +211,19 @@ class Program:
                 else:
                     self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
-                self.inst(QuilProgram(instruction.strip()))
+                self.inst(RSProgram(instruction.strip()))
             elif isinstance(instruction, AbstractInstruction):
-                self.inst(QuilProgram(instruction.out()))
-            elif isinstance(instruction, RSInstruction):
-                self._program.add_instruction(instruction)
-            elif isinstance(instruction, QuilProgram):
-                self._program += instruction
+                self.inst(RSProgram(instruction.out()))
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
+            elif isinstance(instruction, RSInstruction):
+                self._program.add_instruction(instruction)
+            elif isinstance(instruction, RSProgram):
+                self._program += instruction
             else:
                 try:
-                    self.inst(RSInstruction(instruction))
-                except Exception as e:
-                    print(e)
+                    self.inst(str(instruction))
+                except Exception:
                     raise TypeError("Invalid instruction: {}".format(repr(instruction)))
 
         return self
@@ -296,7 +273,6 @@ class Program:
         :param parameters: list of parameters that are used in this gate
         :return: The Program instance.
         """
-        print("defgate", DefGate(name, matrix, parameters).out())
         return self.inst(DefGate(name, matrix, parameters))
 
     def define_noisy_gate(self, name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[Any]) -> "Program":
@@ -417,18 +393,6 @@ class Program:
                 self.inst(MEASURE(qubit_index, classical_reg))
         return self
 
-    def _set_parameter_values_at_runtime(self) -> "Program":
-        """
-        Store all parameter values directly within the Program using ``MOVE`` instructions. Mutates the receiver.
-        """
-        move_instructions = [
-            MOVE(MemoryReference(name=k.name, offset=k.index), v) for k, v in self._memory.values.items()
-        ]
-
-        self.prepend_instructions(move_instructions)
-
-        return self
-
     def write_memory(
         self,
         *,
@@ -446,6 +410,7 @@ class Program:
         new_prog = Program(*instructions)
         return new_prog + self
 
+    # TODO: Implement control flow methods in quil-rs
     def while_do(self, classical_reg: MemoryReferenceDesignator, q_program: "Program") -> "Program":
         """
         While a classical register at index classical_reg is 1, loop q_program
@@ -476,6 +441,7 @@ class Program:
         self.inst(JumpTarget(label_end))
         return self
 
+    # TODO: Implement control flow methods in quil-rs
     def if_then(
         self,
         classical_reg: MemoryReferenceDesignator,
@@ -583,8 +549,6 @@ class Program:
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
-
-        # TODO: program str without calibrations
         if calibrations:
             return str(self._program)
         else:
@@ -607,13 +571,22 @@ class Program:
         :param indices: Return qubit indices as integers intead of the
             wrapping :py:class:`Qubit` object
         :return: A set of all the qubit indices used in this program
-        """
-        # TODO: what to do about indices flag?
-        qubits = self._program.get_used_qubits()
-        if indices:
-            qubits = {q.as_fixed() for q in qubits}
-        return qubits
 
+        .. deprecated:: 4.0
+           The indices flag will be removed. Use get_qubit_indices() instead
+        """
+        if indices:
+            return self.get_qubit_indices()
+        return self._program.get_used_qubits()
+
+    def get_qubit_indices(self) -> Set[int]:
+        """
+        Returns the index of each qubit used in the program. Will raise an exception if any of the
+        qubits are placeholders.
+        """
+        return {q.as_fixed() for q in self._program.get_used_qubits()}
+
+    # TODO: Port calibrations logic from quil-rs
     def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
         """
         Attempt to match a calibration to the provided instruction.
@@ -639,6 +612,7 @@ class Program:
 
         return None
 
+    # TODO: Port calibrations logic from quil-rs
     def get_calibration(self, instr: AbstractInstruction) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
         """
         Get the calibration corresponding to the provided instruction.
@@ -652,6 +626,7 @@ class Program:
 
         return None
 
+    # TODO: Port calibrations logic from quil-rs
     def calibrate(
         self,
         instruction: AbstractInstruction,
@@ -704,7 +679,7 @@ class Program:
         :return: True if the Program is Protoquil, False otherwise
 
         .. deprecated:: 4.0
-           The quilt flag will be removed. Use is_quilt instead.
+           The quilt flag will be removed. Use is_quilt() instead.
         """
         try:
             if quilt:
@@ -744,22 +719,12 @@ class Program:
         gates or MEASUREs, and MEASURE on a qubit must be after any gates on that qubit.
 
         :return: True if the Program is supported Quil, False otherwise
-        """
-        try:
-            validate_supported_quil(self)
-            return True
-        except ValueError:
-            return False
-
-    def _sort_declares_to_program_start(self) -> None:
-        """
-        Re-order DECLARE instructions within this program to the beginning, followed by
-        all other instructions. Reordering is stable among DECLARE and non-DECLARE instructions.
 
         .. deprecated:: 4.0
-           Sorting the program is managed by `qcs_sdk.quil`. This is a no-op.
+           This will always return True and will be removed in future versions of pyQuil.
+           Attempting to run a program against on a QPU is the best way to validate if it is supported.
         """
-        pass
+        return True
 
     def dagger(self, inv_dict: Optional[Any] = None, suffix: str = "-INV") -> "Program":
         """
@@ -770,10 +735,13 @@ class Program:
         for backwards compatibility and have no effect.
 
         :return: The Quil program's inverse
+
+        .. deprecated:: 4.0
+           The inv_dict and suffix arguments will be removed in future versions of pyQuil
         """
         return Program(self._program.dagger())
 
-    def pop(self) -> "Program":
+    def pop(self) -> AbstractInstruction:
         """
         Removes the last instruction from the program and return it
 
@@ -787,29 +755,6 @@ class Program:
         self._memory = new_program._memory
         return last
 
-    # TODO: Probably deprecate
-    # def _synthesize(self) -> "Program":
-    #     """
-    #     Assigns all placeholder labels to actual values.
-    #
-    #     Changed in 1.9: Either all qubits must be defined or all undefined. If qubits are
-    #     undefined, this method will not help you. You must explicitly call `address_qubits`
-    #     which will return a new Program.
-    #
-    #     Changed in 1.9: This function now returns ``self`` and updates
-    #     ``self._synthesized_instructions``.
-    #
-    #     Changed in 2.0: This function will add an instruction to the top of the program
-    #     to declare a register of bits called ``ro`` if and only if there are no other
-    #     declarations in the program.
-    #
-    #     Changed in 3.0: Removed above change regarding implicit ``ro`` declaration.
-    #
-    #     :return: This object with the ``_synthesized_instructions`` member set.
-    #     """
-    #     self._synthesized_instructions = instantiate_labels(self._instructions)
-    #     return self
-
     def __add__(self, other: InstructionDesignator) -> "Program":
         """
         Concatenate two programs together, returning a new one.
@@ -822,16 +767,15 @@ class Program:
         p.inst(other)
         return p
 
-    def __iadd__(self, other: InstructionDesignator) -> "Program":
+    def __iadd__(self, other) -> "Program":
         """
-        Concatenate two programs together using +=, appending the program on the right hand side to the one on the left
-        hand side.
+        Concatenate two programs together by appending them to the left hand side.
 
         :param other: Another program or instruction to concatenate to this one.
-        :return: The updated program.
+        :return: A newly concatenated program.
         """
-        self.inst(other)
-        return self
+        p = Program(other)
+        return self._program.add_instructions(p._program.instructions)
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
         """
@@ -869,201 +813,6 @@ class Program:
         return str(self._program)
 
 
-def _what_type_of_qubit_does_it_use(
-    program: Program,
-) -> Tuple[bool, bool, List[Union[Qubit, QubitPlaceholder]]]:
-    """Helper function to peruse through a program's qubits.
-
-    This function will also enforce the condition that a Program uses either all placeholders
-    or all instantiated qubits to avoid accidentally mixing the two. This function will warn
-    if your program doesn't use any qubits.
-
-    :return: tuple of (whether the program uses placeholder qubits, whether the program uses
-        real qubits, a list of qubits ordered by their first appearance in the program)
-    """
-    has_placeholders = False
-    has_real_qubits = False
-
-    # We probably want to index qubits in the order they are encountered in the program
-    # so an ordered set would be nice. Python doesn't *have* an ordered set. Use the keys
-    # of an ordered dictionary instead
-    qubits = {}
-
-    for instr in program:
-        if isinstance(instr, Gate):
-            for q in instr.qubits:
-                qubits[q] = 1
-                if isinstance(q, QubitPlaceholder):
-                    has_placeholders = True
-                elif isinstance(q, Qubit):
-                    has_real_qubits = True
-                else:
-                    raise ValueError("Unknown qubit type {}".format(q))
-        elif isinstance(instr, Measurement):
-            qubits[instr.qubit] = 1
-            if isinstance(instr.qubit, QubitPlaceholder):
-                has_placeholders = True
-            elif isinstance(instr.qubit, Qubit):
-                has_real_qubits = True
-            else:
-                raise ValueError("Unknown qubit type {}".format(instr.qubit))
-        elif isinstance(instr, Pragma):
-            for arg in instr.args:
-                if isinstance(arg, QubitPlaceholder):
-                    qubits[arg] = 1
-                    has_placeholders = True
-                elif isinstance(arg, Qubit):
-                    qubits[arg] = 1
-                    has_real_qubits = True
-    if not (has_placeholders or has_real_qubits):
-        warnings.warn("Your program doesn't use any qubits")
-
-    if has_placeholders and has_real_qubits:
-        raise ValueError("Your program mixes instantiated qubits with placeholders")
-
-    # The isinstance checks above make sure that if any qubit is a
-    # FormalArgument (which is permitted by Gate.qubits), then an
-    # error should be raised. Unfortunately this doesn't help mypy
-    # narrow down the return type, so gotta cast.
-    return (
-        has_placeholders,
-        has_real_qubits,
-        cast(List[Union[Qubit, QubitPlaceholder]], list(qubits.keys())),
-    )
-
-
-def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceholder], Qubit]:
-    """
-    Takes a program which contains qubit placeholders and provides a mapping to the integers
-    0 through N-1.
-
-    The output of this function is suitable for input to :py:func:`address_qubits`.
-
-    :param program: A program containing qubit placeholders
-    :return: A dictionary mapping qubit placeholder to an addressed qubit from 0 through N-1.
-    """
-    fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
-    if real_qubits:
-        warnings.warn("This program contains integer qubits, so getting a mapping doesn't make sense.")
-        # _what_type_of_qubit_does_it_use ensures that if real_qubits is True, then qubits contains
-        # only real Qubits, not QubitPlaceholders. Help mypy figure this out with cast.
-        return {q: cast(Qubit, q) for q in qubits}
-    return {qp: Qubit(i) for i, qp in enumerate(qubits)}
-
-
-@no_type_check
-def address_qubits(
-    program: Program, qubit_mapping: Optional[Dict[QubitPlaceholder, Union[Qubit, int]]] = None
-) -> Program:
-    """
-    Takes a program which contains placeholders and assigns them all defined values.
-
-    Either all qubits must be defined or all undefined. If qubits are
-    undefined, you may provide a qubit mapping to specify how placeholders get mapped
-    to actual qubits. If a mapping is not provided, integers 0 through N are used.
-
-    This function will also instantiate any label placeholders.
-
-    :param program: The program.
-    :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
-        to :py:class:`Qubit` or ``int`` (but not both).
-    :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
-    """
-    fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
-    if real_qubits:
-        if qubit_mapping is not None:
-            warnings.warn("A qubit mapping was provided but the program does not " "contain any placeholders to map!")
-        return program
-
-    if qubit_mapping is None:
-        qubit_mapping = {qp: Qubit(i) for i, qp in enumerate(qubits)}
-    else:
-        if all(isinstance(v, Qubit) for v in qubit_mapping.values()):
-            pass  # we good
-        elif all(isinstance(v, int) for v in qubit_mapping.values()):
-            qubit_mapping = {k: Qubit(v) for k, v in qubit_mapping.items()}
-        else:
-            raise ValueError("Qubit mapping must map to type Qubit or int (but not both)")
-
-    result: List[AbstractInstruction] = []
-    for instr in program:
-        # Remap qubits on Gate, Measurement, and ResetQubit instructions
-        if isinstance(instr, Gate):
-            remapped_qubits = [qubit_mapping[q] for q in instr.qubits]
-            gate = Gate(instr.name, instr.params, remapped_qubits)
-            gate.modifiers = instr.modifiers
-            result.append(gate)
-        elif isinstance(instr, Measurement):
-            result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
-        elif isinstance(instr, ResetQubit):
-            result.append(ResetQubit(qubit_mapping[instr.qubit]))
-        elif isinstance(instr, Pragma):
-            new_args: List[Union[Qubit, int, str]] = []
-            for arg in instr.args:
-                # Pragmas can have arguments that represent things besides qubits, so here we
-                # make sure to just look up the QubitPlaceholders.
-                if isinstance(arg, QubitPlaceholder):
-                    new_args.append(qubit_mapping[arg])
-                else:
-                    new_args.append(arg)
-            result.append(Pragma(instr.command, new_args, instr.freeform_string))
-        # Otherwise simply add it to the result
-        else:
-            result.append(instr)
-
-    new_program = program.copy()
-    new_program._instructions = result
-
-    return new_program
-
-
-# TODO: consider deprecate
-# def _get_label(
-#     placeholder: LabelPlaceholder,
-#     label_mapping: Dict[LabelPlaceholder, Label],
-#     label_i: int,
-# ) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
-#     """Helper function to either get the appropriate label for a given placeholder or generate
-#     a new label and update the mapping.
-#
-#     See :py:func:`instantiate_labels` for usage.
-#     """
-#     if placeholder in label_mapping:
-#         return label_mapping[placeholder], label_mapping, label_i
-#
-#     new_target = Label("{}{}".format(placeholder.prefix, label_i))
-#     label_i += 1
-#     label_mapping[placeholder] = new_target
-#     return new_target, label_mapping, label_i
-#
-#
-# def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[AbstractInstruction]:
-#     """
-#     Takes an iterable of instructions which may contain label placeholders and assigns
-#     them all defined values.
-#
-#     :return: list of instructions with all label placeholders assigned to real labels.
-#     """
-#     label_i = 1
-#     result: List[AbstractInstruction] = []
-#     label_mapping: Dict[LabelPlaceholder, Label] = dict()
-#     for instr in instructions:
-#         if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
-#             new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
-#             result.append(Jump(new_target))
-#         elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
-#             new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
-#             cls = instr.__class__  # Make the correct subclass
-#             result.append(cls(new_target, instr.condition))
-#         elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
-#             new_label, label_mapping, label_i = _get_label(instr.label, label_mapping, label_i)
-#             result.append(JumpTarget(new_label))
-#         else:
-#             result.append(instr)
-#
-#     return result
-
-
 def merge_with_pauli_noise(
     prog_list: Iterable[Program], probabilities: Sequence[float], qubits: Sequence[int]
 ) -> Program:
@@ -1095,7 +844,6 @@ def merge_with_pauli_noise(
     return p
 
 
-# TODO: this needs to be deprecated or quil-rs needs to dedupe
 def merge_programs(prog_list: Sequence[Program]) -> Program:
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
@@ -1144,8 +892,8 @@ def percolate_declares(program: Program) -> Program:
     :param program: Perhaps jumbled program.
     :return: Program with DECLAREs all at the top and otherwise the same sorted contents.
     .. deprecated:: 4.0
-        The Program class sorts instructions independently. This is now a no-op and will be removed
-        in future versions of pyQuil.
+       The Program class sorts instructions automatically. This is a no-op and will be removed
+       in future versions of pyQuil.
     """
     return program
 
