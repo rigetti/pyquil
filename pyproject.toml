@@ -26,7 +26,7 @@ lark = "^0.11.1"
 rpcq = "^3.10.0"
 networkx = "^2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
-qcs-sdk-python = "0.4.2"
+qcs-sdk-python = "0.5.0rc6"
 qcs-api-client = ">=0.21.0,<0.22.0"
 retry = "^0.9.2"
 types-python-dateutil = "^2.8.19"
@@ -42,7 +42,7 @@ nbsphinx = { version = "^0.8.6", optional = true }
 recommonmark = { version = "^0.7.1", optional = true }
 
 [tool.poetry.dev-dependencies]
-black = "^22.8.0"
+black = "^23.1.0"
 flake8 = "^3.8.1"
 pytest = "^6.2.2"
 pytest-cov = "^2.11.1"
