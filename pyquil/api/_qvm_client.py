@@ -166,7 +166,7 @@ class QVMClient:
         :param client_configuration: Configuration for client.
         :param request_timeout: Timeout for requests, in seconds.
         """
-        self.base_url = client_configuration.profile.applications.pyquil.qvm_url
+        self.base_url = client_configuration.qvm_url
         self.timeout = request_timeout
 
     def get_version(self) -> str:

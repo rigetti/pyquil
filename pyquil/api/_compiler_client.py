@@ -165,7 +165,7 @@ class CompilerClient:
         :param client_configuration: Configuration for client.
         :param request_timeout: Timeout for requests, in seconds.
         """
-        base_url = client_configuration.profile.applications.pyquil.quilc_url
+        base_url = client_configuration.quilc_url
         if not base_url.startswith("tcp://"):
             raise ValueError(f"Expected compiler URL '{base_url}' to start with 'tcp://'")
 
