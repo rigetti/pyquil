@@ -39,10 +39,10 @@ def decode_buffer(buffer: "qcs_sdk.ExecutionResult") -> np.ndarray:
     :return: NumPy array of decoded data
     """
     if buffer["dtype"] == "complex":
-        buffer["data"] = [complex(re, im) for re, im in buffer["data"]]  # type: ignore
-        buffer["dtype"] = np.complex64  # type: ignore
+        buffer["data"] = [complex(re, im) for re, im in buffer["data"]]
+        buffer["dtype"] = np.complex64
     elif buffer["dtype"] == "integer":
-        buffer["dtype"] = np.int32  # type: ignore
+        buffer["dtype"] = np.int32
     return np.array(buffer["data"], dtype=buffer["dtype"])
 
 
@@ -185,7 +185,7 @@ class QPU(QAM[QPUExecuteResponse]):
         Retrieve results from execution on the QPU.
         """
 
-        async def _get_result(*args):
+        async def _get_result(*args) -> qcs_sdk.ExecutionResults:
             return await qcs_sdk.retrieve_results(*args)
 
         results = self._event_loop.run_until_complete(

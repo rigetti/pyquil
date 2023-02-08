@@ -107,7 +107,7 @@ class QPUCompiler(AbstractCompiler):
         # the event loop is available. Wrapping it in a Python async function ensures that
         # the event loop is available. This is a limitation of pyo3:
         # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
-        async def _translate(*args):
+        async def _translate(*args) -> qcs_sdk.TranslationResult:
             return await qcs_sdk.translate(*args)
 
         translated_program = self._event_loop.run_until_complete(
