@@ -310,7 +310,14 @@ class Program:
 
             elif isinstance(instruction, DefCalibration) or isinstance(instruction, DefMeasureCalibration):
                 # If the instruction calibration differs from the current one, print a warning and replace it.
-                existing_calibration = next((gate for gate in self.calibrations if gate.name == instruction.name), None)
+                existing_calibration = next(
+                    (
+                        gate
+                        for gate in self.calibrations
+                        if ((gate.name == instruction.name) and (gate.parameters == instruction.parameters))
+                    ),
+                    None,
+                )
                 if existing_calibration is None:
                     self._calibrations.append(instruction)
                 else:

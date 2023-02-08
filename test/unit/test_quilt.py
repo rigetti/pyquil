@@ -185,6 +185,8 @@ def test_apply_match_delay_qubits():
 def test_program_match_last():
     first = DefCalibration("X", [], [Qubit(0)], ["foo"])
     second = DefCalibration("X", [], [Qubit(0)], ["bar"])
+    print(first)
+    print(second)
     prog = Program(first, second)
     match = prog.match_calibrations(Gate("X", [], [Qubit(0)]))
     assert match == CalibrationMatch(cal=second, settings={})
