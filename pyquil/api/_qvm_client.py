@@ -20,7 +20,7 @@ from json.decoder import JSONDecodeError
 from typing import Iterator, Any, Dict, Union, Tuple, Optional, List, cast
 
 import httpx
-from qcs_api_client.client import QCSClientConfiguration
+import qcs_sdk
 
 from pyquil.api._errors import ApiError, UnknownApiError, TooManyQubitsError, error_mapping
 
@@ -159,7 +159,7 @@ class QVMClient:
     Client for making requests to a Quantum Virtual Machine.
     """
 
-    def __init__(self, *, client_configuration: QCSClientConfiguration, request_timeout: float = 10.0) -> None:
+    def __init__(self, *, client_configuration: qcs_sdk.QcsClient, request_timeout: float = 10.0) -> None:
         """
         Instantiate a new compiler client.
 

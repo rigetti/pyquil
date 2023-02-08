@@ -15,7 +15,7 @@
 ##############################################################################
 from typing import List, Optional, Sequence, cast
 
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_sdk import QcsClient
 
 from pyquil.api._abstract_compiler import AbstractBenchmarker
 from pyquil.api._compiler_client import (
@@ -23,6 +23,7 @@ from pyquil.api._compiler_client import (
     ConjugatePauliByCliffordRequest,
     CompilerClient,
 )
+from pyquil.api._qcs_client import default_qcs_client
 
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
@@ -34,7 +35,7 @@ class BenchmarkConnection(AbstractBenchmarker):
     Represents a connection to a server that generates benchmarking data.
     """
 
-    def __init__(self, *, timeout: float = 10.0, client_configuration: Optional[QCSClientConfiguration] = None):
+    def __init__(self, *, timeout: float = 10.0, client_configuration: Optional[QcsClient] = None):
         """
         Client to communicate with the benchmarking data endpoint.
 
@@ -43,7 +44,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         """
 
         self._compiler_client = CompilerClient(
-            client_configuration=client_configuration or QCSClientConfiguration.load(),
+            client_configuration=client_configuration or default_qcs_client(),
             request_timeout=timeout,
         )
 

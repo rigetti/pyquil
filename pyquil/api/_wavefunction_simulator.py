@@ -17,13 +17,13 @@ import warnings
 from typing import Dict, List, Union, Optional, Set, cast, Iterable, Sequence, Tuple
 
 import numpy as np
-from qcs_api_client.client import QCSClientConfiguration
-
+import qcs_sdk
 
 from pyquil.api._qvm import (
     validate_qubit_list,
     validate_noise_probabilities,
 )
+from pyquil.api._qcs_client import default_qcs_client
 from pyquil.api._qvm_client import (
     MeasureExpectationRequest,
     GetWavefunctionRequest,
@@ -45,7 +45,7 @@ class WavefunctionSimulator:
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClientConfiguration] = None,
+        client_configuration: Optional[qcs_sdk.QcsClient] = None,
     ) -> None:
         """
         A simulator that propagates a wavefunction representation of a quantum state.
@@ -72,7 +72,7 @@ class WavefunctionSimulator:
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
-        client_configuration = client_configuration or QCSClientConfiguration.load()
+        client_configuration = client_configuration or default_qcs_client()
         self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
 
     def wavefunction(

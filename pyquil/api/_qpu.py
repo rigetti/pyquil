@@ -19,13 +19,12 @@ from collections import defaultdict
 from typing import Dict, Optional
 
 import numpy as np
-from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import ParameterSpec
 
-from pyquil.api import QuantumExecutable, EncryptedProgram, EngagementManager
+from pyquil.api import QuantumExecutable, EncryptedProgram
 
 from pyquil.api._qam import QAM, QAMExecutionResult
-from pyquil.api._qpu_client import QPUClient, BufferResponse
+from pyquil.api._qcs_client import default_qcs_client
 from pyquil.quilatom import (
     MemoryReference,
 )
@@ -52,7 +51,6 @@ def _extract_memory_regions(
     ro_sources: Dict[MemoryReference, str],
     buffers: Dict[str, np.ndarray],
 ) -> Dict[str, np.ndarray]:
-
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
     num_shots = first.shape[0]
@@ -107,14 +105,16 @@ class QPUExecuteResponse:
 
 
 class QPU(QAM[QPUExecuteResponse]):
+    _quantum_processor_id: str
+    _endpoint_id: Optional[str]
+    _timeout: float
+
     def __init__(
         self,
         *,
         quantum_processor_id: str,
-        priority: int = 1,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClientConfiguration] = None,
-        engagement_manager: Optional[EngagementManager] = None,
+        client_configuration: Optional[qcs_sdk.QcsClient] = None,
         endpoint_id: Optional[str] = None,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
         use_gateway: bool = True,
@@ -123,38 +123,28 @@ class QPU(QAM[QPUExecuteResponse]):
         A connection to the QPU.
 
         :param quantum_processor_id: Processor to run against.
-        :param priority: The priority with which to insert jobs into the QPU queue. Lower integers
-            correspond to higher priority.
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
-        :param endpoint_id: Optional endpoint ID to be used for engagement.
-        :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
+        :param endpoint_id: Optional endpoint ID to be used for execution.
         :param use_gateway: Disable to skip the Gateway server and perform direct execution.
         """
         super().__init__()
 
-        self.priority = priority
-
-        client_configuration = client_configuration or QCSClientConfiguration.load()
-        engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
-        self._qpu_client = QPUClient(
-            quantum_processor_id=quantum_processor_id,
-            endpoint_id=endpoint_id,
-            engagement_manager=engagement_manager,
-            request_timeout=timeout,
-        )
-        self._last_results: Dict[str, np.ndarray] = {}
-        self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
+        client_configuration = client_configuration or default_qcs_client()
 
         if event_loop is None:
             event_loop = asyncio.get_event_loop()
+
+        self._endpoint_id = endpoint_id
         self._event_loop = event_loop
+        self._quantum_processor_id = quantum_processor_id
+        self._timeout = timeout
         self._use_gateway = use_gateway
 
     @property
     def quantum_processor_id(self) -> str:
         """ID of quantum processor targeted."""
-        return self._qpu_client.quantum_processor_id
+        return self._quantum_processor_id
 
     def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
         """

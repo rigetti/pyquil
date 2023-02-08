@@ -14,30 +14,24 @@
 #    limitations under the License.
 ##############################################################################
 import asyncio
-from contextlib import contextmanager
-from typing import Iterator
 
-import httpx
-from qcs_api_client.client import QCSClientConfiguration, build_sync_client
+import qcs_sdk
 
 
-@contextmanager
-def qcs_client(
-    *,
-    client_configuration: QCSClientConfiguration,
-    request_timeout: float = 10.0,
-) -> Iterator[httpx.Client]:
+def default_qcs_client() -> qcs_sdk.QcsClient:
     """
-    Build a QCS client.
+    Load a QCS Client.
 
-    :param client_configuration: Client configuration.
-    :param request_timeout: Time limit for requests, in seconds.
+    Raises:
+        ``QcsLoadError``: If the client fails to load.
     """
+
     _ensure_event_loop()
-    with build_sync_client(
-        configuration=client_configuration, client_kwargs={"timeout": request_timeout}
-    ) as client:  # type: httpx.Client
-        yield client
+
+    async def _load():
+        return await qcs_sdk.QcsClient.load()
+
+    return asyncio.get_event_loop().run_until_complete(_load())
 
 
 def _ensure_event_loop() -> None:

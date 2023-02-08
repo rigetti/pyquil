@@ -37,17 +37,14 @@ from typing import (
 
 import networkx as nx
 import numpy as np
-from qcs_api_client.client import QCSClientConfiguration
-from qcs_api_client.models import ListQuantumProcessorsResponse
-from qcs_api_client.operations.sync import list_quantum_processors
+import qcs_sdk
 from rpcq.messages import ParameterAref
 
-from pyquil.api import EngagementManager
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 
 from pyquil.api._qam import QAM, QAMExecutionResult
-from pyquil.api._qcs_client import qcs_client
+from pyquil.api._qcs_client import default_qcs_client
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
@@ -417,7 +414,7 @@ def list_quantum_computers(
     qpus: bool = True,
     qvms: bool = True,
     timeout: float = 10.0,
-    client_configuration: Optional[QCSClientConfiguration] = None,
+    client_configuration: Optional[qcs_sdk.QcsClient] = None,
 ) -> List[str]:
     """
     List the names of available quantum computers
@@ -427,15 +424,14 @@ def list_quantum_computers(
     :param timeout: Time limit for request, in seconds.
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
     """
-    client_configuration = client_configuration or QCSClientConfiguration.load()
     qc_names: List[str] = []
     if qpus:
-        with qcs_client(
-            client_configuration=client_configuration, request_timeout=timeout
-        ) as client:  # type: httpx.Client
-            qcs: ListQuantumProcessorsResponse = list_quantum_processors(client=client, page_size=100).parsed
 
-        qc_names += [qc.id for qc in qcs.quantum_processors]
+        async def _load_qpus() -> List[str]:
+            return await qcs_sdk.list_quantum_processors(client=client_configuration, timeout=timeout)
+
+        qpu_names = asyncio.get_event_loop().run_until_complete(_load_qpus())
+        qc_names += qpu_names
 
     if qvms:
         qc_names += ["9q-square-qvm", "9q-square-noisy-qvm"]
@@ -511,7 +507,7 @@ def _canonicalize_name(prefix: str, qvm_type: Optional[str], noisy: bool) -> str
 
 def _get_qvm_or_pyqvm(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: qcs_sdk.QcsClient,
     qvm_type: str,
     noise_model: Optional[NoiseModel],
     quantum_processor: Optional[AbstractQuantumProcessor],
@@ -528,7 +524,7 @@ def _get_qvm_or_pyqvm(
 
 def _get_qvm_qc(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: qcs_sdk.QcsClient,
     name: str,
     qvm_type: str,
     quantum_processor: AbstractQuantumProcessor,
@@ -571,7 +567,7 @@ def _get_qvm_qc(
 
 def _get_qvm_with_topology(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: qcs_sdk.QcsClient,
     name: str,
     topology: nx.Graph,
     noisy: bool,
@@ -616,7 +612,7 @@ def _get_qvm_with_topology(
 
 def _get_9q_square_qvm(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: qcs_sdk.QcsClient,
     name: str,
     noisy: bool,
     qvm_type: str,
@@ -653,7 +649,7 @@ def _get_9q_square_qvm(
 
 def _get_unrestricted_qvm(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: qcs_sdk.QcsClient,
     name: str,
     noisy: bool,
     n_qubits: int,
@@ -691,7 +687,7 @@ def _get_unrestricted_qvm(
 
 def _get_qvm_based_on_real_quantum_processor(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: qcs_sdk.QcsClient,
     name: str,
     quantum_processor: QCSQuantumProcessor,
     noisy: bool,
@@ -738,9 +734,8 @@ def get_qc(
     noisy: Optional[bool] = None,
     compiler_timeout: float = 30.0,
     execution_timeout: float = 30.0,
-    client_configuration: Optional[QCSClientConfiguration] = None,
+    client_configuration: Optional[qcs_sdk.QcsClient] = None,
     endpoint_id: Optional[str] = None,
-    engagement_manager: Optional[EngagementManager] = None,
     event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
@@ -813,15 +808,13 @@ def get_qc(
         For more information on setting up QCS credentials, see documentation for using the QCS CLI:
         [https://docs.rigetti.com/qcs/guides/using-the-qcs-cli#configuring-credentials].
     :param endpoint_id: Optional quantum processor endpoint ID, as used in the `QCS API Docs`_.
-    :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
 
     :return: A pre-configured QuantumComputer
 
     .. _QCS API Docs: https://docs.api.qcs.rigetti.com/#tag/endpoints
     """
 
-    client_configuration = client_configuration or QCSClientConfiguration.load()
-    engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
+    client_configuration = client_configuration or default_qcs_client()
 
     if event_loop is None:
         event_loop = asyncio.get_event_loop()
@@ -890,7 +883,6 @@ def get_qc(
             timeout=execution_timeout,
             client_configuration=client_configuration,
             endpoint_id=endpoint_id,
-            engagement_manager=engagement_manager,
             event_loop=event_loop,
         )
         compiler = QPUCompiler(

@@ -25,6 +25,7 @@ import qcs_sdk
 from pyquil._memory import Memory
 from pyquil._version import pyquil_version
 from pyquil.api._compiler_client import CompilerClient, CompileToNativeQuilRequest
+from pyquil.api._qcs_client import default_qcs_client
 from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
 from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
@@ -32,7 +33,6 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import ExpressionDesignator, MemoryReference
 from pyquil.quilbase import Gate
-from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import NativeQuilMetadata, ParameterAref, ParameterSpec
 
 
@@ -95,13 +95,13 @@ class AbstractCompiler(ABC):
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
-        client_configuration: Optional[QCSClientConfiguration] = None,
+        client_configuration: Optional[qcs_sdk.QcsClient] = None,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
 
-        self._client_configuration = client_configuration or QCSClientConfiguration.load()
+        self._client_configuration = client_configuration or default_qcs_client()
 
         if event_loop is None:
             event_loop = asyncio.get_event_loop()

@@ -20,7 +20,6 @@ from typing import Iterator, List, Optional
 
 import qcs_sdk
 import rpcq
-from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
 
@@ -156,7 +155,7 @@ class CompilerClient:
     def __init__(
         self,
         *,
-        client_configuration: QCSClientConfiguration,
+        client_configuration: qcs_sdk.QcsClient,
         request_timeout: float = 10.0,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
