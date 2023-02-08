@@ -22,10 +22,9 @@ import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import ParameterSpec
 
-from pyquil.api import QuantumExecutable, EncryptedProgram, EngagementManager
+from pyquil.api import QuantumExecutable, EncryptedProgram
 
 from pyquil.api._qam import QAM, QAMExecutionResult
-from pyquil.api._qpu_client import QPUClient, BufferResponse
 from pyquil.quilatom import (
     MemoryReference,
 )
@@ -114,7 +113,6 @@ class QPU(QAM[QPUExecuteResponse]):
         priority: int = 1,
         timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
-        engagement_manager: Optional[EngagementManager] = None,
         endpoint_id: Optional[str] = None,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
         use_gateway: bool = True,
@@ -127,8 +125,7 @@ class QPU(QAM[QPUExecuteResponse]):
             correspond to higher priority.
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
-        :param endpoint_id: Optional endpoint ID to be used for engagement.
-        :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
+        :param endpoint_id: Optional endpoint ID to be used for execution.
         :param use_gateway: Disable to skip the Gateway server and perform direct execution.
         """
         super().__init__()
@@ -136,15 +133,10 @@ class QPU(QAM[QPUExecuteResponse]):
         self.priority = priority
 
         client_configuration = client_configuration or QCSClientConfiguration.load()
-        engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
-        self._qpu_client = QPUClient(
-            quantum_processor_id=quantum_processor_id,
-            endpoint_id=endpoint_id,
-            engagement_manager=engagement_manager,
-            request_timeout=timeout,
-        )
         self._last_results: Dict[str, np.ndarray] = {}
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
+        self._quantum_processor_id = quantum_processor_id
+        self._endpoint_id = endpoint_id
 
         if event_loop is None:
             event_loop = asyncio.get_event_loop()
@@ -154,7 +146,7 @@ class QPU(QAM[QPUExecuteResponse]):
     @property
     def quantum_processor_id(self) -> str:
         """ID of quantum processor targeted."""
-        return self._qpu_client.quantum_processor_id
+        return self._quantum_processor_id
 
     def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
         """
