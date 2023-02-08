@@ -43,6 +43,7 @@ from pyquil._memory import Memory
 from pyquil.gates import MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
+    Label,
     LabelPlaceholder,
     MemoryReference,
     MemoryReferenceDesignator,
@@ -64,6 +65,7 @@ from pyquil.quilbase import (
     Pragma,
     AbstractInstruction,
     Jump,
+    JumpConditional,
     JumpTarget,
     JumpUnless,
     JumpWhen,
@@ -221,10 +223,7 @@ class Program:
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
             else:
-                try:
-                    self.inst(str(instruction))
-                except Exception:
-                    raise TypeError("Invalid instruction: {}".format(repr(instruction)))
+                self.inst(str(instruction))
 
         return self
 
@@ -844,22 +843,7 @@ def merge_with_pauli_noise(
     return p
 
 
-def merge_programs(prog_list: Sequence[Program]) -> Program:
-    """
-    Merges a list of pyQuil programs into a single one by appending them in sequence.
-
-    :param prog_list: A list of pyquil programs
-    :return: a single pyQuil program
-    .. deprecated:: 4.0
-       This function will be removed in future versions. Instead, use addition to combine
-       programs together.
-    """
-    merged_program = Program()
-    for prog in prog_list:
-        merged_program += prog
-    return merged_program
-
-
+# TODO: These should come from quil-rs. Requires Instruction::Measurement be ported
 def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int]]:
     """
     Returns a sorted list of classical addresses found in the MEASURE instructions in the program.
@@ -885,6 +869,71 @@ def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int
     return flattened_addresses
 
 
+def address_qubits(
+    program: Program, qubit_mapping: Optional[Dict[QubitPlaceholder, Union[Qubit, int]]] = None
+) -> Program:
+    """
+    Takes a program which contains placeholders and assigns them all defined values.
+    Either all qubits must be defined or all undefined. If qubits are
+    undefined, you may provide a qubit mapping to specify how placeholders get mapped
+    to actual qubits. If a mapping is not provided, integers 0 through N are used.
+    This function will also instantiate any label placeholders.
+    :param program: The program.
+    :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
+        to :py:class:`Qubit` or ``int`` (but not both).
+    :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
+
+    .. deprecated:: 4.0
+       Qubit placeholders are now managed internally by the Program. This is a no-op and will be
+       removed in future versions of pyQuil
+    """
+    return program
+
+
+def _get_label(
+    placeholder: LabelPlaceholder,
+    label_mapping: Dict[LabelPlaceholder, Label],
+    label_i: int,
+) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
+    """Helper function to either get the appropriate label for a given placeholder or generate
+    a new label and update the mapping.
+    See :py:func:`instantiate_labels` for usage.
+    """
+    if placeholder in label_mapping:
+        return label_mapping[placeholder], label_mapping, label_i
+
+    new_target = Label("{}{}".format(placeholder.prefix, label_i))
+    label_i += 1
+    label_mapping[placeholder] = new_target
+    return new_target, label_mapping, label_i
+
+
+def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[AbstractInstruction]:
+    """
+    Takes an iterable of instructions which may contain label placeholders and assigns
+    them all defined values.
+    :return: list of instructions with all label placeholders assigned to real labels.
+    """
+    label_i = 1
+    result: List[AbstractInstruction] = []
+    label_mapping: Dict[LabelPlaceholder, Label] = dict()
+    for instr in instructions:
+        if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
+            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+            result.append(Jump(new_target))
+        elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
+            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+            cls = instr.__class__  # Make the correct subclass
+            result.append(cls(new_target, instr.condition))
+        elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
+            new_label, label_mapping, label_i = _get_label(instr.label, label_mapping, label_i)
+            result.append(JumpTarget(new_label))
+        else:
+            result.append(instr)
+
+    return result
+
+
 def percolate_declares(program: Program) -> Program:
     """
     Move all the DECLARE statements to the top of the program. Return a fresh object.
@@ -896,6 +945,22 @@ def percolate_declares(program: Program) -> Program:
        in future versions of pyQuil.
     """
     return program
+
+
+def merge_programs(prog_list: Sequence[Program]) -> Program:
+    """
+    Merges a list of pyQuil programs into a single one by appending them in sequence.
+
+    :param prog_list: A list of pyquil programs
+    :return: a single pyQuil program
+    .. deprecated:: 4.0
+       This function will be removed in future versions. Instead, use addition to combine
+       programs together.
+    """
+    merged_program = Program()
+    for prog in prog_list:
+        merged_program += prog
+    return merged_program
 
 
 def validate_protoquil(program: Program, quilt: bool = False) -> None:
