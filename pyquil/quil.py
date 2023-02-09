@@ -308,18 +308,18 @@ class Program:
                             gate if gate.name != instruction.name else instruction for gate in self._defined_gates
                         ]
 
-            elif isinstance(instruction, DefCalibration) or isinstance(instruction, DefMeasureCalibration):
+            elif isinstance(instruction, DefCalibration):
                 # If the instruction calibration differs from the current one, print a warning and replace it.
                 existing_calibration = next(
-                    (gate for gate in self.calibrations if (gate.name == instruction.name)),
+                    (
+                        gate
+                        for gate in self.calibrations
+                        if isinstance(gate, DefCalibration)
+                        and (gate.name == instruction.name)
+                        and (gate.parameters == instruction.parameters)
+                    ),
                     None,
                 )
-                if (
-                    existing_calibration
-                    and isinstance(instruction, DefCalibration)
-                    and existing_calibration.parameters != instruction.parameters
-                ):
-                    existing_calibration = None
 
                 if existing_calibration is None:
                     self._calibrations.append(instruction)
@@ -327,8 +327,30 @@ class Program:
                     if existing_calibration.out() != instruction.out():
                         warnings.warn("Redefining calibration {}".format(instruction.name))
                         self._calibrations = [
-                            cal if cal.name != instruction.name else instruction for cal in self.calibrations
+                            instruction
+                            if isinstance(cal, DefCalibration)
+                            and cal.name == instruction.name
+                            and cal.parameters == instruction.parameters
+                            else cal
+                            for cal in self.calibrations
                         ]
+            elif isinstance(instruction, DefMeasureCalibration):
+                existing_calibration = next(
+                    (
+                        meas
+                        for meas in self.calibrations
+                        if isinstance(meas, DefMeasureCalibration) and (meas.name == instruction.name)
+                    ),
+                    None,
+                )
+                if existing_calibration is None:
+                    self._calibrations.append(instruction)
+                else:
+                    warnings.warn("Redefining DefMeasureCalibration {}".format(instruction.name))
+                    self._calibrations = [
+                        instruction if cal.name == instruction.name else cal for cal in self.calibrations
+                    ]
+
             elif isinstance(instruction, DefWaveform):
                 self.waveforms[instruction.name] = instruction
             elif isinstance(instruction, DefFrame):
