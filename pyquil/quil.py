@@ -290,35 +290,40 @@ class Program:
             # Implementation note: these two base cases are the only ones which modify the program
             elif isinstance(instruction, DefGate):
                 # If the gate definition differs from the current one, print a warning and replace it.
-                existing_defgate = next((gate for gate in self._defined_gates if gate.name == instruction.name), None)
+                r_idx, existing_defgate = next(
+                    (
+                        (i, gate)
+                        for i, gate in enumerate(reversed(self._defined_gates))
+                        if gate.name == instruction.name
+                    ),
+                    (0, None),
+                )
                 if existing_defgate is None:
                     self._defined_gates.append(instruction)
+
                 # numerical unitary
                 elif (instruction.matrix.dtype == np.complex_) or (instruction.matrix.dtype == np.float_):
                     if not np.allclose(existing_defgate.matrix, instruction.matrix):
                         warnings.warn("Redefining gate {}".format(instruction.name))
-                        self._defined_gates = [
-                            gate if gate.name != instruction.name else instruction for gate in self._defined_gates
-                        ]
+                        self._defined_gates[-r_idx] = instruction
+
                 # parametric unitary
                 else:
                     if not np.all(existing_defgate.matrix == instruction.matrix):
                         warnings.warn("Redefining gate {}".format(instruction.name))
-                        self._defined_gates = [
-                            gate if gate.name != instruction.name else instruction for gate in self._defined_gates
-                        ]
+                        self._defined_gates[-r_idx] = instruction
 
             elif isinstance(instruction, DefCalibration):
                 # If the instruction calibration differs from the current one, print a warning and replace it.
-                existing_calibration = next(
+                r_idx, existing_calibration = next(
                     (
-                        gate
-                        for gate in self.calibrations
+                        (i, gate)
+                        for i, gate in enumerate(reversed(self.calibrations))
                         if isinstance(gate, DefCalibration)
                         and (gate.name == instruction.name)
                         and (gate.parameters == instruction.parameters)
                     ),
-                    None,
+                    (0, None),
                 )
 
                 if existing_calibration is None:
@@ -326,30 +331,22 @@ class Program:
                 else:
                     if existing_calibration.out() != instruction.out():
                         warnings.warn("Redefining calibration {}".format(instruction.name))
-                        self._calibrations = [
-                            instruction
-                            if isinstance(cal, DefCalibration)
-                            and cal.name == instruction.name
-                            and cal.parameters == instruction.parameters
-                            else cal
-                            for cal in self.calibrations
-                        ]
+                        self._calibrations[-r_idx] = instruction
+
             elif isinstance(instruction, DefMeasureCalibration):
-                existing_calibration = next(
+                r_idx, existing_measure_calibration = next(
                     (
-                        meas
-                        for meas in self.calibrations
+                        (i, meas)
+                        for i, meas in enumerate(reversed(self.calibrations))
                         if isinstance(meas, DefMeasureCalibration) and (meas.name == instruction.name)
                     ),
-                    None,
+                    (0, None),
                 )
-                if existing_calibration is None:
+                if existing_measure_calibration is None:
                     self._calibrations.append(instruction)
                 else:
                     warnings.warn("Redefining DefMeasureCalibration {}".format(instruction.name))
-                    self._calibrations = [
-                        instruction if cal.name == instruction.name else cal for cal in self.calibrations
-                    ]
+                    self._calibrations[-r_idx] = instruction
 
             elif isinstance(instruction, DefWaveform):
                 self.waveforms[instruction.name] = instruction

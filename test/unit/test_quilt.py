@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 
 from pyquil.quil import Program
+from pyquil.gates import RX
 from pyquil.quilatom import (
     MemoryReference,
     Parameter,
@@ -183,10 +184,8 @@ def test_apply_match_delay_qubits():
 
 
 def test_program_match_last():
-    first = DefCalibration("X", [], [Qubit(0)], ["foo"])
-    second = DefCalibration("X", [], [Qubit(0)], ["bar"])
-    print(first)
-    print(second)
+    first = DefCalibration("X", [], [Qubit(0)], [RX(np.pi / 2, 0)])
+    second = DefCalibration("X", [], [Qubit(0)], [RX(-np.pi / 2, 0)])
     prog = Program(first, second)
     match = prog.match_calibrations(Gate("X", [], [Qubit(0)]))
     assert match == CalibrationMatch(cal=second, settings={})
