@@ -142,6 +142,7 @@ class AbstractCompiler(ABC):
                 program.out(calibrations=False),
                 json.dumps(target_device.asdict(), indent=2),  # type: ignore
                 timeout=self._compiler_client.timeout,
+                protoquil=protoquil,
             )
         )
 
