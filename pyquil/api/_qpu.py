@@ -189,7 +189,7 @@ class QPU(QAM[QPUExecuteResponse]):
             return await qcs_sdk.retrieve_results(*args)
 
         results = self._event_loop.run_until_complete(
-            _get_result(execute_response.job_id, self.quantum_processor_id, self._use_gateway)
+            _get_result(execute_response.job_id, self.quantum_processor_id, self._use_gateway)  # type: ignore
         )
 
         ro_sources = execute_response._executable.ro_sources

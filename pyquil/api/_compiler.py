@@ -114,7 +114,7 @@ class QPUCompiler(AbstractCompiler):
                 rewrite_response["program"],
                 nq_program.num_shots,
                 self.quantum_processor_id,
-            )
+            )  # type: ignore
         )
 
         return EncryptedProgram(
