@@ -171,7 +171,7 @@ class QPU(QAM[QPUExecuteResponse]):
             mem_values[k.name].append(v)
         patch_values = qcs_sdk.build_patch_values(executable.recalculation_table, mem_values)
 
-        async def _submit(*args):  # type: ignore
+        async def _submit(*args) -> str:  # type: ignore
             return await qcs_sdk.submit(*args)
 
         job_id = self._event_loop.run_until_complete(
@@ -185,7 +185,7 @@ class QPU(QAM[QPUExecuteResponse]):
         Retrieve results from execution on the QPU.
         """
 
-        async def _get_result(*args) -> qcs_sdk.ExecutionResults:  # type: ignore
+        async def _get_result(*args):  # type: ignore
             return await qcs_sdk.retrieve_results(*args)
 
         results = self._event_loop.run_until_complete(
