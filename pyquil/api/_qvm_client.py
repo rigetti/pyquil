@@ -169,13 +169,14 @@ class QVMClient:
         self.base_url = client_configuration.profile.applications.pyquil.qvm_url
         self.timeout = request_timeout
 
-    def get_version(self) -> str:
+    async def get_version(self) -> str:
         """
         Get version info for QVM server.
         """
-        return self._post_json({"type": "version"}).text.split()[0]
+        response = await self._post_json({"type": "version"})
+        return response.text.split()[0]
 
-    def run_program(self, request: RunProgramRequest) -> RunProgramResponse:
+    async def run_program(self, request: RunProgramRequest) -> RunProgramResponse:
         """
         Run a Quil program and return its results.
         """
@@ -195,9 +196,10 @@ class QVMClient:
         if request.seed is not None:
             payload["rng-seed"] = request.seed
 
-        return RunProgramResponse(results=cast(Dict[str, List[List[int]]], self._post_json(payload).json()))
+        response = await self._post_json(payload)
+        return RunProgramResponse(results=cast(Dict[str, List[List[int]]], response.json()))
 
-    def run_and_measure_program(self, request: RunAndMeasureProgramRequest) -> RunAndMeasureProgramResponse:
+    async def run_and_measure_program(self, request: RunAndMeasureProgramRequest) -> RunAndMeasureProgramResponse:
         """
         Run and measure a Quil program, and return its results.
         """
@@ -217,9 +219,10 @@ class QVMClient:
         if request.seed is not None:
             payload["rng-seed"] = request.seed
 
-        return RunAndMeasureProgramResponse(results=cast(List[List[int]], self._post_json(payload).json()))
+        response = await self._post_json(payload)
+        return RunAndMeasureProgramResponse(results=cast(List[List[int]], response.json()))
 
-    def measure_expectation(self, request: MeasureExpectationRequest) -> MeasureExpectationResponse:
+    async def measure_expectation(self, request: MeasureExpectationRequest) -> MeasureExpectationResponse:
         """
         Measure expectation value of Pauli operators given a defined state.
         """
@@ -232,9 +235,10 @@ class QVMClient:
         if request.seed is not None:
             payload["rng-seed"] = request.seed
 
-        return MeasureExpectationResponse(expectations=cast(List[float], self._post_json(payload).json()))
+        response = await self._post_json(payload)
+        return MeasureExpectationResponse(expectations=cast(List[float], response.json()))
 
-    def get_wavefunction(self, request: GetWavefunctionRequest) -> GetWavefunctionResponse:
+    async def get_wavefunction(self, request: GetWavefunctionRequest) -> GetWavefunctionResponse:
         """
         Run a program and retrieve the resulting wavefunction.
         """
@@ -252,18 +256,19 @@ class QVMClient:
         if request.seed is not None:
             payload["rng-seed"] = request.seed
 
-        return GetWavefunctionResponse(wavefunction=self._post_json(payload).content)
+        response = await self._post_json(payload)
+        return GetWavefunctionResponse(wavefunction=response.content)
 
-    def _post_json(self, json: Dict[str, Any]) -> httpx.Response:
-        with self._http_client() as http:  # type: httpx.Client
-            response = http.post("/", json=json)
+    async def _post_json(self, json: Dict[str, Any]) -> httpx.Response:
+        with self._http_client() as http:
+            response = await http.post("/", json=json)
             if response.status_code >= 400:
                 raise self._parse_error(response)
         return response
 
     @contextmanager
-    def _http_client(self) -> Iterator[httpx.Client]:
-        with httpx.Client(base_url=self.base_url, timeout=self.timeout) as client:
+    def _http_client(self) -> Iterator[httpx.AsyncClient]:
+        with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout) as client:
             yield client
 
     @staticmethod

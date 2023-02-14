@@ -122,9 +122,9 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         except ConnectionError:
             raise QVMNotRunning(f"No QVM server running at {self._qvm_client.base_url}")
 
-    def execute(self, executable: QuantumExecutable) -> QVMExecuteResponse:
+    async def execute(self, executable: QuantumExecutable) -> QVMExecuteResponse:
         """
-        Synchronously execute the input program to completion.
+        Execute the input program to completion.
         """
         executable = executable.copy()
 
@@ -152,27 +152,27 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             self.gate_noise,
             self.random_seed,
         )
-        response = self._qvm_client.run_program(request)
+        response = await self._qvm_client.run_program(request)
         ram = {key: np.array(val) for key, val in response.results.items()}
         result_memory.update(ram)
 
         return QVMExecuteResponse(executable=executable, memory=result_memory)
 
-    def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
+    async def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
         Return the results of execution on the QVM.
 
-        Because QVM execution is synchronous, this is a no-op which returns its input.
+        Because the QVM execution response already has results, this is a no-op which returns its input.
         """
         return QAMExecutionResult(executable=execute_response.executable, readout_data=execute_response.memory)
 
-    def get_version_info(self) -> str:
+    async def get_version_info(self) -> str:
         """
         Return version information for the QVM.
 
         :return: String with version information
         """
-        return self._qvm_client.get_version()
+        return await self._qvm_client.get_version()
 
 
 def validate_noise_probabilities(noise_parameter: Optional[Tuple[float, float, float]]) -> None:

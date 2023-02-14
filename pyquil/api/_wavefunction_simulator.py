@@ -75,7 +75,7 @@ class WavefunctionSimulator:
         client_configuration = client_configuration or QCSClientConfiguration.load()
         self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
 
-    def wavefunction(
+    async def wavefunction(
         self, quil_program: Program, memory_map: Optional[Dict[str, List[Union[int, float]]]] = None
     ) -> Wavefunction:
         """
@@ -101,10 +101,10 @@ class WavefunctionSimulator:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
         request = self._wavefunction_request(quil_program=quil_program)
-        response = self._qvm_client.get_wavefunction(request)
+        response = await self._qvm_client.get_wavefunction(request)
         return Wavefunction.from_bit_packed_string(response.wavefunction)
 
-    def expectation(
+    async def expectation(
         self,
         prep_prog: Program,
         pauli_terms: Union[PauliSum, List[PauliTerm]],
@@ -145,13 +145,13 @@ class WavefunctionSimulator:
         if memory_map is not None:
             prep_prog = self.augment_program_with_memory_values(prep_prog, memory_map)
 
-        bare_results = self._expectation(prep_prog, progs)
+        bare_results = await self._expectation(prep_prog, progs)
         results = coeffs * bare_results
         if is_pauli_sum:
             return np.sum(results)  # type: ignore
         return results  # type: ignore
 
-    def _expectation(self, prep_prog: Program, operator_programs: Iterable[Program]) -> np.ndarray:
+    async def _expectation(self, prep_prog: Program, operator_programs: Iterable[Program]) -> np.ndarray:
         if isinstance(operator_programs, Program):
             warnings.warn(
                 "You have provided a Program rather than a list of Programs. The results "
@@ -164,10 +164,10 @@ class WavefunctionSimulator:
             prep_prog=prep_prog,
             operator_programs=operator_programs,
         )
-        response = self._qvm_client.measure_expectation(request)
+        response = await self._qvm_client.measure_expectation(request)
         return np.asarray(response.expectations)
 
-    def run_and_measure(
+    async def run_and_measure(
         self,
         quil_program: Program,
         qubits: Optional[List[int]] = None,
@@ -215,7 +215,7 @@ class WavefunctionSimulator:
             qubits=qubits,
             trials=trials,
         )
-        response = self._qvm_client.run_and_measure_program(request)
+        response = await self._qvm_client.run_and_measure_program(request)
         return np.asarray(response.results)
 
     @staticmethod

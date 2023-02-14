@@ -47,7 +47,7 @@ class BenchmarkConnection(AbstractBenchmarker):
             request_timeout=timeout,
         )
 
-    def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
+    async def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
         r"""
         Given a circuit that consists only of elements of the Clifford group,
         return its action on a PauliTerm.
@@ -70,7 +70,7 @@ class BenchmarkConnection(AbstractBenchmarker):
             pauli_symbols=list(indices_and_terms[1]),
             clifford=clifford.out(calibrations=False),
         )
-        response = self._compiler_client.conjugate_pauli_by_clifford(request)
+        response = await self._compiler_client.conjugate_pauli_by_clifford(request)
 
         phase_factor, paulis = response.phase_factor, response.pauli
 
@@ -84,7 +84,7 @@ class BenchmarkConnection(AbstractBenchmarker):
             pauli_out = cast(PauliTerm, pauli_out * PauliTerm(pauli, all_qubits[i]))
         return cast(PauliTerm, pauli_out * pauli_in.coefficient)
 
-    def generate_rb_sequence(
+    async def generate_rb_sequence(
         self,
         depth: int,
         gateset: Sequence[Gate],
@@ -140,7 +140,7 @@ class BenchmarkConnection(AbstractBenchmarker):
             seed=seed,
             interleaver=interleaver_out,
         )
-        response = self._compiler_client.generate_randomized_benchmarking_sequence(request)
+        response = await self._compiler_client.generate_randomized_benchmarking_sequence(request)
 
         programs = []
         for clifford in response.sequence:

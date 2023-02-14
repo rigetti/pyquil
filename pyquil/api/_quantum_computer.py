@@ -38,15 +38,13 @@ from typing import (
 import networkx as nx
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
-from qcs_api_client.models import ListQuantumProcessorsResponse
-from qcs_api_client.operations.sync import list_quantum_processors
+import qcs_sdk
 from rpcq.messages import ParameterAref
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 
 from pyquil.api._qam import QAM, QAMExecutionResult
-from pyquil.api._qcs_client import qcs_client
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
@@ -134,7 +132,7 @@ class QuantumComputer:
         """
         return self.compiler.quantum_processor.to_compiler_isa()
 
-    def run(
+    async def run(
         self,
         executable: QuantumExecutable,
     ) -> QAMExecutionResult:
@@ -145,9 +143,9 @@ class QuantumComputer:
         :param executable: The program to run, previously compiled as needed for its target QAM.
         :return: execution result including readout data.
         """
-        return self.qam.run(executable)
+        return await self.qam.run(executable)
 
-    def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
+    async def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
         Perform readout calibration on the various multi-qubit observables involved in the provided
         ``Experiment``.
@@ -157,9 +155,9 @@ class QuantumComputer:
             correspond to the scale factors resulting from symmetric readout error.
         """
         calibration_experiment = experiment.generate_calibration_experiment()
-        return self.run_experiment(calibration_experiment)
+        return await self.run_experiment(calibration_experiment)
 
-    def run_experiment(
+    async def run_experiment(
         self,
         experiment: Experiment,
         memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
@@ -213,7 +211,7 @@ class QuantumComputer:
         """
 
         experiment_program = experiment.generate_experiment_program()
-        executable = self.compile(experiment_program)
+        executable = await self.compile(experiment_program)
 
         if memory_map is None:
             memory_map = {}
@@ -274,7 +272,7 @@ class QuantumComputer:
             results.append(result)
         return results
 
-    def run_symmetrized_readout(
+    async def run_symmetrized_readout(
         self,
         program: Program,
         trials: int,
@@ -360,11 +358,11 @@ class QuantumComputer:
                 f"chosen."
             )
 
-        results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
+        results = await _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
 
-    def compile(
+    async def compile(
         self,
         program: Program,
         to_native_gates: bool = True,
@@ -399,11 +397,11 @@ class QuantumComputer:
         quilc = all(flags)
 
         if quilc:
-            nq_program = self.compiler.quil_to_native_quil(program, protoquil=protoquil)
+            nq_program = await self.compiler.quil_to_native_quil(program, protoquil=protoquil)
         else:
             nq_program = program
 
-        return self.compiler.native_quil_to_executable(nq_program)
+        return await self.compiler.native_quil_to_executable(nq_program)
 
     def __str__(self) -> str:
         return self.name
@@ -412,7 +410,7 @@ class QuantumComputer:
         return f'QuantumComputer[name="{self.name}"]'
 
 
-def list_quantum_computers(
+async def list_quantum_computers(
     qpus: bool = True,
     qvms: bool = True,
     timeout: float = 10.0,
@@ -426,15 +424,9 @@ def list_quantum_computers(
     :param timeout: Time limit for request, in seconds.
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
     """
-    client_configuration = client_configuration or QCSClientConfiguration.load()
     qc_names: List[str] = []
     if qpus:
-        with qcs_client(
-            client_configuration=client_configuration, request_timeout=timeout
-        ) as client:  # type: httpx.Client
-            qcs: ListQuantumProcessorsResponse = list_quantum_processors(client=client, page_size=100).parsed
-
-        qc_names += [qc.id for qc in qcs.quantum_processors]
+        qc_names += await qcs_sdk.list_quantum_processors(timeout=timeout)
 
     if qvms:
         qc_names += ["9q-square-qvm", "9q-square-noisy-qvm"]
@@ -534,7 +526,6 @@ def _get_qvm_qc(
     compiler_timeout: float,
     execution_timeout: float,
     noise_model: Optional[NoiseModel],
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
 
@@ -563,7 +554,6 @@ def _get_qvm_qc(
             quantum_processor=quantum_processor,
             timeout=compiler_timeout,
             client_configuration=client_configuration,
-            event_loop=event_loop,
         ),
     )
 
@@ -577,7 +567,6 @@ def _get_qvm_with_topology(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
 
@@ -609,7 +598,6 @@ def _get_qvm_with_topology(
         noise_model=noise_model,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
-        event_loop=event_loop,
     )
 
 
@@ -621,7 +609,6 @@ def _get_9q_square_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -646,7 +633,6 @@ def _get_9q_square_qvm(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
-        event_loop=event_loop,
     )
 
 
@@ -659,7 +645,6 @@ def _get_unrestricted_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
@@ -684,7 +669,6 @@ def _get_unrestricted_qvm(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
-        event_loop=event_loop,
     )
 
 
@@ -697,7 +681,6 @@ def _get_qvm_based_on_real_quantum_processor(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A qvm with a based on a real quantum_processor.
@@ -726,11 +709,10 @@ def _get_qvm_based_on_real_quantum_processor(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
-        event_loop=event_loop,
     )
 
 
-def get_qc(
+async def get_qc(
     name: str,
     *,
     as_qvm: Optional[bool] = None,
@@ -739,7 +721,6 @@ def get_qc(
     execution_timeout: float = 30.0,
     client_configuration: Optional[QCSClientConfiguration] = None,
     endpoint_id: Optional[str] = None,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     Get a quantum computer.
@@ -819,9 +800,6 @@ def get_qc(
 
     client_configuration = client_configuration or QCSClientConfiguration.load()
 
-    if event_loop is None:
-        event_loop = asyncio.get_event_loop()
-
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
     del as_qvm  # do not use after _parse_name
@@ -841,7 +819,6 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
-            event_loop=event_loop,
         )
 
     # 3. Check for "9q-square" qvm
@@ -855,7 +832,6 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
-            event_loop=event_loop,
         )
 
     if noisy:
@@ -865,7 +841,7 @@ def get_qc(
         )
 
     # 4. Not a special case, query the web for information about this quantum_processor.
-    quantum_processor = get_qcs_quantum_processor(
+    quantum_processor = await get_qcs_quantum_processor(
         quantum_processor_id=prefix, client_configuration=client_configuration
     )
     if qvm_type is not None:
@@ -878,7 +854,6 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
-            event_loop=event_loop,
         )
     else:
         qpu = QPU(
@@ -886,14 +861,12 @@ def get_qc(
             timeout=execution_timeout,
             client_configuration=client_configuration,
             endpoint_id=endpoint_id,
-            event_loop=event_loop,
         )
         compiler = QPUCompiler(
             quantum_processor_id=prefix,
             quantum_processor=quantum_processor,
             timeout=compiler_timeout,
             client_configuration=client_configuration,
-            event_loop=event_loop,
         )
 
         return QuantumComputer(name=name, qam=qpu, compiler=compiler)
@@ -1111,7 +1084,7 @@ def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: 
     return np.vstack(output)
 
 
-def _measure_bitstrings(
+async def _measure_bitstrings(
     qc: QuantumComputer, programs: List[Program], meas_qubits: List[int], num_shots: int = 600
 ) -> List[np.ndarray]:
     """
@@ -1134,9 +1107,9 @@ def _measure_bitstrings(
             prog += MEASURE(q, ro[idx])
 
         prog.wrap_in_numshots_loop(num_shots)
-        prog = qc.compiler.quil_to_native_quil(prog)
-        executable = qc.compiler.native_quil_to_executable(prog)
-        result = qc.run(executable)
+        prog = await qc.compiler.quil_to_native_quil(prog)
+        executable = await qc.compiler.native_quil_to_executable(prog)
+        result = await qc.run(executable)
         shot_values = result.readout_data.get("ro")
         assert shot_values is not None
         results.append(shot_values)

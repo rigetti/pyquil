@@ -114,7 +114,6 @@ class QPU(QAM[QPUExecuteResponse]):
         timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
         endpoint_id: Optional[str] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
         use_gateway: bool = True,
     ) -> None:
         """
@@ -137,10 +136,6 @@ class QPU(QAM[QPUExecuteResponse]):
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
         self._endpoint_id = endpoint_id
-
-        if event_loop is None:
-            event_loop = asyncio.get_event_loop()
-        self._event_loop = event_loop
         self._use_gateway = use_gateway
 
     @property
@@ -148,7 +143,7 @@ class QPU(QAM[QPUExecuteResponse]):
         """ID of quantum processor targeted."""
         return self._quantum_processor_id
 
-    def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
+    async def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
         job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
@@ -171,25 +166,23 @@ class QPU(QAM[QPUExecuteResponse]):
             mem_values[k.name].append(v)
         patch_values = qcs_sdk.build_patch_values(executable.recalculation_table, mem_values)
 
-        async def _submit(*args) -> str:  # type: ignore
-            return await qcs_sdk.submit(*args)
-
-        job_id = self._event_loop.run_until_complete(
-            _submit(executable.program, patch_values, self.quantum_processor_id, self._use_gateway)
+        job_id = await qcs_sdk.submit(
+            program=executable.program,
+            patch_values=patch_values,
+            quantum_processor_id=self.quantum_processor_id,
+            use_gateway=self._use_gateway,
         )
 
         return QPUExecuteResponse(_executable=executable, job_id=job_id)
 
-    def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
+    async def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
         Retrieve results from execution on the QPU.
         """
-
-        async def _get_result(*args) -> qcs_sdk.ExecutionResults:  # type: ignore
-            return await qcs_sdk.retrieve_results(*args)
-
-        results = self._event_loop.run_until_complete(
-            _get_result(execute_response.job_id, self.quantum_processor_id, self._use_gateway)
+        results = await qcs_sdk.retrieve_results(
+            job_id=execute_response.job_id,
+            quantum_processor_id=self.quantum_processor_id,
+            use_gateway=self._use_gateway,
         )
 
         ro_sources = execute_response._executable.ro_sources

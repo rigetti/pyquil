@@ -87,61 +87,46 @@ QuantumExecutable = Union[EncryptedProgram, Program]
 class AbstractCompiler(ABC):
     """The abstract interface for a compiler."""
 
-    _event_loop: asyncio.AbstractEventLoop
-
     def __init__(
         self,
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
         client_configuration: Optional[QCSClientConfiguration] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
 
         self._client_configuration = client_configuration or QCSClientConfiguration.load()
 
-        if event_loop is None:
-            event_loop = asyncio.get_event_loop()
-        self._event_loop = event_loop
-
-        self._compiler_client = CompilerClient(
-            client_configuration=self._client_configuration, request_timeout=timeout, event_loop=self._event_loop
-        )
+        self._compiler_client = CompilerClient(client_configuration=self._client_configuration, request_timeout=timeout)
 
         self._connect()
 
-    def get_version_info(self) -> Dict[str, Any]:
+    async def get_version_info(self) -> Dict[str, Any]:
         """
         Return version information for this compiler and its dependencies.
 
         :return: Dictionary of version information.
         """
-        return {"quilc": self._compiler_client.get_version()}
+        return {
+            "quilc": await self._compiler_client.get_version(),
+        }
 
-    def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
+    async def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
         Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
-
-        # This is a work-around needed because calling `qcs_sdk.compile` happens _before_
-        # the event loop is available. Wrapping it in a Python async function ensures that
-        # the event loop is available. This is a limitation of pyo3:
-        # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
-        async def _compile(*args, **kwargs) -> str:  # type: ignore
-            return await qcs_sdk.compile(*args, **kwargs)
 
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
         # This will have to be addressed as part of this issue: https://github.com/rigetti/pyquil/issues/1496
         target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
-        native_quil = self._event_loop.run_until_complete(
-            _compile(
-                program.out(calibrations=False),
-                json.dumps(target_device.asdict(), indent=2),  # type: ignore
-                timeout=self._compiler_client.timeout,
-            )
+
+        native_quil = await qcs_sdk.compile(
+            quil=program.out(calibrations=False),
+            target_device=json.dumps(target_device.asdict(), indent=2),  # type: ignore
+            timeout=self._compiler_client.timeout,
         )
 
         native_program = Program(native_quil)
@@ -152,9 +137,10 @@ class AbstractCompiler(ABC):
 
         return native_program
 
-    def _connect(self) -> None:
+    async def _connect(self) -> None:
         try:
-            _check_quilc_version(self._compiler_client.get_version())
+            version = await self._compiler_client.get_version()
+            _check_quilc_version(version)
         except TimeoutError:
             raise QuilcNotRunning(
                 f"Request to quilc at {self._compiler_client.base_url} timed out. "
@@ -163,7 +149,7 @@ class AbstractCompiler(ABC):
             )
 
     @abstractmethod
-    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
+    async def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         """
         Compile a native quil program to a binary executable.
 
@@ -193,7 +179,7 @@ def _check_quilc_version(version: str) -> None:
 
 class AbstractBenchmarker(ABC):
     @abstractmethod
-    def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
+    async def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
         r"""
         Given a circuit that consists only of elements of the Clifford group,
         return its action on a PauliTerm.
@@ -207,7 +193,7 @@ class AbstractBenchmarker(ABC):
         """
 
     @abstractmethod
-    def generate_rb_sequence(
+    async def generate_rb_sequence(
         self,
         depth: int,
         gateset: Sequence[Gate],

@@ -158,7 +158,6 @@ class CompilerClient:
         *,
         client_configuration: QCSClientConfiguration,
         request_timeout: float = 10.0,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         """
         Instantiate a new compiler client.
@@ -172,21 +171,15 @@ class CompilerClient:
 
         self.base_url = base_url
         self.timeout = request_timeout
-        if event_loop is None:
-            event_loop = asyncio.get_event_loop()
-        self._event_loop = event_loop
 
-    def get_version(self) -> str:
+    async def get_version(self) -> str:
         """
         Get version info for compiler server.
         """
 
-        async def _get_quilc_version() -> str:
-            return await qcs_sdk.get_quilc_version()
+        return await qcs_sdk.get_quilc_version()
 
-        return self._event_loop.run_until_complete(_get_quilc_version())
-
-    def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
+    async def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """
         Compile Quil program to native Quil.
         """
@@ -195,7 +188,7 @@ class CompilerClient:
             target_device=request.target_quantum_processor,
         )
         with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            response: rpcq.messages.NativeQuilResponse = rpcq_client.call(
+            response: rpcq.messages.NativeQuilResponse = await rpcq_client.call_async(
                 "quil_to_native_quil",
                 rpcq_request,
                 protoquil=request.protoquil,
@@ -214,7 +207,9 @@ class CompilerClient:
                 )
             return CompileToNativeQuilResponse(native_program=response.quil, metadata=metadata)
 
-    def conjugate_pauli_by_clifford(self, request: ConjugatePauliByCliffordRequest) -> ConjugatePauliByCliffordResponse:
+    async def conjugate_pauli_by_clifford(
+        self, request: ConjugatePauliByCliffordRequest
+    ) -> ConjugatePauliByCliffordResponse:
         """
         Conjugate a Pauli element by a Clifford element.
         """
@@ -223,13 +218,13 @@ class CompilerClient:
             clifford=request.clifford,
         )
         with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            response: rpcq.messages.ConjugateByCliffordResponse = rpcq_client.call(
+            response: rpcq.messages.ConjugateByCliffordResponse = await rpcq_client.call_async(
                 "conjugate_pauli_by_clifford",
                 rpcq_request,
             )
             return ConjugatePauliByCliffordResponse(phase_factor=response.phase, pauli=response.pauli)
 
-    def generate_randomized_benchmarking_sequence(
+    async def generate_randomized_benchmarking_sequence(
         self, request: GenerateRandomizedBenchmarkingSequenceRequest
     ) -> GenerateRandomizedBenchmarkingSequenceResponse:
         """
@@ -243,7 +238,7 @@ class CompilerClient:
             interleaver=request.interleaver,
         )
         with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            response: rpcq.messages.RandomizedBenchmarkingResponse = rpcq_client.call(
+            response: rpcq.messages.RandomizedBenchmarkingResponse = await rpcq_client.call_async(
                 "generate_rb_sequence",
                 rpcq_request,
             )
