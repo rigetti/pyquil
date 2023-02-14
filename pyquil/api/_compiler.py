@@ -110,11 +110,11 @@ class QPUCompiler(AbstractCompiler):
             return await qcs_sdk.translate(*args)
 
         translated_program = self._event_loop.run_until_complete(
-            _translate(
+            _translate(  # type: ignore
                 rewrite_response["program"],
                 nq_program.num_shots,
                 self.quantum_processor_id,
-            )  # type: ignore
+            )
         )
 
         return EncryptedProgram(
