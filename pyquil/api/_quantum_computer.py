@@ -42,7 +42,6 @@ from qcs_api_client.models import ListQuantumProcessorsResponse
 from qcs_api_client.operations.sync import list_quantum_processors
 from rpcq.messages import ParameterAref
 
-from pyquil.api import EngagementManager
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 
@@ -740,7 +739,6 @@ def get_qc(
     execution_timeout: float = 30.0,
     client_configuration: Optional[QCSClientConfiguration] = None,
     endpoint_id: Optional[str] = None,
-    engagement_manager: Optional[EngagementManager] = None,
     event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
@@ -813,7 +811,6 @@ def get_qc(
         For more information on setting up QCS credentials, see documentation for using the QCS CLI:
         [https://docs.rigetti.com/qcs/guides/using-the-qcs-cli#configuring-credentials].
     :param endpoint_id: Optional quantum processor endpoint ID, as used in the `QCS API Docs`_.
-    :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
 
     :return: A pre-configured QuantumComputer
 
@@ -821,7 +818,6 @@ def get_qc(
     """
 
     client_configuration = client_configuration or QCSClientConfiguration.load()
-    engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
 
     if event_loop is None:
         event_loop = asyncio.get_event_loop()
@@ -890,7 +886,6 @@ def get_qc(
             timeout=execution_timeout,
             client_configuration=client_configuration,
             endpoint_id=endpoint_id,
-            engagement_manager=engagement_manager,
             event_loop=event_loop,
         )
         compiler = QPUCompiler(

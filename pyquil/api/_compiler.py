@@ -13,7 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import threading
 from contextlib import contextmanager
 from typing import Dict, Optional, Iterator
 import asyncio
@@ -107,11 +106,11 @@ class QPUCompiler(AbstractCompiler):
         # the event loop is available. Wrapping it in a Python async function ensures that
         # the event loop is available. This is a limitation of pyo3:
         # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
-        async def _translate(*args):
+        async def _translate(*args):  # type: ignore
             return await qcs_sdk.translate(*args)
 
         translated_program = self._event_loop.run_until_complete(
-            _translate(
+            _translate(  # type: ignore
                 rewrite_response["program"],
                 nq_program.num_shots,
                 self.quantum_processor_id,
