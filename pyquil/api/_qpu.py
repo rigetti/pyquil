@@ -165,7 +165,7 @@ class QPU(QAM[QPUExecuteResponse]):
         ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
 
         # executable._memory.values is a dict of ParameterARef -> numbers,
-        # where ParameterARef is data class w/ name and index 
+        # where ParameterARef is data class w/ name and index
         # ParameterARef == Parameter on the Rust side
         mem_values = defaultdict(list)
         for k, v in executable._memory.values.items():
