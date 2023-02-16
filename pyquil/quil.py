@@ -122,9 +122,9 @@ class Program:
         self._memory = Memory()
 
     @property
-    def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
+    def calibrations(self) -> List[DefCalibration]:
         """A list of Quil-T calibration definitions."""
-        return self._program.calibrations.calibrations + self._program.calibrations.measure_calibrations
+        return self._program.calibrations.calibrations
 
     @property
     def measure_calibrations(self) -> List[DefMeasureCalibration]:
