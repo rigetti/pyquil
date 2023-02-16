@@ -112,7 +112,7 @@ class Program:
     """Contents of memory to be used as program parameters during execution"""
 
     def __init__(self, *instructions: InstructionDesignator):
-        self._program = RSProgram("")
+        self._program = RSProgram()
         self.inst(*instructions)
 
         # default number of shots to loop through
@@ -159,7 +159,7 @@ class Program:
 
     def copy(self) -> "Program":
         """
-        Performs a deep copy of this program.
+        Perform a deep copy of this program.
 
         :return: a new Program
         """
@@ -223,7 +223,10 @@ class Program:
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
             else:
-                self.inst(str(instruction))
+                try:
+                    self.inst(str(instruction))
+                except Exception:
+                    raise TypeError("Invalid instruction: {}".format(instruction))
 
         return self
 
@@ -392,6 +395,18 @@ class Program:
                 self.inst(MEASURE(qubit_index, classical_reg))
         return self
 
+    def _set_parameter_values_at_runtime(self) -> "Program":
+        """
+        Store all parameter values directly within the Program using ``MOVE`` instructions. Mutates the receiver.
+        """
+        move_instructions = [
+            MOVE(MemoryReference(name=k.name, offset=k.index), v) for k, v in self._memory.values.items()
+        ]
+
+        self.prepend_instructions(move_instructions)
+
+        return self
+
     def write_memory(
         self,
         *,
@@ -409,7 +424,6 @@ class Program:
         new_prog = Program(*instructions)
         return new_prog + self
 
-    # TODO: Implement control flow methods in quil-rs
     def while_do(self, classical_reg: MemoryReferenceDesignator, q_program: "Program") -> "Program":
         """
         While a classical register at index classical_reg is 1, loop q_program
@@ -725,18 +739,12 @@ class Program:
         """
         return True
 
-    def dagger(self, inv_dict: Optional[Any] = None, suffix: str = "-INV") -> "Program":
+    def dagger(self) -> "Program":
         """
         Creates the conjugate transpose of the Quil program. The program must
         contain only gate applications.
 
-        Note: the keyword arguments inv_dict and suffix are kept only
-        for backwards compatibility and have no effect.
-
         :return: The Quil program's inverse
-
-        .. deprecated:: 4.0
-           The inv_dict and suffix arguments will be removed in future versions of pyQuil
         """
         return Program(self._program.dagger())
 
@@ -768,7 +776,7 @@ class Program:
 
     def __iadd__(self, other) -> "Program":
         """
-        Concatenate two programs together by appending them to the left hand side.
+        Concatenate two programs together by appending them to the right-hand side to the left.
 
         :param other: Another program or instruction to concatenate to this one.
         :return: A newly concatenated program.
