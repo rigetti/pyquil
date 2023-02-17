@@ -83,7 +83,7 @@ from pyquil.quiltcalibrations import (
     match_calibration,
 )
 
-from qcs_sdk.quil import Program as RSProgram
+from qcs_sdk.quil.program import Program as RSProgram
 from qcs_sdk.quil.instructions import Instruction as RSInstruction, Gate as RSGate
 
 InstructionDesignator = Union[
@@ -213,9 +213,9 @@ class Program:
                 else:
                     self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
-                self.inst(RSProgram(instruction.strip()))
+                self.inst(RSProgram.from_string(instruction.strip()))
             elif isinstance(instruction, AbstractInstruction):
-                self.inst(RSProgram(instruction.out()))
+                self.inst(RSProgram.from_string(instruction.out()))
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
             elif isinstance(instruction, RSInstruction):
