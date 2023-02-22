@@ -692,38 +692,9 @@ class Program:
         :return: True if the Program is Protoquil, False otherwise
 
         .. deprecated:: 4.0
-           The quilt flag will be removed. Use is_quilt() instead.
+           This function always returns True and will be removed in future versions of pyQuil
         """
-        try:
-            if quilt:
-                self._program.validate_quilt()
-            else:
-                self._program.validate_protoquil()
-            return True
-        except ValueError:
-            return False
-
-    def is_quilt(self) -> bool:
-        """
-        Returns true if the program is valid quil-t
-        """
-        try:
-            self.validate_quilt()
-            return True
-        except ValueError:
-            return False
-
-    def validate_protoquil(self) -> None:
-        """
-        Raises a ValueError if the program isn't valid protoquil
-        """
-        self._program.validate_protoquil()
-
-    def validate_quilt(self) -> None:
-        """
-        Raises a ValueError if the program isn't valid quil-t
-        """
-        self._program.validate_quilt()
+        return True
 
     def is_supported_on_qpu(self) -> bool:
         """
@@ -986,13 +957,9 @@ def validate_protoquil(program: Program, quilt: bool = False) -> None:
     :param program: The Quil program to validate.
 
     .. deprecated:: 4.0
-       This function will be removed, use the validate_protoquil and validate_quilt
-       methods on Program instead.
+       This function is a no-op and will be removed in future versions of pyQuil
     """
-    if quilt:
-        program.validate_quilt()
-    else:
-        program.validate_protoquil()
+    pass
 
 
 def validate_supported_quil(program: Program) -> None:

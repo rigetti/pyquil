@@ -75,7 +75,6 @@ from pyquil.quil import (
     address_qubits,
     get_classical_addresses_from_program,
     Pragma,
-    validate_protoquil,
     validate_supported_quil,
 )
 from pyquil.quilatom import MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
@@ -1233,30 +1232,10 @@ def test_validate_supported_quil_multiple_measures():
         validate_supported_quil(prog)
 
 
-# TODO: Placeholders
+# is_protoquil was deprecated and should always return True
 def test_is_protoquil():
-    prog = Program(Declare("ro", "BIT"), MEASURE(1, MemoryReference("ro", 0)), H(1), RESET())
-    validate_protoquil(prog)
+    prog = Program(RESET(), H(1), Pragma("DELAY"), MEASURE(1, None), MEASURE(1, None))
     assert prog.is_protoquil()
-
-    prog = (
-        Program(Declare("ro", "BIT"), H(0), Y(1), CNOT(0, 1))
-        .measure(0, MemoryReference("ro", 0))
-        .if_then(MemoryReference("ro", 0), Program(X(0)), Program())
-    )
-    with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
-
-    prog = Program(Declare("ro", "BIT"), ClassicalNot(MemoryReference("ro", 0)))
-    with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
-
-    prog = Program(DefCalibration("I", [], [Qubit(0)], []), I(0))
-    with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
     assert prog.is_protoquil(quilt=True)
 
 

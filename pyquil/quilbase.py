@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 
 from dataclasses import dataclass
 
-from qcs_sdk.quil.instructions import Gate as RSGate, Qubit as RSQubit, Expression as RSExpression
+import qcs_sdk.quil.instructions as quil_rs
 
 
 class AbstractInstruction(object):
@@ -194,7 +194,7 @@ class Gate(AbstractInstruction):
         params: Iterable[ParameterDesignator],
         qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]],
     ):
-        self._gate = RSGate(name, convert_to_rs_expressions(params), convert_to_rs_qubits(qubits), [])
+        self._gate = quil_rs.RSGate(name, convert_to_rs_expressions(params), convert_to_rs_qubits(qubits), [])
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """
@@ -1262,6 +1262,16 @@ class DefWaveform(AbstractInstruction):
         return ret
 
 
+# import quil.DefCalibration as DefCalibration
+# find mismatches
+#   manually add compatibility layer
+#   Escape hatch: monkeypatch
+#      Replace AbstractInstruction variants with RS types, maintaining import paths
+#      Monkeypatch missing/mismatched functionality
+#      Keep an eye out for repeated logic and reuse methods in your monkeypatches
+#      Mark patched methods as deprecated (?)
+
+
 class DefCalibration(AbstractInstruction):
     def __init__(
         self,
@@ -1270,19 +1280,16 @@ class DefCalibration(AbstractInstruction):
         qubits: List[Union[Qubit, FormalArgument]],
         instrs: List[AbstractInstruction],
     ):
-        self.name = name
-        self.parameters = parameters
-        self.qubits = qubits
-        self.instrs = instrs
+        self._defcal = RSDefCal(name, parameters, qubits, instrs)
+
+    @property
+    def name(self):
+        self._defcal.name
+
+    # ...
 
     def out(self) -> str:
-        ret = f"DEFCAL {self.name}"
-        if len(self.parameters) > 0:
-            ret += _format_params(self.parameters)
-        ret += " " + _format_qubits_str(self.qubits) + ":\n"
-        for instr in self.instrs:
-            ret += f"    {instr.out()}\n"
-        return ret
+        str(self._defcal)
 
 
 class DefMeasureCalibration(AbstractInstruction):
