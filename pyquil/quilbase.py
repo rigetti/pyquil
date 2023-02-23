@@ -199,15 +199,6 @@ class Gate(quil_rs.Gate, AbstractInstruction):
     ) -> "Gate":
         return super().__new__(cls, name, _convert_to_rs_expressions(params), _convert_to_rs_qubits(qubits), modifiers)
 
-    def __init__(
-        self,
-        name: str,
-        params: Iterable[ParameterDesignator],
-        qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]],
-        modifiers=[],
-    ):
-        super().__init__()
-
     @classmethod
     def _from_rs_gate(cls, gate: quil_rs.Gate) -> "Gate":
         return cls(gate.name, gate.params, gate.qubits, gate.modifiers)
