@@ -54,9 +54,11 @@ from pyquil.quilatom import (
     QubitPlaceholder,
     FormalArgument,
     _contained_parameters,
-    convert_to_rs_expressions,
-    convert_to_rs_qubit,
-    convert_to_rs_qubits,
+    _convert_to_py_qubits,
+    _convert_to_rs_expressions,
+    _convert_to_rs_qubit,
+    _convert_to_rs_qubits,
+    _convert_to_py_parameters,
     format_parameter,
     unpack_qubit,
     _complex_str,
@@ -183,18 +185,32 @@ def _join_strings(*args: str) -> str:
     return " ".join(map(str, args))
 
 
-class Gate(AbstractInstruction):
+class Gate(quil_rs.Gate, AbstractInstruction):
     """
     This is the pyQuil object for a quantum gate instruction.
     """
+
+    def __new__(
+        cls,
+        name: str,
+        params: Iterable[ParameterDesignator],
+        qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]],
+        modifiers: Iterable[quil_rs.GateModifier] = [],
+    ) -> "Gate":
+        return super().__new__(cls, name, _convert_to_rs_expressions(params), _convert_to_rs_qubits(qubits), modifiers)
 
     def __init__(
         self,
         name: str,
         params: Iterable[ParameterDesignator],
         qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]],
+        modifiers=[],
     ):
-        self._gate = quil_rs.RSGate(name, convert_to_rs_expressions(params), convert_to_rs_qubits(qubits), [])
+        super().__init__()
+
+    @classmethod
+    def _from_rs_gate(cls, gate: quil_rs.Gate) -> "Gate":
+        return cls(gate.name, gate.params, gate.qubits, gate.modifiers)
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """
@@ -204,10 +220,18 @@ class Gate(AbstractInstruction):
         if indices:
             return self.get_qubit_indices()
         else:
-            return set(self._gate.qubits)
+            return set(_convert_to_py_qubits(super().qubits))
+
+    @property
+    def qubits(self):
+        return list(self.get_qubits(indices=False))
+
+    @property
+    def params(self):
+        return _convert_to_py_parameters(super().parameters)
 
     def get_qubit_indices(self) -> Set[int]:
-        return {qubit.as_fixed() for qubit in self._gate.qubits}
+        return {qubit.as_fixed() for qubit in super().qubits}
 
     def controlled(self, control_qubit: Union[QubitDesignator, Sequence[QubitDesignator]]) -> "Gate":
         """
@@ -216,9 +240,9 @@ class Gate(AbstractInstruction):
         """
         if isinstance(control_qubit, Sequence):
             for qubit in control_qubit:
-                self._gate = self._gate.controlled(convert_to_rs_qubit(qubit))
+                self = super().controlled(_convert_to_rs_qubit(qubit))
         else:
-            self._gate = self._gate.controlled(convert_to_rs_qubit(control_qubit))
+            self = super().controlled(_convert_to_rs_qubit(control_qubit))
 
         return self
 
@@ -227,30 +251,18 @@ class Gate(AbstractInstruction):
         Add the FORKED modifier to the gate with the given fork qubit and given additional
         parameters.
         """
-        self._gate = self._gate.forked(convert_to_rs_qubit(fork_qubit), convert_to_rs_expressions(alt_params))
-
+        self = super().forked(_convert_to_rs_qubit(fork_qubit), _convert_to_rs_expressions(alt_params))
         return self
 
     def dagger(self) -> "Gate":
         """
         Add the DAGGER modifier to the gate.
         """
-        self._gate = self._gate.dagger()
+        self = super().dagger()
         return self
 
-    def __repr__(self) -> str:
-        return "<Gate " + str(self) + ">"
-
-    def __str__(self) -> str:
-        return str(self._gate)
-
     def out(self) -> str:
-        """
-        .. deprecated:: 4.0
-           This method defers to __str__ and will be removed in future versions of pyQuil. Calls to out() should be
-           replaced with str(gate).
-        """
-        return self.__str__()
+        return str(self)
 
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:

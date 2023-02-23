@@ -16,6 +16,7 @@
 
 from dataclasses import dataclass
 from fractions import Fraction
+from math import pi
 from numbers import Complex
 from typing import (
     Any,
@@ -35,12 +36,7 @@ from typing import (
 
 import numpy as np
 
-from qcs_sdk.quil.instructions import (
-    Qubit as RSQubit,
-    FunctionCallExpression as RSFunctionCallExpression,
-    MemoryReference as RSMemoryReference,
-    Expression as RSExpression,
-)
+import qcs_sdk.quil.instructions as quil_rs
 
 
 class QuilAtom(object):
@@ -163,23 +159,40 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, RSQubit, int]
+QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, quil_rs.Qubit, int]
 
 
-def convert_to_rs_qubit(qubit: QubitDesignator) -> RSQubit:
+def _convert_to_rs_qubit(qubit: QubitDesignator) -> quil_rs.Qubit:
+    if isinstance(qubit, quil_rs.Qubit):
+        return qubit
     if isinstance(qubit, Qubit):
-        return RSQubit.from_fixed(qubit.index)
+        return quil_rs.Qubit.from_fixed(qubit.index)
     if isinstance(qubit, QubitPlaceholder):
         raise NotImplementedError("QubitPlaceholders aren't implemented in quil-rs")
     if isinstance(qubit, FormalArgument):
-        return RSQubit.from_variable(qubit.name)
+        return quil_rs.Qubit.from_variable(qubit.name)
     if isinstance(qubit, int):
-        return RSQubit.from_fixed(qubit)
-    return qubit
+        return quil_rs.Qubit.from_fixed(qubit)
+    raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[RSQubit]:
-    return [convert_to_rs_qubit(qubit) for qubit in qubits]
+def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[quil_rs.Qubit]:
+    return [_convert_to_rs_qubit(qubit) for qubit in qubits]
+
+
+def _convert_to_py_qubit(qubit: QubitDesignator) -> QubitDesignator:
+    if isinstance(qubit, quil_rs.Qubit):
+        if qubit.is_fixed():
+            return Qubit(qubit.to_fixed())
+        if qubit.is_variable():
+            return FormalArgument(qubit.to_variable())
+    if isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument, int)):
+        return qubit
+    raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
+
+
+def _convert_to_py_qubits(qubits: Iterable[QubitDesignator]) -> List[QubitDesignator]:
+    return [_convert_to_py_qubit(qubit) for qubit in qubits]
 
 
 def unpack_qubit(qubit: Union[QubitDesignator, FormalArgument]) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
@@ -220,7 +233,7 @@ def qubit_index(qubit: QubitDesignator) -> int:
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
 # List[Any] here.
-MemoryReferenceDesignator = Union["MemoryReference", RSMemoryReference, Tuple[str, int], List[Any], str]
+MemoryReferenceDesignator = Union["MemoryReference", quil_rs.MemoryReference, Tuple[str, int], List[Any], str]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
@@ -295,17 +308,42 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", RSExpression, np.int_, int, float, complex]
+ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, np.int_, int, float, complex]
 
 
-def convert_to_rs_expression(parameter: ParameterDesignator) -> RSExpression:
-    if isinstance(parameter, RSExpression):
+def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs.Expression:
+    if isinstance(parameter, quil_rs.Expression):
         return parameter
-    return RSExpression.parse_from_str(str(parameter))
+    return quil_rs.Expression.parse_from_str(str(parameter))
 
 
-def convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> List[ParameterDesignator]:
-    return [convert_to_rs_expression(parameter) for parameter in parameters]
+def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> List[ParameterDesignator]:
+    return [_convert_to_rs_expression(parameter) for parameter in parameters]
+
+
+def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesignator:
+    if isinstance(parameter, quil_rs.Expression):
+        if parameter.is_address():
+            return MemoryReference._from_rs_memory_reference(parameter.to_address())
+        if parameter.is_function_call():
+            return Function._from_rs_function_call(parameter.to_function_call())
+        if parameter.is_infix():
+            return BinaryExp._from_rs_infix_expression(parameter.to_infix())
+        if parameter.is_prefix():
+            raise NotImplementedError("prefix conversion not implemented")
+        if parameter.is_number():
+            return parameter.to_number()
+        if parameter.is_pi():
+            return pi
+        if parameter.is_variable():
+            return Parameter(parameter.to_variable())
+    elif isinstance(parameter, ("Expression", "MemoryReference", np.int_, int, float, complex)):
+        return parameter
+    raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
+
+
+def _convert_to_py_parameters(parameters: Iterable[ParameterDesignator]) -> List[ParameterDesignator]:
+    return [_convert_to_py_parameter(parameter) for parameter in parameters]
 
 
 def format_parameter(element: ParameterDesignator) -> str:
@@ -351,7 +389,7 @@ def format_parameter(element: ParameterDesignator) -> str:
 
 
 ExpressionValueDesignator = Union[int, float, complex]
-ExpressionDesignator = Union["Expression", RSExpression, ExpressionValueDesignator]
+ExpressionDesignator = Union["Expression", quil_rs.Expression, ExpressionValueDesignator]
 
 
 class Expression(object):
@@ -532,6 +570,22 @@ class BinaryExp(Expression):
         self.op1 = op1
         self.op2 = op2
 
+    @classmethod
+    def _from_rs_infix_expression(cls, infix_expression: quil_rs.InfixExpression):
+        left = _convert_to_py_parameter(infix_expression.left)
+        right = _convert_to_py_parameter(infix_expression.right)
+        if infix_expression.operator.is_plus():
+            return Add(left, right)
+        if infix_expression.operator.is_minus():
+            return Sub(left, right)
+        if infix_expression.operator.is_slash():
+            return Div(left, right)
+        if infix_expression.operator.is_star():
+            return Mul(left, right)
+        if infix_expression.operator.is_caret():
+            return Pow(left, right)
+        raise ValueError(f"{type(infix_expression)} is not a valid InfixExpression")
+
     def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
         sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
         return self.fn(sop1, sop2)
@@ -709,6 +763,10 @@ class MemoryReference(QuilAtom, Expression):
         self.name = name
         self.offset = offset
         self.declared_size = declared_size
+
+    @classmethod
+    def _from_rs_memory_reference(cls, memory_reference: quil_rs.MemoryReference) -> "MemoryReference":
+        return cls(memory_reference.name, memory_reference.index)
 
     def out(self) -> str:
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:

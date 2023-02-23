@@ -181,10 +181,7 @@ class CompilerClient:
         Get version info for compiler server.
         """
 
-        async def _get_quilc_version() -> str:
-            return await qcs_sdk.get_quilc_version()
-
-        return self._event_loop.run_until_complete(_get_quilc_version())
+        return qcs_sdk.get_quilc_version()
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """

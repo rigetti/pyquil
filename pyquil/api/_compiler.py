@@ -103,19 +103,10 @@ class QPUCompiler(AbstractCompiler):
         """
         rewrite_response = qcs_sdk.rewrite_arithmetic(nq_program.out())
 
-        # This is a work-around needed because calling `qcs_sdk.translate` happens _before_
-        # the event loop is available. Wrapping it in a Python async function ensures that
-        # the event loop is available. This is a limitation of pyo3:
-        # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
-        async def _translate(*args):
-            return await qcs_sdk.translate(*args)
-
-        translated_program = self._event_loop.run_until_complete(
-            _translate(
-                rewrite_response["program"],
-                nq_program.num_shots,
-                self.quantum_processor_id,
-            )
+        translated_program = qcs_sdk.translate(
+            rewrite_response["program"],
+            nq_program.num_shots,
+            self.quantum_processor_id,
         )
 
         return EncryptedProgram(

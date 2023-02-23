@@ -2,7 +2,7 @@ from math import pi
 from typing import List
 from pyquil.quil import Program
 from pyquil.quilbase import Gate, MemoryReference, ParameterDesignator
-from pyquil.quilatom import BinaryExp, Qubit, convert_to_rs_qubits
+from pyquil.quilatom import BinaryExp, Qubit
 from pyquil.api._compiler import QPUCompiler
 import pytest
 
@@ -40,8 +40,18 @@ class TestGate:
     def test_str(self, gate, snapshot):
         assert str(gate) == snapshot
 
-    def test_repr(self, gate, snapshot):
-        assert repr(gate) == snapshot
+    def test_name(self, gate, name):
+        assert gate.name == name
+
+    def test_params(self, gate, params):
+        assert gate.params == params
+
+    def test_qubits(self, gate, qubits):
+        assert gate.qubits == qubits
+
+    def test_get_qubits(self, gate, qubits):
+        assert gate.get_qubit_indices() == {q.index for q in qubits}
+        assert gate.get_qubits(indices=False) == set(qubits)
 
     def test_controlled_modifier(self, gate, snapshot):
         assert str(gate.controlled([Qubit(5)])) == snapshot
@@ -53,9 +63,8 @@ class TestGate:
         alt_params: List[ParameterDesignator] = [n for n in range(len(params))]
         assert str(gate.forked(Qubit(5), alt_params)) == snapshot
 
-    def test_get_qubits(self, gate, qubits):
-        assert gate.get_qubit_indices() == {q.index for q in qubits}
-        assert gate.get_qubits(indices=False) == set(convert_to_rs_qubits(qubits))
+    def test_repr(self, gate, snapshot):
+        assert repr(gate) == snapshot
 
     def test_compile(self, program, compiler: QPUCompiler):
         try:

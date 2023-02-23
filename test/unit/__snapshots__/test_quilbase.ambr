@@ -35,16 +35,16 @@
   'FORKED X 5 0'
 # ---
 # name: TestGate.test_repr[CPHASE-Expression]
-  '<Gate CPHASE(1.5707963267948966) 0 1>'
+  'Gate { name: "CPHASE", parameters: [Number(Complex { re: 1.5707963267948966, im: 0.0 })], qubits: [Fixed(0), Fixed(1)], modifiers: [] }'
 # ---
 # name: TestGate.test_repr[RZ-MemoryReference-Expression]
-  '<Gate RZ((alpha[0]-beta[0])) 0>'
+  'Gate { name: "RZ", parameters: [Infix(InfixExpression { left: Address(MemoryReference { name: "alpha", index: 0 }), operator: Minus, right: Address(MemoryReference { name: "beta", index: 0 }) })], qubits: [Fixed(0)], modifiers: [] }'
 # ---
 # name: TestGate.test_repr[RZ-MemoryReference]
-  '<Gate RZ(theta[0]) 0>'
+  'Gate { name: "RZ", parameters: [Address(MemoryReference { name: "theta", index: 0 })], qubits: [Fixed(0)], modifiers: [] }'
 # ---
 # name: TestGate.test_repr[X-Gate]
-  '<Gate X 0>'
+  'Gate { name: "X", parameters: [], qubits: [Fixed(0)], modifiers: [] }'
 # ---
 # name: TestGate.test_str[CPHASE-Expression]
   'CPHASE(1.5707963267948966) 0 1'
