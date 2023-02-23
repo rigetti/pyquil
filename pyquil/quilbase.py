@@ -1273,16 +1273,19 @@ class DefCalibration(AbstractInstruction):
         qubits: List[Union[Qubit, FormalArgument]],
         instrs: List[AbstractInstruction],
     ):
-        self._defcal = RSDefCal(name, parameters, qubits, instrs)
-
-    @property
-    def name(self):
-        self._defcal.name
-
-    # ...
+        self.name = name
+        self.parameters = parameters
+        self.qubits = qubits
+        self.instrs = instrs
 
     def out(self) -> str:
-        str(self._defcal)
+        ret = f"DEFCAL {self.name}"
+        if len(self.parameters) > 0:
+            ret += _format_params(self.parameters)
+        ret += " " + _format_qubits_str(self.qubits) + ":\n"
+        for instr in self.instrs:
+            ret += f"    {instr.out()}\n"
+        return ret
 
 
 class DefMeasureCalibration(AbstractInstruction):
