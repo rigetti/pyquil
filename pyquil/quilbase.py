@@ -1265,16 +1265,6 @@ class DefWaveform(AbstractInstruction):
         return ret
 
 
-# import quil.DefCalibration as DefCalibration
-# find mismatches
-#   manually add compatibility layer
-#   Escape hatch: monkeypatch
-#      Replace AbstractInstruction variants with RS types, maintaining import paths
-#      Monkeypatch missing/mismatched functionality
-#      Keep an eye out for repeated logic and reuse methods in your monkeypatches
-#      Mark patched methods as deprecated (?)
-
-
 class DefCalibration(AbstractInstruction):
     def __init__(
         self,
