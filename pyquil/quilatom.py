@@ -17,7 +17,7 @@
 from dataclasses import dataclass
 from fractions import Fraction
 from math import pi
-from numbers import Complex
+from numbers import Complex, Number
 from typing import (
     Any,
     Callable,
@@ -308,13 +308,13 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, np.int_, int, float, complex]
+ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, Number]
 
 
 def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs.Expression:
     if isinstance(parameter, quil_rs.Expression):
         return parameter
-    elif isinstance(parameter, (Expression, MemoryReference, int, float, complex, np.int_)):
+    elif isinstance(parameter, (Expression, MemoryReference, Number)):
         return quil_rs.Expression.parse_from_str(str(parameter))
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
@@ -339,7 +339,7 @@ def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesigna
             return pi
         if parameter.is_variable():
             return Parameter(parameter.to_variable())
-    elif isinstance(parameter, (Expression, MemoryReference, int, float, complex, np.int_)):
+    elif isinstance(parameter, (Expression, MemoryReference, Number)):
         return parameter
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
