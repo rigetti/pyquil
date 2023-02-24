@@ -314,7 +314,9 @@ ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression,
 def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs.Expression:
     if isinstance(parameter, quil_rs.Expression):
         return parameter
-    return quil_rs.Expression.parse_from_str(str(parameter))
+    elif isinstance(parameter, (Expression, MemoryReference, int, float, complex, np.int_)):
+        return quil_rs.Expression.parse_from_str(str(parameter))
+    raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
 
 def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> List[ParameterDesignator]:
@@ -337,7 +339,7 @@ def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesigna
             return pi
         if parameter.is_variable():
             return Parameter(parameter.to_variable())
-    elif isinstance(parameter, ("Expression", "MemoryReference", np.int_, int, float, complex)):
+    elif isinstance(parameter, (Expression, MemoryReference, int, float, complex, np.int_)):
         return parameter
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 

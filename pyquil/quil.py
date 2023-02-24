@@ -492,7 +492,6 @@ class Program:
         label_then = LabelPlaceholder("THEN")
         label_end = LabelPlaceholder("END")
         jump_when = JumpWhen(target=label_then, condition=unpack_classical_reg(classical_reg))
-        print("jump_when", jump_when.out())
         self.inst(jump_when)
         self.inst(else_program)
         self.inst(Jump(label_end))
