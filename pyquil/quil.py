@@ -214,19 +214,16 @@ class Program:
                     self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
                 self.inst(RSProgram.from_string(instruction.strip()))
-            elif isinstance(instruction, AbstractInstruction):
-                self.inst(RSProgram.from_string(instruction.out()))
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
             elif isinstance(instruction, RSInstruction):
                 self._program.add_instruction(instruction)
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
+            elif isinstance(instruction, AbstractInstruction):
+                self.inst(RSProgram.from_string(str(instruction)))
             else:
-                try:
-                    self.inst(str(instruction))
-                except Exception:
-                    raise TypeError("Invalid instruction: {}".format(instruction))
+                raise ValueError("Invalid instruction: {}".format(instruction))
 
         return self
 

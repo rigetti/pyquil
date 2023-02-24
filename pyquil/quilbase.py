@@ -16,6 +16,7 @@
 """
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
+import abc
 import collections
 import json
 
@@ -72,25 +73,39 @@ from dataclasses import dataclass
 import qcs_sdk.quil.instructions as quil_rs
 
 
-class AbstractInstruction(object):
+class _InstructionMeta(abc.ABCMeta):
+    """
+    A metaclass that allows us to group all instruction types from quil-rs and pyQuil as an `AbstractInstruction`.
+    As such, this should _only_ be used as a metaclass for `AbstractInstruction`.
+    """
+
+    @classmethod
+    def __instancecheck__(cls, __instance: Any) -> bool:
+        if isinstance(__instance, (quil_rs.Instruction)):
+            return True
+        try:
+            quil_rs.Instruction(__instance)
+            return True
+        except Exception:
+            return False
+
+
+class AbstractInstruction(metaclass=_InstructionMeta):
     """
     Abstract class for representing single instructions.
     """
 
-    def out(self) -> str:
-        pass
-
     def __str__(self) -> str:
-        return self.out()
+        return self.__str__()
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, self.__class__) and self.out() == other.out()
+        return isinstance(other, self.__class__) and str(self) == str(other)
 
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
     def __hash__(self) -> int:
-        return hash(self.out())
+        return hash(str(self))
 
 
 RESERVED_WORDS: Container[str] = [
@@ -201,7 +216,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
 
     @classmethod
     def _from_rs_gate(cls, gate: quil_rs.Gate) -> "Gate":
-        return cls(gate.name, gate.params, gate.qubits, gate.modifiers)
+        return cls(gate.name, gate.parameters, gate.qubits, gate.modifiers)
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """

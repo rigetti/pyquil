@@ -109,6 +109,12 @@
   
   '''
 # ---
+# name: test_inst_rs_gate
+  '''
+  X 0
+  
+  '''
+# ---
 # name: test_inst_string
   '''
   Y 0
@@ -123,12 +129,30 @@
   
   '''
 # ---
+# name: test_kraus
+  '''
+  X 0
+  PRAGMA NO-NOISE
+  X 1
+  
+  '''
+# ---
 # name: test_measure_all
   '''
   DECLARE ro BIT[4]
   MEASURE 0 ro[0]
   MEASURE 1 ro[1]
   MEASURE 2 ro[3]
+  
+  '''
+# ---
+# name: test_measure_all_noncontig
+  '''
+  DECLARE ro BIT[11]
+  H 0
+  H 10
+  MEASURE 0 ro[0]
+  MEASURE 10 ro[10]
   
   '''
 # ---
@@ -166,9 +190,7 @@
   PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
   PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 -0.0)"
   X 0
-  pauli_noise 0
   Z 0
-  pauli_noise 0
   
   '''
 # ---
@@ -191,15 +213,6 @@
   CPHASE01(3.141592653589793) 0 1
   CPHASE10(3.141592653589793) 0 1
   CPHASE(3.141592653589793) 0 1
-  
-  '''
-# ---
-# name: test_plus_operator
-  '''
-  H 0
-  X 0
-  Y 0
-  Z 0
   
   '''
 # ---

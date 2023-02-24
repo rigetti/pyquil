@@ -19,6 +19,7 @@ from math import pi
 
 import numpy as np
 import pytest
+import qcs_sdk.quil.instructions as quil_rs
 
 from pyquil.gates import (
     I,
@@ -137,6 +138,13 @@ def test_inst_tuple(snapshot):
     p = Program()
     p.inst(("Y", 0), ("X", 1))
     assert len(p) == 2
+    assert p.out() == snapshot
+
+
+def test_inst_rs_gate(snapshot):
+    p = Program()
+    q = quil_rs.Qubit.from_fixed(0)
+    p.inst(quil_rs.Gate("X", [], [q], []))
     assert p.out() == snapshot
 
 
