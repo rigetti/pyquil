@@ -743,7 +743,7 @@ class Program:
 
     def __iadd__(self, other) -> "Program":
         """
-        Concatenate two programs together by appending them to the right-hand side to the left.
+        Concatenate two programs together by appending the right-hand side to the left.
 
         :param other: Another program or instruction to concatenate to this one.
         :return: A newly concatenated program.
