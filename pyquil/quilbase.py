@@ -38,8 +38,10 @@ from typing import (
     cast,
 )
 
+from deprecation import deprecated
 import numpy as np
 
+from pyquil._version import pyquil_version
 from pyquil.quilatom import (
     Expression,
     ExpressionDesignator,
@@ -218,11 +220,13 @@ class Gate(quil_rs.Gate, AbstractInstruction):
     def _from_rs_gate(cls, gate: quil_rs.Gate) -> "Gate":
         return cls(gate.name, gate.parameters, gate.qubits, gate.modifiers)
 
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        """
-        .. deprecated:: 4.0
-           The indices flag will be removed, use get_qubit_indices() instead
-        """
         if indices:
             return self.get_qubit_indices()
         else:

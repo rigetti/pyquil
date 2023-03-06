@@ -17,7 +17,6 @@
 Module for creating and defining Quil programs.
 """
 import types
-import warnings
 from collections import defaultdict
 from copy import deepcopy
 from typing import (
@@ -36,9 +35,11 @@ from typing import (
     no_type_check,
 )
 
+from deprecation import deprecated
 import numpy as np
 from rpcq.messages import ParameterAref
 
+from pyquil._version import pyquil_version
 from pyquil._memory import Memory
 from pyquil.gates import MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
@@ -563,6 +564,12 @@ class Program:
         else:
             return str(self._program.into_simplified())
 
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed. Use get_qubit_indices() instead.",
+    )
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """
         Returns all of the qubit indices used in this program, including gate applications and
@@ -580,9 +587,6 @@ class Program:
         :param indices: Return qubit indices as integers intead of the
             wrapping :py:class:`Qubit` object
         :return: A set of all the qubit indices used in this program
-
-        .. deprecated:: 4.0
-           The indices flag will be removed. Use get_qubit_indices() instead
         """
         if indices:
             return self.get_qubit_indices()
@@ -680,29 +684,27 @@ class Program:
         else:
             return [instruction]
 
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="This function always returns True and will be removed.",
+    )
     def is_protoquil(self, quilt: bool = False) -> bool:
         """
-        Protoquil programs may only contain gates, Pragmas, and RESET. It may not contain
-        classical instructions or jumps.
-
-        :return: True if the Program is Protoquil, False otherwise
-
-        .. deprecated:: 4.0
-           This function always returns True and will be removed in future versions of pyQuil
+        This function has been deprecated and will always return True.
         """
         return True
 
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="This function always returns True and will be removed.",
+    )
     def is_supported_on_qpu(self) -> bool:
         """
-        Whether the program can be compiled to the hardware to execute on a QPU. These Quil
-        programs are more restricted than Protoquil: for instance, RESET must be before any
-        gates or MEASUREs, and MEASURE on a qubit must be after any gates on that qubit.
-
-        :return: True if the Program is supported Quil, False otherwise
-
-        .. deprecated:: 4.0
-           This will always return True and will be removed in future versions of pyQuil.
-           Attempting to run a program against on a QPU is the best way to validate if it is supported.
+        This function has been deprecated and will always return True.
         """
         return True
 
@@ -715,12 +717,12 @@ class Program:
         """
         return Program(self._program.dagger())
 
+    @deprecated(
+        deprecated_in="4.0", removed_in="5.0", current_version=pyquil_version, details="This function will be removed."
+    )
     def pop(self) -> AbstractInstruction:
         """
-        Removes the last instruction from the program and return it
-
-        .. deprecated:: 4.0
-           This method will be removed in future versions in pyQuil
+        Removes the last instruction from the program and returns it
         """
         last = self.instructions[-1]
         instructions = self._program.to_headers() + self.instructions
@@ -857,10 +859,6 @@ def address_qubits(
     :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
         to :py:class:`Qubit` or ``int`` (but not both).
     :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
-
-    .. deprecated:: 4.0
-       Qubit placeholders are now managed internally by the Program. This is a no-op and will be
-       removed in future versions of pyQuil
     """
     return program
 
@@ -909,28 +907,31 @@ def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[Abst
     return result
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The Program class sorts instructions automatically. This function will be removed.",
+)
 def percolate_declares(program: Program) -> Program:
     """
-    Move all the DECLARE statements to the top of the program. Return a fresh object.
+    As of pyQuil v4.0, the Program class does this automatically. This function is deprecated
+    and just immediately returns the passed in program.
 
-    :param program: Perhaps jumbled program.
-    :return: Program with DECLAREs all at the top and otherwise the same sorted contents.
-    .. deprecated:: 4.0
-       The Program class sorts instructions automatically. This is a no-op and will be removed
-       in future versions of pyQuil.
+    :param program: A program.
     """
     return program
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="This function will be removed. Use Program addition instead.",
+)
 def merge_programs(prog_list: Sequence[Program]) -> Program:
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
-
-    :param prog_list: A list of pyquil programs
-    :return: a single pyQuil program
-    .. deprecated:: 4.0
-       This function will be removed in future versions. Instead, use addition to combine
-       programs together.
     """
     merged_program = Program()
     for prog in prog_list:
@@ -938,36 +939,27 @@ def merge_programs(prog_list: Sequence[Program]) -> Program:
     return merged_program
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="This is now a no-op and will be removed in future versions of pyQuil.",
+)
 def validate_protoquil(program: Program, quilt: bool = False) -> None:
     """
-    Ensure that a program is valid ProtoQuil or Quil-T, otherwise raise a ValueError.
-    Protoquil is a subset of Quil which excludes control flow and classical instructions.
-
-    :param quilt: Validate the program as Quil-T.
-    :param program: The Quil program to validate.
-    """
-    """
-    Ensure that a program is valid ProtoQuil, otherwise raise a ValueError.
-    Protoquil is a subset of Quil which excludes control flow and classical instructions.
-
-    :param program: The Quil program to validate.
-
-    .. deprecated:: 4.0
-       This function is a no-op and will be removed in future versions of pyQuil
+    This function has been deprecated. It is now a no-op.
     """
     pass
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="This is now a no-op and will be removed in future versions of pyQuil.",
+)
 def validate_supported_quil(program: Program) -> None:
     """
-    Ensure that a program is supported Quil which can run on any QPU, otherwise raise a ValueError.
-    We support a global RESET before any gates, and MEASUREs on each qubit after any gates
-    on that qubit. PRAGMAs and DECLAREs are always allowed.
-
-    :param program: The Quil program to validate.
-
-    :deprecated: ..4.0
-        This client side check is now a no-op and will be removed in future versions of pyQuil.
-        Attempting to run a program against on a QPU is the best way to validate if it is supported.
+    This function has been deprecated. It is now a no-op.
     """
     pass
