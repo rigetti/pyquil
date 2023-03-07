@@ -16,6 +16,7 @@
 """
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
+import abc
 import collections
 import json
 
@@ -37,8 +38,10 @@ from typing import (
     cast,
 )
 
+from deprecation import deprecated
 import numpy as np
 
+from pyquil._version import pyquil_version
 from pyquil.quilatom import (
     Expression,
     ExpressionDesignator,
@@ -54,6 +57,11 @@ from pyquil.quilatom import (
     QubitPlaceholder,
     FormalArgument,
     _contained_parameters,
+    _convert_to_py_qubits,
+    _convert_to_rs_expressions,
+    _convert_to_rs_qubit,
+    _convert_to_rs_qubits,
+    _convert_to_py_parameters,
     format_parameter,
     unpack_qubit,
     _complex_str,
@@ -64,26 +72,42 @@ if TYPE_CHECKING:
 
 from dataclasses import dataclass
 
+import qcs_sdk.quil.instructions as quil_rs
 
-class AbstractInstruction(object):
+
+class _InstructionMeta(abc.ABCMeta):
+    """
+    A metaclass that allows us to group all instruction types from quil-rs and pyQuil as an `AbstractInstruction`.
+    As such, this should _only_ be used as a metaclass for `AbstractInstruction`.
+    """
+
+    @classmethod
+    def __instancecheck__(cls, __instance: Any) -> bool:
+        if isinstance(__instance, (quil_rs.Instruction)):
+            return True
+        try:
+            quil_rs.Instruction(__instance)
+            return True
+        except Exception:
+            return False
+
+
+class AbstractInstruction(metaclass=_InstructionMeta):
     """
     Abstract class for representing single instructions.
     """
 
-    def out(self) -> str:
-        pass
-
     def __str__(self) -> str:
-        return self.out()
+        return self.__str__()
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, self.__class__) and self.out() == other.out()
+        return isinstance(other, self.__class__) and str(self) == str(other)
 
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
     def __hash__(self) -> int:
-        return hash(self.out())
+        return hash(str(self))
 
 
 RESERVED_WORDS: Container[str] = [
@@ -178,70 +202,58 @@ def _join_strings(*args: str) -> str:
     return " ".join(map(str, args))
 
 
-class Gate(AbstractInstruction):
+class Gate(quil_rs.Gate, AbstractInstruction):
     """
     This is the pyQuil object for a quantum gate instruction.
     """
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         name: str,
         params: Iterable[ParameterDesignator],
         qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]],
-    ):
-        if not isinstance(name, str):
-            raise TypeError("Gate name must be a string")
+        modifiers: Iterable[quil_rs.GateModifier] = [],
+    ) -> "Gate":
+        return super().__new__(cls, name, _convert_to_rs_expressions(params), _convert_to_rs_qubits(qubits), modifiers)
 
-        if name in RESERVED_WORDS:
-            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+    @classmethod
+    def _from_rs_gate(cls, gate: quil_rs.Gate) -> "Gate":
+        return cls(gate.name, gate.parameters, gate.qubits, gate.modifiers)
 
-        if not isinstance(params, collections.abc.Iterable):
-            raise TypeError("Gate params must be an Iterable")
-
-        if not isinstance(qubits, collections.abc.Iterable):
-            raise TypeError("Gate arguments must be an Iterable")
-
-        for qubit in qubits:
-            if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
-                raise TypeError("Gate arguments must all be Qubits")
-
-        qubits_list = list(qubits)
-        if len(qubits_list) == 0:
-            raise TypeError("Gate arguments must be non-empty")
-
-        self.name = name
-        self.params = list(params)
-        self.qubits = qubits_list
-        self.modifiers: List[str] = []
-
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return {_extract_qubit_index(q, indices) for q in self.qubits}
-
-    def out(self) -> str:
-        if self.params:
-            return "{}{}{} {}".format(
-                " ".join(self.modifiers) + " " if self.modifiers else "",
-                self.name,
-                _format_params(self.params),
-                _format_qubits_out(self.qubits),
-            )
+        if indices:
+            return self.get_qubit_indices()
         else:
-            return "{}{} {}".format(
-                " ".join(self.modifiers) + " " if self.modifiers else "",
-                self.name,
-                _format_qubits_out(self.qubits),
-            )
+            return set(_convert_to_py_qubits(super().qubits))
+
+    @property
+    def qubits(self):
+        return list(self.get_qubits(indices=False))
+
+    @property
+    def params(self):
+        return _convert_to_py_parameters(super().parameters)
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.as_fixed() for qubit in super().qubits}
 
     def controlled(self, control_qubit: Union[QubitDesignator, Sequence[QubitDesignator]]) -> "Gate":
         """
         Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
         qubits.
         """
-        control_qubit = control_qubit if isinstance(control_qubit, Sequence) else [control_qubit]
-        for qubit in control_qubit:
-            qubit = unpack_qubit(qubit)
-            self.modifiers.insert(0, "CONTROLLED")
-            self.qubits.insert(0, qubit)
+        if isinstance(control_qubit, Sequence):
+            for qubit in control_qubit:
+                self = super().controlled(_convert_to_rs_qubit(qubit))
+        else:
+            self = super().controlled(_convert_to_rs_qubit(control_qubit))
+
         return self
 
     def forked(self, fork_qubit: QubitDesignator, alt_params: List[ParameterDesignator]) -> "Gate":
@@ -249,44 +261,18 @@ class Gate(AbstractInstruction):
         Add the FORKED modifier to the gate with the given fork qubit and given additional
         parameters.
         """
-        if not isinstance(alt_params, list):
-            raise TypeError("Gate params must be a list")
-        if len(self.params) != len(alt_params):
-            raise ValueError("Expected {} parameters but received {}".format(len(self.params), len(alt_params)))
-
-        fork_qubit = unpack_qubit(fork_qubit)
-
-        self.modifiers.insert(0, "FORKED")
-        self.qubits.insert(0, fork_qubit)
-        self.params += alt_params
-
+        self = super().forked(_convert_to_rs_qubit(fork_qubit), _convert_to_rs_expressions(alt_params))
         return self
 
     def dagger(self) -> "Gate":
         """
         Add the DAGGER modifier to the gate.
         """
-        self.modifiers.insert(0, "DAGGER")
-
+        self = super().dagger()
         return self
 
-    def __repr__(self) -> str:
-        return "<Gate " + str(self) + ">"
-
-    def __str__(self) -> str:
-        if self.params:
-            return "{}{}{} {}".format(
-                " ".join(self.modifiers) + " " if self.modifiers else "",
-                self.name,
-                _format_params(self.params),
-                _format_qubits_str(self.qubits),
-            )
-        else:
-            return "{}{} {}".format(
-                " ".join(self.modifiers) + " " if self.modifiers else "",
-                self.name,
-                _format_qubits_str(self.qubits),
-            )
+    def out(self) -> str:
+        return str(self)
 
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
@@ -1225,7 +1211,6 @@ class RawCapture(AbstractInstruction):
 
 class DelayFrames(AbstractInstruction):
     def __init__(self, frames: List[Frame], duration: float):
-
         # all frames should be on the same qubits
         if len(frames) == 0:
             raise ValueError("DELAY expected nonempty list of frames.")

@@ -230,7 +230,7 @@ def test_ps_sub():
     b = sX(q0) - 1.0
     assert re.match(r"\(1\+0j\)\*Xq\d+ \+ \(-1\+0j\)\*I", str(b))
 
-
+# TODO: Qubit placeholders
 def test_exponentiate_1():
     # test rotation of single qubit
     q = QubitPlaceholder.register(8)

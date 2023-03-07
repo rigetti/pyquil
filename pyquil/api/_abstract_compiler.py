@@ -125,30 +125,19 @@ class AbstractCompiler(ABC):
         """
         Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
-
-        # This is a work-around needed because calling `qcs_sdk.compile` happens _before_
-        # the event loop is available. Wrapping it in a Python async function ensures that
-        # the event loop is available. This is a limitation of pyo3:
-        # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
-        async def _compile(*args, **kwargs) -> str:  # type: ignore
-            return await qcs_sdk.compile(*args, **kwargs)
-
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
         # This will have to be addressed as part of this issue: https://github.com/rigetti/pyquil/issues/1496
         target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
-        native_quil = self._event_loop.run_until_complete(
-            _compile(
-                program.out(calibrations=False),
-                json.dumps(target_device.asdict(), indent=2),  # type: ignore
-                timeout=self._compiler_client.timeout,
-            )
+
+        native_quil = qcs_sdk.compile(
+            program.out(calibrations=False),
+            json.dumps(target_device.asdict(), indent=2),  # type: ignore
+            timeout=self._compiler_client.timeout,
         )
 
         native_program = Program(native_quil)
         native_program.num_shots = program.num_shots
-        native_program._calibrations = program._calibrations
-        native_program._waveforms = program._waveforms
         native_program._memory = program._memory.copy()
 
         return native_program

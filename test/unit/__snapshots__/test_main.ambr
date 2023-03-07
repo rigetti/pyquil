@@ -1,0 +1,6 @@
+# name: test_remove_reset_from_program
+  DEFGATE XGATE:
+      0, 1
+      1, 0
+  X 0
+# ---

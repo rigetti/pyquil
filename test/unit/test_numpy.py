@@ -56,6 +56,7 @@ def test_wfn_ordering_tensordot():
     np.testing.assert_allclose(two_q_wfn[:, 0], 1 / np.sqrt(2) * np.ones(2))
 
 
+# TODO isinstance compatibility
 def test_einsum_simulator_H():
     prog = Program(H(0))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=NumpyWavefunctionSimulator)
@@ -64,6 +65,7 @@ def test_einsum_simulator_H():
     np.testing.assert_allclose(wf, 1 / np.sqrt(2) * np.ones(2))
 
 
+# TODO isinstance compatibility
 def test_einsum_simulator_1():
     prog = Program(H(0), CNOT(0, 1))
     qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
@@ -72,6 +74,7 @@ def test_einsum_simulator_1():
     np.testing.assert_allclose(wf, 1 / np.sqrt(2) * np.reshape([1, 0, 0, 1], (2, 2)))
 
 
+# TODO isinstance compatibility
 def test_einsum_simulator_CNOT():
     prog = Program(X(0), CNOT(0, 1))
     qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
@@ -80,6 +83,7 @@ def test_einsum_simulator_CNOT():
     np.testing.assert_allclose(wf, np.reshape([0, 0, 0, 1], (2, 2)))
 
 
+# TODO isinstance compatibility
 def test_einsum_simulator_CCNOT():
     prog = Program(X(2), X(0), CCNOT(2, 1, 0))
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
@@ -90,6 +94,7 @@ def test_einsum_simulator_CCNOT():
     np.testing.assert_allclose(wf, should_be)
 
 
+# TODO isinstance compatibility
 def test_einsum_simulator_10q():
     prog = Program(H(0))
     for i in range(10 - 1):
@@ -103,6 +108,7 @@ def test_einsum_simulator_10q():
     np.testing.assert_allclose(wf, should_be)
 
 
+# TODO isinstance compatibility
 def test_measure():
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
     qam.execute(Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
@@ -131,6 +137,7 @@ def include_measures(request):
     return request.param
 
 
+# TODO isinstance compatibility
 def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
     if include_measures:
         seed = 52
@@ -160,6 +167,7 @@ def test_all_bitstrings():
         np.testing.assert_array_equal(bitstrings_ref, bitstrings_new)
 
 
+# TODO isinstance compatibility
 def test_sample_bitstrings():
     prog = Program(H(0), H(1))
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator, seed=52)
@@ -186,6 +194,7 @@ def test_expectation():
     assert val == 0.4
 
 
+# TODO isinstance compatibility
 def test_expectation_vs_ref_qvm(n_qubits):
     for _ in range(20):
         prog = _generate_random_program(n_qubits=n_qubits, length=10)
@@ -201,6 +210,7 @@ def test_expectation_vs_ref_qvm(n_qubits):
         np.testing.assert_allclose(ref_exp, np_exp, atol=1e-15)
 
 
+# TODO isinstance compatibility
 def test_defgate():
     # regression test for https://github.com/rigetti/pyquil/issues/1059
     theta = np.pi / 2
