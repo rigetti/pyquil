@@ -4,8 +4,8 @@ from typing import Dict, Any
 
 import numpy as np
 import pytest
-from qcs_api_client.client._configuration import QCSClientConfiguration
-from qcs_api_client.models import InstructionSetArchitecture
+from qcs_sdk import QCSClient
+from qcs_sdk.qpu.isa import InstructionSetArchitecture
 
 from pyquil.api import (
     QVMCompiler,
@@ -101,7 +101,7 @@ def qcs_aspen8_isa() -> InstructionSetArchitecture:
     the ``InstructionSetArchitecture`` QCS API client model.
     """
     with open(os.path.join(TEST_DATA_DIR, "qcs-isa-Aspen-8.json")) as f:
-        return InstructionSetArchitecture.from_dict(json.load(f))
+        return InstructionSetArchitecture.from_raw(f.read())
 
 
 @pytest.fixture
@@ -133,7 +133,7 @@ def noise_model_dict() -> Dict[str, Any]:
 
 
 @pytest.fixture()
-def compiler(compiler_quantum_processor: CompilerQuantumProcessor, client_configuration: QCSClientConfiguration):
+def compiler(compiler_quantum_processor: CompilerQuantumProcessor, client_configuration: QCSClient):
     compiler = QVMCompiler(
         quantum_processor=compiler_quantum_processor, timeout=1, client_configuration=client_configuration
     )
@@ -143,17 +143,17 @@ def compiler(compiler_quantum_processor: CompilerQuantumProcessor, client_config
 
 
 @pytest.fixture()
-def dummy_compiler(qcs_aspen8_quantum_processor: QCSQuantumProcessor, client_configuration: QCSClientConfiguration):
+def dummy_compiler(qcs_aspen8_quantum_processor: QCSQuantumProcessor, client_configuration: QCSClient):
     return DummyCompiler(qcs_aspen8_quantum_processor, client_configuration)
 
 
 @pytest.fixture(scope="session")
-def client_configuration() -> QCSClientConfiguration:
-    return QCSClientConfiguration.load()
+def client_configuration() -> QCSClient:
+    return QCSClient.load()
 
 
 @pytest.fixture(scope="session")
-def benchmarker(client_configuration: QCSClientConfiguration):
+def benchmarker(client_configuration: QCSClient):
     bm = BenchmarkConnection(timeout=2, client_configuration=client_configuration)
     bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
     return bm

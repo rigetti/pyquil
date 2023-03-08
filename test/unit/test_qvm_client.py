@@ -18,7 +18,7 @@ from typing import Any, Dict
 
 import httpx
 import respx
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_sdk import QCSClient
 
 from pyquil.api._qvm_client import (
     QVMClient,
@@ -33,19 +33,19 @@ from pyquil.api._qvm_client import (
 )
 
 
-def test_init__sets_base_url_and_timeout(client_configuration: QCSClientConfiguration):
+def test_init__sets_base_url_and_timeout(client_configuration: QCSClient):
     qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=3.14)
 
-    assert qvm_client.base_url == client_configuration.profile.applications.pyquil.qvm_url
+    assert qvm_client.base_url == client_configuration.qvm_url
     assert qvm_client.timeout == 3.14
 
 
 @respx.mock
-def test_get_version__returns_version(client_configuration: QCSClientConfiguration):
+def test_get_version__returns_version(client_configuration: QCSClient):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
     respx.post(
-        url=client_configuration.profile.applications.pyquil.qvm_url,
+        url=client_configuration.qvm_url,
         json={"type": "version"},
     ).respond(status_code=200, text="1.2.3 [abc123]")
 
@@ -53,11 +53,11 @@ def test_get_version__returns_version(client_configuration: QCSClientConfigurati
 
 
 @respx.mock
-def test_run_program__returns_results(client_configuration: QCSClientConfiguration):
+def test_run_program__returns_results(client_configuration: QCSClient):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
     respx.post(
-        url=client_configuration.profile.applications.pyquil.qvm_url,
+        url=client_configuration.qvm_url,
         json={
             "type": "multishot",
             "compiled-quil": "some-program",
@@ -81,11 +81,11 @@ def test_run_program__returns_results(client_configuration: QCSClientConfigurati
 
 
 @respx.mock
-def test_run_and_measure_program__returns_results(client_configuration: QCSClientConfiguration):
+def test_run_and_measure_program__returns_results(client_configuration: QCSClient):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
     respx.post(
-        url=client_configuration.profile.applications.pyquil.qvm_url,
+        url=client_configuration.qvm_url,
         json={
             "type": "multishot-measure",
             "compiled-quil": "some-program",
@@ -109,11 +109,11 @@ def test_run_and_measure_program__returns_results(client_configuration: QCSClien
 
 
 @respx.mock
-def test_measure_expectation__returns_expectation(client_configuration: QCSClientConfiguration):
+def test_measure_expectation__returns_expectation(client_configuration: QCSClient):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
     respx.post(
-        url=client_configuration.profile.applications.pyquil.qvm_url,
+        url=client_configuration.qvm_url,
         json={
             "type": "expectation",
             "state-preparation": "some-program",
@@ -134,18 +134,18 @@ def test_measure_expectation__returns_expectation(client_configuration: QCSClien
 
 
 @respx.mock
-def test_get_wavefunction__returns_wavefunction(client_configuration: QCSClientConfiguration):
+def test_get_wavefunction__returns_wavefunction(client_configuration: QCSClient):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
     respx.post(
-        url=client_configuration.profile.applications.pyquil.qvm_url,
+        url=client_configuration.qvm_url,
         json={
-                "type": "wavefunction",
-                "compiled-quil": "some-program",
-                "measurement-noise": (3.14, 1.61, 6.28),
-                "gate-noise": (1.0, 2.0, 3.0),
-                "rng-seed": 314,
-            },
+            "type": "wavefunction",
+            "compiled-quil": "some-program",
+            "measurement-noise": (3.14, 1.61, 6.28),
+            "gate-noise": (1.0, 2.0, 3.0),
+            "rng-seed": 314,
+        },
     ).respond(status_code=200, text="some-wavefunction")
 
     request = GetWavefunctionRequest(

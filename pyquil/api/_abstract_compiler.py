@@ -17,10 +17,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import dataclasses
 from typing import Any, Dict, List, Optional, Sequence, Union
-import asyncio
 import json
 
-import qcs_sdk
+from qcs_sdk import QCSClient, compile
 
 from pyquil._memory import Memory
 from pyquil._version import pyquil_version
@@ -31,7 +30,6 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Gate
-from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import ParameterAref, ParameterSpec
 
 
@@ -87,27 +85,21 @@ QuantumExecutable = Union[EncryptedProgram, Program]
 class AbstractCompiler(ABC):
     """The abstract interface for a compiler."""
 
-    _event_loop: asyncio.AbstractEventLoop
-
     def __init__(
         self,
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
-        client_configuration: Optional[QCSClientConfiguration] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        client_configuration: Optional[QCSClient] = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
 
-        self._client_configuration = client_configuration or QCSClientConfiguration.load()
-
-        if event_loop is None:
-            event_loop = asyncio.get_event_loop()
-        self._event_loop = event_loop
+        self._client_configuration = client_configuration or QCSClient.load()
 
         self._compiler_client = CompilerClient(
-            client_configuration=self._client_configuration, request_timeout=timeout, event_loop=self._event_loop
+            client_configuration=self._client_configuration,
+            request_timeout=timeout,
         )
 
         self._connect()
@@ -125,23 +117,14 @@ class AbstractCompiler(ABC):
         Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
 
-        # This is a work-around needed because calling `qcs_sdk.compile` happens _before_
-        # the event loop is available. Wrapping it in a Python async function ensures that
-        # the event loop is available. This is a limitation of pyo3:
-        # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
-        async def _compile(*args, **kwargs) -> str:  # type: ignore
-            return await qcs_sdk.compile(*args, **kwargs)
-
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
         # This will have to be addressed as part of this issue: https://github.com/rigetti/pyquil/issues/1496
         target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
-        native_quil = self._event_loop.run_until_complete(
-            _compile(
-                program.out(calibrations=False),
-                json.dumps(target_device.asdict(), indent=2),  # type: ignore
-                timeout=self._compiler_client.timeout,
-            )
+        native_quil = compile(
+            quil=program.out(calibrations=False),
+            target_device=json.dumps(target_device.asdict(), indent=2),  # type: ignore
+            timeout=self._compiler_client.timeout,
         )
 
         native_program = Program(native_quil)

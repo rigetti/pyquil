@@ -33,7 +33,7 @@ cache:
 variables:
   IMAGE: rigetti/forest
   QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL: "http://qvm:5000"
-  QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL: "tcp://quilc:5555"
+  QCS_SETTINGS_APPLICATIONS_QUILC_URL: "tcp://quilc:5555"
   # For qcs-sdk-rust - Consider using these exclusively in pyQuil v4 release
   QCS_SETTINGS_APPLICATIONS_QVM_URL: "http://qvm:5000"
   QCS_SETTINGS_APPLICATIONS_QUILC_URL: "tcp://quilc:5555"

@@ -18,9 +18,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Iterator, List, Optional
 
-import qcs_sdk
+from qcs_sdk import QCSClient, get_quilc_version
 import rpcq
-from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
 
@@ -156,9 +155,8 @@ class CompilerClient:
     def __init__(
         self,
         *,
-        client_configuration: QCSClientConfiguration,
+        client_configuration: QCSClient,
         request_timeout: float = 10.0,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         """
         Instantiate a new compiler client.
@@ -166,25 +164,19 @@ class CompilerClient:
         :param client_configuration: Configuration for client.
         :param request_timeout: Timeout for requests, in seconds.
         """
-        base_url = client_configuration.profile.applications.pyquil.quilc_url
+        base_url = client_configuration.quilc_url
         if not base_url.startswith("tcp://"):
             raise ValueError(f"Expected compiler URL '{base_url}' to start with 'tcp://'")
 
         self.base_url = base_url
         self.timeout = request_timeout
-        if event_loop is None:
-            event_loop = asyncio.get_event_loop()
-        self._event_loop = event_loop
 
     def get_version(self) -> str:
         """
         Get version info for compiler server.
         """
 
-        async def _get_quilc_version() -> str:
-            return await qcs_sdk.get_quilc_version()
-
-        return self._event_loop.run_until_complete(_get_quilc_version())
+        return get_quilc_version()
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """

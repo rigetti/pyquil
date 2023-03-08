@@ -24,7 +24,7 @@ pyQuil load its settings and secrets from specific locations. By default, config
 
 Additionally, you can override whichever QVM and quilc URLs are loaded from ``settings.toml``
 (``profiles.<profile>.applications.pyquil.qvm_url`` and ``profiles.<profile>.applications.pyquil.quilc_url`` fields)
-by setting the ``QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL`` and/or ``QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL``
+by setting the ``QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL`` and/or ``QCS_SETTINGS_APPLICATIONS_QUILC_URL``
 environment variables. If these URLs are missing from ``settings.toml`` and are not set by environment variables,
 the following defaults will be used (as they correspond to the default behavior of the QVM and quilc when running
 locally):

@@ -19,7 +19,6 @@ from collections import defaultdict
 from typing import Dict, Optional
 
 import numpy as np
-from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram
@@ -28,10 +27,11 @@ from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.quilatom import (
     MemoryReference,
 )
-import qcs_sdk
+from qcs_sdk import QCSClient
+from qcs_sdk.api import ExecutionResult, build_patch_values, submit, retrieve_results
 
 
-def decode_buffer(buffer: "qcs_sdk.ExecutionResult") -> np.ndarray:
+def decode_buffer(buffer: ExecutionResult) -> np.ndarray:
     """
     Translate a DataBuffer into a numpy array.
 
@@ -112,9 +112,8 @@ class QPU(QAM[QPUExecuteResponse]):
         quantum_processor_id: str,
         priority: int = 1,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClientConfiguration] = None,
+        client_configuration: Optional[QCSClient] = None,
         endpoint_id: Optional[str] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
         use_gateway: bool = True,
     ) -> None:
         """
@@ -132,15 +131,12 @@ class QPU(QAM[QPUExecuteResponse]):
 
         self.priority = priority
 
-        client_configuration = client_configuration or QCSClientConfiguration.load()
+        client_configuration = client_configuration or QCSClient.load()
         self._last_results: Dict[str, np.ndarray] = {}
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
         self._endpoint_id = endpoint_id
 
-        if event_loop is None:
-            event_loop = asyncio.get_event_loop()
-        self._event_loop = event_loop
         self._use_gateway = use_gateway
 
     @property
@@ -170,13 +166,12 @@ class QPU(QAM[QPUExecuteResponse]):
         mem_values = defaultdict(list)
         for k, v in executable._memory.values.items():
             mem_values[k.name].append(v)
-        patch_values = qcs_sdk.build_patch_values(executable.recalculation_table, mem_values)
+        patch_values = build_patch_values(executable.recalculation_table, mem_values)
 
-        async def _submit(*args) -> str:  # type: ignore
-            return await qcs_sdk.submit(*args)
-
-        job_id = self._event_loop.run_until_complete(
-            _submit(executable.program, patch_values, self.quantum_processor_id, self._use_gateway)
+        job_id = submit(
+            program=executable.program,
+            patch_values=patch_values,
+            quantum_processor_id=self.quantum_processor_id,
         )
 
         return QPUExecuteResponse(_executable=executable, job_id=job_id)
@@ -186,11 +181,9 @@ class QPU(QAM[QPUExecuteResponse]):
         Retrieve results from execution on the QPU.
         """
 
-        async def _get_result(*args):  # type: ignore
-            return await qcs_sdk.retrieve_results(*args)
-
-        results = self._event_loop.run_until_complete(
-            _get_result(execute_response.job_id, self.quantum_processor_id, self._use_gateway)  # type: ignore
+        results = retrieve_results(
+            job_id=execute_response.job_id,
+            quantum_processor_id=self.quantum_processor_id,
         )
 
         ro_sources = execute_response._executable.ro_sources

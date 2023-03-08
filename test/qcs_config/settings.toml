@@ -13,3 +13,7 @@ default_profile_name = "default"
     auth_server_name = "default"
     credentials_name = "default"
 
+  [profiles.group]
+    api_url = "https://api.qcs.rigetti.com"
+    auth_server_name = "default"
+    credentials_name = "default"
