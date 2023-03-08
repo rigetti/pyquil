@@ -576,15 +576,16 @@ class BinaryExp(Expression):
     def _from_rs_infix_expression(cls, infix_expression: quil_rs.InfixExpression):
         left = _convert_to_py_parameter(infix_expression.left)
         right = _convert_to_py_parameter(infix_expression.right)
-        if infix_expression.operator.is_plus():
+        print(infix_expression.operator)
+        if infix_expression.operator == quil_rs.InfixOperator.Plus:
             return Add(left, right)
-        if infix_expression.operator.is_minus():
+        if infix_expression.operator == quil_rs.InfixOperator.Minus:
             return Sub(left, right)
-        if infix_expression.operator.is_slash():
+        if infix_expression.operator == quil_rs.InfixOperator.Slash:
             return Div(left, right)
-        if infix_expression.operator.is_star():
+        if infix_expression.operator == quil_rs.InfixOperator.Star:
             return Mul(left, right)
-        if infix_expression.operator.is_caret():
+        if infix_expression.operator == quil_rs.InfixOperator.Caret:
             return Pow(left, right)
         raise ValueError(f"{type(infix_expression)} is not a valid InfixExpression")
 
