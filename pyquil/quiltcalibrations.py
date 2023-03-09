@@ -132,6 +132,27 @@ def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parame
         # raise ValueError(f"Unable to fill placeholders in  object {obj}.")
 
 
+def _convert_to_calibration_match(
+    instruction: quil_rs.Gate, calibration: quil_rs.Calibration
+) -> Optional[CalibrationMatch]:
+    if calibration is None:
+        return None
+    settings = {
+        _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
+        for param, qubit in zip(calibration.qubits, instruction.qubits)
+        if param.is_variable()
+    }
+    settings.update(
+        {
+            _convert_to_py_parameter(param): _convert_to_py_parameter(value)
+            for param, value in zip(calibration.parameters, instruction.parameters)
+            if param.is_variable()
+        }
+    )
+
+    return CalibrationMatch(DefCalibration._from_rs_calibration(calibration), settings)
+
+
 def match_calibration(
     instr: AbstractInstruction, cal: Union[DefCalibration, DefMeasureCalibration]
 ) -> Optional[CalibrationMatch]:
@@ -152,22 +173,7 @@ def match_calibration(
         matched_calibration = calibration_set.get_match_for_gate(
             gate.modifiers, gate.name, gate.parameters, gate.qubits
         )
-        if matched_calibration is None:
-            return None
-
-        settings = {
-            _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
-            for param, qubit in zip(matched_calibration.qubits, gate.qubits)
-            if param.is_variable()
-        }
-        settings.update(
-            {
-                _convert_to_py_parameter(param): _convert_to_py_parameter(value)
-                for param, value in zip(matched_calibration.parameters, gate.parameters)
-                if param.is_variable()
-            }
-        )
-        return CalibrationMatch(DefCalibration._from_rs_calibration(matched_calibration), settings)
+        return _convert_to_calibration_match(gate, matched_calibration)
 
     if calibration.is_measure_calibration_definition():
         # TODO: CalibrationSet API needs measurement calibration

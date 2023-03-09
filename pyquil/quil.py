@@ -85,6 +85,7 @@ from pyquil.quiltcalibrations import (
     CalibrationMatch,
     expand_calibration,
     match_calibration,
+    _convert_to_calibration_match,
 )
 
 from qcs_sdk.quil.program import Program as RSProgram
@@ -623,9 +624,13 @@ class Program:
         if not isinstance(instr, (Gate, Measurement)):
             return None
 
-        instr = _convert_to_rs_instruction(instr)
-        if isinstance(instr, quil_rs.Gate):
-            self._program.calibrations.get_match_for_gate(instr.modifiers, instr.name, instr.parameters, instr.qubits)
+        instruction = _convert_to_rs_instruction(instr)
+        if instruction.is_gate():
+            gate = instruction.to_gate()
+            match = self._program.calibrations.get_match_for_gate(
+                gate.modifiers, gate.name, gate.parameters, gate.qubits
+            )
+            return _convert_to_calibration_match(gate, match)
 
         return None
 
@@ -643,7 +648,6 @@ class Program:
 
         return None
 
-    # TODO: Port calibrations logic from quil-rs
     def calibrate(
         self,
         instruction: AbstractInstruction,
