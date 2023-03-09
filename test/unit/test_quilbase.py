@@ -45,9 +45,13 @@ class TestGate:
 
     def test_params(self, gate, params):
         assert gate.params == params
+        gate.params = [pi / 2]
+        assert gate.params == [pi / 2]
 
     def test_qubits(self, gate, qubits):
         assert gate.qubits == qubits
+        gate.qubits = [Qubit(123)]
+        assert gate.qubits == [Qubit(123)]
 
     def test_get_qubits(self, gate, qubits):
         assert gate.get_qubit_indices() == {q.index for q in qubits}
