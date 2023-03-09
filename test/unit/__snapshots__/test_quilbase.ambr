@@ -1,15 +1,25 @@
 # name: TestDefCalibration.test_out[No-Params]
   '''
   DEFCAL Calibrate 0:
-      X 0
-  
+  	X 0
   '''
 # ---
 # name: TestDefCalibration.test_out[Params]
   '''
   DEFCAL Calibrate(%X) 0:
-      X 0
-  
+  	X 0
+  '''
+# ---
+# name: TestDefCalibration.test_str[No-Params]
+  '''
+  DEFCAL Calibrate 0:
+  	X 0
+  '''
+# ---
+# name: TestDefCalibration.test_str[Params]
+  '''
+  DEFCAL Calibrate(%X) 0:
+  	X 0
   '''
 # ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]

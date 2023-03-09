@@ -91,8 +91,8 @@ class TestDefCalibration:
     def calibration(self, name, parameters, qubits, instrs):
         return DefCalibration(name, parameters, qubits, instrs)
 
-    # def test_str(self, calibration, snapshot):
-    #     assert str(calibration) == snapshot
+    def test_str(self, calibration, snapshot):
+        assert str(calibration) == snapshot
 
     def test_out(self, calibration, snapshot):
         assert calibration.out() == snapshot
@@ -104,8 +104,8 @@ class TestDefCalibration:
 
     def test_parameters(self, calibration, parameters):
         assert calibration.parameters == parameters
-        calibration.parameters = [5]
-        assert calibration.parameters == [5]
+        calibration.parameters = [pi / 2]
+        assert calibration.parameters == [pi / 2]
 
     def test_qubits(self, calibration, qubits):
         assert calibration.qubits == qubits

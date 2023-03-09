@@ -132,6 +132,22 @@ def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[q
     return [_convert_to_rs_instruction(instr) for instr in instrs]
 
 
+def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstruction:
+    print(type(instr), str(instr))
+    if instr.is_gate():
+        return Gate._from_rs_gate(instr.to_gate())
+    if instr.is_calibration_definition():
+        return DefCalibration._from_rs_calibration(instr.to_calibration_definition())
+    if isinstance(instr, quil_rs.Instruction):
+        raise NotImplementedError("This Instruction hasn't been mapped to an AbstractInstruction yet.")
+    else:
+        raise ValueError(f"{type(instr)} is not a valid Instruction type")
+
+
+def _convert_to_py_instructions(instrs: Iterable[quil_rs.Instruction]) -> List[AbstractInstruction]:
+    return [_convert_to_py_instruction(instr) for instr in instrs]
+
+
 RESERVED_WORDS: Container[str] = [
     "DEFGATE",
     "DEFCIRCUIT",
@@ -1318,9 +1334,10 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     def __new__(
         cls,
         name: str,
-        parameters: List[ParameterDesignator],
-        qubits: List[Union[Qubit, FormalArgument]],
-        instrs: List[AbstractInstruction],
+        parameters: Iterable[ParameterDesignator],
+        qubits: Iterable[Union[Qubit, FormalArgument]],
+        instrs: Iterable[AbstractInstruction],
+        modifiers: Iterable[quil_rs.GateModifier] = [],
     ):
         return super().__new__(
             cls,
@@ -1328,7 +1345,32 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
             _convert_to_rs_expressions(parameters),
             _convert_to_rs_qubits(qubits),
             _convert_to_rs_instructions(instrs),
+            modifiers,
         )
+
+    @property
+    def parameters(self):
+        return _convert_to_py_parameters(super().parameters)
+
+    @parameters.setter
+    def parameters(self, parameters: Iterable[ParameterDesignator]):
+        quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))
+
+    @property
+    def qubits(self):
+        return _convert_to_py_qubits(super().qubits)
+
+    @qubits.setter
+    def qubits(self, qubits: Iterable[QubitDesignator]):
+        quil_rs.Calibration.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+
+    @property
+    def instrs(self):
+        return _convert_to_py_instructions(super().instructions)
+
+    @instrs.setter
+    def instrs(self, instrs: Iterable[AbstractInstruction]):
+        quil_rs.Calibration.instructions.__set__(self, _convert_to_rs_instructions(instrs))
 
     def out(self) -> str:
         return str(self)
