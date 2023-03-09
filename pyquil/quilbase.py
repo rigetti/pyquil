@@ -253,9 +253,17 @@ class Gate(quil_rs.Gate, AbstractInstruction):
     def qubits(self):
         return list(self.get_qubits(indices=False))
 
+    @qubits.setter
+    def qubits(self, qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]]):
+        quil_rs.Gate.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+
     @property
     def params(self):
         return _convert_to_py_parameters(super().parameters)
+
+    @params.setter
+    def params(self, params: Iterable[ParameterDesignator]):
+        quil_rs.Gate.parameters.__set__(self, _convert_to_rs_expressions(params))
 
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.as_fixed() for qubit in super().qubits}
