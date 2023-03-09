@@ -81,15 +81,24 @@ class _InstructionMeta(abc.ABCMeta):
     As such, this should _only_ be used as a metaclass for `AbstractInstruction`.
     """
 
-    @classmethod
-    def __instancecheck__(cls, __instance: Any) -> bool:
-        if isinstance(__instance, (quil_rs.Instruction)):
-            return True
+    def __init__(self, *args, **_):
+        self.__name = args[0]
         try:
-            quil_rs.Instruction(__instance)
-            return True
+            self.__is_abstract_instruction = args[1][0] == AbstractInstruction
         except Exception:
+            self.__is_abstract_instruction = False
+
+    def __instancecheck__(self, __instance: Any) -> bool:
+        # Already an Instruction, return True
+        if isinstance(__instance, quil_rs.Instruction):
+            return True
+
+        # __instance is not an Instruction or AbstractInstruction, return False
+        if not self.__name == "AbstractInstruction" and not self.__is_abstract_instruction:
             return False
+
+        # __instance is a subclass of AbstractInstruction, do the normal check
+        return super().__instancecheck__(__instance)
 
 
 class AbstractInstruction(metaclass=_InstructionMeta):
@@ -113,12 +122,8 @@ class AbstractInstruction(metaclass=_InstructionMeta):
 def _convert_to_rs_instruction(instr: AbstractInstruction) -> quil_rs.Instruction:
     if isinstance(instr, quil_rs.Instruction):
         return instr
-    if isinstance(instr, DefCalibration):
-        return quil_rs.Instruction.from_calibration_definition(instr)
-    if isinstance(instr, DefMeasureCalibration):
-        return quil_rs.Instruction.from_measure_calibration_definition(instr)
-    if isinstance(instr, Gate):
-        return quil_rs.Instruction.from_gate(instr)
+    if isinstance(instr, AbstractInstruction):
+        return quil_rs.Instruction(instr)
     else:
         raise ValueError(f"{type(instr)}")
 
@@ -1309,7 +1314,7 @@ class DefWaveform(AbstractInstruction):
         return ret
 
 
-class DefCalibration(AbstractInstruction):
+class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     def __new__(
         cls,
         name: str,
