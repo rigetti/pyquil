@@ -2,7 +2,7 @@ from math import pi
 from typing import List
 from pyquil.gates import X
 from pyquil.quil import Program
-from pyquil.quilbase import DefCalibration, Gate, MemoryReference, ParameterDesignator, Parameter
+from pyquil.quilbase import DefCalibration, DefMeasureCalibration, Gate, MemoryReference, ParameterDesignator, Parameter
 from pyquil.quilatom import BinaryExp, Qubit
 from pyquil.api._compiler import QPUCompiler
 import pytest
@@ -88,7 +88,7 @@ class TestGate:
 )
 class TestDefCalibration:
     @pytest.fixture
-    def calibration(self, name, parameters, qubits, instrs):
+    def calibration(self, name, parameters, qubits, instrs) -> DefCalibration:
         return DefCalibration(name, parameters, qubits, instrs)
 
     def test_str(self, calibration, snapshot):
@@ -116,3 +116,35 @@ class TestDefCalibration:
         assert calibration.instrs == instrs
         calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
         assert calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]
+
+
+@pytest.mark.parametrize(
+    ("qubit", "memory_reference", "instrs"),
+    [
+        (Qubit(0), None, [X(0)]),
+        (Qubit(1), [MemoryReference("theta", 0, 1)], [X(0)]),
+    ],
+    ids=("No-MemoryReference", "MemoryReference"),
+)
+class TestDefMeasureCalibration:
+    @pytest.fixture
+    def measure_calibration(self, qubit, memory_reference, instrs) -> DefMeasureCalibration:
+        return DefMeasureCalibration(qubit, memory_reference, instrs)
+
+    def test_out(self, measure_calibration, snapshot):
+        assert measure_calibration.out() == snapshot
+
+    def test_qubit(self, measure_calibration, qubit):
+        assert measure_calibration.qubit == qubit
+        measure_calibration.qubit = Qubit(123)
+        assert measure_calibration.qubit == Qubit(123)
+
+    def test_memory_reference(self, measure_calibration, memory_reference):
+        assert measure_calibration.memory_reference == memory_reference
+        measure_calibration.memory_reference = MemoryReference("new_mem_ref")
+        assert measure_calibration.memory_reference == MemoryReference("new_mem_ref")
+
+    def test_instrs(self, measure_calibration, instrs):
+        assert measure_calibration.instrs == instrs
+        measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
+        assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]

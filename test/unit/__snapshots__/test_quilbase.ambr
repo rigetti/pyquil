@@ -22,6 +22,20 @@
   	X 0
   '''
 # ---
+# name: TestDefMeasureCalibration.test_out[MemoryReference]
+  '''
+  DEFCAL MEASURE 1 [<MRef theta[0]>]:
+      X 0
+  
+  '''
+# ---
+# name: TestDefMeasureCalibration.test_out[No-MemoryReference]
+  '''
+  DEFCAL MEASURE 0:
+      X 0
+  
+  '''
+# ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---
