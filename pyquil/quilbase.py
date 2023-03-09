@@ -110,6 +110,23 @@ class AbstractInstruction(metaclass=_InstructionMeta):
         return hash(str(self))
 
 
+def _convert_to_rs_instruction(instr: AbstractInstruction) -> quil_rs.Instruction:
+    if isinstance(instr, quil_rs.Instruction):
+        return instr
+    if isinstance(instr, DefCalibration):
+        return quil_rs.Instruction.from_calibration_definition(instr)
+    if isinstance(instr, DefMeasureCalibration):
+        return quil_rs.Instruction.from_measure_calibration_definition(instr)
+    if isinstance(instr, Gate):
+        return quil_rs.Instruction.from_gate(instr)
+    else:
+        raise ValueError(f"{type(instr)}")
+
+
+def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[quil_rs.Instruction]:
+    return [_convert_to_rs_instruction(instr) for instr in instrs]
+
+
 RESERVED_WORDS: Container[str] = [
     "DEFGATE",
     "DEFCIRCUIT",
@@ -1285,26 +1302,23 @@ class DefWaveform(AbstractInstruction):
 
 
 class DefCalibration(AbstractInstruction):
-    def __init__(
-        self,
+    def __new__(
+        cls,
         name: str,
         parameters: List[ParameterDesignator],
         qubits: List[Union[Qubit, FormalArgument]],
         instrs: List[AbstractInstruction],
     ):
-        self.name = name
-        self.parameters = parameters
-        self.qubits = qubits
-        self.instrs = instrs
+        return super().__new__(
+            cls,
+            name,
+            _convert_to_rs_expressions(parameters),
+            _convert_to_rs_qubits(qubits),
+            _convert_to_rs_instructions(instrs),
+        )
 
     def out(self) -> str:
-        ret = f"DEFCAL {self.name}"
-        if len(self.parameters) > 0:
-            ret += _format_params(self.parameters)
-        ret += " " + _format_qubits_str(self.qubits) + ":\n"
-        for instr in self.instrs:
-            ret += f"    {instr.out()}\n"
-        return ret
+        return str(self)
 
 
 class DefMeasureCalibration(AbstractInstruction):
