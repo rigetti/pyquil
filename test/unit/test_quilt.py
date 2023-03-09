@@ -80,7 +80,6 @@ def _match(cal, instr):
     return match_calibration(instr, cal)
 
 
-# TODO: Calibration API: match calibration
 def test_simple_gate_calibration_match():
     matches = [
         ("DEFCAL X 0", "X 0"),

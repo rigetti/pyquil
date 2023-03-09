@@ -76,6 +76,9 @@ from pyquil.quilbase import (
     DefFrame,
     DefMeasureCalibration,
     DefWaveform,
+    _convert_to_rs_instruction,
+    _convert_to_rs_instructions,
+    _convert_to_py_instructions,
 )
 from pyquil.quiltcalibrations import (
     CalibrationError,
@@ -85,11 +88,11 @@ from pyquil.quiltcalibrations import (
 )
 
 from qcs_sdk.quil.program import Program as RSProgram
-from qcs_sdk.quil.instructions import Instruction as RSInstruction, Gate as RSGate
+import qcs_sdk.quil.instructions as quil_rs
 
 InstructionDesignator = Union[
     AbstractInstruction,
-    RSInstruction,
+    quil_rs.Instruction,
     "Program",
     List[Any],
     Tuple[Any, ...],
@@ -178,7 +181,7 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        return self._program.to_instructions(False)
+        return _convert_to_py_instructions(self._program.to_instructions(False))
 
     def inst(self, *instructions: InstructionDesignator) -> "Program":
         """
@@ -214,15 +217,15 @@ class Program:
                 else:
                     self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
-                self.inst(RSProgram.from_string(instruction.strip()))
+                self.inst(RSProgram.parse(instruction.strip()))
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
-            elif isinstance(instruction, RSInstruction):
+            elif isinstance(instruction, quil_rs.Instruction):
                 self._program.add_instruction(instruction)
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
             elif isinstance(instruction, AbstractInstruction):
-                self.inst(RSProgram.from_string(str(instruction)))
+                self.inst(RSProgram.parse(str(instruction)))
             else:
                 raise ValueError("Invalid instruction: {}".format(instruction))
 
@@ -607,7 +610,7 @@ class Program:
         Note: preference is given to later calibrations, i.e. in a program with
 
           DEFCAL X 0:
-              <a>
+             <a>
 
           DEFCAL X 0:
              <b>
@@ -617,11 +620,12 @@ class Program:
         :param instr: An instruction.
         :returns: a CalibrationMatch object, if one can be found.
         """
-        if isinstance(instr, (Gate, Measurement)):
-            for cal in reversed(self.calibrations):
-                match = match_calibration(instr, cal)
-                if match is not None:
-                    return match
+        if not isinstance(instr, (Gate, Measurement)):
+            return None
+
+        instr = _convert_to_rs_instruction(instr)
+        if isinstance(instr, quil_rs.Gate):
+            self._program.calibrations.get_match_for_gate(instr.modifiers, instr.name, instr.parameters, instr.qubits)
 
         return None
 
@@ -664,25 +668,12 @@ class Program:
         """
         if previously_calibrated_instructions is None:
             previously_calibrated_instructions = set()
-        elif instruction in previously_calibrated_instructions:
-            raise CalibrationError(
-                f"The instruction {instruction} appears in the set of "
-                f"previously calibrated instructions {previously_calibrated_instructions}"
-                " and would therefore result in a cyclic non-terminating expansion."
-            )
-        else:
-            previously_calibrated_instructions = previously_calibrated_instructions.union({instruction})
-        match = self.match_calibrations(instruction)
-        if match is not None:
-            return sum(
-                [
-                    self.calibrate(expansion, previously_calibrated_instructions)
-                    for expansion in expand_calibration(match)
-                ],
-                [],
-            )
-        else:
-            return [instruction]
+
+        calibrated_instructions = self._program.calibrations.expand(
+            _convert_to_rs_instruction(instruction), _convert_to_rs_instructions(previously_calibrated_instructions)
+        )
+
+        return _convert_to_py_instructions(calibrated_instructions)
 
     @deprecated(
         deprecated_in="4.0",

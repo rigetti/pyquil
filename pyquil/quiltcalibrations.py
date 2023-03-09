@@ -12,6 +12,7 @@ from pyquil.quilatom import (
     Qubit,
     TemplateWaveform,
     WaveformReference,
+    _convert_to_py_parameter,
 )
 from pyquil.quilbase import (
     AbstractInstruction,
@@ -35,7 +36,13 @@ from pyquil.quilbase import (
     ShiftFrequency,
     ShiftPhase,
     SwapPhase,
+    _convert_to_rs_instruction,
+    _convert_to_py_instruction,
+    _convert_to_py_qubit,
 )
+
+from qcs_sdk.quil.program import CalibrationSet
+import qcs_sdk.quil.instructions as quil_rs
 
 
 class CalibrationError(Exception):
@@ -135,36 +142,39 @@ def match_calibration(
 
     On a failure, return None.
     """
-    settings: Dict[Any, Any] = {}
-
-    @no_type_check
-    def unpack_field(cal_field, instr_field):
-        if isinstance(cal_field, (Parameter, FormalArgument)):
-            if instr_field is None:
-                raise CalibrationDoesntMatch()
-            settings[cal_field] = instr_field
-        elif cal_field != instr_field:
-            raise CalibrationDoesntMatch()
-
-    if isinstance(instr, Measurement) and isinstance(cal, DefMeasureCalibration):
-        try:
-            unpack_field(cal.qubit, instr.qubit)
-            unpack_field(cal.memory_reference, instr.classical_reg)
-            return CalibrationMatch(cal, settings)
-        except CalibrationDoesntMatch:
+    calibration = _convert_to_rs_instruction(cal)
+    if calibration.is_calibration_definition():
+        instruction = _convert_to_rs_instruction(instr)
+        if not instruction.is_gate():
             return None
-    elif isinstance(instr, Gate) and isinstance(cal, DefCalibration):
-        try:
-            unpack_field(cal.name, instr.name)
-            for cal_param, instr_param in zip(cal.parameters, instr.params):
-                unpack_field(cal_param, instr_param)
-            for cal_arg, instr_arg in zip(cal.qubits, instr.qubits):
-                unpack_field(cal_arg, instr_arg)
-            return CalibrationMatch(cal, settings)
-        except CalibrationDoesntMatch:
+        calibration_set = CalibrationSet([calibration.to_calibration_definition()], [])
+        gate = instruction.to_gate()
+        matched_calibration = calibration_set.get_match_for_gate(
+            gate.modifiers, gate.name, gate.parameters, gate.qubits
+        )
+        if matched_calibration is None:
             return None
-    else:
-        return None
+
+        settings = {
+            _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
+            for param, qubit in zip(matched_calibration.qubits, gate.qubits)
+            if param.is_variable()
+        }
+        settings.update(
+            {
+                _convert_to_py_parameter(param): _convert_to_py_parameter(value)
+                for param, value in zip(matched_calibration.parameters, gate.parameters)
+                if param.is_variable()
+            }
+        )
+        return CalibrationMatch(DefCalibration._from_rs_calibration(matched_calibration), settings)
+
+    if calibration.is_measure_calibration_definition():
+        # TODO: CalibrationSet API needs measurement calibration
+        instruction = _convert_to_rs_instruction(instr)
+        calibration_set = CalibrationSet([], [calibration.to_measure_calibration_definition()])
+
+    return None
 
 
 def expand_calibration(match: CalibrationMatch) -> List[AbstractInstruction]:

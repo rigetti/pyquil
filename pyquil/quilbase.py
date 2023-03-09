@@ -125,8 +125,10 @@ def _convert_to_rs_instruction(instr: AbstractInstruction) -> quil_rs.Instructio
         return instr
     if isinstance(instr, AbstractInstruction):
         return quil_rs.Instruction(instr)
+    if isinstance(instr, quil_rs.Calibration):
+        return quil_rs.Instruction.from_calibration_definition(instr)
     else:
-        raise ValueError(f"{type(instr)}")
+        raise ValueError(f"{type(instr)} is not an Instruction")
 
 
 def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[quil_rs.Instruction]:
@@ -134,7 +136,6 @@ def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[q
 
 
 def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstruction:
-    print(type(instr), str(instr))
     if instr.is_gate():
         return Gate._from_rs_gate(instr.to_gate())
     if instr.is_calibration_definition():
@@ -1417,7 +1418,6 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
 
     @property
     def memory_reference(self) -> Optional[MemoryReference]:
-        print("parameter", super().parameter, super().parameter == "")
         if super().parameter == "":
             return None
         return MemoryReference._from_parameter_str(super().parameter)
