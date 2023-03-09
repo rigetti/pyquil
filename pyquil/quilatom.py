@@ -771,6 +771,13 @@ class MemoryReference(QuilAtom, Expression):
     def _from_rs_memory_reference(cls, memory_reference: quil_rs.MemoryReference) -> "MemoryReference":
         return cls(memory_reference.name, memory_reference.index)
 
+    @classmethod
+    def _from_parameter_str(cls, memory_reference_str: str) -> "MemoryReference":
+        expression = quil_rs.Expression.parse_from_str(memory_reference_str)
+        if expression.is_address():
+            return cls._from_rs_memory_reference(expression.to_address())
+        raise ValueError(f"{memory_reference_str} is not a memory reference")
+
     def out(self) -> str:
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:
             return "{}".format(self.name)

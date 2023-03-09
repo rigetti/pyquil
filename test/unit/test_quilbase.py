@@ -122,7 +122,7 @@ class TestDefCalibration:
     ("qubit", "memory_reference", "instrs"),
     [
         (Qubit(0), None, [X(0)]),
-        (Qubit(1), [MemoryReference("theta", 0, 1)], [X(0)]),
+        (Qubit(1), MemoryReference("theta", 0, 1), [X(0)]),
     ],
     ids=("No-MemoryReference", "MemoryReference"),
 )

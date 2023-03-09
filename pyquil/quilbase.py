@@ -57,6 +57,7 @@ from pyquil.quilatom import (
     QubitPlaceholder,
     FormalArgument,
     _contained_parameters,
+    _convert_to_py_qubit,
     _convert_to_py_qubits,
     _convert_to_rs_expressions,
     _convert_to_rs_qubit,
@@ -1348,6 +1349,16 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
             modifiers,
         )
 
+    @classmethod
+    def _from_rs_calibration(cls, calibration: quil_rs.Calibration) -> "DefCalibration":
+        return cls(
+            calibration.name,
+            calibration.parameters,
+            calibration.qubits,
+            calibration.instructions,
+            calibration.modifiers,
+        )
+
     @property
     def parameters(self):
         return _convert_to_py_parameters(super().parameters)
@@ -1376,25 +1387,56 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
         return str(self)
 
 
-class DefMeasureCalibration(AbstractInstruction):
-    def __init__(
-        self,
+class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstruction):
+    def __new__(
+        cls,
         qubit: Union[Qubit, FormalArgument],
         memory_reference: Optional[MemoryReference],
         instrs: List[AbstractInstruction],
-    ):
-        self.qubit = qubit
-        self.memory_reference = memory_reference
-        self.instrs = instrs
+    ) -> "DefMeasureCalibration":
+        return super().__new__(
+            cls,
+            _convert_to_rs_qubit(qubit),
+            "" if memory_reference is None else str(memory_reference),
+            _convert_to_rs_instructions(instrs),
+        )
+
+    @classmethod
+    def _from_rs_measure_calibration_definition(
+        cls, calibration: quil_rs.MeasureCalibrationDefinition
+    ) -> "DefMeasureCalibration":
+        return cls(calibration.qubit, calibration.parameter, calibration.instrs)
+
+    @property
+    def qubit(self) -> QubitDesignator:
+        return _convert_to_py_qubit(super().qubit)
+
+    @qubit.setter
+    def qubit(self, qubit: QubitDesignator):
+        quil_rs.MeasureCalibrationDefinition.qubit.__set__(self, _convert_to_rs_qubit(qubit))
+
+    @property
+    def memory_reference(self) -> Optional[MemoryReference]:
+        print("parameter", super().parameter, super().parameter == "")
+        if super().parameter == "":
+            return None
+        return MemoryReference._from_parameter_str(super().parameter)
+
+    @memory_reference.setter
+    def memory_reference(self, memory_reference: Optional[MemoryReference]):
+        parameter = "" if memory_reference is None else str(memory_reference)
+        quil_rs.MeasureCalibrationDefinition.parameter.__set__(self, parameter)
+
+    @property
+    def instrs(self):
+        return _convert_to_py_instructions(super().instructions)
+
+    @instrs.setter
+    def instrs(self, instrs: Iterable[AbstractInstruction]):
+        quil_rs.MeasureCalibrationDefinition.instructions.__set__(self, _convert_to_rs_instructions(instrs))
 
     def out(self) -> str:
-        ret = f"DEFCAL MEASURE {self.qubit}"
-        if self.memory_reference is not None:
-            ret += f" {self.memory_reference}"
-        ret += ":\n"
-        for instr in self.instrs:
-            ret += f"    {instr.out()}\n"
-        return ret
+        return str(self)
 
 
 @dataclass
