@@ -1,7 +1,8 @@
 from math import pi
 from typing import List
+from pyquil.gates import X
 from pyquil.quil import Program
-from pyquil.quilbase import Gate, MemoryReference, ParameterDesignator
+from pyquil.quilbase import DefCalibration, Gate, MemoryReference, ParameterDesignator, Parameter
 from pyquil.quilatom import BinaryExp, Qubit
 from pyquil.api._compiler import QPUCompiler
 import pytest
@@ -71,3 +72,43 @@ class TestGate:
             compiler.quil_to_native_quil(program)
         except Exception as e:
             assert False, f"Failed to compile the program: {e}\n{program}"
+
+
+@pytest.mark.parametrize(
+    ("name", "parameters", "qubits", "instrs"),
+    [
+        ("Calibrate", [], [Qubit(0)], [X(0)]),
+        ("Calibrate", [Parameter("X")], [Qubit(0)], [X(0)]),
+    ],
+    ids=("No-Params", "Params"),
+)
+class TestDefCalibration:
+    @pytest.fixture
+    def calibration(self, name, parameters, qubits, instrs):
+        return DefCalibration(name, parameters, qubits, instrs)
+
+    # def test_str(self, calibration, snapshot):
+    #     assert str(calibration) == snapshot
+
+    def test_out(self, calibration, snapshot):
+        assert calibration.out() == snapshot
+
+    def test_name(self, calibration, name):
+        assert calibration.name == name
+        calibration.name = "new_name"
+        assert calibration.name == "new_name"
+
+    def test_parameters(self, calibration, parameters):
+        assert calibration.parameters == parameters
+        calibration.parameters = [5]
+        assert calibration.parameters == [5]
+
+    def test_qubits(self, calibration, qubits):
+        assert calibration.qubits == qubits
+        calibration.qubits = [Qubit(123)]
+        assert calibration.qubits == [Qubit(123)]
+
+    def test_instrs(self, calibration, instrs):
+        assert calibration.instrs == instrs
+        calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
+        assert calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]

@@ -1,3 +1,17 @@
+# name: TestDefCalibration.test_out[No-Params]
+  '''
+  DEFCAL Calibrate 0:
+      X 0
+  
+  '''
+# ---
+# name: TestDefCalibration.test_out[Params]
+  '''
+  DEFCAL Calibrate(%X) 0:
+      X 0
+  
+  '''
+# ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---
