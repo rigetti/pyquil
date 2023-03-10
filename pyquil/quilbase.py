@@ -1440,13 +1440,13 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
     def __new__(
         cls,
         qubit: Union[Qubit, FormalArgument],
-        memory_reference: Optional[MemoryReference],
+        memory_reference: MemoryReference,
         instrs: List[AbstractInstruction],
     ) -> "DefMeasureCalibration":
         return super().__new__(
             cls,
             _convert_to_rs_qubit(qubit),
-            "" if memory_reference is None else str(memory_reference),
+            memory_reference.name,
             _convert_to_rs_instructions(instrs),
         )
 
@@ -1454,7 +1454,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
     def _from_rs_measure_calibration_definition(
         cls, calibration: quil_rs.MeasureCalibrationDefinition
     ) -> "DefMeasureCalibration":
-        return cls(calibration.qubit, calibration.parameter, calibration.instructions)
+        return super().__new__(cls, calibration.qubit, calibration.parameter, calibration.instructions)
 
     @property
     def qubit(self) -> QubitDesignator:
@@ -1466,14 +1466,11 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
 
     @property
     def memory_reference(self) -> Optional[MemoryReference]:
-        if super().parameter == "":
-            return None
         return MemoryReference._from_parameter_str(super().parameter)
 
     @memory_reference.setter
-    def memory_reference(self, memory_reference: Optional[MemoryReference]):
-        parameter = "" if memory_reference is None else str(memory_reference)
-        quil_rs.MeasureCalibrationDefinition.parameter.__set__(self, parameter)
+    def memory_reference(self, memory_reference: MemoryReference):
+        quil_rs.MeasureCalibrationDefinition.parameter.__set__(self, memory_reference.name)
 
     @property
     def instrs(self):
