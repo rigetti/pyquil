@@ -13,12 +13,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import asyncio
 from contextlib import contextmanager
 from dataclasses import dataclass
+import json
 from typing import Iterator, List, Optional
 
-from qcs_sdk import QCSClient, get_quilc_version
+from qcs_sdk import QCSClient
+from qcs_sdk.compiler.quilc import get_version_info, compile_program, CompilerOpts, TargetDevice
 import rpcq
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
@@ -152,6 +153,8 @@ class CompilerClient:
     Client for making requests to a Quil compiler.
     """
 
+    _client_configuration: QCSClient
+
     def __init__(
         self,
         *,
@@ -164,6 +167,7 @@ class CompilerClient:
         :param client_configuration: Configuration for client.
         :param request_timeout: Timeout for requests, in seconds.
         """
+        self._client_configuration = client_configuration
         base_url = client_configuration.quilc_url
         if not base_url.startswith("tcp://"):
             raise ValueError(f"Expected compiler URL '{base_url}' to start with 'tcp://'")
@@ -176,35 +180,22 @@ class CompilerClient:
         Get version info for compiler server.
         """
 
-        return get_quilc_version()
+        return get_version_info(client=self._client_configuration)
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """
         Compile Quil program to native Quil.
         """
-        rpcq_request = rpcq.messages.NativeQuilRequest(
+        target_device_json = json.dumps(request.target_quantum_processor.asdict())
+        target_device = TargetDevice.from_json(target_device_json)
+
+        native_program = compile_program(
             quil=request.program,
-            target_device=request.target_quantum_processor,
+            target=target_device,
+            client=self._client_configuration,
+            options=CompilerOpts(protoquil=request.protoquil, timeout=self.timeout),
         )
-        with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            response: rpcq.messages.NativeQuilResponse = rpcq_client.call(
-                "quil_to_native_quil",
-                rpcq_request,
-                protoquil=request.protoquil,
-            )
-            metadata: Optional[NativeQuilMetadataResponse] = None
-            if response.metadata is not None:
-                metadata = NativeQuilMetadataResponse(
-                    final_rewiring=response.metadata.final_rewiring,
-                    gate_depth=response.metadata.gate_depth,
-                    gate_volume=response.metadata.gate_volume,
-                    multiqubit_gate_depth=response.metadata.multiqubit_gate_depth,
-                    program_duration=response.metadata.program_duration,
-                    program_fidelity=response.metadata.program_fidelity,
-                    topological_swaps=response.metadata.topological_swaps,
-                    qpu_runtime_estimation=response.metadata.qpu_runtime_estimation,
-                )
-            return CompileToNativeQuilResponse(native_program=response.quil, metadata=metadata)
+        return CompileToNativeQuilResponse(native_program=native_program, metadata=None)
 
     def conjugate_pauli_by_clifford(self, request: ConjugatePauliByCliffordRequest) -> ConjugatePauliByCliffordResponse:
         """

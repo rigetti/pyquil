@@ -3,8 +3,8 @@ from typing import List, Optional
 import httpx
 import networkx as nx
 
-from qcs_sdk.qpu.isa import InstructionSetArchitecture, get_instruction_set_architecture
 from qcs_sdk import QCSClient
+from qcs_sdk.qpu.isa import InstructionSetArchitecture, get_instruction_set_architecture
 
 from pyquil.external.rpcq import CompilerISA
 from pyquil.noise import NoiseModel

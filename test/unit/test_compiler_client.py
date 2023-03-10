@@ -92,48 +92,15 @@ def test_compile_to_native_quil__returns_native_quil(
     client_configuration = QCSClient.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
-    rpcq_client = patch_rpcq_client(
-        mocker=mocker,
-        return_value=rpcq.messages.NativeQuilResponse(
-            quil="native-program",
-            metadata=rpcq.messages.NativeQuilMetadata(
-                final_rewiring=[0, 1, 2],
-                gate_depth=10,
-                gate_volume=42,
-                multiqubit_gate_depth=5,
-                program_duration=3.14,
-                program_fidelity=0.99,
-                topological_swaps=3,
-                qpu_runtime_estimation=0.1618,
-            ),
-        ),
-    )
     request = CompileToNativeQuilRequest(
-        program="some-program",
+        program="DECLARE ro BIT",
         target_quantum_processor=compiler_isa_to_target_quantum_processor(aspen8_compiler_isa),
         protoquil=True,
     )
 
     assert compiler_client.compile_to_native_quil(request) == CompileToNativeQuilResponse(
-        native_program="native-program",
-        metadata=NativeQuilMetadataResponse(
-            final_rewiring=[0, 1, 2],
-            gate_depth=10,
-            gate_volume=42,
-            multiqubit_gate_depth=5,
-            program_duration=3.14,
-            program_fidelity=0.99,
-            topological_swaps=3,
-            qpu_runtime_estimation=0.1618,
-        ),
-    )
-    rpcq_client.call.assert_called_once_with(
-        "quil_to_native_quil",
-        rpcq.messages.NativeQuilRequest(
-            quil="some-program",
-            target_device=compiler_isa_to_target_quantum_processor(aspen8_compiler_isa),
-        ),
-        protoquil=True,
+        native_program="DECLARE ro BIT[1]\n",
+        metadata=None,
     )
 
 

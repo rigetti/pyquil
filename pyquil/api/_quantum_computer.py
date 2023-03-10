@@ -39,7 +39,8 @@ import networkx as nx
 import numpy as np
 from rpcq.messages import ParameterAref
 
-from qcs_sdk import QCSClient, list_quantum_processors
+from qcs_sdk import QCSClient
+from qcs_sdk.qpu import list_quantum_processors
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler

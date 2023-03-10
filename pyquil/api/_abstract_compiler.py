@@ -19,7 +19,8 @@ import dataclasses
 from typing import Any, Dict, List, Optional, Sequence, Union
 import json
 
-from qcs_sdk import QCSClient, compile
+from qcs_sdk import QCSClient
+from qcs_sdk.compiler.quilc import compile_program, TargetDevice, CompilerOpts
 
 from pyquil._memory import Memory
 from pyquil._version import pyquil_version
@@ -117,14 +118,16 @@ class AbstractCompiler(ABC):
         Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
 
-        # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
-        # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
-        # This will have to be addressed as part of this issue: https://github.com/rigetti/pyquil/issues/1496
-        target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
-        native_quil = compile(
+        # convert the pyquil ``TargetDevice`` to the qcs_sdk ``TargetDevice``
+        compiler_isa = self.quantum_processor.to_compiler_isa()
+        target_device_json = json.dumps(compiler_isa_to_target_quantum_processor(compiler_isa).asdict())
+        target_device = TargetDevice.from_json(target_device_json)
+
+        native_quil = compile_program(
             quil=program.out(calibrations=False),
-            target_device=json.dumps(target_device.asdict(), indent=2),  # type: ignore
-            timeout=self._compiler_client.timeout,
+            target=target_device,
+            client=self._client_configuration,
+            options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout),
         )
 
         native_program = Program(native_quil)

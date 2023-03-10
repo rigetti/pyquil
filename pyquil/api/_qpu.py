@@ -14,7 +14,6 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-import asyncio
 from collections import defaultdict
 from typing import Dict, Optional
 
@@ -28,7 +27,8 @@ from pyquil.quilatom import (
     MemoryReference,
 )
 from qcs_sdk import QCSClient
-from qcs_sdk.api import ExecutionResult, build_patch_values, submit, retrieve_results
+from qcs_sdk.qpu.api import submit, retrieve_results, ExecutionResult
+from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
 
 
 def decode_buffer(buffer: ExecutionResult) -> np.ndarray:
@@ -38,12 +38,13 @@ def decode_buffer(buffer: ExecutionResult) -> np.ndarray:
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
     :return: NumPy array of decoded data
     """
-    if buffer["dtype"] == "complex":
-        buffer["data"] = [complex(re, im) for re, im in buffer["data"]]
-        buffer["dtype"] = np.complex64
+    if buffer.dtype == "complex":
+        data = [register.to_complex32() for register in buffer.data]
+        dtype = np.complex64
     elif buffer["dtype"] == "integer":
-        buffer["dtype"] = np.int32
-    return np.array(buffer["data"], dtype=buffer["dtype"])
+        data = [register.to_i32() for register in buffer.data]
+        dtype = np.int32
+    return np.array(data, dtype=dtype, shape=buffer.shape)
 
 
 def _extract_memory_regions(
@@ -131,7 +132,7 @@ class QPU(QAM[QPUExecuteResponse]):
 
         self.priority = priority
 
-        client_configuration = client_configuration or QCSClient.load()
+        self._client_configuration = client_configuration or QCSClient.load()
         self._last_results: Dict[str, np.ndarray] = {}
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
@@ -172,6 +173,7 @@ class QPU(QAM[QPUExecuteResponse]):
             program=executable.program,
             patch_values=patch_values,
             quantum_processor_id=self.quantum_processor_id,
+            client=self._client_configuration,
         )
 
         return QPUExecuteResponse(_executable=executable, job_id=job_id)
@@ -184,6 +186,7 @@ class QPU(QAM[QPUExecuteResponse]):
         results = retrieve_results(
             job_id=execute_response.job_id,
             quantum_processor_id=self.quantum_processor_id,
+            client=self._client_configuration,
         )
 
         ro_sources = execute_response._executable.ro_sources
@@ -202,5 +205,5 @@ class QPU(QAM[QPUExecuteResponse]):
         return QAMExecutionResult(
             executable=execute_response._executable,
             readout_data=result_memory,
-            execution_duration_microseconds=results["execution_duration_microseconds"],
+            execution_duration_microseconds=results.execution_duration_microseconds,
         )

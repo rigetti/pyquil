@@ -13,22 +13,19 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from contextlib import contextmanager
-from typing import Dict, Optional, Iterator
-import asyncio
+from typing import Dict, Optional
 
-import httpx
 from qcs_sdk import QCSClient
-from qcs_sdk.api import get_quilt_calibrations, rewrite_arithmetic, translate
-
-from pyquil.parser import parse_program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare
+from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
+from qcs_sdk.qpu.translation import get_quilt_calibrations, translate
 from rpcq.messages import ParameterSpec
 
-from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
+from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
+from pyquil.parser import parse_program
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
+from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare
 
 
 class QPUCompilerNotRunning(Exception):
@@ -98,16 +95,16 @@ class QPUCompiler(AbstractCompiler):
         rewrite_response = rewrite_arithmetic(nq_program.out())
 
         translated_program = translate(
-            native_quil=rewrite_response["program"],
+            native_quil=rewrite_response.program,
             num_shots=nq_program.num_shots,
             quantum_processor_id=self.quantum_processor_id,
         )
 
         return EncryptedProgram(
-            program=translated_program["program"],
+            program=translated_program.program,
             memory_descriptors=_collect_memory_descriptors(nq_program),
-            ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"].items() or []},
-            recalculation_table=rewrite_response["recalculation_table"],
+            ro_sources={parse_mref(mref): source for mref, source in translated_program.ro_sources.items() or []},
+            recalculation_table=rewrite_response.recalculation_table,
             _memory=nq_program._memory.copy(),
         )
 
