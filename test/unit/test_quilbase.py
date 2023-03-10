@@ -2,7 +2,16 @@ from math import pi
 from typing import List
 from pyquil.gates import X
 from pyquil.quil import Program
-from pyquil.quilbase import DefCalibration, DefMeasureCalibration, Gate, MemoryReference, ParameterDesignator, Parameter
+from pyquil.quilbase import (
+    DefCalibration,
+    DefMeasureCalibration,
+    FormalArgument,
+    Gate,
+    Measurement,
+    MemoryReference,
+    ParameterDesignator,
+    Parameter,
+)
 from pyquil.quilatom import BinaryExp, Qubit
 from pyquil.api._compiler import QPUCompiler
 import pytest
@@ -148,3 +157,39 @@ class TestDefMeasureCalibration:
         assert measure_calibration.instrs == instrs
         measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
         assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]
+
+
+@pytest.mark.parametrize(
+    ("qubit", "classical_reg"),
+    [
+        (Qubit(0), None),
+        (Qubit(1), MemoryReference("theta", 0, 1)),
+        (FormalArgument("q"), MemoryReference("theta", 0, 1)),
+    ],
+    ids=("No-MemoryReference", "MemoryReference", "FormalArgument"),
+)
+class TestMeasurement:
+    @pytest.fixture
+    def measurement(self, qubit, classical_reg):
+        return Measurement(qubit, classical_reg)
+
+    def test_out(self, measurement, snapshot):
+        assert measurement.out() == snapshot
+
+    def test_str(self, measurement, snapshot):
+        assert str(measurement) == snapshot
+
+    def test_qubit(self, measurement, qubit):
+        assert measurement.qubit == qubit
+        measurement.qubit = Qubit(123)
+        assert measurement.qubit == Qubit(123)
+
+    def test_get_qubits(self, measurement, qubit):
+        assert measurement.get_qubits(False) == set([qubit])
+        if isinstance(qubit, Qubit):
+            assert measurement.get_qubits(True) == set([qubit.index])
+
+    def test_classical_reg(self, measurement, classical_reg):
+        assert measurement.classical_reg == classical_reg
+        measurement.classical_reg = MemoryReference("new_mem_ref")
+        assert measurement.classical_reg == MemoryReference("new_mem_ref")

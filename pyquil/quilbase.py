@@ -127,6 +127,12 @@ def _convert_to_rs_instruction(instr: AbstractInstruction) -> quil_rs.Instructio
         return quil_rs.Instruction(instr)
     if isinstance(instr, quil_rs.Calibration):
         return quil_rs.Instruction.from_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Gate):
+        return quil_rs.Instruction.from_gate(instr)
+    if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
+        return quil_rs.Instruction.from_measure_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Measurement):
+        return quil_rs.Instruction.from_measurement(instr)
     else:
         raise ValueError(f"{type(instr)} is not an Instruction")
 
@@ -136,14 +142,18 @@ def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[q
 
 
 def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstruction:
-    if instr.is_gate():
-        return Gate._from_rs_gate(instr.to_gate())
+    if not isinstance(instr, quil_rs.Insrtuction):
+        raise ValueError(f"{type(instr)} is not a valid Instruction type")
     if instr.is_calibration_definition():
         return DefCalibration._from_rs_calibration(instr.to_calibration_definition())
+    if instr.is_gate():
+        return Gate._from_rs_gate(instr.to_gate())
+    if instr.is_measure_calibration_definition():
+        return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
+    if instr.is_measurement():
+        return Measurement._from_rs_measurement(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError("This Instruction hasn't been mapped to an AbstractInstruction yet.")
-    else:
-        raise ValueError(f"{type(instr)} is not a valid Instruction type")
 
 
 def _convert_to_py_instructions(instrs: Iterable[quil_rs.Instruction]) -> List[AbstractInstruction]:

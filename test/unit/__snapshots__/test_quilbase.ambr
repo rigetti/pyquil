@@ -96,3 +96,21 @@
 # name: TestGate.test_str[X-Gate]
   'X 0'
 # ---
+# name: TestMeasurement.test_out[FormalArgument]
+  'MEASURE q theta'
+# ---
+# name: TestMeasurement.test_out[MemoryReference]
+  'MEASURE 1 theta'
+# ---
+# name: TestMeasurement.test_out[No-MemoryReference]
+  'MEASURE 0'
+# ---
+# name: TestMeasurement.test_str[FormalArgument]
+  'MEASURE q theta'
+# ---
+# name: TestMeasurement.test_str[MemoryReference]
+  'MEASURE 1 theta'
+# ---
+# name: TestMeasurement.test_str[No-MemoryReference]
+  'MEASURE 0'
+# ---
