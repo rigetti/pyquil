@@ -183,23 +183,20 @@ def match_calibration(
     On a failure, return None.
     """
     calibration = _convert_to_rs_instruction(cal)
-    if calibration.is_calibration_definition():
+    instruction = _convert_to_rs_instruction(instr)
+    if calibration.is_calibration_definition() and instruction.is_gate():
         instruction = _convert_to_rs_instruction(instr)
-        if not instruction.is_gate():
-            return None
-        calibration_set = CalibrationSet([calibration.to_calibration_definition()], [])
         gate = instruction.to_gate()
+        calibration_set = CalibrationSet([calibration.to_calibration_definition()], [])
         matched_calibration = calibration_set.get_match_for_gate(
             gate.modifiers, gate.name, gate.parameters, gate.qubits
         )
         return _convert_to_calibration_match(gate, matched_calibration)
 
-    if calibration.is_measure_calibration_definition():
+    if calibration.is_measure_calibration_definition() and instruction.is_measurement():
         instruction = _convert_to_rs_instruction(instr)
-        if not instruction.is_measurement():
-            return None
-        calibration_set = CalibrationSet([], [calibration.to_measure_calibration_definition()])
         measurement = instruction.to_measurement()
+        calibration_set = CalibrationSet([], [calibration.to_measure_calibration_definition()])
         matched_calibration = calibration_set.get_match_for_measurement(measurement)
         return _convert_to_calibration_match(measurement, matched_calibration)
 

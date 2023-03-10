@@ -603,7 +603,6 @@ class Program:
         """
         return {q.as_fixed() for q in self._program.get_used_qubits()}
 
-    # TODO: Port calibrations logic from quil-rs
     def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
         """
         Attempt to match a calibration to the provided instruction.
@@ -639,7 +638,6 @@ class Program:
 
         return None
 
-    # TODO: Port calibrations logic from quil-rs
     def get_calibration(self, instr: AbstractInstruction) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
         """
         Get the calibration corresponding to the provided instruction.
