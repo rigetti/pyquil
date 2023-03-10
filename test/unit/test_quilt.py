@@ -148,8 +148,8 @@ def test_memory_reference_parameter():
 
 def test_measure_calibration_match():
     matches = [
-        ("DEFCAL MEASURE 0 dest", "MEASURE 0"),
-        ("DEFCAL MEASURE q dest", "MEASURE 0"),
+        ("DEFCAL MEASURE 0 dest", "MEASURE 0 ro[0]"),
+        ("DEFCAL MEASURE q dest", "MEASURE 0 ro[1]"),
         ("DEFCAL MEASURE 0 b", "DECLARE ro BIT\nMEASURE 0 ro[0]"),
         ("DEFCAL MEASURE q b", "DECLARE ro BIT\nMEASURE 1 ro[0]"),
     ]
@@ -163,8 +163,7 @@ def test_measure_calibration_match():
 
     mismatches = [
         ("DEFCAL MEASURE 1 dest", "MEASURE 0"),
-        # ("DEFCAL MEASURE 0 b", "MEASURE 0"),
-        # ("DEFCAL MEASURE q dest", "DECLARE ro BIT\nMEASURE 0 ro[0]"),
+        ("DEFCAL MEASURE 0 b", "MEASURE 0"),
     ]
 
     for cal, instr in mismatches:
