@@ -144,16 +144,16 @@ def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[q
 
 
 def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstruction:
-    if not isinstance(instr, quil_rs.Insrtuction):
+    if not isinstance(instr, quil_rs.Instruction):
         raise ValueError(f"{type(instr)} is not a valid Instruction type")
     if instr.is_calibration_definition():
         return DefCalibration._from_rs_calibration(instr.to_calibration_definition())
     if instr.is_gate():
         return Gate._from_rs_gate(instr.to_gate())
     if instr.is_measure_calibration_definition():
-        return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
+        return DefMeasureCalibration._from_rs_measure_calibration_definition(instr.to_measure_calibration_definition())
     if instr.is_measurement():
-        return Measurement._from_rs_measurement(instr)
+        return Measurement._from_rs_measurement(instr.to_measurement())
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError("This Instruction hasn't been mapped to an AbstractInstruction yet.")
 
@@ -389,12 +389,21 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
 
     @classmethod
     def _reg_to_target(cls, classical_reg: Optional[MemoryReference]) -> Optional[quil_rs.MemoryReference]:
+        if isinstance(classical_reg, quil_rs.MemoryReference):
+            return classical_reg
+
         if classical_reg is not None:
             try:
+                print(type(classical_reg))
                 classical_reg = _convert_to_rs_expression(classical_reg).to_address()
             except ValueError:
-                raise TypeError("classical_reg should be None or a MemoryReference instance")
+                raise TypeError(f"classical_reg should be None or a MemoryReference instance")
+
         return classical_reg
+
+    @classmethod
+    def _from_rs_measurement(cls, measurement: quil_rs.Measurement):
+        return cls(measurement.qubit, measurement.target)
 
     @property
     def qubit(self) -> QubitDesignator:
@@ -1445,7 +1454,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
     def _from_rs_measure_calibration_definition(
         cls, calibration: quil_rs.MeasureCalibrationDefinition
     ) -> "DefMeasureCalibration":
-        return cls(calibration.qubit, calibration.parameter, calibration.instrs)
+        return cls(calibration.qubit, calibration.parameter, calibration.instructions)
 
     @property
     def qubit(self) -> QubitDesignator:

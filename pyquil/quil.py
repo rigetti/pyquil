@@ -134,7 +134,7 @@ class Program:
     @property
     def measure_calibrations(self) -> List[DefMeasureCalibration]:
         """A list of measure calibrations"""
-        return self._program.measure_calibrations
+        return self._program.calibrations.measure_calibrations
 
     @property
     def waveforms(self) -> Dict[str, DefWaveform]:
@@ -631,6 +631,11 @@ class Program:
                 gate.modifiers, gate.name, gate.parameters, gate.qubits
             )
             return _convert_to_calibration_match(gate, match)
+
+        if instruction.is_measurement():
+            measurement = instruction.to_measurement()
+            match = self._program.calibrations.get_match_for_measurement(measurement)
+            return _convert_to_calibration_match(measurement, match)
 
         return None
 

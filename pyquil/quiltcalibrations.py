@@ -133,24 +133,43 @@ def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parame
 
 
 def _convert_to_calibration_match(
-    instruction: quil_rs.Gate, calibration: quil_rs.Calibration
+    instruction: Union[quil_rs.Gate, quil_rs.Measurement],
+    calibration: Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition],
 ) -> Optional[CalibrationMatch]:
     if calibration is None:
         return None
+
+    if isinstance(instruction, quil_rs.Gate) and isinstance(calibration, quil_rs.Calibration):
+        target_qubits = instruction.qubits
+        target_values = instruction.parameters
+        parameter_qubits = calibration.qubits
+        parameter_values = calibration.parameters
+        py_calibration = DefCalibration._from_rs_calibration(calibration)
+    elif isinstance(instruction, quil_rs.Measurement) and isinstance(calibration, quil_rs.MeasureCalibrationDefinition):
+        target_qubits = [instruction.qubit]
+        target_values = (
+            [] if not instruction.target else [MemoryReference._from_rs_memory_reference(instruction.target)]
+        )
+        parameter_qubits = [] if not calibration.qubit else [calibration.qubit]
+        parameter_values = [MemoryReference._from_parameter_str(calibration.parameter)]
+        py_calibration = DefMeasureCalibration._from_rs_measure_calibration_definition(calibration)
+    else:
+        return None
+
     settings = {
         _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
-        for param, qubit in zip(calibration.qubits, instruction.qubits)
-        if param.is_variable()
+        for param, qubit in zip(parameter_qubits, target_qubits)
+        if isinstance(param, MemoryReference) or param.is_variable()
     }
     settings.update(
         {
             _convert_to_py_parameter(param): _convert_to_py_parameter(value)
-            for param, value in zip(calibration.parameters, instruction.parameters)
-            if param.is_variable()
+            for param, value in zip(parameter_values, target_values)
+            if isinstance(param, MemoryReference) or param.is_variable()
         }
     )
 
-    return CalibrationMatch(DefCalibration._from_rs_calibration(calibration), settings)
+    return CalibrationMatch(py_calibration, settings)
 
 
 def match_calibration(
@@ -176,9 +195,13 @@ def match_calibration(
         return _convert_to_calibration_match(gate, matched_calibration)
 
     if calibration.is_measure_calibration_definition():
-        # TODO: CalibrationSet API needs measurement calibration
         instruction = _convert_to_rs_instruction(instr)
+        if not instruction.is_measurement():
+            return None
         calibration_set = CalibrationSet([], [calibration.to_measure_calibration_definition()])
+        measurement = instruction.to_measurement()
+        matched_calibration = calibration_set.get_match_for_measurement(measurement)
+        return _convert_to_calibration_match(measurement, matched_calibration)
 
     return None
 

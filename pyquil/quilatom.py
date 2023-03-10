@@ -308,7 +308,7 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, Number]
+ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, quil_rs.MemoryReference, Number]
 
 
 def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs.Expression:
@@ -339,7 +339,7 @@ def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesigna
             return np.pi
         if parameter.is_variable():
             return Parameter(parameter.to_variable())
-    elif isinstance(parameter, (Expression, MemoryReference, Number)):
+    elif isinstance(parameter, (Expression, MemoryReference, quil_rs.MemoryReference, Number)):
         return parameter
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
