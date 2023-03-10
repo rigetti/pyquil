@@ -100,7 +100,7 @@
   'MEASURE q theta'
 # ---
 # name: TestMeasurement.test_out[MemoryReference]
-  'MEASURE 1 theta'
+  'MEASURE 1 theta[0]'
 # ---
 # name: TestMeasurement.test_out[No-MemoryReference]
   'MEASURE 0'
@@ -109,7 +109,7 @@
   'MEASURE q theta'
 # ---
 # name: TestMeasurement.test_str[MemoryReference]
-  'MEASURE 1 theta'
+  'MEASURE 1 theta[0]'
 # ---
 # name: TestMeasurement.test_str[No-MemoryReference]
   'MEASURE 0'

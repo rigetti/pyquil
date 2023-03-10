@@ -59,9 +59,11 @@ from pyquil.quilatom import (
     _contained_parameters,
     _convert_to_py_qubit,
     _convert_to_py_qubits,
+    _convert_to_rs_expression,
     _convert_to_rs_expressions,
     _convert_to_rs_qubit,
     _convert_to_rs_qubits,
+    _convert_to_py_parameter,
     _convert_to_py_parameters,
     format_parameter,
     unpack_qubit,
@@ -372,38 +374,65 @@ def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
     return stripped
 
 
-class Measurement(AbstractInstruction):
+class Measurement(quil_rs.Measurement, AbstractInstruction):
     """
     This is the pyQuil object for a Quil measurement instruction.
     """
 
-    def __init__(
-        self,
-        qubit: Union[Qubit, QubitPlaceholder, FormalArgument],
+    def __new__(
+        cls,
+        qubit: QubitDesignator,
         classical_reg: Optional[MemoryReference],
     ):
-        if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
-            raise TypeError("qubit should be a Qubit")
-        if classical_reg is not None and not isinstance(classical_reg, MemoryReference):
-            raise TypeError("classical_reg should be None or a MemoryReference instance")
+        classical_reg = cls._reg_to_target(classical_reg)
+        return super().__new__(cls, _convert_to_rs_qubit(qubit), classical_reg)
 
-        self.qubit = qubit
-        self.classical_reg = classical_reg
+    @classmethod
+    def _reg_to_target(cls, classical_reg: Optional[MemoryReference]) -> Optional[quil_rs.MemoryReference]:
+        if classical_reg is not None:
+            try:
+                classical_reg = _convert_to_rs_expression(classical_reg).to_address()
+            except ValueError:
+                raise TypeError("classical_reg should be None or a MemoryReference instance")
+        return classical_reg
+
+    @property
+    def qubit(self) -> QubitDesignator:
+        return _convert_to_py_qubit(super().qubit)
+
+    @qubit.setter
+    def qubit(self, qubit):
+        quil_rs.Measurement.qubit.__set__(self, _convert_to_rs_qubit(qubit))
+
+    @property
+    def classical_reg(self) -> Optional[MemoryReference]:
+        target = super().target
+        if target is None:
+            return None
+        return MemoryReference._from_rs_memory_reference(target)  # type: ignore
+
+    @classical_reg.setter
+    def classical_reg(self, classical_reg: Optional[MemoryReference]):
+        classical_reg = self._reg_to_target(classical_reg)
+        quil_rs.Measurement.target.__set__(self, classical_reg)
+
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        if indices:
+            return self.get_qubit_indices()
+        else:
+            return {_convert_to_py_qubit(super().qubit)}
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {super().qubit.as_fixed()}
 
     def out(self) -> str:
-        if self.classical_reg:
-            return "MEASURE {} {}".format(self.qubit.out(), self.classical_reg.out())
-        else:
-            return "MEASURE {}".format(self.qubit.out())
-
-    def __str__(self) -> str:
-        if self.classical_reg:
-            return "MEASURE {} {}".format(_format_qubit_str(self.qubit), str(self.classical_reg))
-        else:
-            return "MEASURE {}".format(_format_qubit_str(self.qubit))
-
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return {_extract_qubit_index(self.qubit, indices)}
+        return str(self)
 
 
 class ResetQubit(AbstractInstruction):

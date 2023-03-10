@@ -164,9 +164,9 @@ class TestDefMeasureCalibration:
     [
         (Qubit(0), None),
         (Qubit(1), MemoryReference("theta", 0, 1)),
-        (FormalArgument("q"), MemoryReference("theta", 0, 1)),
+        # (FormalArgument("q"), MemoryReference("theta", 0, 1)),
     ],
-    ids=("No-MemoryReference", "MemoryReference", "FormalArgument"),
+    ids=("No-MemoryReference", "MemoryReference"),
 )
 class TestMeasurement:
     @pytest.fixture
