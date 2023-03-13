@@ -136,9 +136,6 @@ def _convert_to_calibration_match(
     instruction: Union[quil_rs.Gate, quil_rs.Measurement],
     calibration: Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition],
 ) -> Optional[CalibrationMatch]:
-    if calibration is None:
-        return None
-
     if isinstance(instruction, quil_rs.Gate) and isinstance(calibration, quil_rs.Calibration):
         target_qubits = instruction.qubits
         target_values = instruction.parameters
