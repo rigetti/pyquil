@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 
 import numpy as np
@@ -24,8 +26,10 @@ from pyquil.quiltcalibrations import (
     match_calibration,
 )
 from pyquil.quilbase import (
+    AbstractInstruction,
     Gate,
     DefCalibration,
+    DefMeasureCalibration,
     ShiftPhase,
     DelayQubits,
     Qubit,
@@ -68,7 +72,7 @@ def test_waveform_samples_optional_args():
     assert np.array_equal(np.exp(1j) * flat(), flat(phase=1.0))
 
 
-def _match(cal, instr):
+def _match(cal: DefCalibration, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast
@@ -80,7 +84,7 @@ def _match(cal, instr):
     return match_calibration(instr, cal)
 
 
-def _match_measure(cal, instr):
+def _match_measure(cal: DefMeasureCalibration, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast

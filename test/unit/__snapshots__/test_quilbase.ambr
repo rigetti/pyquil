@@ -36,6 +36,13 @@
   
   '''
 # ---
+# name: TestDefMeasureCalibration.test_out[qubit0-memory_reference0-instrs0]
+  '''
+  DEFCAL MEASURE 0 theta:
+  	X 0
+  
+  '''
+# ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---
