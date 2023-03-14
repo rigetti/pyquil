@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 
 import numpy as np
@@ -24,8 +26,10 @@ from pyquil.quiltcalibrations import (
     match_calibration,
 )
 from pyquil.quilbase import (
+    AbstractInstruction,
     Gate,
     DefCalibration,
+    DefMeasureCalibration,
     ShiftPhase,
     DelayQubits,
     Qubit,
@@ -68,7 +72,7 @@ def test_waveform_samples_optional_args():
     assert np.array_equal(np.exp(1j) * flat(), flat(phase=1.0))
 
 
-def _match(cal, instr):
+def _match(cal: DefCalibration, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast
@@ -80,7 +84,18 @@ def _match(cal, instr):
     return match_calibration(instr, cal)
 
 
-# TODO: Calibration API: match calibration
+def _match_measure(cal: DefMeasureCalibration, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
+    # get the first line, remove trailing colon if present
+    cal_header = cal.splitlines()[0].strip().replace(":", "")
+    # convert to quil ast
+    full_calibration = cal_header + ":\n    NOP\n\n"
+    cal = Program(full_calibration).measure_calibrations[0]
+
+    # we pull the last instr (omitting implicit DECLARE)
+    instr = Program(instr)[-1]
+    return match_calibration(instr, cal)
+
+
 def test_simple_gate_calibration_match():
     matches = [
         ("DEFCAL X 0", "X 0"),
@@ -105,7 +120,6 @@ def test_simple_gate_calibration_match():
         assert _match(cal, instr) is None
 
 
-# TODO: Calibration API: match calibration
 def test_parametric_calibration_match():
     matches = [
         ("DEFCAL RX(0.0) 0", "RX(0.0) 0"),
@@ -136,29 +150,28 @@ def test_memory_reference_parameter():
     assert _match("DEFCAL RX(%theta) q", "DECLARE theta REAL\nRZ(theta) 0") is None
 
 
-# TODO: Calibration API: match calibration
 def test_measure_calibration_match():
     matches = [
-        ("DEFCAL MEASURE 0", "MEASURE 0"),
-        ("DEFCAL MEASURE q", "MEASURE 0"),
+        ("DEFCAL MEASURE 0 dest", "MEASURE 0 ro[0]"),
+        ("DEFCAL MEASURE q dest", "MEASURE 0 ro[1]"),
         ("DEFCAL MEASURE 0 b", "DECLARE ro BIT\nMEASURE 0 ro[0]"),
         ("DEFCAL MEASURE q b", "DECLARE ro BIT\nMEASURE 1 ro[0]"),
     ]
 
     for cal, instr in matches:
-        assert _match(cal, instr) is not None
+        assert _match_measure(cal, instr) is not None
 
-    assert _match(cal, instr).settings[FormalArgument("q")] == Qubit(1)
-    assert _match(cal, instr).settings[FormalArgument("b")] == MemoryReference("ro")
+    match = _match_measure(cal, instr)
+    assert match.settings[FormalArgument("q")] == Qubit(1)
+    assert match.settings[MemoryReference("b")] == MemoryReference("ro")
 
     mismatches = [
-        ("DEFCAL MEASURE 1", "MEASURE 0"),
+        ("DEFCAL MEASURE 1 dest", "MEASURE 0"),
         ("DEFCAL MEASURE 0 b", "MEASURE 0"),
-        ("DEFCAL MEASURE q", "DECLARE ro BIT\nMEASURE 0 ro[0]"),
     ]
 
     for cal, instr in mismatches:
-        assert _match(cal, instr) is None
+        assert _match_measure(cal, instr) is None
 
 
 def test_apply_match_shift_phase():

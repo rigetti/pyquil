@@ -186,7 +186,7 @@ def _convert_to_py_qubit(qubit: QubitDesignator) -> QubitDesignator:
             return Qubit(qubit.to_fixed())
         if qubit.is_variable():
             return FormalArgument(qubit.to_variable())
-    if isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument, int)):
+    if isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument, Parameter, int)):
         return qubit
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
@@ -308,7 +308,7 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, Number]
+ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, quil_rs.MemoryReference, Number]
 
 
 def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs.Expression:
@@ -336,10 +336,10 @@ def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesigna
         if parameter.is_number():
             return parameter.to_number()
         if parameter.is_pi():
-            return pi
+            return np.pi
         if parameter.is_variable():
             return Parameter(parameter.to_variable())
-    elif isinstance(parameter, (Expression, MemoryReference, Number)):
+    elif isinstance(parameter, (Expression, MemoryReference, quil_rs.MemoryReference, Number)):
         return parameter
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
@@ -576,7 +576,6 @@ class BinaryExp(Expression):
     def _from_rs_infix_expression(cls, infix_expression: quil_rs.InfixExpression):
         left = _convert_to_py_parameter(infix_expression.left)
         right = _convert_to_py_parameter(infix_expression.right)
-        print(infix_expression.operator)
         if infix_expression.operator == quil_rs.InfixOperator.Plus:
             return Add(left, right)
         if infix_expression.operator == quil_rs.InfixOperator.Minus:
@@ -770,6 +769,13 @@ class MemoryReference(QuilAtom, Expression):
     @classmethod
     def _from_rs_memory_reference(cls, memory_reference: quil_rs.MemoryReference) -> "MemoryReference":
         return cls(memory_reference.name, memory_reference.index)
+
+    @classmethod
+    def _from_parameter_str(cls, memory_reference_str: str) -> "MemoryReference":
+        expression = quil_rs.Expression.parse_from_str(memory_reference_str)
+        if expression.is_address():
+            return cls._from_rs_memory_reference(expression.to_address())
+        raise ValueError(f"{memory_reference_str} is not a memory reference")
 
     def out(self) -> str:
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:

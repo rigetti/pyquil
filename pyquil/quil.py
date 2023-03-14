@@ -76,20 +76,24 @@ from pyquil.quilbase import (
     DefFrame,
     DefMeasureCalibration,
     DefWaveform,
+    _convert_to_rs_instruction,
+    _convert_to_rs_instructions,
+    _convert_to_py_instructions,
 )
 from pyquil.quiltcalibrations import (
     CalibrationError,
     CalibrationMatch,
     expand_calibration,
     match_calibration,
+    _convert_to_calibration_match,
 )
 
 from qcs_sdk.quil.program import Program as RSProgram
-from qcs_sdk.quil.instructions import Instruction as RSInstruction, Gate as RSGate
+import qcs_sdk.quil.instructions as quil_rs
 
 InstructionDesignator = Union[
     AbstractInstruction,
-    RSInstruction,
+    quil_rs.Instruction,
     "Program",
     List[Any],
     Tuple[Any, ...],
@@ -130,7 +134,7 @@ class Program:
     @property
     def measure_calibrations(self) -> List[DefMeasureCalibration]:
         """A list of measure calibrations"""
-        return self._program.measure_calibrations
+        return self._program.calibrations.measure_calibrations
 
     @property
     def waveforms(self) -> Dict[str, DefWaveform]:
@@ -178,7 +182,7 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        return self._program.to_instructions(False)
+        return _convert_to_py_instructions(self._program.to_instructions(False))
 
     def inst(self, *instructions: InstructionDesignator) -> "Program":
         """
@@ -214,15 +218,15 @@ class Program:
                 else:
                     self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
-                self.inst(RSProgram.from_string(instruction.strip()))
+                self.inst(RSProgram.parse(instruction.strip()))
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
-            elif isinstance(instruction, RSInstruction):
+            elif isinstance(instruction, quil_rs.Instruction):
                 self._program.add_instruction(instruction)
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
             elif isinstance(instruction, AbstractInstruction):
-                self.inst(RSProgram.from_string(str(instruction)))
+                self.inst(RSProgram.parse(str(instruction)))
             else:
                 raise ValueError("Invalid instruction: {}".format(instruction))
 
@@ -599,7 +603,6 @@ class Program:
         """
         return {q.as_fixed() for q in self._program.get_used_qubits()}
 
-    # TODO: Port calibrations logic from quil-rs
     def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
         """
         Attempt to match a calibration to the provided instruction.
@@ -607,7 +610,7 @@ class Program:
         Note: preference is given to later calibrations, i.e. in a program with
 
           DEFCAL X 0:
-              <a>
+             <a>
 
           DEFCAL X 0:
              <b>
@@ -617,15 +620,24 @@ class Program:
         :param instr: An instruction.
         :returns: a CalibrationMatch object, if one can be found.
         """
-        if isinstance(instr, (Gate, Measurement)):
-            for cal in reversed(self.calibrations):
-                match = match_calibration(instr, cal)
-                if match is not None:
-                    return match
+        if not isinstance(instr, (Gate, Measurement)):
+            return None
+
+        instruction = _convert_to_rs_instruction(instr)
+        if instruction.is_gate():
+            gate = instruction.to_gate()
+            match = self._program.calibrations.get_match_for_gate(
+                gate.modifiers, gate.name, gate.parameters, gate.qubits
+            )
+            return _convert_to_calibration_match(gate, match)
+
+        if instruction.is_measurement():
+            measurement = instruction.to_measurement()
+            match = self._program.calibrations.get_match_for_measurement(measurement)
+            return _convert_to_calibration_match(measurement, match)
 
         return None
 
-    # TODO: Port calibrations logic from quil-rs
     def get_calibration(self, instr: AbstractInstruction) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
         """
         Get the calibration corresponding to the provided instruction.
@@ -639,7 +651,6 @@ class Program:
 
         return None
 
-    # TODO: Port calibrations logic from quil-rs
     def calibrate(
         self,
         instruction: AbstractInstruction,
@@ -664,25 +675,12 @@ class Program:
         """
         if previously_calibrated_instructions is None:
             previously_calibrated_instructions = set()
-        elif instruction in previously_calibrated_instructions:
-            raise CalibrationError(
-                f"The instruction {instruction} appears in the set of "
-                f"previously calibrated instructions {previously_calibrated_instructions}"
-                " and would therefore result in a cyclic non-terminating expansion."
-            )
-        else:
-            previously_calibrated_instructions = previously_calibrated_instructions.union({instruction})
-        match = self.match_calibrations(instruction)
-        if match is not None:
-            return sum(
-                [
-                    self.calibrate(expansion, previously_calibrated_instructions)
-                    for expansion in expand_calibration(match)
-                ],
-                [],
-            )
-        else:
-            return [instruction]
+
+        calibrated_instructions = self._program.calibrations.expand(
+            _convert_to_rs_instruction(instruction), _convert_to_rs_instructions(previously_calibrated_instructions)
+        )
+
+        return _convert_to_py_instructions(calibrated_instructions)
 
     @deprecated(
         deprecated_in="4.0",

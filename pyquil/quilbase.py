@@ -57,10 +57,13 @@ from pyquil.quilatom import (
     QubitPlaceholder,
     FormalArgument,
     _contained_parameters,
+    _convert_to_py_qubit,
     _convert_to_py_qubits,
+    _convert_to_rs_expression,
     _convert_to_rs_expressions,
     _convert_to_rs_qubit,
     _convert_to_rs_qubits,
+    _convert_to_py_parameter,
     _convert_to_py_parameters,
     format_parameter,
     unpack_qubit,
@@ -81,15 +84,24 @@ class _InstructionMeta(abc.ABCMeta):
     As such, this should _only_ be used as a metaclass for `AbstractInstruction`.
     """
 
-    @classmethod
-    def __instancecheck__(cls, __instance: Any) -> bool:
-        if isinstance(__instance, (quil_rs.Instruction)):
-            return True
+    def __init__(self, *args, **_):
+        self.__name = args[0]
         try:
-            quil_rs.Instruction(__instance)
-            return True
+            self.__is_abstract_instruction = args[1][0] == AbstractInstruction
         except Exception:
+            self.__is_abstract_instruction = False
+
+    def __instancecheck__(self, __instance: Any) -> bool:
+        # Already an Instruction, return True
+        if isinstance(__instance, quil_rs.Instruction):
+            return True
+
+        # __instance is not an Instruction or AbstractInstruction, return False
+        if not self.__name == "AbstractInstruction" and not self.__is_abstract_instruction:
             return False
+
+        # __instance is a subclass of AbstractInstruction, do the normal check
+        return super().__instancecheck__(__instance)
 
 
 class AbstractInstruction(metaclass=_InstructionMeta):
@@ -108,6 +120,46 @@ class AbstractInstruction(metaclass=_InstructionMeta):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+
+def _convert_to_rs_instruction(instr: AbstractInstruction) -> quil_rs.Instruction:
+    if isinstance(instr, quil_rs.Instruction):
+        return instr
+    if isinstance(instr, AbstractInstruction):
+        return quil_rs.Instruction(instr)
+    if isinstance(instr, quil_rs.Calibration):
+        return quil_rs.Instruction.from_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Gate):
+        return quil_rs.Instruction.from_gate(instr)
+    if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
+        return quil_rs.Instruction.from_measure_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Measurement):
+        return quil_rs.Instruction.from_measurement(instr)
+    else:
+        raise ValueError(f"{type(instr)} is not an Instruction")
+
+
+def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[quil_rs.Instruction]:
+    return [_convert_to_rs_instruction(instr) for instr in instrs]
+
+
+def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstruction:
+    if not isinstance(instr, quil_rs.Instruction):
+        raise ValueError(f"{type(instr)} is not a valid Instruction type")
+    if instr.is_calibration_definition():
+        return DefCalibration._from_rs_calibration(instr.to_calibration_definition())
+    if instr.is_gate():
+        return Gate._from_rs_gate(instr.to_gate())
+    if instr.is_measure_calibration_definition():
+        return DefMeasureCalibration._from_rs_measure_calibration_definition(instr.to_measure_calibration_definition())
+    if instr.is_measurement():
+        return Measurement._from_rs_measurement(instr.to_measurement())
+    if isinstance(instr, quil_rs.Instruction):
+        raise NotImplementedError("This Instruction hasn't been mapped to an AbstractInstruction yet.")
+
+
+def _convert_to_py_instructions(instrs: Iterable[quil_rs.Instruction]) -> List[AbstractInstruction]:
+    return [_convert_to_py_instruction(instr) for instr in instrs]
 
 
 RESERVED_WORDS: Container[str] = [
@@ -322,38 +374,74 @@ def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
     return stripped
 
 
-class Measurement(AbstractInstruction):
+class Measurement(quil_rs.Measurement, AbstractInstruction):
     """
     This is the pyQuil object for a Quil measurement instruction.
     """
 
-    def __init__(
-        self,
-        qubit: Union[Qubit, QubitPlaceholder, FormalArgument],
+    def __new__(
+        cls,
+        qubit: QubitDesignator,
         classical_reg: Optional[MemoryReference],
     ):
-        if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
-            raise TypeError("qubit should be a Qubit")
-        if classical_reg is not None and not isinstance(classical_reg, MemoryReference):
-            raise TypeError("classical_reg should be None or a MemoryReference instance")
+        classical_reg = cls._reg_to_target(classical_reg)
+        return super().__new__(cls, _convert_to_rs_qubit(qubit), classical_reg)
 
-        self.qubit = qubit
-        self.classical_reg = classical_reg
+    @classmethod
+    def _reg_to_target(cls, classical_reg: Optional[MemoryReference]) -> Optional[quil_rs.MemoryReference]:
+        if isinstance(classical_reg, quil_rs.MemoryReference):
+            return classical_reg
+
+        if classical_reg is not None:
+            try:
+                print(type(classical_reg))
+                classical_reg = _convert_to_rs_expression(classical_reg).to_address()
+            except ValueError:
+                raise TypeError(f"classical_reg should be None or a MemoryReference instance")
+
+        return classical_reg
+
+    @classmethod
+    def _from_rs_measurement(cls, measurement: quil_rs.Measurement):
+        return cls(measurement.qubit, measurement.target)
+
+    @property
+    def qubit(self) -> QubitDesignator:
+        return _convert_to_py_qubit(super().qubit)
+
+    @qubit.setter
+    def qubit(self, qubit):
+        quil_rs.Measurement.qubit.__set__(self, _convert_to_rs_qubit(qubit))
+
+    @property
+    def classical_reg(self) -> Optional[MemoryReference]:
+        target = super().target
+        if target is None:
+            return None
+        return MemoryReference._from_rs_memory_reference(target)  # type: ignore
+
+    @classical_reg.setter
+    def classical_reg(self, classical_reg: Optional[MemoryReference]):
+        classical_reg = self._reg_to_target(classical_reg)
+        quil_rs.Measurement.target.__set__(self, classical_reg)
+
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        if indices:
+            return self.get_qubit_indices()
+        else:
+            return {_convert_to_py_qubit(super().qubit)}
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {super().qubit.as_fixed()}
 
     def out(self) -> str:
-        if self.classical_reg:
-            return "MEASURE {} {}".format(self.qubit.out(), self.classical_reg.out())
-        else:
-            return "MEASURE {}".format(self.qubit.out())
-
-    def __str__(self) -> str:
-        if self.classical_reg:
-            return "MEASURE {} {}".format(_format_qubit_str(self.qubit), str(self.classical_reg))
-        else:
-            return "MEASURE {}".format(_format_qubit_str(self.qubit))
-
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return {_extract_qubit_index(self.qubit, indices)}
+        return str(self)
 
 
 class ResetQubit(AbstractInstruction):
@@ -1292,48 +1380,108 @@ class DefWaveform(AbstractInstruction):
         return ret
 
 
-class DefCalibration(AbstractInstruction):
-    def __init__(
-        self,
+class DefCalibration(quil_rs.Calibration, AbstractInstruction):
+    def __new__(
+        cls,
         name: str,
-        parameters: List[ParameterDesignator],
-        qubits: List[Union[Qubit, FormalArgument]],
-        instrs: List[AbstractInstruction],
+        parameters: Iterable[ParameterDesignator],
+        qubits: Iterable[Union[Qubit, FormalArgument]],
+        instrs: Iterable[AbstractInstruction],
+        modifiers: Iterable[quil_rs.GateModifier] = [],
     ):
-        self.name = name
-        self.parameters = parameters
-        self.qubits = qubits
-        self.instrs = instrs
+        return super().__new__(
+            cls,
+            name,
+            _convert_to_rs_expressions(parameters),
+            _convert_to_rs_qubits(qubits),
+            _convert_to_rs_instructions(instrs),
+            modifiers,
+        )
+
+    @classmethod
+    def _from_rs_calibration(cls, calibration: quil_rs.Calibration) -> "DefCalibration":
+        return cls(
+            calibration.name,
+            calibration.parameters,
+            calibration.qubits,
+            calibration.instructions,
+            calibration.modifiers,
+        )
+
+    @property
+    def parameters(self):
+        return _convert_to_py_parameters(super().parameters)
+
+    @parameters.setter
+    def parameters(self, parameters: Iterable[ParameterDesignator]):
+        quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))
+
+    @property
+    def qubits(self):
+        return _convert_to_py_qubits(super().qubits)
+
+    @qubits.setter
+    def qubits(self, qubits: Iterable[QubitDesignator]):
+        quil_rs.Calibration.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+
+    @property
+    def instrs(self):
+        return _convert_to_py_instructions(super().instructions)
+
+    @instrs.setter
+    def instrs(self, instrs: Iterable[AbstractInstruction]):
+        quil_rs.Calibration.instructions.__set__(self, _convert_to_rs_instructions(instrs))
 
     def out(self) -> str:
-        ret = f"DEFCAL {self.name}"
-        if len(self.parameters) > 0:
-            ret += _format_params(self.parameters)
-        ret += " " + _format_qubits_str(self.qubits) + ":\n"
-        for instr in self.instrs:
-            ret += f"    {instr.out()}\n"
-        return ret
+        return str(self)
 
 
-class DefMeasureCalibration(AbstractInstruction):
-    def __init__(
-        self,
+class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstruction):
+    def __new__(
+        cls,
         qubit: Union[Qubit, FormalArgument],
-        memory_reference: Optional[MemoryReference],
+        memory_reference: MemoryReference,
         instrs: List[AbstractInstruction],
-    ):
-        self.qubit = qubit
-        self.memory_reference = memory_reference
-        self.instrs = instrs
+    ) -> "DefMeasureCalibration":
+        return super().__new__(
+            cls,
+            _convert_to_rs_qubit(qubit),
+            memory_reference.name,
+            _convert_to_rs_instructions(instrs),
+        )
+
+    @classmethod
+    def _from_rs_measure_calibration_definition(
+        cls, calibration: quil_rs.MeasureCalibrationDefinition
+    ) -> "DefMeasureCalibration":
+        return super().__new__(cls, calibration.qubit, calibration.parameter, calibration.instructions)
+
+    @property
+    def qubit(self) -> QubitDesignator:
+        return _convert_to_py_qubit(super().qubit)
+
+    @qubit.setter
+    def qubit(self, qubit: QubitDesignator):
+        quil_rs.MeasureCalibrationDefinition.qubit.__set__(self, _convert_to_rs_qubit(qubit))
+
+    @property
+    def memory_reference(self) -> Optional[MemoryReference]:
+        return MemoryReference._from_parameter_str(super().parameter)
+
+    @memory_reference.setter
+    def memory_reference(self, memory_reference: MemoryReference):
+        quil_rs.MeasureCalibrationDefinition.parameter.__set__(self, memory_reference.name)
+
+    @property
+    def instrs(self):
+        return _convert_to_py_instructions(super().instructions)
+
+    @instrs.setter
+    def instrs(self, instrs: Iterable[AbstractInstruction]):
+        quil_rs.MeasureCalibrationDefinition.instructions.__set__(self, _convert_to_rs_instructions(instrs))
 
     def out(self) -> str:
-        ret = f"DEFCAL MEASURE {self.qubit}"
-        if self.memory_reference is not None:
-            ret += f" {self.memory_reference}"
-        ret += ":\n"
-        for instr in self.instrs:
-            ret += f"    {instr.out()}\n"
-        return ret
+        return str(self)
 
 
 @dataclass
