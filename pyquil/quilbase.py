@@ -1363,6 +1363,9 @@ class DefFrame(AbstractInstruction):
     center_frequency: Optional[float] = None
     """ The 'center' frequency of the frame, used for detuning arithmetic. """
 
+    enable_raw_capture: Optional[str] = None
+    """ A flag signalling that raw capture is enabled for this frame. """
+
     def out(self) -> str:
         r = f"DEFFRAME {self.frame.out()}"
         options = [
@@ -1371,6 +1374,7 @@ class DefFrame(AbstractInstruction):
             (self.center_frequency, "CENTER-FREQUENCY"),
             (self.hardware_object, "HARDWARE-OBJECT"),
             (self.sample_rate, "SAMPLE-RATE"),
+            (self.enable_raw_capture, "ENABLE-RAW-CAPTURE"),
         ]
         if any(value for (value, name) in options):
             r += ":"
