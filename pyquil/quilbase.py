@@ -110,7 +110,7 @@ class AbstractInstruction(metaclass=_InstructionMeta):
     """
 
     def __str__(self) -> str:
-        return self.__str__()
+        return self.__repr__()
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, self.__class__) and str(self) == str(other)
@@ -155,7 +155,7 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
     if instr.is_measurement():
         return Measurement._from_rs_measurement(instr.to_measurement())
     if isinstance(instr, quil_rs.Instruction):
-        raise NotImplementedError("This Instruction hasn't been mapped to an AbstractInstruction yet.")
+        raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
 
 
 def _convert_to_py_instructions(instrs: Iterable[quil_rs.Instruction]) -> List[AbstractInstruction]:
@@ -394,7 +394,6 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
 
         if classical_reg is not None:
             try:
-                print(type(classical_reg))
                 classical_reg = _convert_to_rs_expression(classical_reg).to_address()
             except ValueError:
                 raise TypeError(f"classical_reg should be None or a MemoryReference instance")
@@ -709,6 +708,9 @@ class SimpleInstruction(AbstractInstruction):
 
     def out(self) -> str:
         return self.op
+
+    def __str__(self) -> str:
+        return self.out()
 
 
 class Halt(SimpleInstruction):
@@ -1151,6 +1153,9 @@ class Declare(AbstractInstruction):
                 ret += " OFFSET {} {}".format(offset[0], offset[1])
 
         return ret
+
+    def __str__(self) -> str:
+        return self.out()
 
     def __repr__(self) -> str:
         return "<DECLARE {}>".format(self.name)

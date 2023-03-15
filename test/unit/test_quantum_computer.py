@@ -143,7 +143,7 @@ def test_construct_strength_two_orthogonal_array():
     assert np.allclose(_construct_strength_two_orthogonal_array(3), answer)
 
 
-# TODO: isinstance compatibility
+# TODO: pickle compatibility
 def test_measure_bitstrings(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(2))
     dummy_compiler = DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration)
@@ -208,7 +208,6 @@ def test_run(client_configuration: QCSClientConfiguration):
         MEASURE(2, MemoryReference("ro", 2)),
     ).wrap_in_numshots_loop(1000)
     result = qc.run(p)
-    print(result)
     bitstrings = result.readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 3)
@@ -236,7 +235,7 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
     assert np.mean(parity) == 0
 
 
-# TODO: isinstance compatibility
+# TODO: Review PyQVM
 def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
@@ -467,7 +466,7 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-# TODO:  Declarations API
+# TODO: Instruction API - Declare
 @pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
 def test_run_with_parameters(client_configuration: QCSClientConfiguration, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
@@ -509,7 +508,7 @@ def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, p
         executable.write_memory(region_name="theta", value=param)
 
 
-# TODO: Declarations API
+# TODO: Instruction API - Declare
 def test_reset(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
@@ -605,7 +604,7 @@ def test_orthogonal_array():
         num_q = oa.shape[1]
         num_cols = min(num_q, strength)
         column_idxs = random.sample(range(num_q), num_cols)
-        occurences = {entry: 0 for entry in range(2 ** num_cols)}
+        occurences = {entry: 0 for entry in range(2**num_cols)}
         for row in oa[:, column_idxs]:
             occurences[bit_array_to_int(row)] += 1
         assert all([count == occurences[0] for count in occurences.values()])
@@ -698,7 +697,7 @@ def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> N
     return NoiseModel([], aprobs)
 
 
-# TODO: get_classical_adresses implementation
+# TODO: Instruction API - RESET
 def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0], 0.945, 0.955)
@@ -723,7 +722,7 @@ def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
     assert results[0].total_counts == 20000
 
 
-# TODO: get_classical_adresses implementation
+# TODO: Instruction API - RESET
 def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
@@ -748,7 +747,7 @@ def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
     assert results[0].total_counts == 40000
 
 
-# TODO: get_classical_adresses implementation
+# TODO: Instruction API - RESET
 def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
@@ -787,7 +786,7 @@ def test_get_qc_noisy_qpu_error(client_configuration: QCSClientConfiguration, du
         get_qc("Aspen-8", noisy=True)
 
 
-# TODO: get_classical_adresses implementation
+# TODO: Instruction API - RESET
 def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
@@ -819,7 +818,7 @@ def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     assert results[0].additional_results[1].total_counts == 40000
 
 
-# TODO: get_classical_adresses implementation
+# TODO: Instruction API - RESET
 def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
     # regression test for https://github.com/rigetti/forest-tutorials/issues/2
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
@@ -871,7 +870,9 @@ def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_as
 
 
 @respx.mock
-def test_get_qc_with_group_account(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
+def test_get_qc_with_group_account(
+    client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture
+):
     """
     Assert that a client may specify a ``QCSClientConfigurationSettingsProfile`` representing a QCS group
     account and create a group account engagement via headers.
@@ -896,21 +897,23 @@ def test_get_qc_with_group_account(client_configuration: QCSClientConfiguration,
     respx.post(
         url=f"{client_configuration.profile.api_url}/v1/engagements",
         headers__contains={
-            'X-QCS-ACCOUNT-ID': 'group0',
-            'X-QCS-ACCOUNT-TYPE': QCSAccountType.group.value,
+            "X-QCS-ACCOUNT-ID": "group0",
+            "X-QCS-ACCOUNT-TYPE": QCSAccountType.group.value,
         },
-    ).respond(json={
-        'address': 'address',
-        'endpointId': 'endpointId',
-        'quantumProcessorId': 'quantumProcessorId',
-        'userId': 'userId',
-        'expiresAt': '01-01-2200T00:00:00Z',
-        'credentials': {
-            'clientPublic': 'faux',
-            'clientSecret': 'faux',
-            'serverPublic': 'faux',
+    ).respond(
+        json={
+            "address": "address",
+            "endpointId": "endpointId",
+            "quantumProcessorId": "quantumProcessorId",
+            "userId": "userId",
+            "expiresAt": "01-01-2200T00:00:00Z",
+            "credentials": {
+                "clientPublic": "faux",
+                "clientSecret": "faux",
+                "serverPublic": "faux",
+            },
         }
-    })
+    )
 
-    engagement = engagement_manager.get_engagement(quantum_processor_id='test')
-    assert 'faux' == engagement.credentials.client_public
+    engagement = engagement_manager.get_engagement(quantum_processor_id="test")
+    assert "faux" == engagement.credentials.client_public
