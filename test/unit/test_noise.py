@@ -103,7 +103,6 @@ def test_damping_after_dephasing():
     np.testing.assert_allclose(noisy_rho, target_rho)
 
 
-# TODO isinstance compatibility
 def test_noise_helpers():
     gates = RX(np.pi / 2, 0), RX(-np.pi / 2, 1), I(1), CZ(0, 1)
     prog = Program(*gates)
@@ -111,7 +110,7 @@ def test_noise_helpers():
     assert set(inferred_gates) == set(gates)
 
 
-# TODO isinstance compatibility
+# TODO: Instruction API - DefGate
 def test_decoherence_noise():
     prog = Program(RX(np.pi / 2, 0), CZ(0, 1), RZ(np.pi, 0))
     gates = _get_program_gates(prog)
