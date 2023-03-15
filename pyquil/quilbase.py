@@ -1521,3 +1521,6 @@ class DefFrame(AbstractInstruction):
                 else:
                     r += f"\n    {name}: {json.dumps(value)}"
         return r + "\n"
+
+    def __str__(self) -> str:
+        return self.out()

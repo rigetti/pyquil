@@ -9,6 +9,7 @@ from pyquil.quil import Program
 from pyquil.quilbase import (
     AbstractInstruction,
     DefCalibration,
+    DefFrame,
     DefMeasureCalibration,
     Gate,
     Measurement,
@@ -16,7 +17,7 @@ from pyquil.quilbase import (
     ParameterDesignator,
     Parameter,
 )
-from pyquil.quilatom import BinaryExp, Qubit
+from pyquil.quilatom import BinaryExp, Frame, Qubit
 from pyquil.api._compiler import QPUCompiler
 
 
@@ -195,3 +196,66 @@ class TestMeasurement:
         assert measurement.classical_reg == classical_reg
         measurement.classical_reg = MemoryReference("new_mem_ref")
         assert measurement.classical_reg == MemoryReference("new_mem_ref")
+
+
+@pytest.mark.parametrize(
+    ("frame", "direction", "initial_frequency", "hardware_object", "sample_rate", "center_frequency"),
+    [
+        (Frame([Qubit(0)], "frame"), None, None, None, None, None),
+        (Frame([Qubit(1)], "frame"), "direction", 1.39, "hardware_object", 44.1, 440.0),
+    ],
+    ids=("Frame-Only", "With-Optionals"),
+)
+class TestDefFrame:
+    @pytest.fixture
+    def def_frame(
+        self,
+        frame: Frame,
+        direction: Optional[str],
+        initial_frequency: Optional[float],
+        hardware_object: Optional[str],
+        sample_rate: Optional[float],
+        center_frequency: Optional[float],
+    ):
+        optional_args = [
+            arg
+            for arg in [direction, initial_frequency, hardware_object, sample_rate, center_frequency]
+            if arg is not None
+        ]
+        return DefFrame(frame, *optional_args)
+
+    def test_out(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
+        assert def_frame.out() == snapshot
+
+    def test_str(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
+        assert str(def_frame) == snapshot
+
+    def test_frame(self, def_frame: DefFrame, frame: Frame):
+        assert def_frame.frame == frame
+        def_frame.frame = Frame([Qubit(123)], "new_frame")
+        assert def_frame.frame == Frame([Qubit(123)], "new_frame")
+
+    def test_direction(self, def_frame: DefFrame, direction: Optional[str]):
+        assert def_frame.direction == direction
+        def_frame.direction = "tx"
+        assert def_frame.direction == "tx"
+
+    def test_initial_frequency(self, def_frame: DefFrame, initial_frequency: Optional[float]):
+        assert def_frame.initial_frequency == initial_frequency
+        def_frame.initial_frequency = 3.14
+        assert def_frame.initial_frequency == 3.14
+
+    def test_hardware_object(self, def_frame: DefFrame, hardware_object: Optional[str]):
+        assert def_frame.hardware_object == hardware_object
+        def_frame.hardware_object = "bfg"
+        assert def_frame.hardware_object == "bfg"
+
+    def test_sample_rate(self, def_frame: DefFrame, sample_rate: Optional[float]):
+        assert def_frame.sample_rate == sample_rate
+        def_frame.sample_rate = 96.0
+        assert def_frame.sample_rate == 96.0
+
+    def test_center_frequency(self, def_frame: DefFrame, center_frequency: Optional[float]):
+        assert def_frame.center_frequency == center_frequency
+        def_frame.center_frequency = 432.0
+        assert def_frame.center_frequency == 432.0

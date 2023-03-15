@@ -858,6 +858,7 @@ class Frame(QuilAtom):
         return self.out()
 
     def out(self) -> str:
+        print("qubits", self.qubits)
         return " ".join([q.out() for q in self.qubits]) + f' "{self.name}"'
 
 
