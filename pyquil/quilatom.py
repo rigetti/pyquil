@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 
-from dataclasses import dataclass
+from dataclasses import FrozenInstanceError, dataclass
 from fractions import Fraction
 from math import pi
 from numbers import Complex, Number
@@ -36,7 +36,8 @@ from typing import (
 
 import numpy as np
 
-import qcs_sdk.quil.instructions as quil_rs
+import qcs_sdk.quil.instructions as rs_instructions
+import qcs_sdk.quil.expression as rs_expression
 
 
 class QuilAtom(object):
@@ -159,29 +160,29 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, quil_rs.Qubit, int]
+QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, rs_instructions.Qubit, int]
 
 
-def _convert_to_rs_qubit(qubit: QubitDesignator) -> quil_rs.Qubit:
-    if isinstance(qubit, quil_rs.Qubit):
+def _convert_to_rs_qubit(qubit: QubitDesignator) -> rs_instructions.Qubit:
+    if isinstance(qubit, rs_instructions.Qubit):
         return qubit
     if isinstance(qubit, Qubit):
-        return quil_rs.Qubit.from_fixed(qubit.index)
+        return rs_instructions.Qubit.from_fixed(qubit.index)
     if isinstance(qubit, QubitPlaceholder):
         raise NotImplementedError("QubitPlaceholders aren't implemented in quil-rs")
     if isinstance(qubit, FormalArgument):
-        return quil_rs.Qubit.from_variable(qubit.name)
+        return rs_instructions.Qubit.from_variable(qubit.name)
     if isinstance(qubit, int):
-        return quil_rs.Qubit.from_fixed(qubit)
+        return rs_instructions.Qubit.from_fixed(qubit)
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[quil_rs.Qubit]:
+def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[rs_instructions.Qubit]:
     return [_convert_to_rs_qubit(qubit) for qubit in qubits]
 
 
 def _convert_to_py_qubit(qubit: QubitDesignator) -> QubitDesignator:
-    if isinstance(qubit, quil_rs.Qubit):
+    if isinstance(qubit, rs_instructions.Qubit):
         if qubit.is_fixed():
             return Qubit(qubit.to_fixed())
         if qubit.is_variable():
@@ -233,7 +234,7 @@ def qubit_index(qubit: QubitDesignator) -> int:
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
 # List[Any] here.
-MemoryReferenceDesignator = Union["MemoryReference", quil_rs.MemoryReference, Tuple[str, int], List[Any], str]
+MemoryReferenceDesignator = Union["MemoryReference", rs_instructions.MemoryReference, Tuple[str, int], List[Any], str]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
@@ -308,14 +309,16 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, quil_rs.MemoryReference, Number]
+ParameterDesignator = Union[
+    "Expression", "MemoryReference", rs_expression.Expression, rs_instructions.MemoryReference, Number
+]
 
 
-def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs.Expression:
-    if isinstance(parameter, quil_rs.Expression):
+def _convert_to_rs_expression(parameter: ParameterDesignator) -> rs_expression.Expression:
+    if isinstance(parameter, rs_expression.Expression):
         return parameter
     elif isinstance(parameter, (Expression, MemoryReference, Number)):
-        return quil_rs.Expression.parse_from_str(str(parameter))
+        return rs_expression.Expression.parse_from_str(str(parameter))
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
 
@@ -324,7 +327,7 @@ def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> Lis
 
 
 def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesignator:
-    if isinstance(parameter, quil_rs.Expression):
+    if isinstance(parameter, rs_expression.Expression):
         if parameter.is_address():
             return MemoryReference._from_rs_memory_reference(parameter.to_address())
         if parameter.is_function_call():
@@ -339,7 +342,7 @@ def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesigna
             return np.pi
         if parameter.is_variable():
             return Parameter(parameter.to_variable())
-    elif isinstance(parameter, (Expression, MemoryReference, quil_rs.MemoryReference, Number)):
+    elif isinstance(parameter, (Expression, MemoryReference, rs_instructions.MemoryReference, Number)):
         return parameter
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
@@ -391,7 +394,7 @@ def format_parameter(element: ParameterDesignator) -> str:
 
 
 ExpressionValueDesignator = Union[int, float, complex]
-ExpressionDesignator = Union["Expression", quil_rs.Expression, ExpressionValueDesignator]
+ExpressionDesignator = Union["Expression", rs_expression.Expression, ExpressionValueDesignator]
 
 
 class Expression(object):
@@ -573,18 +576,18 @@ class BinaryExp(Expression):
         self.op2 = op2
 
     @classmethod
-    def _from_rs_infix_expression(cls, infix_expression: quil_rs.InfixExpression):
+    def _from_rs_infix_expression(cls, infix_expression: rs_expression.InfixExpression):
         left = _convert_to_py_parameter(infix_expression.left)
         right = _convert_to_py_parameter(infix_expression.right)
-        if infix_expression.operator == quil_rs.InfixOperator.Plus:
+        if infix_expression.operator == rs_expression.InfixOperator.Plus:
             return Add(left, right)
-        if infix_expression.operator == quil_rs.InfixOperator.Minus:
+        if infix_expression.operator == rs_expression.InfixOperator.Minus:
             return Sub(left, right)
-        if infix_expression.operator == quil_rs.InfixOperator.Slash:
+        if infix_expression.operator == rs_expression.InfixOperator.Slash:
             return Div(left, right)
-        if infix_expression.operator == quil_rs.InfixOperator.Star:
+        if infix_expression.operator == rs_expression.InfixOperator.Star:
             return Mul(left, right)
-        if infix_expression.operator == quil_rs.InfixOperator.Caret:
+        if infix_expression.operator == rs_expression.InfixOperator.Caret:
             return Pow(left, right)
         raise ValueError(f"{type(infix_expression)} is not a valid InfixExpression")
 
@@ -767,12 +770,12 @@ class MemoryReference(QuilAtom, Expression):
         self.declared_size = declared_size
 
     @classmethod
-    def _from_rs_memory_reference(cls, memory_reference: quil_rs.MemoryReference) -> "MemoryReference":
+    def _from_rs_memory_reference(cls, memory_reference: rs_instructions.MemoryReference) -> "MemoryReference":
         return cls(memory_reference.name, memory_reference.index)
 
     @classmethod
     def _from_parameter_str(cls, memory_reference_str: str) -> "MemoryReference":
-        expression = quil_rs.Expression.parse_from_str(memory_reference_str)
+        expression = rs_expression.Expression.parse_from_str(memory_reference_str)
         if expression.is_address():
             return cls._from_rs_memory_reference(expression.to_address())
         raise ValueError(f"{memory_reference_str} is not a memory reference")
@@ -837,29 +840,33 @@ def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
         return set()
 
 
-@dataclass(eq=True, frozen=True)
-class Frame(QuilAtom):
+class Frame(rs_instructions.FrameIdentifier):
     """
     Representation of a frame descriptor.
     """
 
-    qubits: Tuple[Union[Qubit, FormalArgument], ...]
-    """ A tuple of qubits on which the frame exists. """
+    @staticmethod
+    def __new__(cls, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str) -> "Frame":
+        return super().__new__(cls, name, _convert_to_rs_qubits(qubits))
 
-    name: str
-    """ The name of the frame. """
+    @property
+    def qubits(self) -> Tuple[QubitDesignator]:
+        return tuple(_convert_to_py_qubits(super().qubits))
 
-    def __init__(self, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str):
-        qubits = tuple(Qubit(q) if isinstance(q, int) else q for q in qubits)
-        object.__setattr__(self, "qubits", qubits)
-        object.__setattr__(self, "name", name)
+    @qubits.setter
+    def qubits(self, _):
+        raise FrozenInstanceError()
 
-    def __str__(self) -> str:
-        return self.out()
+    @property
+    def name(self) -> str:
+        return super().name
+
+    @name.setter
+    def name(self, _):
+        raise FrozenInstanceError()
 
     def out(self) -> str:
-        print("qubits", self.qubits)
-        return " ".join([q.out() for q in self.qubits]) + f' "{self.name}"'
+        return str(self)
 
 
 @dataclass
