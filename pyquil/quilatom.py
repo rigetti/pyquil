@@ -849,6 +849,10 @@ class Frame(rs_instructions.FrameIdentifier):
     def __new__(cls, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str) -> "Frame":
         return super().__new__(cls, name, _convert_to_rs_qubits(qubits))
 
+    @classmethod
+    def _from_rs_frame_identifier(cls, frame: rs_instructions.FrameIdentifier) -> "Frame":
+        return cls(frame.qubits, frame.name)
+
     @property
     def qubits(self) -> Tuple[QubitDesignator]:
         return tuple(_convert_to_py_qubits(super().qubits))

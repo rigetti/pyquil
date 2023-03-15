@@ -23,37 +23,29 @@
   '''
 # ---
 # name: TestDefFrame.test_out[Frame-Only]
-  '''
-  DEFFRAME 0 "frame"
-  
-  '''
+  'DEFFRAME 0 "frame":'
 # ---
 # name: TestDefFrame.test_out[With-Optionals]
   '''
   DEFFRAME 1 "frame":
-      DIRECTION: "direction"
-      INITIAL-FREQUENCY: 1.39
-      CENTER-FREQUENCY: 440.0
-      HARDWARE-OBJECT: "hardware_object"
-      SAMPLE-RATE: 44.1
-  
+  	direction: "direction"
+  	sample_rate: 44.1
+  	hardware_object: "hardware_object"
+  	initial_frequency: 1.39
+  	center_frequency: 440
   '''
 # ---
 # name: TestDefFrame.test_str[Frame-Only]
-  '''
-  DEFFRAME 0 "frame"
-  
-  '''
+  'DEFFRAME 0 "frame":'
 # ---
 # name: TestDefFrame.test_str[With-Optionals]
   '''
   DEFFRAME 1 "frame":
-      DIRECTION: "direction"
-      INITIAL-FREQUENCY: 1.39
-      CENTER-FREQUENCY: 440.0
-      HARDWARE-OBJECT: "hardware_object"
-      SAMPLE-RATE: 44.1
-  
+  	initial_frequency: 1.39
+  	hardware_object: "hardware_object"
+  	direction: "direction"
+  	center_frequency: 440
+  	sample_rate: 44.1
   '''
 # ---
 # name: TestDefMeasureCalibration.test_out[MemoryReference]
