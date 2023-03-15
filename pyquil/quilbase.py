@@ -155,7 +155,7 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
     if instr.is_measurement():
         return Measurement._from_rs_measurement(instr.to_measurement())
     if isinstance(instr, quil_rs.Instruction):
-        raise NotImplementedError(f"The {instr} Instruction hasn't been mapped to an AbstractInstruction yet.")
+        raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
 
 
 def _convert_to_py_instructions(instrs: Iterable[quil_rs.Instruction]) -> List[AbstractInstruction]:
