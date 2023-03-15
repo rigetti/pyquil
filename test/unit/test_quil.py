@@ -250,7 +250,7 @@ def test_prog_init(snapshot):
     assert p.out() == snapshot
 
 
-# TODO: declarations API
+# TODO: Instruction API - Declare
 def test_classical_regs():
     p = Program()
     p.inst(
@@ -260,8 +260,8 @@ def test_classical_regs():
     ).measure(0, MemoryReference("reg", 1))
     assert p.out() == "DECLARE reg BIT[2]\nDECLARE ro BIT[2]\nX 0\nMEASURE 0 reg[1]\n"
     assert p.declarations == {
-        "ro": Declare("ro", "BIT", 2),
         "reg": Declare("reg", "BIT", 2),
+        "ro": Declare("ro", "BIT", 2),
     }
 
 
@@ -1019,7 +1019,6 @@ def test_out_vs_str():
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
 
 
-# TODO: Re-implement get_classical_addresses_from_program
 def test_get_classical_addresses_from_program():
     p = Program(Declare("ro", "BIT", 4), [H(i) for i in range(4)])
     assert get_classical_addresses_from_program(p) == {}
@@ -1028,7 +1027,6 @@ def test_get_classical_addresses_from_program():
     assert get_classical_addresses_from_program(p) == {"ro": [0, 1, 3]}
 
 
-# TODO: Re-implement get_classical_addresses_from_program
 def test_get_classical_addresses_from_quil_program():
     """
     Tests that can get_classical_addresses_from_program can handle both MEASURE
@@ -1293,7 +1291,6 @@ def _eval_as_np_pi(exp):
     return eval(exp.replace("pi", repr(np.pi)).replace("theta[0]", "1"))
 
 
-# TODO: Instruction API
 def test_params_pi_and_precedence():
     trivial_pi = "3 * theta[0] / (2 * pi)"
     prog = Program(f"RX({trivial_pi}) 0")

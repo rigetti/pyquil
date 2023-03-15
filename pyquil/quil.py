@@ -78,6 +78,7 @@ from pyquil.quilbase import (
     DefWaveform,
     _convert_to_rs_instruction,
     _convert_to_rs_instructions,
+    _convert_to_py_instruction,
     _convert_to_py_instructions,
 )
 from pyquil.quiltcalibrations import (
@@ -149,7 +150,7 @@ class Program:
     @property
     def declarations(self) -> Dict[str, Declare]:
         """A mapping from declared region names to their declarations."""
-        return self._program.declarations
+        return {name: _convert_to_py_instruction(inst) for name, inst in self._program.declarations.items()}
 
     def copy_everything_except_instructions(self) -> "Program":
         """
@@ -226,7 +227,7 @@ class Program:
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
             elif isinstance(instruction, AbstractInstruction):
-                self.inst(RSProgram.parse(str(instruction)))
+                self.inst(RSProgram.parse(instruction.out()))
             else:
                 raise ValueError("Invalid instruction: {}".format(instruction))
 
@@ -741,16 +742,6 @@ class Program:
         p.inst(other)
         return p
 
-    def __iadd__(self, other) -> "Program":
-        """
-        Concatenate two programs together by appending the right-hand side to the left.
-
-        :param other: Another program or instruction to concatenate to this one.
-        :return: A newly concatenated program.
-        """
-        p = Program(other)
-        return self._program.add_instructions(p._program.instructions)
-
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
         """
         Allows indexing into the program to get an action.
@@ -818,7 +809,6 @@ def merge_with_pauli_noise(
     return p
 
 
-# TODO: These should come from quil-rs. Requires Instruction::Measurement be ported
 def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int]]:
     """
     Returns a sorted list of classical addresses found in the MEASURE instructions in the program.
