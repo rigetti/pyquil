@@ -36,3 +36,7 @@ class TestFrame:
         assert frame.name == name
         with pytest.raises(FrozenInstanceError):
             frame.name = "new name"
+
+    def test_eq(self, frame: Frame):
+        assert frame == frame
+        assert frame != Frame([], "definitely-not-eq")
