@@ -36,8 +36,8 @@ from typing import (
 
 import numpy as np
 
-import qcs_sdk.quil.instructions as rs_instructions
-import qcs_sdk.quil.expression as rs_expression
+import qcs_sdk.quil.instructions as quil_rs
+import qcs_sdk.quil.expression as quil_rs_expr
 
 
 class QuilAtom(object):
@@ -160,29 +160,29 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, rs_instructions.Qubit, int]
+QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, quil_rs.Qubit, int]
 
 
-def _convert_to_rs_qubit(qubit: QubitDesignator) -> rs_instructions.Qubit:
-    if isinstance(qubit, rs_instructions.Qubit):
+def _convert_to_rs_qubit(qubit: QubitDesignator) -> quil_rs.Qubit:
+    if isinstance(qubit, quil_rs.Qubit):
         return qubit
     if isinstance(qubit, Qubit):
-        return rs_instructions.Qubit.from_fixed(qubit.index)
+        return quil_rs.Qubit.from_fixed(qubit.index)
     if isinstance(qubit, QubitPlaceholder):
         raise NotImplementedError("QubitPlaceholders aren't implemented in quil-rs")
     if isinstance(qubit, FormalArgument):
-        return rs_instructions.Qubit.from_variable(qubit.name)
+        return quil_rs.Qubit.from_variable(qubit.name)
     if isinstance(qubit, int):
-        return rs_instructions.Qubit.from_fixed(qubit)
+        return quil_rs.Qubit.from_fixed(qubit)
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[rs_instructions.Qubit]:
+def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[quil_rs.Qubit]:
     return [_convert_to_rs_qubit(qubit) for qubit in qubits]
 
 
 def _convert_to_py_qubit(qubit: QubitDesignator) -> QubitDesignator:
-    if isinstance(qubit, rs_instructions.Qubit):
+    if isinstance(qubit, quil_rs.Qubit):
         if qubit.is_fixed():
             return Qubit(qubit.to_fixed())
         if qubit.is_variable():
@@ -234,7 +234,7 @@ def qubit_index(qubit: QubitDesignator) -> int:
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
 # List[Any] here.
-MemoryReferenceDesignator = Union["MemoryReference", rs_instructions.MemoryReference, Tuple[str, int], List[Any], str]
+MemoryReferenceDesignator = Union["MemoryReference", quil_rs.MemoryReference, Tuple[str, int], List[Any], str]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
@@ -309,16 +309,14 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union[
-    "Expression", "MemoryReference", rs_expression.Expression, rs_instructions.MemoryReference, Number
-]
+ParameterDesignator = Union["Expression", "MemoryReference", quil_rs_expr.Expression, quil_rs.MemoryReference, Number]
 
 
-def _convert_to_rs_expression(parameter: ParameterDesignator) -> rs_expression.Expression:
-    if isinstance(parameter, rs_expression.Expression):
+def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs_expr.Expression:
+    if isinstance(parameter, quil_rs_expr.Expression):
         return parameter
     elif isinstance(parameter, (Expression, MemoryReference, Number)):
-        return rs_expression.Expression.parse_from_str(str(parameter))
+        return quil_rs_expr.Expression.parse(str(parameter))
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
 
@@ -327,7 +325,7 @@ def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> Lis
 
 
 def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesignator:
-    if isinstance(parameter, rs_expression.Expression):
+    if isinstance(parameter, quil_rs_expr.Expression):
         if parameter.is_address():
             return MemoryReference._from_rs_memory_reference(parameter.to_address())
         if parameter.is_function_call():
@@ -342,7 +340,7 @@ def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesigna
             return np.pi
         if parameter.is_variable():
             return Parameter(parameter.to_variable())
-    elif isinstance(parameter, (Expression, MemoryReference, rs_instructions.MemoryReference, Number)):
+    elif isinstance(parameter, (Expression, MemoryReference, quil_rs.MemoryReference, Number)):
         return parameter
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
@@ -394,7 +392,7 @@ def format_parameter(element: ParameterDesignator) -> str:
 
 
 ExpressionValueDesignator = Union[int, float, complex]
-ExpressionDesignator = Union["Expression", rs_expression.Expression, ExpressionValueDesignator]
+ExpressionDesignator = Union["Expression", quil_rs_expr.Expression, ExpressionValueDesignator]
 
 
 class Expression(object):
@@ -576,18 +574,18 @@ class BinaryExp(Expression):
         self.op2 = op2
 
     @classmethod
-    def _from_rs_infix_expression(cls, infix_expression: rs_expression.InfixExpression):
+    def _from_rs_infix_expression(cls, infix_expression: quil_rs_expr.InfixExpression):
         left = _convert_to_py_parameter(infix_expression.left)
         right = _convert_to_py_parameter(infix_expression.right)
-        if infix_expression.operator == rs_expression.InfixOperator.Plus:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Plus:
             return Add(left, right)
-        if infix_expression.operator == rs_expression.InfixOperator.Minus:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Minus:
             return Sub(left, right)
-        if infix_expression.operator == rs_expression.InfixOperator.Slash:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Slash:
             return Div(left, right)
-        if infix_expression.operator == rs_expression.InfixOperator.Star:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Star:
             return Mul(left, right)
-        if infix_expression.operator == rs_expression.InfixOperator.Caret:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Caret:
             return Pow(left, right)
         raise ValueError(f"{type(infix_expression)} is not a valid InfixExpression")
 
@@ -770,12 +768,12 @@ class MemoryReference(QuilAtom, Expression):
         self.declared_size = declared_size
 
     @classmethod
-    def _from_rs_memory_reference(cls, memory_reference: rs_instructions.MemoryReference) -> "MemoryReference":
+    def _from_rs_memory_reference(cls, memory_reference: quil_rs.MemoryReference) -> "MemoryReference":
         return cls(memory_reference.name, memory_reference.index)
 
     @classmethod
     def _from_parameter_str(cls, memory_reference_str: str) -> "MemoryReference":
-        expression = rs_expression.Expression.parse_from_str(memory_reference_str)
+        expression = quil_rs_expr.Expression.parse(memory_reference_str)
         if expression.is_address():
             return cls._from_rs_memory_reference(expression.to_address())
         raise ValueError(f"{memory_reference_str} is not a memory reference")
@@ -840,7 +838,7 @@ def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
         return set()
 
 
-class Frame(rs_instructions.FrameIdentifier):
+class Frame(quil_rs.FrameIdentifier):
     """
     Representation of a frame descriptor.
     """
@@ -850,7 +848,7 @@ class Frame(rs_instructions.FrameIdentifier):
         return super().__new__(cls, name, _convert_to_rs_qubits(qubits))
 
     @classmethod
-    def _from_rs_frame_identifier(cls, frame: rs_instructions.FrameIdentifier) -> "Frame":
+    def _from_rs_frame_identifier(cls, frame: quil_rs.FrameIdentifier) -> "Frame":
         return cls(frame.qubits, frame.name)
 
     @property
