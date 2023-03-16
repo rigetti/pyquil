@@ -25,28 +25,40 @@
 # name: TestDefFrame.test_out[Frame-Only]
   'DEFFRAME 0 "frame":'
 # ---
+# name: TestDefFrame.test_out[Frame-Only].1
+  set({
+  })
+# ---
 # name: TestDefFrame.test_out[With-Optionals]
-  '''
-  DEFFRAME 1 "frame":
-  	direction: "direction"
-  	sample_rate: 44.1
-  	hardware_object: "hardware_object"
-  	initial_frequency: 1.39
-  	center_frequency: 440
-  '''
+  'DEFFRAME 1 "frame":'
+# ---
+# name: TestDefFrame.test_out[With-Optionals].1
+  set({
+    '\tcenter_frequency: 440',
+    '\tdirection: "direction"',
+    '\thardware_object: "hardware_object"',
+    '\tinitial_frequency: 1.39',
+    '\tsample_rate: 44.1',
+  })
 # ---
 # name: TestDefFrame.test_str[Frame-Only]
   'DEFFRAME 0 "frame":'
 # ---
+# name: TestDefFrame.test_str[Frame-Only].1
+  set({
+  })
+# ---
 # name: TestDefFrame.test_str[With-Optionals]
-  '''
-  DEFFRAME 1 "frame":
-  	initial_frequency: 1.39
-  	hardware_object: "hardware_object"
-  	direction: "direction"
-  	center_frequency: 440
-  	sample_rate: 44.1
-  '''
+  'DEFFRAME 1 "frame":'
+# ---
+# name: TestDefFrame.test_str[With-Optionals].1
+  set({
+    '\tcenter_frequency: 440',
+    '\tdirection: "direction"',
+    '\thardware_object: "hardware_object"',
+    '\tinitial_frequency: 1.39',
+    '\tsample_rate: 44.1',
+  })
 # ---
 # name: TestDefMeasureCalibration.test_out[MemoryReference]
   '''

@@ -225,10 +225,17 @@ class TestDefFrame:
         return DefFrame(frame, *optional_args)
 
     def test_out(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
-        assert def_frame.out() == snapshot
+        # The ordering of attributes isn't stable and can be printed in different orders across calls.
+        # We assert that the first line is definitely the `DEFFRAME` line, and that the following
+        # attributes are the same, regardless of their order.
+        quil_lines = def_frame.out().splitlines()
+        assert quil_lines[0] == snapshot
+        assert set(quil_lines[1:]) == snapshot
 
     def test_str(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
-        assert str(def_frame) == snapshot
+        quil_lines = str(def_frame).splitlines()
+        assert quil_lines[0] == snapshot
+        assert set(quil_lines[1:]) == snapshot
 
     def test_frame(self, def_frame: DefFrame, frame: Frame):
         assert def_frame.frame == frame
