@@ -22,6 +22,44 @@
   	X 0
   '''
 # ---
+# name: TestDefFrame.test_out[Frame-Only]
+  'DEFFRAME 0 "frame":'
+# ---
+# name: TestDefFrame.test_out[Frame-Only].1
+  set({
+  })
+# ---
+# name: TestDefFrame.test_out[With-Optionals]
+  'DEFFRAME 1 "frame":'
+# ---
+# name: TestDefFrame.test_out[With-Optionals].1
+  set({
+    '\tcenter_frequency: 440',
+    '\tdirection: "direction"',
+    '\thardware_object: "hardware_object"',
+    '\tinitial_frequency: 1.39',
+    '\tsample_rate: 44.1',
+  })
+# ---
+# name: TestDefFrame.test_str[Frame-Only]
+  'DEFFRAME 0 "frame":'
+# ---
+# name: TestDefFrame.test_str[Frame-Only].1
+  set({
+  })
+# ---
+# name: TestDefFrame.test_str[With-Optionals]
+  'DEFFRAME 1 "frame":'
+# ---
+# name: TestDefFrame.test_str[With-Optionals].1
+  set({
+    '\tcenter_frequency: 440',
+    '\tdirection: "direction"',
+    '\thardware_object: "hardware_object"',
+    '\tinitial_frequency: 1.39',
+    '\tsample_rate: 44.1',
+  })
+# ---
 # name: TestDefMeasureCalibration.test_out[MemoryReference]
   '''
   DEFCAL MEASURE 1 theta:

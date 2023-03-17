@@ -76,6 +76,7 @@ if TYPE_CHECKING:
 from dataclasses import dataclass
 
 import qcs_sdk.quil.instructions as quil_rs
+import qcs_sdk.quil.expression as quil_rs_expr
 
 
 class _InstructionMeta(abc.ABCMeta):
@@ -1489,40 +1490,96 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
         return str(self)
 
 
-@dataclass
-class DefFrame(AbstractInstruction):
-    frame: Frame
-    """ The frame being defined. """
+class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
+    @staticmethod
+    def __new__(
+        cls,
+        frame: Frame,
+        direction: Optional[str] = None,
+        initial_frequency: Optional[float] = None,
+        hardware_object: Optional[str] = None,
+        sample_rate: Optional[float] = None,
+        center_frequency: Optional[float] = None,
+    ) -> "DefFrame":
+        attributes = {
+            key: DefFrame._to_attribute_value(value)
+            for key, value in zip(
+                ["direction", "initial_frequency", "hardware_object", "sample_rate", "center_frequency"],
+                [direction, initial_frequency, hardware_object, sample_rate, center_frequency],
+            )
+            if value is not None
+        }
+        return super().__new__(cls, frame, attributes)
 
-    direction: Optional[str] = None
-    """ The direction of the frame, i.e. 'tx' or 'rx'. """
-
-    initial_frequency: Optional[float] = None
-    """ The initial frequency of the frame. """
-
-    hardware_object: Optional[str] = None
-    """ The name of the hardware object associated to the frame. """
-
-    sample_rate: Optional[float] = None
-    """ The sample rate of the frame [Hz]. """
-
-    center_frequency: Optional[float] = None
-    """ The 'center' frequency of the frame, used for detuning arithmetic. """
+    @staticmethod
+    def _to_attribute_value(value: Union[str, float]) -> quil_rs.AttributeValue:
+        if isinstance(value, str):
+            return quil_rs.AttributeValue.from_string(value)
+        if isinstance(value, float):
+            return quil_rs.AttributeValue.from_expression(quil_rs_expr.Expression.from_number(complex(value)))
+        raise ValueError(f"{type(value)} is not a valid AttributeValue")
 
     def out(self) -> str:
-        r = f"DEFFRAME {self.frame.out()}"
-        options = [
-            (self.direction, "DIRECTION"),
-            (self.initial_frequency, "INITIAL-FREQUENCY"),
-            (self.center_frequency, "CENTER-FREQUENCY"),
-            (self.hardware_object, "HARDWARE-OBJECT"),
-            (self.sample_rate, "SAMPLE-RATE"),
-        ]
-        if any(value for (value, name) in options):
-            r += ":"
-            for value, name in options:
-                if value is None:
-                    continue
-                else:
-                    r += f"\n    {name}: {json.dumps(value)}"
-        return r + "\n"
+        return str(self)
+
+    @property
+    def frame(self) -> Frame:
+        return Frame._from_rs_frame_identifier(super().identifier)
+
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.FrameDefinition.identifier.__set__(self, frame)
+
+    def _set_attribute(self, name: str, value: Union[str, float]):
+        updated = super().attributes
+        updated.update({name: DefFrame._to_attribute_value(value)})
+        quil_rs.FrameDefinition.attributes.__set__(self, updated)
+
+    def _get_attribute(self, name: str) -> Optional[Union[str, float]]:
+        value = super().attributes.get(name, None)
+        if value is None:
+            return None
+        if value.is_string():
+            return value.to_string()
+        if value.is_expression():
+            return value.to_expression().to_number().real
+
+    @property
+    def direction(self) -> Optional[str]:
+        return self._get_attribute("direction")  # type: ignore
+
+    @direction.setter
+    def direction(self, direction: str):
+        self._set_attribute("direction", direction)
+
+    @property
+    def initial_frequency(self) -> Optional[float]:
+        return self._get_attribute("initial_frequency")  # type: ignore
+
+    @initial_frequency.setter
+    def initial_frequency(self, initial_frequency: float):
+        self._set_attribute("initial_frequency", initial_frequency)
+
+    @property
+    def hardware_object(self) -> Optional[str]:
+        return self._get_attribute("hardware_object")  # type: ignore
+
+    @hardware_object.setter
+    def hardware_object(self, hardware_object: str):
+        self._set_attribute("hardware_object", hardware_object)
+
+    @property
+    def sample_rate(self) -> Frame:
+        return self._get_attribute("sample_rate")  # type: ignore
+
+    @sample_rate.setter
+    def sample_rate(self, sample_rate: float):
+        self._set_attribute("sample_rate", sample_rate)
+
+    @property
+    def center_frequency(self) -> Frame:
+        return self._get_attribute("center_frequency")  # type: ignore
+
+    @center_frequency.setter
+    def center_frequency(self, center_frequency: float):
+        self._set_attribute("center_frequency", center_frequency)

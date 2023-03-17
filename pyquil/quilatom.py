@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 
-from dataclasses import dataclass
+from dataclasses import FrozenInstanceError, dataclass
 from fractions import Fraction
 from math import pi
 from numbers import Complex, Number
@@ -37,6 +37,7 @@ from typing import (
 import numpy as np
 
 import qcs_sdk.quil.instructions as quil_rs
+import qcs_sdk.quil.expression as quil_rs_expr
 
 
 class QuilAtom(object):
@@ -308,14 +309,14 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", quil_rs.Expression, quil_rs.MemoryReference, Number]
+ParameterDesignator = Union["Expression", "MemoryReference", quil_rs_expr.Expression, quil_rs.MemoryReference, Number]
 
 
-def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs.Expression:
-    if isinstance(parameter, quil_rs.Expression):
+def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs_expr.Expression:
+    if isinstance(parameter, quil_rs_expr.Expression):
         return parameter
     elif isinstance(parameter, (Expression, MemoryReference, Number)):
-        return quil_rs.Expression.parse_from_str(str(parameter))
+        return quil_rs_expr.Expression.parse(str(parameter))
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
 
@@ -324,7 +325,7 @@ def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> Lis
 
 
 def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesignator:
-    if isinstance(parameter, quil_rs.Expression):
+    if isinstance(parameter, quil_rs_expr.Expression):
         if parameter.is_address():
             return MemoryReference._from_rs_memory_reference(parameter.to_address())
         if parameter.is_function_call():
@@ -391,7 +392,7 @@ def format_parameter(element: ParameterDesignator) -> str:
 
 
 ExpressionValueDesignator = Union[int, float, complex]
-ExpressionDesignator = Union["Expression", quil_rs.Expression, ExpressionValueDesignator]
+ExpressionDesignator = Union["Expression", quil_rs_expr.Expression, ExpressionValueDesignator]
 
 
 class Expression(object):
@@ -573,18 +574,18 @@ class BinaryExp(Expression):
         self.op2 = op2
 
     @classmethod
-    def _from_rs_infix_expression(cls, infix_expression: quil_rs.InfixExpression):
+    def _from_rs_infix_expression(cls, infix_expression: quil_rs_expr.InfixExpression):
         left = _convert_to_py_parameter(infix_expression.left)
         right = _convert_to_py_parameter(infix_expression.right)
-        if infix_expression.operator == quil_rs.InfixOperator.Plus:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Plus:
             return Add(left, right)
-        if infix_expression.operator == quil_rs.InfixOperator.Minus:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Minus:
             return Sub(left, right)
-        if infix_expression.operator == quil_rs.InfixOperator.Slash:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Slash:
             return Div(left, right)
-        if infix_expression.operator == quil_rs.InfixOperator.Star:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Star:
             return Mul(left, right)
-        if infix_expression.operator == quil_rs.InfixOperator.Caret:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Caret:
             return Pow(left, right)
         raise ValueError(f"{type(infix_expression)} is not a valid InfixExpression")
 
@@ -772,7 +773,7 @@ class MemoryReference(QuilAtom, Expression):
 
     @classmethod
     def _from_parameter_str(cls, memory_reference_str: str) -> "MemoryReference":
-        expression = quil_rs.Expression.parse_from_str(memory_reference_str)
+        expression = quil_rs_expr.Expression.parse(memory_reference_str)
         if expression.is_address():
             return cls._from_rs_memory_reference(expression.to_address())
         raise ValueError(f"{memory_reference_str} is not a memory reference")
@@ -837,28 +838,37 @@ def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
         return set()
 
 
-@dataclass(eq=True, frozen=True)
-class Frame(QuilAtom):
+class Frame(quil_rs.FrameIdentifier):
     """
     Representation of a frame descriptor.
     """
 
-    qubits: Tuple[Union[Qubit, FormalArgument], ...]
-    """ A tuple of qubits on which the frame exists. """
+    @staticmethod
+    def __new__(cls, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str) -> "Frame":
+        return super().__new__(cls, name, _convert_to_rs_qubits(qubits))
 
-    name: str
-    """ The name of the frame. """
+    @classmethod
+    def _from_rs_frame_identifier(cls, frame: quil_rs.FrameIdentifier) -> "Frame":
+        return cls(frame.qubits, frame.name)
 
-    def __init__(self, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str):
-        qubits = tuple(Qubit(q) if isinstance(q, int) else q for q in qubits)
-        object.__setattr__(self, "qubits", qubits)
-        object.__setattr__(self, "name", name)
+    @property
+    def qubits(self) -> Tuple[QubitDesignator]:
+        return tuple(_convert_to_py_qubits(super().qubits))
 
-    def __str__(self) -> str:
-        return self.out()
+    @qubits.setter
+    def qubits(self, qubits: Tuple[Qubit, FormalArgument]):
+        return quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+
+    @property
+    def name(self) -> str:
+        return super().name
+
+    @name.setter
+    def name(self, name: str):
+        return quil_rs.FrameIdentifier.name.__set__(self, name)
 
     def out(self) -> str:
-        return " ".join([q.out() for q in self.qubits]) + f' "{self.name}"'
+        return str(self)
 
 
 @dataclass

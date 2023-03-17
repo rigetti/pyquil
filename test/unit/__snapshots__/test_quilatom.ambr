@@ -1,0 +1,24 @@
+# name: TestFrame.test_out[With-FormalArgument]
+  'One "FRAME"'
+# ---
+# name: TestFrame.test_out[With-Mixed]
+  '0 One 2 "FRAME"'
+# ---
+# name: TestFrame.test_out[With-Qubit]
+  '0 "FRAME"'
+# ---
+# name: TestFrame.test_out[With-int]
+  '2 "FRAME"'
+# ---
+# name: TestFrame.test_str[With-FormalArgument]
+  'One "FRAME"'
+# ---
+# name: TestFrame.test_str[With-Mixed]
+  '0 One 2 "FRAME"'
+# ---
+# name: TestFrame.test_str[With-Qubit]
+  '0 "FRAME"'
+# ---
+# name: TestFrame.test_str[With-int]
+  '2 "FRAME"'
+# ---
