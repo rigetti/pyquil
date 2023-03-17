@@ -19,6 +19,7 @@ from math import pi
 
 import numpy as np
 import pytest
+from syrupy.assertion import SnapshotAssertion
 import qcs_sdk.quil.instructions as quil_rs
 
 from pyquil.gates import (
@@ -78,9 +79,10 @@ from pyquil.quil import (
     Pragma,
     validate_supported_quil,
 )
-from pyquil.quilatom import MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
+from pyquil.quilatom import Frame, MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
 from pyquil.quilbase import (
     DefGate,
+    DefFrame,
     Gate,
     Qubit,
     JumpWhen,
@@ -1306,3 +1308,12 @@ def test_params_pi_and_precedence():
     prog = Program(f"RX({more_less_trivial_pi}) 0")
     exp = str(prog[0].params[0])
     assert _eval_as_np_pi(more_less_trivial_pi) == _eval_as_np_pi(exp)
+
+
+class TestProgram:
+    def test_frames(self, snapshot: SnapshotAssertion):
+        program = Program(
+            'DEFFRAME 1 "frame":\n\tcenter_frequency: 440',
+            DefFrame(Frame([Qubit(1)], "other_frame"), center_frequency=432.0),
+        )
+        assert program.frames == snapshot

@@ -82,10 +82,7 @@ from pyquil.quilbase import (
     _convert_to_py_instructions,
 )
 from pyquil.quiltcalibrations import (
-    CalibrationError,
     CalibrationMatch,
-    expand_calibration,
-    match_calibration,
     _convert_to_calibration_match,
 )
 
@@ -145,7 +142,10 @@ class Program:
     @property
     def frames(self) -> Dict[Frame, DefFrame]:
         """A mapping from Quil-T frames to their definitions."""
-        return self._program.frames.get_all_frames()
+        return {
+            Frame._from_rs_frame_identifier(frame): DefFrame._from_rs_attribute_values(frame, attributes)
+            for frame, attributes in self._program.frames.get_all_frames().items()
+        }
 
     @property
     def declarations(self) -> Dict[str, Declare]:

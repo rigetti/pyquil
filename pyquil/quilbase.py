@@ -1511,6 +1511,14 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         }
         return super().__new__(cls, frame, attributes)
 
+    @classmethod
+    def _from_rs_frame_definition(cls, def_frame: quil_rs.FrameDefinition) -> "DefFrame":
+        return super().__new__(def_frame.frame, def_frame.attributes)
+
+    @classmethod
+    def _from_rs_attribute_values(cls, frame: quil_rs.FrameIdentifier, attributes: Dict[str, quil_rs.AttributeValue]):
+        return super().__new__(cls, frame, attributes)
+
     @staticmethod
     def _to_attribute_value(value: Union[str, float]) -> quil_rs.AttributeValue:
         if isinstance(value, str):
