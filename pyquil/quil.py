@@ -82,10 +82,7 @@ from pyquil.quilbase import (
     _convert_to_py_instructions,
 )
 from pyquil.quiltcalibrations import (
-    CalibrationError,
     CalibrationMatch,
-    expand_calibration,
-    match_calibration,
     _convert_to_calibration_match,
 )
 
@@ -130,12 +127,15 @@ class Program:
     @property
     def calibrations(self) -> List[DefCalibration]:
         """A list of Quil-T calibration definitions."""
-        return self._program.calibrations.calibrations
+        return [DefCalibration._from_rs_calibration(cal) for cal in self._program.calibrations.calibrations]
 
     @property
     def measure_calibrations(self) -> List[DefMeasureCalibration]:
         """A list of measure calibrations"""
-        return self._program.calibrations.measure_calibrations
+        return [
+            DefMeasureCalibration._from_rs_measure_calibration_definition(cal)
+            for cal in self._program.calibrations.measure_calibrations
+        ]
 
     @property
     def waveforms(self) -> Dict[str, DefWaveform]:
@@ -145,7 +145,10 @@ class Program:
     @property
     def frames(self) -> Dict[Frame, DefFrame]:
         """A mapping from Quil-T frames to their definitions."""
-        return self._program.frames.get_all_frames()
+        return {
+            Frame._from_rs_frame_identifier(frame): DefFrame._from_rs_attribute_values(frame, attributes)
+            for frame, attributes in self._program.frames.get_all_frames().items()
+        }
 
     @property
     def declarations(self) -> Dict[str, Declare]:
