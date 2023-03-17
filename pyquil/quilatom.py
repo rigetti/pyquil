@@ -856,16 +856,16 @@ class Frame(quil_rs.FrameIdentifier):
         return tuple(_convert_to_py_qubits(super().qubits))
 
     @qubits.setter
-    def qubits(self, _):
-        raise FrozenInstanceError()
+    def qubits(self, qubits: Tuple[Qubit, FormalArgument]):
+        return quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))
 
     @property
     def name(self) -> str:
         return super().name
 
     @name.setter
-    def name(self, _):
-        raise FrozenInstanceError()
+    def name(self, name: str):
+        return quil_rs.FrameIdentifier.name.__set__(self, name)
 
     def out(self) -> str:
         return str(self)

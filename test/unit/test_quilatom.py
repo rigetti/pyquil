@@ -1,4 +1,3 @@
-from dataclasses import FrozenInstanceError
 from typing import Sequence, Union
 import pytest
 from syrupy.assertion import SnapshotAssertion
@@ -29,13 +28,13 @@ class TestFrame:
 
     def test_qubits(self, frame: Frame, qubits: Sequence[Union[int, Qubit, FormalArgument]]):
         assert frame.qubits == tuple(Qubit(q) if isinstance(q, int) else q for q in qubits)
-        with pytest.raises(FrozenInstanceError):
-            frame.qubits = (Qubit(2), FormalArgument("One"))
+        frame.qubits = (Qubit(2), FormalArgument("One"))
+        assert frame.qubits == (Qubit(2), FormalArgument("One"))
 
     def test_name(self, frame: Frame, name: str):
         assert frame.name == name
-        with pytest.raises(FrozenInstanceError):
-            frame.name = "new name"
+        frame.name = "new name"
+        assert frame.name == "new name"
 
     def test_eq(self, frame: Frame):
         assert frame == frame

@@ -1546,23 +1546,23 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
 
     @property
     def direction(self) -> Optional[str]:
-        return self._get_attribute("direction")
+        return self._get_attribute("direction")  # type: ignore
 
     @direction.setter
     def direction(self, direction: str):
         self._set_attribute("direction", direction)
 
     @property
-    def initial_frequency(self) -> Optional[None]:
-        return self._get_attribute("initial_frequency")
+    def initial_frequency(self) -> Optional[float]:
+        return self._get_attribute("initial_frequency")  # type: ignore
 
     @initial_frequency.setter
     def initial_frequency(self, initial_frequency: float):
         self._set_attribute("initial_frequency", initial_frequency)
 
     @property
-    def hardware_object(self) -> Frame:
-        return self._get_attribute("hardware_object")
+    def hardware_object(self) -> Optional[str]:
+        return self._get_attribute("hardware_object")  # type: ignore
 
     @hardware_object.setter
     def hardware_object(self, hardware_object: str):
@@ -1570,7 +1570,7 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
 
     @property
     def sample_rate(self) -> Frame:
-        return self._get_attribute("sample_rate")
+        return self._get_attribute("sample_rate")  # type: ignore
 
     @sample_rate.setter
     def sample_rate(self, sample_rate: float):
@@ -1578,7 +1578,7 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
 
     @property
     def center_frequency(self) -> Frame:
-        return self._get_attribute("center_frequency")
+        return self._get_attribute("center_frequency")  # type: ignore
 
     @center_frequency.setter
     def center_frequency(self, center_frequency: float):
