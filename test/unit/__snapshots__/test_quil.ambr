@@ -11,7 +11,7 @@
 # ---
 # name: TestProgram.test_frames
   dict({
-    FrameIdentifier { name: "frame", qubits: [Fixed(1)] }: FrameDefinition { identifier: FrameIdentifier { name: "frame", qubits: [Fixed(1)] }, attributes: {"center_frequency": Expression(Number(Complex { re: 440.0, im: 0.0 }))} },
+    FrameIdentifier { name: "frame", qubits: [Fixed(1)] }: FrameDefinition { identifier: FrameIdentifier { name: "frame", qubits: [Fixed(1)] }, attributes: {"CENTER-FREQUENCY": Expression(Number(Complex { re: 440.0, im: 0.0 }))} },
     FrameIdentifier { name: "other_frame", qubits: [Fixed(1)] }: FrameDefinition { identifier: FrameIdentifier { name: "other_frame", qubits: [Fixed(1)] }, attributes: {"center_frequency": Expression(Number(Complex { re: 432.0, im: 0.0 }))} },
   })
 # ---

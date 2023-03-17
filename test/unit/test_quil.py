@@ -1329,7 +1329,7 @@ class TestProgram:
 
     def test_frames(self, snapshot: SnapshotAssertion):
         program = Program(
-            'DEFFRAME 1 "frame":\n\tcenter_frequency: 440',
+            'DEFFRAME 1 "frame":\n\tCENTER-FREQUENCY: 440',
             DefFrame(Frame([Qubit(1)], "other_frame"), center_frequency=432.0),
         )
         frames = program.frames
