@@ -127,12 +127,15 @@ class Program:
     @property
     def calibrations(self) -> List[DefCalibration]:
         """A list of Quil-T calibration definitions."""
-        return self._program.calibrations.calibrations
+        return [DefCalibration._from_rs_calibration(cal) for cal in self._program.calibrations.calibrations]
 
     @property
     def measure_calibrations(self) -> List[DefMeasureCalibration]:
         """A list of measure calibrations"""
-        return self._program.calibrations.measure_calibrations
+        return [
+            DefMeasureCalibration._from_rs_measure_calibration_definition(cal)
+            for cal in self._program.calibrations.measure_calibrations
+        ]
 
     @property
     def waveforms(self) -> Dict[str, DefWaveform]:

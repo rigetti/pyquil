@@ -1,3 +1,14 @@
+# name: TestProgram.test_calibrations
+  list([
+    Calibration { instructions: [Gate(Gate { name: "X", parameters: [], qubits: [Fixed(0)], modifiers: [] })], modifiers: [], name: "Calibrate", parameters: [], qubits: [Fixed(0)] },
+    Calibration { instructions: [Gate(Gate { name: "Y", parameters: [], qubits: [Fixed(1)], modifiers: [] })], modifiers: [], name: "Reticulating-Splines", parameters: [Variable("Spline")], qubits: [Fixed(1)] },
+  ])
+# ---
+# name: TestProgram.test_calibrations.1
+  list([
+    MeasureCalibrationDefinition { qubit: Some(Fixed(2)), parameter: "theta", instructions: [Gate(Gate { name: "Z", parameters: [], qubits: [Fixed(2)], modifiers: [] })] },
+  ])
+# ---
 # name: TestProgram.test_frames
   dict({
     FrameIdentifier { name: "frame", qubits: [Fixed(1)] }: FrameDefinition { identifier: FrameIdentifier { name: "frame", qubits: [Fixed(1)] }, attributes: {"center_frequency": Expression(Number(Complex { re: 440.0, im: 0.0 }))} },

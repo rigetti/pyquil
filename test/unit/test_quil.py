@@ -16,6 +16,7 @@
 ##############################################################################
 import re
 from math import pi
+from typing import Dict
 
 import numpy as np
 import pytest
@@ -88,6 +89,7 @@ from pyquil.quilbase import (
     JumpWhen,
     Declare,
     DefCalibration,
+    DefMeasureCalibration,
     ClassicalNot,
     DefPermutationGate,
 )
@@ -1311,9 +1313,27 @@ def test_params_pi_and_precedence():
 
 
 class TestProgram:
+    def test_calibrations(self, snapshot: SnapshotAssertion):
+        program = Program(
+            "DEFCAL Calibrate 0:\n\tX 0",
+            DefCalibration("Reticulating-Splines", [Parameter("Spline")], [Qubit(1)], [Y(1)]),
+            DefMeasureCalibration(Qubit(2), MemoryReference("theta"), [Z(2)]),
+        )
+
+        calibrations = program.calibrations
+        measure_calibrations = program.measure_calibrations
+        assert all((isinstance(cal, DefCalibration) for cal in program.calibrations))
+        assert all((isinstance(cal, DefMeasureCalibration) for cal in program.measure_calibrations))
+        assert calibrations == snapshot
+        assert measure_calibrations == snapshot
+
     def test_frames(self, snapshot: SnapshotAssertion):
         program = Program(
             'DEFFRAME 1 "frame":\n\tcenter_frequency: 440',
             DefFrame(Frame([Qubit(1)], "other_frame"), center_frequency=432.0),
         )
-        assert program.frames == snapshot
+        frames = program.frames
+        assert all(
+            (isinstance(frame, Frame) and isinstance(def_frame, DefFrame) for frame, def_frame in frames.items())
+        )
+        assert frames == snapshot
