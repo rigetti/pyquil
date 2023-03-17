@@ -1504,7 +1504,7 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         attributes = {
             key: DefFrame._to_attribute_value(value)
             for key, value in zip(
-                ["direction", "initial_frequency", "hardware_object", "sample_rate", "center_frequency"],
+                ["DIRECTION", "INITIAL-FREQUENCY", "HARDWARE-OBJECT", "SAMPLE-RATE", "CENTER-FREQUENCY"],
                 [direction, initial_frequency, hardware_object, sample_rate, center_frequency],
             )
             if value is not None
@@ -1554,40 +1554,40 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
 
     @property
     def direction(self) -> Optional[str]:
-        return self._get_attribute("direction")  # type: ignore
+        return self._get_attribute("DIRECTION")  # type: ignore
 
     @direction.setter
     def direction(self, direction: str):
-        self._set_attribute("direction", direction)
+        self._set_attribute("DIRECTION", direction)
 
     @property
     def initial_frequency(self) -> Optional[float]:
-        return self._get_attribute("initial_frequency")  # type: ignore
+        return self._get_attribute("INITIAL-FREQUENCY")  # type: ignore
 
     @initial_frequency.setter
     def initial_frequency(self, initial_frequency: float):
-        self._set_attribute("initial_frequency", initial_frequency)
+        self._set_attribute("INITIAL-FREQUENCY", initial_frequency)
 
     @property
     def hardware_object(self) -> Optional[str]:
-        return self._get_attribute("hardware_object")  # type: ignore
+        return self._get_attribute("HARDWARE-OBJECT")  # type: ignore
 
     @hardware_object.setter
     def hardware_object(self, hardware_object: str):
-        self._set_attribute("hardware_object", hardware_object)
+        self._set_attribute("HARDWARE-OBJECT", hardware_object)
 
     @property
     def sample_rate(self) -> Frame:
-        return self._get_attribute("sample_rate")  # type: ignore
+        return self._get_attribute("SAMPLE-RATE")  # type: ignore
 
     @sample_rate.setter
     def sample_rate(self, sample_rate: float):
-        self._set_attribute("sample_rate", sample_rate)
+        self._set_attribute("SAMPLE-RATE", sample_rate)
 
     @property
     def center_frequency(self) -> Frame:
-        return self._get_attribute("center_frequency")  # type: ignore
+        return self._get_attribute("CENTER-FREQUENCY")  # type: ignore
 
     @center_frequency.setter
     def center_frequency(self, center_frequency: float):
-        self._set_attribute("center_frequency", center_frequency)
+        self._set_attribute("CENTER-FREQUENCY", center_frequency)
