@@ -145,18 +145,21 @@ def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[q
 
 
 def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstruction:
-    if not isinstance(instr, quil_rs.Instruction):
-        raise ValueError(f"{type(instr)} is not a valid Instruction type")
-    if instr.is_calibration_definition():
-        return DefCalibration._from_rs_calibration(instr.to_calibration_definition())
-    if instr.is_gate():
-        return Gate._from_rs_gate(instr.to_gate())
-    if instr.is_measure_calibration_definition():
-        return DefMeasureCalibration._from_rs_measure_calibration_definition(instr.to_measure_calibration_definition())
-    if instr.is_measurement():
-        return Measurement._from_rs_measurement(instr.to_measurement())
+    if isinstance(instr, quil_rs.Instruction):
+        instr = instr.inner()
+    if isinstance(instr, quil_rs.Declaration):
+        return Declare._from_rs_declaration(instr)
+    if isinstance(instr, quil_rs.DefCalibration):
+        return DefCalibration._from_rs_calibration(instr)
+    if isinstance(instr, quil_rs.Gate):
+        return Gate._from_rs_gate(instr)
+    if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
+        return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Measurement):
+        return Measurement._from_rs_measurement(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
+    raise ValueError(f"{type(instr)} is not a valid Instruction type")
 
 
 def _convert_to_py_instructions(instrs: Iterable[quil_rs.Instruction]) -> List[AbstractInstruction]:
@@ -1134,6 +1137,10 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
         if shared_region is not None:
             sharing = quil_rs.Sharing(shared_region, Declare._to_rs_offsets(offsets))
         return super().__new__(cls, name, vector, sharing)
+
+    @classmethod
+    def _from_rs_declaration(cls, declaration: quil_rs.Declaration) -> "Declare":
+        return super().__new__(cls, declaration.name, declaration.size, declaration.sharing)
 
     @staticmethod
     def _memory_type_to_scalar_type(memory_type: str) -> quil_rs.ScalarType:
