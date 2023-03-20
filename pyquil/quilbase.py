@@ -146,6 +146,7 @@ def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[q
 
 def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstruction:
     if isinstance(instr, quil_rs.Instruction):
+        # TODOV4: Will have to handle unit variants since they don't have inner data
         instr = instr.inner()
     if isinstance(instr, quil_rs.Declaration):
         return Declare._from_rs_declaration(instr)
