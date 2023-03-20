@@ -16,7 +16,7 @@
     'offsets': list([
       tuple(
         2,
-        'offset',
+        'OCTET',
       ),
     ]),
     'shared_region': 'theta',
@@ -46,7 +46,7 @@
   'DECLARE ro BIT[1]'
 # ---
 # name: TestDeclare.test_out[With-Offsets]
-  'DECLARE ro BIT[5] SHARING theta OFFSET 2 offset'
+  'DECLARE ro BIT[5] SHARING theta OFFSET 2 OCTET'
 # ---
 # name: TestDeclare.test_out[With-Shared]
   'DECLARE ro INTEGER[5] SHARING theta'
@@ -58,7 +58,7 @@
   'DECLARE ro BIT[1]'
 # ---
 # name: TestDeclare.test_str[With-Offsets]
-  'DECLARE ro BIT[5] SHARING theta OFFSET 2 offset'
+  'DECLARE ro BIT[5] SHARING theta OFFSET 2 OCTET'
 # ---
 # name: TestDeclare.test_str[With-Shared]
   'DECLARE ro INTEGER[5] SHARING theta'

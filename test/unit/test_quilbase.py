@@ -275,7 +275,7 @@ class TestDefFrame:
         ("ro", "BIT", 1, None, None),
         ("ro", "OCTET", 5, None, None),
         ("ro", "INTEGER", 5, "theta", None),
-        ("ro", "BIT", 5, "theta", [(2, "offset")]),
+        ("ro", "BIT", 5, "theta", [(2, "OCTET")]),
     ],
     ids=("Defaults", "With-Size", "With-Shared", "With-Offsets"),
 )
@@ -323,5 +323,9 @@ class TestDeclare:
     def test_offsets(self, declare: Declare, offsets: Optional[Iterable[Tuple[int, str]]]):
         expected_offsets = [] if offsets is None else offsets
         assert declare.offsets == expected_offsets
-        declare.offsets = [("new_offset_a", 1), ("new_offset_b", 2)]
-        assert declare.offsets == [("new_offset_a", 1), ("new_offset_b", 2)]
+        if declare.shared_region is None:
+            with pytest.raises(ValueError):
+                declare.offsets = [(1, "BIT"), (2, "INTEGER")]
+        else:
+            declare.offsets = [(1, "BIT"), (2, "INTEGER")]
+            assert declare.offsets == [(1, "BIT"), (2, "INTEGER")]

@@ -1110,7 +1110,7 @@ class Pragma(AbstractInstruction):
         return "<PRAGMA {}>".format(self.command)
 
 
-class Declare(AbstractInstruction):
+class Declare(quil_rs.Declaration, AbstractInstruction):
     """
     A DECLARE directive.
 
@@ -1120,22 +1120,94 @@ class Declare(AbstractInstruction):
 
     """
 
-    def __init__(
-        self,
+    @staticmethod
+    def __new__(
+        cls,
         name: str,
         memory_type: str,
         memory_size: int = 1,
         shared_region: Optional[str] = None,
         offsets: Optional[Iterable[Tuple[int, str]]] = None,
     ):
-        self.name = name
-        self.memory_type = memory_type
-        self.memory_size = memory_size
-        self.shared_region = shared_region
+        vector = quil_rs.Vector(Declare._memory_type_to_scalar_type(memory_type), memory_size)
+        sharing = None
+        if shared_region is not None:
+            sharing = quil_rs.Sharing(shared_region, Declare._to_rs_offsets(offsets))
+        return super().__new__(cls, name, vector, sharing)
 
+    @staticmethod
+    def _memory_type_to_scalar_type(memory_type: str) -> quil_rs.ScalarType:
+        memory_type = memory_type.upper()
+        if memory_type == "BIT":
+            return quil_rs.ScalarType.Bit
+        if memory_type == "INTEGER":
+            return quil_rs.ScalarType.Integer
+        if memory_type == "REAL":
+            return quil_rs.ScalarType.Real
+        if memory_type == "OCTET":
+            return quil_rs.ScalarType.Octet
+        raise ValueError(f"{memory_type} is not a valid scalar type.")
+
+    @staticmethod
+    def _to_rs_offsets(offsets: Optional[Iterable[Tuple[int, str]]]):
         if offsets is None:
-            offsets = []
-        self.offsets = offsets
+            return []
+        return [
+            quil_rs.Offset(offset, Declare._memory_type_to_scalar_type(memory_type)) for offset, memory_type in offsets
+        ]
+
+    @property
+    def memory_type(self) -> str:
+        return str(super().size.data_type)
+
+    @memory_type.setter
+    def memory_type(self, memory_type: str):
+        vector = super().size
+        vector.data_type = Declare._memory_type_to_scalar_type(memory_type)
+        quil_rs.Declaration.size.__set__(self, vector)
+
+    @property
+    def memory_size(self) -> int:
+        return super().size.length
+
+    @memory_size.setter
+    def memory_size(self, memory_size: int):
+        vector = super().size
+        vector.length = memory_size
+        quil_rs.Declaration.size.__set__(self, vector)
+
+    @property
+    def shared_region(self) -> Optional[str]:
+        sharing = super().sharing
+        if sharing is None:
+            return None
+        return sharing.name
+
+    @shared_region.setter
+    def shared_region(self, shared_region: Optional[str]):
+        sharing = super().sharing
+        if sharing is None:
+            if shared_region is None:
+                return
+            sharing = quil_rs.Sharing(shared_region, [])
+        else:
+            sharing.name = shared_region
+        quil_rs.Declaration.sharing.__set__(self, sharing)
+
+    @property
+    def offsets(self) -> List[Tuple[int, str]]:
+        sharing = super().sharing
+        if sharing is None:
+            return []
+        return [(offset.offset, str(offset.data_type)) for offset in sharing.offsets]
+
+    @offsets.setter
+    def offsets(self, offsets: Optional[List[Tuple[int, str]]]):
+        sharing = super().sharing
+        if sharing is None:
+            raise ValueError("DECLARE without a shared region cannot use offsets")
+        sharing.offsets = Declare._to_rs_offsets(offsets)
+        quil_rs.Declaration.sharing.__set__(self, sharing)
 
     def asdict(self) -> Dict[str, Union[Iterable[Tuple[int, str]], Optional[str], int]]:
         return {
@@ -1147,19 +1219,7 @@ class Declare(AbstractInstruction):
         }
 
     def out(self) -> str:
-        ret = "DECLARE {} {}[{}]".format(self.name, self.memory_type, self.memory_size)
-        if self.shared_region:
-            ret += " SHARING {}".format(self.shared_region)
-            for offset in self.offsets:
-                ret += " OFFSET {} {}".format(offset[0], offset[1])
-
-        return ret
-
-    def __str__(self) -> str:
-        return self.out()
-
-    def __repr__(self) -> str:
-        return "<DECLARE {}>".format(self.name)
+        return str(self)
 
 
 class RawInstr(AbstractInstruction):
