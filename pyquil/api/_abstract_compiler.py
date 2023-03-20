@@ -24,16 +24,15 @@ import qcs_sdk
 
 from pyquil._memory import Memory
 from pyquil._version import pyquil_version
-from pyquil.api._compiler_client import CompilerClient, CompileToNativeQuilRequest
+from pyquil.api._compiler_client import CompilerClient
 from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
-from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
-from pyquil.quilatom import ExpressionDesignator, MemoryReference
+from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Gate
 from qcs_api_client.client import QCSClientConfiguration
-from rpcq.messages import NativeQuilMetadata, ParameterAref, ParameterSpec
+from rpcq.messages import ParameterAref, ParameterSpec
 
 
 class QuilcVersionMismatch(Exception):
