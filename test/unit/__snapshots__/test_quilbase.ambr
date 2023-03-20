@@ -102,11 +102,11 @@
 # ---
 # name: TestDefFrame.test_out[With-Optionals].1
   set({
-    '\tcenter_frequency: 440',
-    '\tdirection: "direction"',
-    '\thardware_object: "hardware_object"',
-    '\tinitial_frequency: 1.39',
-    '\tsample_rate: 44.1',
+    '\tCENTER-FREQUENCY: 440',
+    '\tDIRECTION: "direction"',
+    '\tHARDWARE-OBJECT: "hardware_object"',
+    '\tINITIAL-FREQUENCY: 1.39',
+    '\tSAMPLE-RATE: 44.1',
   })
 # ---
 # name: TestDefFrame.test_str[Frame-Only]
@@ -121,11 +121,11 @@
 # ---
 # name: TestDefFrame.test_str[With-Optionals].1
   set({
-    '\tcenter_frequency: 440',
-    '\tdirection: "direction"',
-    '\thardware_object: "hardware_object"',
-    '\tinitial_frequency: 1.39',
-    '\tsample_rate: 44.1',
+    '\tCENTER-FREQUENCY: 440',
+    '\tDIRECTION: "direction"',
+    '\tHARDWARE-OBJECT: "hardware_object"',
+    '\tINITIAL-FREQUENCY: 1.39',
+    '\tSAMPLE-RATE: 44.1',
   })
 # ---
 # name: TestDefMeasureCalibration.test_out[MemoryReference]

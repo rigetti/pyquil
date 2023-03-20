@@ -5,7 +5,7 @@ from typing import Dict, Any
 import numpy as np
 import pytest
 from qcs_api_client.client._configuration import QCSClientConfiguration
-from qcs_api_client.models import InstructionSetArchitecture, EngagementCredentials
+from qcs_api_client.models import InstructionSetArchitecture
 
 from pyquil.api import (
     QVMCompiler,
@@ -150,15 +150,6 @@ def dummy_compiler(qcs_aspen8_quantum_processor: QCSQuantumProcessor, client_con
 @pytest.fixture(scope="session")
 def client_configuration() -> QCSClientConfiguration:
     return QCSClientConfiguration.load()
-
-
-@pytest.fixture(scope="session")
-def engagement_credentials() -> EngagementCredentials:
-    return EngagementCredentials(
-        client_public=CLIENT_PUBLIC_KEY,
-        client_secret=CLIENT_SECRET_KEY,
-        server_public=SERVER_PUBLIC_KEY,
-    )
 
 
 @pytest.fixture(scope="session")

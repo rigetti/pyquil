@@ -866,7 +866,7 @@ def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_as
 
     qc = get_qc("test", endpoint_id="test-endpoint")
 
-    assert qc.qam._qpu_client._endpoint_id == "test-endpoint"
+    assert qc.qam._endpoint_id == "test-endpoint"
 
 
 @respx.mock
@@ -875,7 +875,7 @@ def test_get_qc_with_group_account(
 ):
     """
     Assert that a client may specify a ``QCSClientConfigurationSettingsProfile`` representing a QCS group
-    account and create a group account engagement via headers.
+    account.
     """
     respx.get(
         url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",

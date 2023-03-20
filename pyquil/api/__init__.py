@@ -21,7 +21,6 @@ __all__ = [
     "AbstractCompiler",
     "BenchmarkConnection",
     "EncryptedProgram",
-    "EngagementManager",
     "get_qc",
     "list_quantum_computers",
     "local_forest_runtime",
@@ -42,7 +41,6 @@ from qcs_api_client.client import QCSClientConfiguration
 
 from pyquil.api._benchmark import BenchmarkConnection
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram, AbstractCompiler
-from pyquil.api._engagement_manager import EngagementManager
 from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
