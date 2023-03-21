@@ -36,8 +36,8 @@ from typing import (
 
 import numpy as np
 
-import qcs_sdk.quil.instructions as quil_rs
-import qcs_sdk.quil.expression as quil_rs_expr
+import quil.instructions as quil_rs
+import quil.expression as quil_rs_expr
 
 
 class QuilAtom(object):
