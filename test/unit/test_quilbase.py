@@ -321,7 +321,7 @@ class TestDeclare:
         assert declare.shared_region == "new_shared"
 
     def test_offsets(self, declare: Declare, offsets: Optional[Iterable[Tuple[int, str]]]):
-        expected_offsets = [] if offsets is None else offsets
+        expected_offsets = offsets or []
         assert declare.offsets == expected_offsets
         if declare.shared_region is None:
             with pytest.raises(ValueError):
