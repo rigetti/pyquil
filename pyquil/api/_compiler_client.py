@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Iterator, List, Optional
 
-import qcs_sdk
+from qcs_sdk.compiler.quilc import get_version_info
 import rpcq
 from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
@@ -181,7 +181,7 @@ class CompilerClient:
         Get version info for compiler server.
         """
 
-        return qcs_sdk.get_quilc_version()
+        return get_version_info()
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """

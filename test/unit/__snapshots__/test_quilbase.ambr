@@ -1,3 +1,71 @@
+# name: TestDeclare.test_asdict[Defaults]
+  dict({
+    'memory_size': 1,
+    'memory_type': 'BIT',
+    'name': 'ro',
+    'offsets': list([
+    ]),
+    'shared_region': None,
+  })
+# ---
+# name: TestDeclare.test_asdict[With-Offsets]
+  dict({
+    'memory_size': 5,
+    'memory_type': 'BIT',
+    'name': 'ro',
+    'offsets': list([
+      tuple(
+        2,
+        'OCTET',
+      ),
+    ]),
+    'shared_region': 'theta',
+  })
+# ---
+# name: TestDeclare.test_asdict[With-Shared]
+  dict({
+    'memory_size': 5,
+    'memory_type': 'INTEGER',
+    'name': 'ro',
+    'offsets': list([
+    ]),
+    'shared_region': 'theta',
+  })
+# ---
+# name: TestDeclare.test_asdict[With-Size]
+  dict({
+    'memory_size': 5,
+    'memory_type': 'OCTET',
+    'name': 'ro',
+    'offsets': list([
+    ]),
+    'shared_region': None,
+  })
+# ---
+# name: TestDeclare.test_out[Defaults]
+  'DECLARE ro BIT[1]'
+# ---
+# name: TestDeclare.test_out[With-Offsets]
+  'DECLARE ro BIT[5] SHARING theta OFFSET 2 OCTET'
+# ---
+# name: TestDeclare.test_out[With-Shared]
+  'DECLARE ro INTEGER[5] SHARING theta'
+# ---
+# name: TestDeclare.test_out[With-Size]
+  'DECLARE ro OCTET[5]'
+# ---
+# name: TestDeclare.test_str[Defaults]
+  'DECLARE ro BIT[1]'
+# ---
+# name: TestDeclare.test_str[With-Offsets]
+  'DECLARE ro BIT[5] SHARING theta OFFSET 2 OCTET'
+# ---
+# name: TestDeclare.test_str[With-Shared]
+  'DECLARE ro INTEGER[5] SHARING theta'
+# ---
+# name: TestDeclare.test_str[With-Size]
+  'DECLARE ro OCTET[5]'
+# ---
 # name: TestDefCalibration.test_out[No-Params]
   '''
   DEFCAL Calibrate 0:

@@ -254,7 +254,6 @@ def test_prog_init(snapshot):
     assert p.out() == snapshot
 
 
-# TODO: Instruction API - Declare
 def test_classical_regs():
     p = Program()
     p.inst(

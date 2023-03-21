@@ -1,5 +1,5 @@
 from math import pi
-from typing import List, Optional
+from typing import List, Optional, Iterable, Tuple
 
 import pytest
 from syrupy.assertion import SnapshotAssertion
@@ -8,6 +8,7 @@ from pyquil.gates import X
 from pyquil.quil import Program
 from pyquil.quilbase import (
     AbstractInstruction,
+    Declare,
     DefCalibration,
     DefFrame,
     DefMeasureCalibration,
@@ -266,3 +267,65 @@ class TestDefFrame:
         assert def_frame.center_frequency == center_frequency
         def_frame.center_frequency = 432.0
         assert def_frame.center_frequency == 432.0
+
+
+@pytest.mark.parametrize(
+    ("name", "memory_type", "memory_size", "shared_region", "offsets"),
+    [
+        ("ro", "BIT", 1, None, None),
+        ("ro", "OCTET", 5, None, None),
+        ("ro", "INTEGER", 5, "theta", None),
+        ("ro", "BIT", 5, "theta", [(2, "OCTET")]),
+    ],
+    ids=("Defaults", "With-Size", "With-Shared", "With-Offsets"),
+)
+class TestDeclare:
+    @pytest.fixture
+    def declare(
+        self,
+        name: str,
+        memory_type: str,
+        memory_size: int,
+        shared_region: Optional[str],
+        offsets: Optional[Iterable[Tuple[int, str]]],
+    ) -> Declare:
+        return Declare(name, memory_type, memory_size, shared_region, offsets)
+
+    def test_out(self, declare: Declare, snapshot: SnapshotAssertion):
+        assert declare.out() == snapshot
+
+    def test_str(self, declare: Declare, snapshot: SnapshotAssertion):
+        assert str(declare) == snapshot
+
+    def test_asdict(self, declare: Declare, snapshot: SnapshotAssertion):
+        assert declare.asdict() == snapshot
+
+    def test_name(self, declare: Declare, name: str):
+        assert declare.name == name
+        declare.name = "new_name"
+        assert declare.name == "new_name"
+
+    def test_memory_type(self, declare: Declare, memory_type: Optional[str]):
+        assert declare.memory_type == memory_type
+        declare.memory_type = "REAL"
+        assert declare.memory_type == "REAL"
+
+    def test_memory_size(self, declare: Declare, memory_size: Optional[int]):
+        assert declare.memory_size == memory_size
+        declare.memory_size = 100
+        assert declare.memory_size == 100
+
+    def test_shared_region(self, declare: Declare, shared_region: Optional[str]):
+        assert declare.shared_region == shared_region
+        declare.shared_region = "new_shared"
+        assert declare.shared_region == "new_shared"
+
+    def test_offsets(self, declare: Declare, offsets: Optional[Iterable[Tuple[int, str]]]):
+        expected_offsets = offsets or []
+        assert declare.offsets == expected_offsets
+        if declare.shared_region is None:
+            with pytest.raises(ValueError):
+                declare.offsets = [(1, "BIT"), (2, "INTEGER")]
+        else:
+            declare.offsets = [(1, "BIT"), (2, "INTEGER")]
+            assert declare.offsets == [(1, "BIT"), (2, "INTEGER")]
