@@ -20,7 +20,8 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import asyncio
 import json
 
-import qcs_sdk
+from qcs_sdk.compiler.quilc import compile_program, CompilerOpts, TargetDevice
+from qcs_sdk.qpu.isa import InstructionSetArchitecture
 
 from pyquil._memory import Memory
 from pyquil._version import pyquil_version
@@ -129,10 +130,10 @@ class AbstractCompiler(ABC):
         # This will have to be addressed as part of this issue: https://github.com/rigetti/pyquil/issues/1496
         target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
 
-        native_quil = qcs_sdk.compile(
+        native_quil = compile_program(
             program.out(calibrations=False),
-            json.dumps(target_device.asdict(), indent=2),  # type: ignore
-            timeout=self._compiler_client.timeout,
+            TargetDevice.from_json(json.dumps(target_device.asdict())),
+            options=CompilerOpts(timeout=self._compiler_client.timeout, protoquil=protoquil),
         )
 
         native_program = Program(native_quil)

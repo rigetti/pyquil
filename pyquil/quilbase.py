@@ -150,7 +150,7 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
         instr = instr.inner()
     if isinstance(instr, quil_rs.Declaration):
         return Declare._from_rs_declaration(instr)
-    if isinstance(instr, quil_rs.DefCalibration):
+    if isinstance(instr, quil_rs.Calibration):
         return DefCalibration._from_rs_calibration(instr)
     if isinstance(instr, quil_rs.Gate):
         return Gate._from_rs_gate(instr)
