@@ -31,7 +31,8 @@ jobs:
   check-coverage:
     name: Check coverage
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # This job needs to be reworked see https://github.com/rigetti/pyquil/issues/1547
+    if: false
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
