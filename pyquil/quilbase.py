@@ -558,6 +558,9 @@ class DefGate(AbstractInstruction):
             result += "\n"
         return result
 
+    def __str__(self) -> str:
+        return self.out()
+
     def get_constructor(self) -> Union[Callable[..., Gate], Callable[..., Callable[..., Gate]]]:
         """
         :returns: A function that constructs this gate on variable qubit indices. E.g.

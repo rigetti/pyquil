@@ -1,6 +1,7 @@
 from math import pi
-from typing import List, Optional, Iterable, Tuple
+from typing import Any, List, Optional, Union, Iterable, Tuple
 
+import numpy as np
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
@@ -11,6 +12,7 @@ from pyquil.quilbase import (
     Declare,
     DefCalibration,
     DefFrame,
+    DefGate,
     DefMeasureCalibration,
     Gate,
     Measurement,
@@ -90,6 +92,56 @@ class TestGate:
             compiler.quil_to_native_quil(program)
         except Exception as e:
             assert False, f"Failed to compile the program: {e}\n{program}"
+
+
+@pytest.mark.parametrize(
+    ("name", "matrix", "parameters"),
+    [
+        ("NoParamGate", np.eye(4), []),
+        ("ParameterizedGate", np.diag([Parameter("X")] * 4), [Parameter("X")]),
+    ],
+    ids=("No-Params", "Params"),
+)
+class TestDefGate:
+    @pytest.fixture
+    def def_gate(
+        self, name: str, matrix: Union[List[List[Any]], np.ndarray, np.matrix], parameters: Optional[List[Parameter]]
+    ):
+        return DefGate(name, matrix, parameters)
+
+    def test_out(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+        assert def_gate.out() == snapshot
+
+    def test_str(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+        assert str(def_gate) == snapshot
+
+    def test_get_constructor(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+        constructor = def_gate.get_constructor()
+        if def_gate.parameters:
+            g = constructor(Parameter("theta"))(Qubit(123))
+            assert g.out() == snapshot
+        else:
+            g = constructor(Qubit(123))
+            assert g.out() == snapshot
+
+    def test_num_args(self, def_gate: DefGate, matrix: Union[List[List[Any]], np.ndarray, np.matrix]):
+        assert def_gate.num_args() == np.log2(len(matrix))
+
+    def test_name(self, def_gate: DefGate, name: str):
+        assert def_gate.name == name
+        def_gate.name = "new_name"
+        assert def_gate.name == "new_name"
+
+    def test_matrix(self, def_gate: DefGate, matrix: Union[List[List[Any]], np.ndarray, np.matrix]):
+        assert np.array_equal(def_gate.matrix, matrix)
+        new_matrix = np.asarray([[0, 1, 2, 3], [3, 2, 1, 0]])
+        def_gate.matrix = new_matrix
+        assert np.array_equal(def_gate.matrix, new_matrix)
+
+    def test_parameters(self, def_gate: DefGate, parameters: Optional[List[Parameter]]):
+        assert def_gate.parameters == parameters
+        def_gate.parameters = [Parameter("brand_new_param")]
+        assert def_gate.parameters == [Parameter("brand_new_param")]
 
 
 @pytest.mark.parametrize(
