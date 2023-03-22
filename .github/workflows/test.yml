@@ -28,6 +28,26 @@ jobs:
           . scripts/ci_install_deps
           poetry run make docs
 
+  check-coverage:
+    name: Check coverage
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
+      - name: Check coverage
+        run: |
+          sudo apt update
+          . scripts/ci_install_deps
+          poetry run make coverage
+
   check-format:
     name: Check formatting
     runs-on: ubuntu-latest

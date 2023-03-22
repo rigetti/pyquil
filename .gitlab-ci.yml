@@ -4,7 +4,6 @@ default:
     - ec2-docker
 
 stages:
-  - test
   - docker
 
 cache:
@@ -12,17 +11,6 @@ cache:
   paths:
     - .cache/pip
     - .venv
-
-####################################################################################################
-# EVERY-COMMIT JOBS
-####################################################################################################
-
-Coverage:
-  stage: test
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make coverage
-  allow_failure: true
 
 ####################################################################################################
 # RELEASE-ONLY JOBS
