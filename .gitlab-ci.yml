@@ -1,11 +1,10 @@
 default:
-  image: python:3.7
+  image: python:3.8
   tags:
     - ec2-docker
 
 stages:
   - test
-  - deploy
   - docker
 
 cache:
@@ -14,137 +13,9 @@ cache:
     - .cache/pip
     - .venv
 
-.install-npm: &install-npm
-  - curl -sL https://deb.nodesource.com/setup_12.x | bash -
-  - apt-get update
-  - apt-get install -f -y nodejs
-  - npm i
-
-.publish-pypi-public: &publish-pypi-public
-  - poetry config http-basic.pypi rigetti $PUBLIC_PYPI_PASSWORD
-  - poetry publish --build
-
-.publish-pypi-test: &publish-pypi-test
-  - poetry config repositories.testpypi https://test.pypi.org/legacy/
-  - poetry config http-basic.testpypi rigetti $TEST_PYPI_PASSWORD
-  - poetry publish --build -r testpypi
-
-# global build variables
-variables:
-  IMAGE: rigetti/forest
-  QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL: "http://qvm:5000"
-  QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL: "tcp://quilc:5555"
-  # For qcs-sdk-rust - Consider using these exclusively in pyQuil v4 release
-  QCS_SETTINGS_APPLICATIONS_QVM_URL: "http://qvm:5000"
-  QCS_SETTINGS_APPLICATIONS_QUILC_URL: "tcp://quilc:5555"
-
-# Docker images to spin up along with the various CI jobs
-services:
-  - name: rigetti/qvm
-    alias: qvm
-    command: ["-S"]
-  - name: rigetti/quilc
-    alias: quilc
-    command: ["-R"]
-
-
 ####################################################################################################
 # EVERY-COMMIT JOBS
 ####################################################################################################
-
-Test Docs:
-  stage: test
-  script:
-    - . scripts/ci_install_deps
-    - apt-get update && apt-get install -y pandoc
-    - poetry run make docs
-
-Style:
-  stage: test
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make check-all
-
-Test Unit (3.7):
-  stage: test
-  image: python:3.7
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make test
-
-Test e2e QPU (3.7):
-  stage: test
-  allow_failure: true
-  image: python:3.7
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make e2e
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "rc"'
-
-Test e2e QVM (3.7):
-  stage: test
-  image: python:3.7
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make e2e TEST_QUANTUM_PROCESSOR=2q-qvm
-
-Test Unit (3.8):
-  stage: test
-  image: python:3.8
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make test
-
-Test e2e QPU (3.8):
-  stage: test
-  allow_failure: true
-  image: python:3.8
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make e2e
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "rc"'
-
-Test e2e QVM (3.8):
-  stage: test
-  image: python:3.8
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make e2e TEST_QUANTUM_PROCESSOR=2q-qvm
-
-Test Unit (3.9):
-  stage: test
-  image: python:3.9
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make test
-
-Test e2e QPU (3.9):
-  stage: test
-  allow_failure: true
-  image: python:3.9
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make e2e
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "rc"'
-
-Test e2e QVM (3.9):
-  stage: test
-  image: python:3.9
-  coverage: '/TOTAL.*?(\d+)\%/'
-  script:
-    - . scripts/ci_install_deps
-    - poetry run make e2e TEST_QUANTUM_PROCESSOR=2q-qvm
 
 Coverage:
   stage: test
@@ -153,20 +24,9 @@ Coverage:
     - poetry run make coverage
   allow_failure: true
 
-
 ####################################################################################################
 # RELEASE-ONLY JOBS
 ####################################################################################################
-
-.pypi-publish:
-  stage: deploy
-  script:
-    - pip install --upgrade poetry
-    - *publish-pypi-public
-    - poetry version -s >> version_tag
-  artifacts:
-    paths:
-      - version_tag
 
 .docker-publish:
   image: docker:git
@@ -190,12 +50,6 @@ Coverage:
   retry:
     max: 2
     when: script_failure
-
-PyPI Publish:
-  services: []
-  extends: .pypi-publish
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\.\d+)?$/
 
 Docker Publish (RC):
   extends: .docker-publish
