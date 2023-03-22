@@ -66,7 +66,7 @@ QUIL_TO_NUMPY_DTYPE = {"INT": np.int_, "REAL": np.float_, "BIT": np.int8, "OCTET
 
 class AbstractQuantumSimulator(ABC):
     @abstractmethod
-    def __init__(self, n_qubits: int, rs: RandomState):
+    def __init__(self, n_qubits: int, rs: Optional[RandomState]):
         """
         Initialize.
 

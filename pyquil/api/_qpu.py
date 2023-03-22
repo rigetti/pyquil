@@ -39,10 +39,10 @@ def decode_buffer(buffer: "qcs_sdk.ExecutionResult") -> np.ndarray:
     :return: NumPy array of decoded data
     """
     if buffer["dtype"] == "complex":
-        buffer["data"] = [complex(re, im) for re, im in buffer["data"]]
-        buffer["dtype"] = np.complex64
+        buffer["data"] = [complex(re, im) for re, im in buffer["data"]]  # type: ignore
+        buffer["dtype"] = np.complex64  # type: ignore
     elif buffer["dtype"] == "integer":
-        buffer["dtype"] = np.int32
+        buffer["dtype"] = np.int32  # type: ignore
     return np.array(buffer["data"], dtype=buffer["dtype"])
 
 
@@ -51,7 +51,6 @@ def _extract_memory_regions(
     ro_sources: Dict[MemoryReference, str],
     buffers: Dict[str, np.ndarray],
 ) -> Dict[str, np.ndarray]:
-
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
     num_shots = first.shape[0]
@@ -82,8 +81,8 @@ def _extract_memory_regions(
         if buf.ndim == 1:
             buf = buf.reshape((num_shots, 1))
 
-        if np.iscomplexobj(buf):  # type: ignore
-            buf = np.column_stack((buf.real, buf.imag))  # type: ignore
+        if np.iscomplexobj(buf):
+            buf = np.column_stack((buf.real, buf.imag))
         _, width = buf.shape
 
         end = mref.offset + width

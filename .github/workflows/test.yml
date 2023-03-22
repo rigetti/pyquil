@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ master, rc ]
+    branches: [ master, rc, v4 ]
   pull_request:
-    branches: [ master, rc ]
+    branches: [ master, rc, v4 ]
   workflow_dispatch:
 
 jobs:
@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.8'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -28,15 +28,36 @@ jobs:
           . scripts/ci_install_deps
           poetry run make docs
 
+  check-coverage:
+    name: Check coverage
+    runs-on: ubuntu-latest
+    # This job needs to be reworked. See https://github.com/rigetti/pyquil/issues/1547
+    if: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
+      - name: Check coverage
+        run: |
+          sudo apt update
+          . scripts/ci_install_deps
+          poetry run make coverage
+
   check-format:
     name: Check formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.8'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -52,10 +73,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.8'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -71,10 +92,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.8'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -90,7 +111,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -114,7 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}

@@ -243,7 +243,7 @@ class QuantumComputer:
                     bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
                     bitstrings = np.bitwise_xor(bitstrings, bitmask)
                 all_bitstrings.append(bitstrings)
-            symmetrized_bitstrings = np.concatenate(all_bitstrings)  # type: ignore
+            symmetrized_bitstrings = np.concatenate(all_bitstrings)
 
             joint_expectations = [experiment.get_meas_registers(qubits)]
             if setting.additional_expectations:
@@ -1164,7 +1164,7 @@ def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarra
         # `construct_strength_two_orthogonal_array` docstrings, for more details.
         zero_array = np.zeros((1, num_qubits))
         one_array = np.ones((1, num_qubits))
-        flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)  # type: ignore
+        flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)
     elif strength == 2:
         flip_matrix = _construct_strength_two_orthogonal_array(num_qubits)
     elif strength == 3:
@@ -1253,7 +1253,7 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     """
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
-    Hfold = np.concatenate((H, -H), axis=0)  # type: ignore
+    Hfold = np.concatenate((H, -H), axis=0)
     orthogonal_array: np.ndarray = ((Hfold + 1) / 2).astype(int)
     return orthogonal_array
 
