@@ -598,6 +598,22 @@ def test_parsing_defframe():
         "    INITIAL-FREQUENCY: 10\n",  # TODO: should this parse as a float?
         DefFrame(Frame([Qubit(0)], "rf"), sample_rate=2.0, initial_frequency=10),
     )
+    parse_equals(
+        'DEFFRAME 0 "rf":\n'
+        '    SAMPLE-RATE: 2.0\n'
+        '    INITIAL-FREQUENCY: 10\n'
+        '    ENABLE-RAW-CAPTURE: "true"',
+        DefFrame(
+            Frame([Qubit(0)], "rf"),
+            sample_rate=2.0,
+            initial_frequency=10,
+            enable_raw_capture="true",
+        ),
+    )
+    assert DefFrame(
+        Frame([Qubit(0)], "rf"), enable_raw_capture="true"
+    ).out() == 'DEFFRAME 0 "rf":\n    ENABLE-RAW-CAPTURE: "true"\n'
+
     with pytest.raises(UnexpectedToken) as excp:
         parse('DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n")
 
