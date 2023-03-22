@@ -31,7 +31,7 @@ jobs:
   check-coverage:
     name: Check coverage
     runs-on: ubuntu-latest
-    # This job needs to be reworked see https://github.com/rigetti/pyquil/issues/1547
+    # This job needs to be reworked. See https://github.com/rigetti/pyquil/issues/1547
     if: false
     steps:
       - uses: actions/checkout@v2
