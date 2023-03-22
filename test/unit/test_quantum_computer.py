@@ -143,7 +143,7 @@ def test_construct_strength_two_orthogonal_array():
     assert np.allclose(_construct_strength_two_orthogonal_array(3), answer)
 
 
-# TODO: pickle compatibility
+# TODO: Review PyQVM
 def test_measure_bitstrings(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(2))
     dummy_compiler = DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration)
@@ -466,7 +466,7 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-# TODO: pickle compatibility
+# TODOV4: Write memory values
 @pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
 def test_run_with_parameters(client_configuration: QCSClientConfiguration, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
@@ -508,7 +508,7 @@ def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, p
         executable.write_memory(region_name="theta", value=param)
 
 
-# TODO: pickle compatibility
+# TODOV4: Write Memory values
 def test_reset(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(

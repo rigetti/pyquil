@@ -86,8 +86,8 @@ from pyquil.quiltcalibrations import (
     _convert_to_calibration_match,
 )
 
-from qcs_sdk.quil.program import Program as RSProgram
-import qcs_sdk.quil.instructions as quil_rs
+from quil.program import Program as RSProgram
+import quil.instructions as quil_rs
 
 InstructionDesignator = Union[
     AbstractInstruction,

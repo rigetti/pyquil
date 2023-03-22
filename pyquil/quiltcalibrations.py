@@ -41,8 +41,8 @@ from pyquil.quilbase import (
     _convert_to_py_qubit,
 )
 
-from qcs_sdk.quil.program import CalibrationSet
-import qcs_sdk.quil.instructions as quil_rs
+from quil.program import CalibrationSet
+import quil.instructions as quil_rs
 
 
 class CalibrationError(Exception):

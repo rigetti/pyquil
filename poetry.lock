@@ -1897,8 +1897,27 @@ toml = ">=0.10.2,<0.11.0"
 
 [[package]]
 name = "qcs-sdk-python"
-version = "0.5.0-rc.8"
+version = "0.5.0-rc.11"
 description = "Python interface for the QCS Rust SDK"
+category = "main"
+optional = false
+python-versions = "^3.8"
+files = []
+develop = false
+
+[package.dependencies]
+quil = {git = "https://github.com/rigetti/quil-rs", branch = "1455-python-support-for-program-and-beyond"}
+
+[package.source]
+type = "git"
+url = "https://github.com/rigetti/qcs-sdk-rust"
+reference = "specify-quil-as-a-dependency"
+resolved_reference = "eeabbd3af08e2fd93beee1e68a619a69a4421115"
+subdirectory = "crates/python"
+[[package]]
+name = "quil"
+version = "0.1.0"
+description = "A Python package for building and parsing Quil programs."
 category = "main"
 optional = false
 python-versions = "^3.8"
@@ -1907,11 +1926,10 @@ develop = false
 
 [package.source]
 type = "git"
-url = "https://github.com/rigetti/qcs-sdk-rust"
-reference = "reexport-quil-py"
-resolved_reference = "97692714637d3ae121537a6f10d734a526b3943f"
-subdirectory = "crates/python"
-
+url = "https://github.com/rigetti/quil-rs"
+reference = "1455-python-support-for-program-and-beyond"
+resolved_reference = "ccb803e40e51cc33b977df88d154221edee045aa"
+subdirectory = "quil-py"
 [[package]]
 name = "recommonmark"
 version = "0.7.1"
@@ -2560,4 +2578,4 @@ latex = ["ipython"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8,<3.11"
-content-hash = "1f2de6d8dccda55ef48bcf43175b557ee3ae00d64370b37e80a0422833b43c03"
+content-hash = "2015363db62d4a9de3a07394bec65dae98e5b20b6cb5185e175b7f3abe5fd538"

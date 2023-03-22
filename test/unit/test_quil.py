@@ -21,7 +21,7 @@ from typing import Dict
 import numpy as np
 import pytest
 from syrupy.assertion import SnapshotAssertion
-import qcs_sdk.quil.instructions as quil_rs
+import quil.instructions as quil_rs
 
 from pyquil.gates import (
     I,

@@ -128,20 +128,6 @@
     '\tSAMPLE-RATE: 44.1',
   })
 # ---
-# name: TestDefMeasureCalibration.test_out[MemoryReference]
-  '''
-  DEFCAL MEASURE 1 theta:
-  	X 0
-  
-  '''
-# ---
-# name: TestDefMeasureCalibration.test_out[No-MemoryReference]
-  '''
-  DEFCAL MEASURE 0 :
-  	X 0
-  
-  '''
-# ---
 # name: TestDefMeasureCalibration.test_out[qubit0-memory_reference0-instrs0]
   '''
   DEFCAL MEASURE 0 theta:
@@ -209,17 +195,11 @@
 # name: TestGate.test_str[X-Gate]
   'X 0'
 # ---
-# name: TestMeasurement.test_out[FormalArgument]
-  'MEASURE q theta'
-# ---
 # name: TestMeasurement.test_out[MemoryReference]
   'MEASURE 1 theta[0]'
 # ---
 # name: TestMeasurement.test_out[No-MemoryReference]
   'MEASURE 0'
-# ---
-# name: TestMeasurement.test_str[FormalArgument]
-  'MEASURE q theta'
 # ---
 # name: TestMeasurement.test_str[MemoryReference]
   'MEASURE 1 theta[0]'
