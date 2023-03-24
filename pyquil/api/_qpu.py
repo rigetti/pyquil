@@ -39,10 +39,10 @@ def decode_buffer(buffer: ExecutionResult) -> np.ndarray:
     :return: NumPy array of decoded data
     """
     if buffer.dtype == "complex":
-        data = [register.to_complex32() for register in buffer.data]
+        data = buffer.data.to_complex32()
         dtype = np.complex64
-    elif buffer["dtype"] == "integer":
-        data = [register.to_i32() for register in buffer.data]
+    elif buffer.dtype == "integer":
+        data = buffer.data.to_i32()
         dtype = np.int32
     return np.array(data, dtype=dtype, shape=buffer.shape)
 
@@ -173,6 +173,7 @@ class QPU(QAM[QPUExecuteResponse]):
             program=executable.program,
             patch_values=patch_values,
             quantum_processor_id=self.quantum_processor_id,
+            endpoint_id=self._endpoint_id,
             client=self._client_configuration,
         )
 
@@ -190,7 +191,7 @@ class QPU(QAM[QPUExecuteResponse]):
         )
 
         ro_sources = execute_response._executable.ro_sources
-        decoded_buffers = {k: decode_buffer(v) for k, v in results["buffers"].items()}
+        decoded_buffers = {k: decode_buffer(v) for k, v in results.buffers.items()}
 
         result_memory = {}
         if len(decoded_buffers) != 0:

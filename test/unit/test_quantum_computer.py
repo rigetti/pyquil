@@ -838,7 +838,6 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClient, dummy_compiler: 
     assert results[2][0].total_counts == 20000
 
 
-@pytest.mark.skip  # needs to be implemented by qcs_sdk
 @respx.mock
 def test_get_qc_endpoint_id(client_configuration: QCSClient, qcs_aspen8_isa: InstructionSetArchitecture):
     """
