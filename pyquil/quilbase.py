@@ -610,6 +610,9 @@ class DefPermutationGate(DefGate):
         body = ", ".join([str(p) for p in self.permutation])
         return f"DEFGATE {self.name} AS PERMUTATION:\n    {body}"
 
+    def __str__(self) -> str:
+        return self.out()
+
     def num_args(self) -> int:
         """
         :return: The number of qubit arguments the gate takes.
