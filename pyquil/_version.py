@@ -13,11 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import sys
+from importlib.metadata import version
 
-if sys.version_info < (3, 8):
-    from importlib_metadata import version
-else:
-    from importlib.metadata import version
-
-pyquil_version = version(__package__)  # type: ignore
+pyquil_version = version(__package__)

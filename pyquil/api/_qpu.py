@@ -52,7 +52,6 @@ def _extract_memory_regions(
     ro_sources: Dict[MemoryReference, str],
     buffers: Dict[str, np.ndarray],
 ) -> Dict[str, np.ndarray]:
-
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
     num_shots = first.shape[0]
@@ -83,8 +82,8 @@ def _extract_memory_regions(
         if buf.ndim == 1:
             buf = buf.reshape((num_shots, 1))
 
-        if np.iscomplexobj(buf):  # type: ignore
-            buf = np.column_stack((buf.real, buf.imag))  # type: ignore
+        if np.iscomplexobj(buf):
+            buf = np.column_stack((buf.real, buf.imag))
         _, width = buf.shape
 
         end = mref.offset + width

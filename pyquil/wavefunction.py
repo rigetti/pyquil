@@ -94,7 +94,7 @@ class Wavefunction(object):
 
     def probabilities(self) -> np.ndarray:
         """Returns an array of probabilities in lexicographical order"""
-        return np.abs(self.amplitudes) ** 2
+        return np.abs(self.amplitudes) ** 2  # type: ignore
 
     def get_outcome_probs(self) -> Dict[str, float]:
         """
