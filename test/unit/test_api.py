@@ -82,4 +82,3 @@ def test_local_conjugate_request(benchmarker):
 def test_apply_clifford_to_pauli(benchmarker):
     response = benchmarker.apply_clifford_to_pauli(Program("H 0"), PauliTerm("I", 0, 0.34))
     assert response == PauliTerm("I", 0, 0.34)
-

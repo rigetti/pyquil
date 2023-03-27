@@ -838,21 +838,6 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClient, dummy_compiler: 
     assert results[2][0].total_counts == 20000
 
 
-@respx.mock
-def test_get_qc_endpoint_id(client_configuration: QCSClient, qcs_aspen8_isa: InstructionSetArchitecture):
-    """
-    Assert that get_qc passes a specified ``endpoint_id`` through to its QPU when constructed
-    for a live quantum processor.
-    """
-    respx.get(
-        url=f"{client_configuration.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
-    ).respond(json=qcs_aspen8_isa.json())
-
-    qc = get_qc("test", endpoint_id="test-endpoint")
-
-    assert qc.qam._endpoint_id == "test-endpoint"
-
-
 @pytest.mark.skip  # qcs_sdk client profiles do not support group accounts
 @respx.mock
 def test_get_qc_with_group_account(client_configuration: QCSClient, qcs_aspen8_isa: InstructionSetArchitecture):

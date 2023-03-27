@@ -68,7 +68,7 @@ test:
 .PHONY: test-fast
 test-fast:
 	poetry install --extras latex
-	pytest -n auto -v --cov=pyquil test/unit
+	pytest -v --cov=pyquil test/unit
 
 .PHONY: e2e
 e2e:
