@@ -1,6 +1,5 @@
 from typing import List, Optional
 
-import httpx
 import networkx as nx
 
 from qcs_sdk import QCSClient
