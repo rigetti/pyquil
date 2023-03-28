@@ -381,6 +381,8 @@ dirname = os.path.dirname(__file__)
 def builder_inited_handler(app):
     subprocess.call(
         [
+            "python",
+            "-m",
             "pandoc",
             "--from=markdown",
             "--to=rst",

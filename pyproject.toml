@@ -24,6 +24,7 @@ numpy = "^1.21"
 scipy = "^1.7.3"
 lark = "^0.11.1"
 rpcq = "^3.10.0"
+pydantic = "^1.10.7"
 networkx = "^2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
 qcs-sdk-python = "0.5.0rc.17"
@@ -39,7 +40,7 @@ Sphinx = { version = "^4.0.2", optional = true }
 sphinx-rtd-theme = { version = "^0.5.2", optional = true }
 nbsphinx = { version = "^0.8.6", optional = true }
 recommonmark = { version = "^0.7.1", optional = true }
-pydantic = "^1.10.7"
+pandoc = { version = "^2.3", optional = true }
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
@@ -58,7 +59,7 @@ mock = { version = "^4.0", python = "<3.8" }
 
 [tool.poetry.extras]
 latex = ["ipython"]
-docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark"]
+docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc"]
 
 [tool.black]
 line-length = 120
