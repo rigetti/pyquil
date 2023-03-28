@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_sdk import QCSClient
 
 from pyquil import get_qc
 from pyquil.api import QuantumComputer
@@ -10,7 +10,7 @@ from .. import override_qcs_config
 
 
 @pytest.fixture()
-def qc(client_configuration: QCSClientConfiguration) -> QuantumComputer:
+def qc(client_configuration: QCSClient) -> QuantumComputer:
     quantum_processor_id = os.environ.get("TEST_QUANTUM_PROCESSOR")
 
     if quantum_processor_id is None:
@@ -23,6 +23,6 @@ def qc(client_configuration: QCSClientConfiguration) -> QuantumComputer:
 
 
 @pytest.fixture()
-def client_configuration() -> QCSClientConfiguration:
+def client_configuration() -> QCSClient:
     override_qcs_config()
-    return QCSClientConfiguration.load()
+    return QCSClient.load()

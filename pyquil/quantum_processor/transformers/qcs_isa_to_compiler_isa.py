@@ -1,4 +1,4 @@
-from qcs_api_client.models import InstructionSetArchitecture, Characteristic, Operation
+from qcs_sdk.qpu.isa import InstructionSetArchitecture, Characteristic, Operation
 from pyquil.external.rpcq import CompilerISA, add_edge, add_qubit, get_qubit, get_edge
 import numpy as np
 from pyquil.external.rpcq import (
