@@ -44,7 +44,7 @@ def decode_buffer(buffer: ExecutionResult) -> np.ndarray:
     elif buffer.dtype == "integer":
         data = buffer.data.to_i32()
         dtype = np.int32
-    return np.array(data, dtype=dtype, shape=buffer.shape)
+    return np.array(data, dtype=dtype)
 
 
 def _extract_memory_regions(
