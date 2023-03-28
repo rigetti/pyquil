@@ -25,7 +25,7 @@ from pyquil.quilbase import (
     QubitDesignator,
 )
 from pyquil.paulis import PauliSum, PauliTerm, PauliTargetDesignator
-from pyquil.quilatom import BinaryExp, Frame, Qubit
+from pyquil.quilatom import BinaryExp, Frame, Qubit, Mul
 from pyquil.api._compiler import QPUCompiler
 
 
@@ -204,7 +204,7 @@ class TestDefPermutationGate:
             [FormalArgument("p"), FormalArgument("q")],
             PauliSum(
                 [
-                    PauliTerm("Z", FormalArgument("p"), 1.0),
+                    PauliTerm("Z", FormalArgument("p"), Mul(1.0, Parameter("theta"))),
                     PauliTerm("Y", FormalArgument("p"), 2.0),
                     PauliTerm("X", FormalArgument("q"), 3.0),
                     PauliTerm("I", None, 3.0),
@@ -260,7 +260,7 @@ class TestDefGateByPaulis:
 
     def test_body(self, def_gate_pauli: DefGateByPaulis, body: PauliSum):
         assert def_gate_pauli.body == body
-        new_body = PauliSum([PauliTerm("X", 123, 13.37)])
+        new_body = PauliSum([PauliTerm("X", FormalArgument("a"), 5.0)])
         def_gate_pauli.body = new_body
         assert def_gate_pauli.body == new_body
 

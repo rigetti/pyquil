@@ -71,10 +71,8 @@ from pyquil.quilatom import (
     _complex_str,
 )
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # avoids circular import
     from pyquil.paulis import PauliSum
-
-from dataclasses import dataclass
 
 import quil.instructions as quil_rs
 import quil.expression as quil_rs_expr
@@ -541,34 +539,42 @@ class DefGateByPaulis(DefGate):
     Records a gate definition as the exponentiation of a PauliSum.
     """
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         gate_name: str,
         parameters: List[Parameter],
         arguments: List[QubitDesignator],
         body: "PauliSum",
     ):
-        if not isinstance(gate_name, str):
-            raise TypeError("Gate name must be a string")
+        specification = DefGateByPaulis._convert_to_pauli_specification(body, arguments)
+        rs_parameters = [param.name for param in parameters]
+        gate_definition = quil_rs.GateDefinition(gate_name, rs_parameters, specification)
+        return cls._from_rs_gate_definition(gate_definition)
 
-        if gate_name in RESERVED_WORDS:
-            raise ValueError(f"Cannot use {gate_name} for a gate name since it's a reserved word")
+    @staticmethod
+    def _convert_to_pauli_specification(body: "PauliSum", arguments: List[QubitDesignator]):
+        return quil_rs.GateSpecification.from_pauli_sum(body._to_rs_pauli_sum(arguments))
 
-        self.name = gate_name
-        self.parameters = parameters
-        self.arguments = arguments
-        self.body = body
+    @property
+    def arguments(self) -> List[FormalArgument]:
+        return [FormalArgument(arg) for arg in super().specification.to_pauli_sum().arguments]
 
-    def out(self) -> str:
-        out = f"DEFGATE {self.name}"
-        if self.parameters is not None:
-            out += f"({', '.join(map(str, self.parameters))}) "
-        out += f"{' '.join(map(str, self.arguments))} AS PAULI-SUM:\n"
-        for term in self.body:
-            args = term._ops.keys()
-            word = term._ops.values()
-            out += f"    {''.join(word)}({term.coefficient}) " + " ".join(map(str, args)) + "\n"
-        return out
+    @arguments.setter
+    def arguments(self, arguments: List[QubitDesignator]):
+        pauli_sum = super().specification.to_pauli_sum()
+        pauli_sum.arguments = [str(arg) for arg in arguments]
+        quil_rs.GateDefinition.specification.__set__(self, quil_rs.GateSpecification.from_pauli_sum(pauli_sum))
+
+    @property
+    def body(self) -> "PauliSum":
+        from pyquil.paulis import PauliSum
+
+        return PauliSum._from_rs_pauli_sum(super().specification.to_pauli_sum())
+
+    @body.setter
+    def body(self, body: "PauliSum"):
+        specification = quil_rs.GateSpecification.from_pauli_sum(body._to_rs_pauli_sum())
+        quil_rs.GateDefinition.specification.__set__(self, specification)
 
     def num_args(self) -> int:
         return len(self.arguments)

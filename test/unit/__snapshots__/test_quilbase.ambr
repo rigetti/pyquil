@@ -186,48 +186,48 @@
 # name: TestDefGateByPaulis.test_out[DefaultWithParams]
   '''
   DEFGATE PauliGate(%theta) p AS PAULI-SUM:
-      (0j) 
+  	(0)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_out[Default]
   '''
-  DEFGATE PauliGate() p AS PAULI-SUM:
-      (0j) 
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	(0)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_out[WithSumAndParams]
   '''
   DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
-      Z((1+0j)) p
-      Y((2+0j)) p
-      X((3+0j)) q
-      ((3+0j)) 
+  	Z((1*%theta)) p
+  	Y(2) p
+  	X(3) q
+  	(3)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_str[DefaultWithParams]
   '''
   DEFGATE PauliGate(%theta) p AS PAULI-SUM:
-      (0j) 
+  	(0)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_str[Default]
   '''
-  DEFGATE PauliGate() p AS PAULI-SUM:
-      (0j) 
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	(0)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_str[WithSumAndParams]
   '''
   DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
-      Z((1+0j)) p
-      Y((2+0j)) p
-      X((3+0j)) q
-      ((3+0j)) 
+  	Z((1*%theta)) p
+  	Y(2) p
+  	X(3) q
+  	(3)
   
   '''
 # ---

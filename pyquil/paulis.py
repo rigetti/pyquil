@@ -38,12 +38,14 @@ from typing import (
 )
 
 from pyquil.quilatom import (
+    Qubit,
     QubitPlaceholder,
     FormalArgument,
     Expression,
     ExpressionDesignator,
     MemoryReference,
     _convert_to_py_expression,
+    _convert_to_rs_expression,
 )
 
 import quil.instructions as quil_rs
@@ -54,7 +56,7 @@ from numbers import Number, Complex
 from collections import OrderedDict
 import warnings
 
-PauliTargetDesignator = Union[int, FormalArgument, QubitPlaceholder]
+PauliTargetDesignator = Union[int, FormalArgument, Qubit, QubitPlaceholder]
 PauliDesignator = Union["PauliTerm", "PauliSum"]
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
@@ -169,6 +171,10 @@ class PauliTerm(object):
 
         return cls.from_list(term_list, coefficient)
 
+    def _to_rs_pauli_term(self) -> quil_rs.PauliTerm:
+        arguments = [(quil_rs.PauliGate.parse(gate), str(arg)) for arg, gate in self._ops.items()]
+        return quil_rs.PauliTerm(arguments, _convert_to_rs_expression(self.coefficient))
+
     def id(self, sort_ops: bool = True) -> str:
         """
         Returns an identifier string for the PauliTerm (ignoring the coefficient).
@@ -216,9 +222,9 @@ class PauliTerm(object):
         elif isinstance(other, PauliSum):
             return other == self
         else:
-            return self.operations_as_set() == other.operations_as_set() and np.allclose(
-                self.coefficient, other.coefficient  # type: ignore
-            )
+            if self.operations_as_set() != other.operations_as_set():
+                return False
+            return self.coefficient == other.coefficient
 
     def __hash__(self) -> int:
         assert isinstance(self.coefficient, Complex)
@@ -585,6 +591,18 @@ class PauliSum(object):
     def _from_rs_pauli_sum(cls, pauli_sum: quil_rs.PauliSum) -> "PauliSum":
         return cls([PauliTerm._from_rs_pauli_term(term) for term in pauli_sum.terms])
 
+    def _to_rs_pauli_sum(self, arguments: Optional[List[PauliTargetDesignator]] = None) -> quil_rs.PauliSum:
+        rs_arguments: List[str]
+        if arguments is None:
+            argument_set: Dict[str, None] = {}
+            for term_arguments in [term.get_qubits() for term in self.terms]:
+                argument_set.update({str(arg): None for arg in term_arguments})
+            rs_arguments = list(argument_set.keys())
+        else:
+            rs_arguments = [str(arg) for arg in arguments]
+        terms = [term._to_rs_pauli_term() for term in self.terms]
+        return quil_rs.PauliSum(rs_arguments, terms)
+
     def __eq__(self, other: object) -> bool:
         """Equality testing to see if two PauliSum's are equivalent.
 
@@ -598,7 +616,7 @@ class PauliSum(object):
         elif len(self.terms) != len(other.terms):
             return False
 
-        return set(self.terms) == set(other.terms)
+        return self.terms == other.terms
 
     def __hash__(self) -> int:
         return hash(frozenset(self.terms))

@@ -161,7 +161,7 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, quil_rs.Qubit, int]
+QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
 
 def _convert_to_rs_qubit(qubit: QubitDesignator) -> quil_rs.Qubit:
@@ -182,7 +182,7 @@ def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[quil_rs.Qub
     return [_convert_to_rs_qubit(qubit) for qubit in qubits]
 
 
-def _convert_to_py_qubit(qubit: QubitDesignator) -> QubitDesignator:
+def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit]) -> QubitDesignator:
     if isinstance(qubit, quil_rs.Qubit):
         if qubit.is_fixed():
             return Qubit(qubit.to_fixed())
@@ -193,7 +193,7 @@ def _convert_to_py_qubit(qubit: QubitDesignator) -> QubitDesignator:
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def _convert_to_py_qubits(qubits: Iterable[QubitDesignator]) -> List[QubitDesignator]:
+def _convert_to_py_qubits(qubits: Iterable[Union[QubitDesignator, quil_rs.Qubit]]) -> List[QubitDesignator]:
     return [_convert_to_py_qubit(qubit) for qubit in qubits]
 
 
@@ -310,13 +310,17 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", Number]
+ParameterDesignator = Union["Expression", "MemoryReference", Number, complex]
 
 
 def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs_expr.Expression:
     if isinstance(parameter, quil_rs_expr.Expression):
         return parameter
-    elif isinstance(parameter, (Expression, MemoryReference, Number)):
+    elif isinstance(parameter, complex):
+        return quil_rs_expr.Expression.from_number(parameter)
+    elif isinstance(parameter, (int, float)):
+        return quil_rs_expr.Expression.from_number(complex(parameter))
+    elif isinstance(parameter, (Expression, MemoryReference)):
         return quil_rs_expr.Expression.parse(str(parameter))
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
