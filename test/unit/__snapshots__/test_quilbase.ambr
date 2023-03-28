@@ -244,13 +244,15 @@
 # name: TestDefPermutationGate.test_out[PermGate-permutation0]
   '''
   DEFGATE PermGate AS PERMUTATION:
-      4, 3, 2, 1
+  	4, 3, 2, 1
+  
   '''
 # ---
 # name: TestDefPermutationGate.test_str[PermGate-permutation0]
   '''
   DEFGATE PermGate AS PERMUTATION:
-      4, 3, 2, 1
+  	4, 3, 2, 1
+  
   '''
 # ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]

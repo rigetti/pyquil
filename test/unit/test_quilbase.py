@@ -185,7 +185,7 @@ class TestDefPermutationGate:
         self, def_permutation_gate: DefPermutationGate, permutation: Union[List[List[Any]], np.ndarray, np.matrix]
     ):
         assert np.array_equal(def_permutation_gate.permutation, permutation)
-        new_permutation = np.asarray([0, 1, 2, 3])
+        new_permutation = [1, 2, 3, 4]
         def_permutation_gate.permutation = new_permutation
         assert np.array_equal(def_permutation_gate.permutation, new_permutation)
 

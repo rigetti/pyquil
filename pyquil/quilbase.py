@@ -459,6 +459,10 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         rs_parameters = [param.name for param in parameters or []]
         return super().__new__(cls, name, rs_parameters, specification)
 
+    @classmethod
+    def _from_rs_gate_definition(cls, gate_definition: quil_rs.GateDefinition) -> "DefGate":
+        return super().__new__(cls, gate_definition.name, gate_definition.parameters, gate_definition.specification)
+
     @staticmethod
     def _convert_to_matrix_specification(
         matrix: Union[List[List[Expression]], np.ndarray, np.matrix]
@@ -507,36 +511,23 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
 
 
 class DefPermutationGate(DefGate):
-    def __init__(self, name: str, permutation: Union[List[Union[int, np.int_]], np.ndarray]):
-        if not isinstance(name, str):
-            raise TypeError("Gate name must be a string")
+    def __new__(cls, name: str, permutation: Union[List[int], np.ndarray]):
+        specification = DefPermutationGate._convert_to_permutation_specification(permutation)
+        gate_definition = quil_rs.GateDefinition(name, [], specification)
+        return cls._from_rs_gate_definition(gate_definition)
 
-        if name in RESERVED_WORDS:
-            raise ValueError(f"Cannot use {name} for a gate name since it's a reserved word")
+    @staticmethod
+    def _convert_to_permutation_specification(permutation: Union[List[int], np.ndarray]) -> quil_rs.GateSpecification:
+        return quil_rs.GateSpecification.from_permutation([int(x) for x in permutation])
 
-        if not isinstance(permutation, (list, np.ndarray)):
-            raise ValueError(f"Permutation must be a list or NumPy array, got value of type {type(permutation)}")
+    @property
+    def permutation(self) -> List[int]:
+        return super().specification.to_permutation()
 
-        permutation = np.asarray(permutation)
-
-        ndim = permutation.ndim
-        if 1 != ndim:
-            raise ValueError(f"Permutation must have dimension 1, got {permutation.ndim}")
-
-        elts = permutation.shape[0]
-        if 0 != elts & (elts - 1):
-            raise ValueError(f"Dimension of permutation must be a power of 2, got {elts}")
-
-        self.name = name
-        self.permutation = permutation
-        self.parameters = None
-
-    def out(self) -> str:
-        body = ", ".join([str(p) for p in self.permutation])
-        return f"DEFGATE {self.name} AS PERMUTATION:\n    {body}"
-
-    def __str__(self) -> str:
-        return self.out()
+    @permutation.setter
+    def permutation(self, permutation: List[int]):
+        specification = DefPermutationGate._convert_to_permutation_specification(permutation)
+        quil_rs.GateDefinition.specification.__set__(self, specification)
 
     def num_args(self) -> int:
         """
