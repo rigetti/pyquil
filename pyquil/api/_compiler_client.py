@@ -186,7 +186,7 @@ class CompilerClient:
         """
         Compile Quil program to native Quil.
         """
-        target_device_json = json.dumps(request.target_quantum_processor.asdict())
+        target_device_json = json.dumps(request.target_quantum_processor.asdict())  # type: ignore
         target_device = TargetDevice.from_json(target_device_json)
 
         native_program = compile_program(

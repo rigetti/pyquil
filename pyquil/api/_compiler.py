@@ -100,10 +100,12 @@ class QPUCompiler(AbstractCompiler):
             quantum_processor_id=self.quantum_processor_id,
         )
 
+        ro_sources = translated_program.ro_sources or {}
+
         return EncryptedProgram(
             program=translated_program.program,
             memory_descriptors=_collect_memory_descriptors(nq_program),
-            ro_sources={parse_mref(mref): source for mref, source in translated_program.ro_sources.items() or []},
+            ro_sources={parse_mref(mref): source for mref, source in ro_sources.items() or []},
             recalculation_table=rewrite_response.recalculation_table,
             _memory=nq_program._memory.copy(),
         )

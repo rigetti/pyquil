@@ -120,7 +120,7 @@ class AbstractCompiler(ABC):
 
         # convert the pyquil ``TargetDevice`` to the qcs_sdk ``TargetDevice``
         compiler_isa = self.quantum_processor.to_compiler_isa()
-        target_device_json = json.dumps(compiler_isa_to_target_quantum_processor(compiler_isa).asdict())
+        target_device_json = json.dumps(compiler_isa_to_target_quantum_processor(compiler_isa).asdict())  # type: ignore
         target_device = TargetDevice.from_json(target_device_json)
 
         native_quil = compile_program(

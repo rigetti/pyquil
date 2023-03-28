@@ -15,9 +15,10 @@
 ##############################################################################
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import numpy as np
+from numpy._typing import NDArray
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram
@@ -31,7 +32,7 @@ from qcs_sdk.qpu.api import submit, retrieve_results, ExecutionResult
 from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
 
 
-def decode_buffer(buffer: ExecutionResult) -> np.ndarray:
+def decode_buffer(buffer: ExecutionResult) -> NDArray[Union[np.complex64, np.int32]]:
     """
     Translate a DataBuffer into a numpy array.
 
@@ -39,12 +40,10 @@ def decode_buffer(buffer: ExecutionResult) -> np.ndarray:
     :return: NumPy array of decoded data
     """
     if buffer.dtype == "complex":
-        data = buffer.data.to_complex32()
-        dtype = np.complex64
+        return np.array(buffer.data.to_complex32(), dtype=np.complex64)
     elif buffer.dtype == "integer":
-        data = buffer.data.to_i32()
-        dtype = np.int32
-    return np.array(data, dtype=dtype)
+        return np.array(buffer.data.to_i32(), dtype=np.int32)
+    return np.array([], np.int32)
 
 
 def _extract_memory_regions(
