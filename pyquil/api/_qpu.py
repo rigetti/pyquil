@@ -18,7 +18,7 @@ from collections import defaultdict
 from typing import Dict, Optional, Union
 
 import numpy as np
-from numpy._typing import NDArray
+from numpy.typing import NDArray
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram
