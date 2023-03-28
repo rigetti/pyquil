@@ -32,7 +32,7 @@ from qcs_sdk.qpu.api import submit, retrieve_results, ExecutionResult
 from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
 
 
-def decode_buffer(buffer: ExecutionResult) -> NDArray[Union[np.complex64, np.int32]]:
+def decode_buffer(buffer: ExecutionResult) -> Union[NDArray[np.complex64], NDArray[np.int32]]:
     """
     Translate a DataBuffer into a numpy array.
 
