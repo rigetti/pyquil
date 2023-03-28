@@ -136,41 +136,41 @@
 # ---
 # name: TestDefGate.test_out[No-Params]
   '''
-  DEFGATE NoParamGate:
-      1.0, 0, 0, 0
-      0, 1.0, 0, 0
-      0, 0, 1.0, 0
-      0, 0, 0, 1.0
+  DEFGATE NoParamGate AS MATRIX:
+  	1, 0, 0, 0
+  	0, 1, 0, 0
+  	0, 0, 1, 0
+  	0, 0, 0, 1
   
   '''
 # ---
 # name: TestDefGate.test_out[Params]
   '''
-  DEFGATE ParameterizedGate(%X):
-      %X, 0, 0, 0
-      0, %X, 0, 0
-      0, 0, %X, 0
-      0, 0, 0, %X
+  DEFGATE ParameterizedGate(%X) AS MATRIX:
+  	%X, 0, 0, 0
+  	0, %X, 0, 0
+  	0, 0, %X, 0
+  	0, 0, 0, %X
   
   '''
 # ---
 # name: TestDefGate.test_str[No-Params]
   '''
-  DEFGATE NoParamGate:
-      1.0, 0, 0, 0
-      0, 1.0, 0, 0
-      0, 0, 1.0, 0
-      0, 0, 0, 1.0
+  DEFGATE NoParamGate AS MATRIX:
+  	1, 0, 0, 0
+  	0, 1, 0, 0
+  	0, 0, 1, 0
+  	0, 0, 0, 1
   
   '''
 # ---
 # name: TestDefGate.test_str[Params]
   '''
-  DEFGATE ParameterizedGate(%X):
-      %X, 0, 0, 0
-      0, %X, 0, 0
-      0, 0, %X, 0
-      0, 0, 0, %X
+  DEFGATE ParameterizedGate(%X) AS MATRIX:
+  	%X, 0, 0, 0
+  	0, %X, 0, 0
+  	0, 0, %X, 0
+  	0, 0, 0, %X
   
   '''
 # ---

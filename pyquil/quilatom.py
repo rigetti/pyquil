@@ -32,6 +32,7 @@ from typing import (
     Tuple,
     Union,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -309,7 +310,7 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", quil_rs_expr.Expression, quil_rs.MemoryReference, Number]
+ParameterDesignator = Union["Expression", "MemoryReference", Number]
 
 
 def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs_expr.Expression:
@@ -320,7 +321,7 @@ def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs_expr.Ex
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
 
-def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> List[ParameterDesignator]:
+def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> List[quil_rs_expr.Expression]:
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
@@ -392,7 +393,31 @@ def format_parameter(element: ParameterDesignator) -> str:
 
 
 ExpressionValueDesignator = Union[int, float, complex]
-ExpressionDesignator = Union["Expression", quil_rs_expr.Expression, ExpressionValueDesignator]
+ExpressionDesignator = Union["Expression", ExpressionValueDesignator]
+
+
+def _convert_to_py_expression(expression: Union[ExpressionDesignator, quil_rs_expr.Expression]) -> ExpressionDesignator:
+    if isinstance(expression, (Expression, Number)):
+        return expression
+    if isinstance(expression, quil_rs_expr.Expression):
+        if expression.is_pi():
+            return np.pi
+        if expression.is_number():
+            return expression.to_number()
+        if expression.is_variable():
+            return Parameter(expression.to_variable())
+        if expression.is_infix():
+            return BinaryExp._from_rs_infix_expression(expression.to_infix())
+        if expression.is_address():
+            return MemoryReference._from_rs_memory_reference(expression.to_address())
+        if expression.is_prefix():
+            prefix = expression.to_prefix()
+            py_expression = _convert_to_py_expression(prefix.expression)
+            if prefix == quil_rs_expr.PrefixOperator.Plus:
+                return py_expression
+            elif isinstance(py_expression, (int, float, complex, Expression)):
+                return -py_expression
+    raise TypeError(f"{type(expression)} is not a valid ExpressionDesignator")
 
 
 class Expression(object):
@@ -575,8 +600,8 @@ class BinaryExp(Expression):
 
     @classmethod
     def _from_rs_infix_expression(cls, infix_expression: quil_rs_expr.InfixExpression):
-        left = _convert_to_py_parameter(infix_expression.left)
-        right = _convert_to_py_parameter(infix_expression.right)
+        left = _convert_to_py_expression(infix_expression.left)
+        right = _convert_to_py_expression(infix_expression.right)
         if infix_expression.operator == quil_rs_expr.InfixOperator.Plus:
             return Add(left, right)
         if infix_expression.operator == quil_rs_expr.InfixOperator.Minus:

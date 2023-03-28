@@ -43,7 +43,10 @@ from pyquil.quilatom import (
     Expression,
     ExpressionDesignator,
     MemoryReference,
+    _convert_to_py_expression,
 )
+
+import quil.instructions as quil_rs
 
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
@@ -158,6 +161,13 @@ class PauliTerm(object):
             self.coefficient: Union[complex, Expression] = complex(coefficient)
         else:
             self.coefficient = coefficient
+
+    @classmethod
+    def _from_rs_pauli_term(cls, term: quil_rs.PauliTerm) -> "PauliTerm":
+        term_list = [(str(gate), FormalArgument(arg)) for (gate, arg) in term.arguments]
+        coefficient = _convert_to_py_expression(term.expression.into_simplified())
+
+        return cls.from_list(term_list, coefficient)
 
     def id(self, sort_ops: bool = True) -> str:
         """
@@ -383,7 +393,9 @@ class PauliTerm(object):
         return f"{self.coefficient}*{self.id(sort_ops=False)}"
 
     @classmethod
-    def from_list(cls, terms_list: List[Tuple[str, int]], coefficient: float = 1.0) -> "PauliTerm":
+    def from_list(
+        cls, terms_list: List[Tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
+    ) -> "PauliTerm":
         """
         Allocates a Pauli Term from a list of operators and indices. This is more efficient than
         multiplying together individual terms.
@@ -568,6 +580,10 @@ class PauliSum(object):
             self.terms = [0.0 * ID()]
         else:
             self.terms = terms
+
+    @classmethod
+    def _from_rs_pauli_sum(cls, pauli_sum: quil_rs.PauliSum) -> "PauliSum":
+        return cls([PauliTerm._from_rs_pauli_term(term) for term in pauli_sum.terms])
 
     def __eq__(self, other: object) -> bool:
         """Equality testing to see if two PauliSum's are equivalent.
@@ -840,7 +856,6 @@ def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
         isAssigned_bool = False
         for p in range(m_s):  # check if it commutes with each group
             if isAssigned_bool is False:
-
                 if check_commutation(groups[p], pauli_terms.terms[j]):
                     isAssigned_bool = True
                     groups[p].append(pauli_terms.terms[j])
