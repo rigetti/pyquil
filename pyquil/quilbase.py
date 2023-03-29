@@ -567,7 +567,7 @@ class DefGateByPaulis(DefGate):
 
     @property
     def body(self) -> "PauliSum":
-        from pyquil.paulis import PauliSum
+        from pyquil.paulis import PauliSum  # avoids circular import
 
         return PauliSum._from_rs_pauli_sum(super().specification.to_pauli_sum())
 

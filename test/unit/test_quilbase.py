@@ -262,7 +262,7 @@ class TestDefGateByPaulis:
 
     def test_body(self, def_gate_pauli: DefGateByPaulis, body: PauliSum):
         if all([isinstance(term.coefficient, Number) for term in body.terms]):
-            # PauliTerms equality is only defined for terms with Numbered coefficients
+            # PauliTerm equality is only defined for terms with Numbered coefficients
             assert def_gate_pauli.body == body
         new_body = PauliSum([PauliTerm("X", FormalArgument("a"), 5.0)])
         def_gate_pauli.body = new_body
