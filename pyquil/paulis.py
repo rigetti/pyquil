@@ -224,17 +224,20 @@ class PauliTerm(object):
         else:
             if self.operations_as_set() != other.operations_as_set():
                 return False
+            if isinstance(self.coefficient, complex) and isinstance(other.coefficient, complex):
+                return np.isclose(self.coefficient, other.coefficient)
             return self.coefficient == other.coefficient
 
     def __hash__(self) -> int:
-        assert isinstance(self.coefficient, Complex)
-        return hash(
-            (
-                round(self.coefficient.real * HASH_PRECISION),
-                round(self.coefficient.imag * HASH_PRECISION),
-                self.operations_as_set(),
+        if isinstance(self.coefficient, Complex):
+            return hash(
+                (
+                    round(self.coefficient.real * HASH_PRECISION),
+                    round(self.coefficient.imag * HASH_PRECISION),
+                    self.operations_as_set(),
+                )
             )
-        )
+        return hash((self.coefficient, self.operations_as_set()))
 
     def __len__(self) -> int:
         """
