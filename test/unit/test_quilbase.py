@@ -1,4 +1,5 @@
 from math import pi
+from numbers import Number
 from typing import Any, List, Optional, Union, Iterable, Tuple
 
 import numpy as np
@@ -198,6 +199,7 @@ class TestDefPermutationGate:
     [
         ("PauliGate", [], [FormalArgument("p")], PauliSum([])),
         ("PauliGate", [Parameter("theta")], [FormalArgument("p")], PauliSum([])),
+        ("PauliGate", [], [FormalArgument("p")], PauliSum([PauliTerm("Y", FormalArgument("p"), 2.0)])),
         (
             "PauliGate",
             [Parameter("theta")],
@@ -212,7 +214,7 @@ class TestDefPermutationGate:
             ),
         ),
     ],
-    ids=("Default", "DefaultWithParams", "WithSumAndParams"),
+    ids=("Default", "DefaultWithParams", "WithSum", "WithSumAndParams"),
 )
 class TestDefGateByPaulis:
     @pytest.fixture
@@ -259,7 +261,9 @@ class TestDefGateByPaulis:
         assert def_gate_pauli.arguments == [FormalArgument("NewArgument")]
 
     def test_body(self, def_gate_pauli: DefGateByPaulis, body: PauliSum):
-        assert def_gate_pauli.body == body
+        if all([isinstance(term.coefficient, Number) for term in body.terms]):
+            # PauliTerms equality is only defined for terms with Numbered coefficients
+            assert def_gate_pauli.body == body
         new_body = PauliSum([PauliTerm("X", FormalArgument("a"), 5.0)])
         def_gate_pauli.body = new_body
         assert def_gate_pauli.body == new_body

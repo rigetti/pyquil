@@ -183,6 +183,9 @@
 # name: TestDefGateByPaulis.test_get_constructor[WithSumAndParams]
   'PauliGate(%theta) 123'
 # ---
+# name: TestDefGateByPaulis.test_get_constructor[WithSum]
+  'PauliGate 123'
+# ---
 # name: TestDefGateByPaulis.test_out[DefaultWithParams]
   '''
   DEFGATE PauliGate(%theta) p AS PAULI-SUM:
@@ -207,6 +210,13 @@
   
   '''
 # ---
+# name: TestDefGateByPaulis.test_out[WithSum]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	Y(2) p
+  
+  '''
+# ---
 # name: TestDefGateByPaulis.test_str[DefaultWithParams]
   '''
   DEFGATE PauliGate(%theta) p AS PAULI-SUM:
@@ -228,6 +238,13 @@
   	Y(2) p
   	X(3) q
   	(3)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[WithSum]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	Y(2) p
   
   '''
 # ---
