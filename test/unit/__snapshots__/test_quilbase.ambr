@@ -246,7 +246,25 @@
 # name: TestPragma.test_str[With-String]
   'PRAGMA INITIAL_REWIRING "GREEDY"'
 # ---
+# name: TestReset.test_out[FormalArgument]
+  'RESET a'
+# ---
+# name: TestReset.test_out[None]
+  'RESET'
+# ---
+# name: TestReset.test_out[Qubit]
+  'RESET 0'
+# ---
 # name: TestReset.test_out[qubit0]
+  'RESET 0'
+# ---
+# name: TestReset.test_str[FormalArgument]
+  'RESET a'
+# ---
+# name: TestReset.test_str[None]
+  'RESET'
+# ---
+# name: TestReset.test_str[Qubit]
   'RESET 0'
 # ---
 # name: TestReset.test_str[qubit0]

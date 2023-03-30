@@ -379,7 +379,10 @@ class TestPragma:
     ("qubit"),
     [
         (Qubit(0)),
+        (FormalArgument("a")),
+        (None),
     ],
+    ids=("Qubit", "FormalArgument", "None"),
 )
 class TestReset:
     @pytest.fixture
@@ -396,6 +399,15 @@ class TestReset:
         assert reset_qubit.qubit == qubit
         reset_qubit.qubit = FormalArgument("a")
         assert reset_qubit.qubit == FormalArgument("a")
+
+    def test_get_qubits(self, reset_qubit: ResetQubit, qubit: Qubit):
+        if qubit is None:
+            assert reset_qubit.get_qubits(False) is None
+            assert reset_qubit.get_qubit_indices() is None
+        else:
+            assert reset_qubit.get_qubits(False) == {qubit}
+            if isinstance(qubit, Qubit):
+                assert reset_qubit.get_qubit_indices() == {qubit.index}
 
 
 @pytest.mark.parametrize(

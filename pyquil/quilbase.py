@@ -448,24 +448,58 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
         return str(self)
 
 
-class ResetQubit(AbstractInstruction):
+class Reset(quil_rs.Reset, AbstractInstruction):
+    """
+    The RESET instruction.
+    """
+
+    def __new__(cls, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument]] = None):
+        rs_qubit: Optional[quil_rs.Qubit] = None
+        if qubit is not None:
+            rs_qubit = _convert_to_rs_qubit(qubit)
+        return super().__new__(cls, rs_qubit)
+
+    def out(self) -> str:
+        return str(self)
+
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
+    def get_qubits(self, indices: bool = True) -> Optional[Set[QubitDesignator]]:
+        if super().qubit is None:
+            return None
+        if indices:
+            return self.get_qubit_indices()  # type: ignore
+        return {_convert_to_py_qubit(super().qubit)}  # type: ignore
+
+    def get_qubit_indices(self) -> Optional[Set[int]]:
+        if super().qubit is None:
+            return None
+        return {super().qubit.to_fixed()}  # type: ignore
+
+    @property
+    def qubit(self) -> Optional[QubitDesignator]:
+        if super().qubit:
+            return _convert_to_py_qubit(super().qubit)  # type: ignore
+        return super().qubit
+
+    @qubit.setter
+    def qubit(self, qubit: Optional[QubitDesignator]):
+        rs_qubit: Optional[quil_rs.Qubit] = None
+        if qubit is not None:
+            rs_qubit = _convert_to_rs_qubit(qubit)
+        quil_rs.Reset.qubit.__set__(self, rs_qubit)
+
+
+class ResetQubit(Reset):
     """
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    def __init__(self, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument]]):
-        if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
-            raise TypeError("qubit should be a Qubit")
-        self.qubit = qubit
-
-    def out(self) -> str:
-        return "RESET {}".format(self.qubit.out())
-
-    def __str__(self) -> str:
-        return "RESET {}".format(_format_qubit_str(self.qubit))
-
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return {_extract_qubit_index(self.qubit, indices)}
+    ...
 
 
 class DefGate(AbstractInstruction):
@@ -732,14 +766,6 @@ class Wait(SimpleInstruction):
     """
 
     op = "WAIT"
-
-
-class Reset(SimpleInstruction):
-    """
-    The RESET instruction.
-    """
-
-    op = "RESET"
 
 
 class Nop(SimpleInstruction):
