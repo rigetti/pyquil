@@ -231,3 +231,15 @@
 # name: TestPragma.test_str[With-String]
   '<PRAGMA INITIAL_REWIRING>'
 # ---
+# name: TestReset.test_out[qubit0]
+  'RESET 0'
+# ---
+# name: TestReset.test_str[qubit0]
+  'RESET 0'
+# ---
+# name: TestResetQubit.test_out[qubit0]
+  'RESET 0'
+# ---
+# name: TestResetQubit.test_str[qubit0]
+  'RESET 0'
+# ---

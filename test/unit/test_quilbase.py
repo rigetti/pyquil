@@ -12,6 +12,7 @@ from pyquil.quilbase import (
     DefCalibration,
     DefFrame,
     DefMeasureCalibration,
+    FormalArgument,
     Gate,
     Measurement,
     MemoryReference,
@@ -19,6 +20,7 @@ from pyquil.quilbase import (
     Parameter,
     Pragma,
     QubitDesignator,
+    ResetQubit,
 )
 from pyquil.quilatom import BinaryExp, Frame, Qubit
 from pyquil.api._compiler import QPUCompiler
@@ -368,3 +370,26 @@ class TestPragma:
         assert pragma.freeform_string == freeform_string
         pragma.freeform_string = "new string"
         assert pragma.freeform_string == "new string"
+
+
+@pytest.mark.parametrize(
+    ("qubit"),
+    [
+        (Qubit(0)),
+    ],
+)
+class TestReset:
+    @pytest.fixture
+    def reset_qubit(self, qubit: Qubit):
+        return ResetQubit(qubit)
+
+    def test_out(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):
+        assert reset_qubit.out() == snapshot
+
+    def test_str(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):
+        assert str(reset_qubit) == snapshot
+
+    def test_command(self, reset_qubit: ResetQubit, qubit: Qubit):
+        assert reset_qubit.qubit == qubit
+        reset_qubit.qubit = FormalArgument("a")
+        assert reset_qubit.qubit == FormalArgument("a")
