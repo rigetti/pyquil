@@ -315,9 +315,7 @@ ParameterDesignator = Union["Expression", "MemoryReference", Number, complex]
 def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs_expr.Expression:
     if isinstance(parameter, quil_rs_expr.Expression):
         return parameter
-    elif isinstance(parameter, complex):
-        return quil_rs_expr.Expression.from_number(parameter)
-    elif isinstance(parameter, (int, float)):
+    elif isinstance(parameter, (int, float, complex)):
         return quil_rs_expr.Expression.from_number(complex(parameter))
     elif isinstance(parameter, (Expression, MemoryReference)):
         return quil_rs_expr.Expression.parse(str(parameter))
