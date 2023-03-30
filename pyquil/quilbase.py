@@ -18,7 +18,6 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import abc
 import collections
-import json
 
 from numbers import Complex
 from typing import (

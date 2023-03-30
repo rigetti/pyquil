@@ -1,5 +1,5 @@
 from math import pi
-from typing import List, Optional, Iterable, Tuple
+from typing import List, Optional, Iterable, Tuple, Union
 
 import pytest
 from syrupy.assertion import SnapshotAssertion
@@ -17,6 +17,8 @@ from pyquil.quilbase import (
     MemoryReference,
     ParameterDesignator,
     Parameter,
+    Pragma,
+    QubitDesignator,
 )
 from pyquil.quilatom import BinaryExp, Frame, Qubit
 from pyquil.api._compiler import QPUCompiler
@@ -329,3 +331,40 @@ class TestDeclare:
         else:
             declare.offsets = [(1, "BIT"), (2, "INTEGER")]
             assert declare.offsets == [(1, "BIT"), (2, "INTEGER")]
+
+
+@pytest.mark.parametrize(
+    ("command", "args", "freeform_string"),
+    [
+        ("NO-NOISE", [], ""),
+        ("DOES-A-THING", [Qubit(0), "b"], ""),
+        ("INITIAL_REWIRING", [], "GREEDY"),
+        ("READOUT-POVM", [Qubit(1)], "(0.9 0.19999999999999996 0.09999999999999998 0.8)"),
+    ],
+    ids=("Command-Only", "With-Arg", "With-String", "With-Arg-And-String"),
+)
+class TestPragma:
+    @pytest.fixture
+    def pragma(self, command: str, args: List[Union[QubitDesignator, str]], freeform_string: str):
+        return Pragma(command, args, freeform_string)
+
+    def test_out(self, pragma: Pragma, snapshot: SnapshotAssertion):
+        assert pragma.out() == snapshot
+
+    def test_str(self, pragma: Pragma, snapshot: SnapshotAssertion):
+        assert str(pragma) == snapshot
+
+    def test_command(self, pragma: Pragma, command: str):
+        assert pragma.command == command
+        pragma.command = "NEW_COMMAND"
+        assert pragma.command == "NEW_COMMAND"
+
+    def test_args(self, pragma: Pragma, args: List[Union[QubitDesignator, str]]):
+        assert pragma.args == tuple(args)
+        pragma.args = (Qubit(123),)
+        assert pragma.args == (Qubit(123),)
+
+    def test_freeform_string(self, pragma: Pragma, freeform_string: str):
+        assert pragma.freeform_string == freeform_string
+        pragma.freeform_string = "new string"
+        assert pragma.freeform_string == "new string"

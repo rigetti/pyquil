@@ -207,3 +207,27 @@
 # name: TestMeasurement.test_str[No-MemoryReference]
   'MEASURE 0'
 # ---
+# name: TestPragma.test_out[Command-Only]
+  'PRAGMA NO-NOISE'
+# ---
+# name: TestPragma.test_out[With-Arg-And-String]
+  'PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"'
+# ---
+# name: TestPragma.test_out[With-Arg]
+  'PRAGMA DOES-A-THING 0 b'
+# ---
+# name: TestPragma.test_out[With-String]
+  'PRAGMA INITIAL_REWIRING "GREEDY"'
+# ---
+# name: TestPragma.test_str[Command-Only]
+  '<PRAGMA NO-NOISE>'
+# ---
+# name: TestPragma.test_str[With-Arg-And-String]
+  '<PRAGMA READOUT-POVM>'
+# ---
+# name: TestPragma.test_str[With-Arg]
+  '<PRAGMA DOES-A-THING>'
+# ---
+# name: TestPragma.test_str[With-String]
+  '<PRAGMA INITIAL_REWIRING>'
+# ---
