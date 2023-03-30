@@ -136,13 +136,13 @@
   '''
 # ---
 # name: TestDelayFrames.test_out[frames0-5.0]
-  'DELAY 0 "frame" 5.0'
+  'DELAY "frame" 5'
 # ---
 # name: TestDelayQubits.test_out[FormalArgument]
   'DELAY a 2.5'
 # ---
 # name: TestDelayQubits.test_out[Qubit]
-  'DELAY 0 5.0'
+  'DELAY 0 5'
 # ---
 # name: TestFence.test_out[FormalArgument]
   'FENCE a'

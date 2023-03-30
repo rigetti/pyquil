@@ -1429,33 +1429,62 @@ class RawCapture(AbstractInstruction):
         return _get_frame_qubits(self.frame, indices)
 
 
-class DelayFrames(AbstractInstruction):
-    def __init__(self, frames: List[Frame], duration: float):
-        # all frames should be on the same qubits
-        if len(frames) == 0:
-            raise ValueError("DELAY expected nonempty list of frames.")
-        if len(set(tuple(f.qubits) for f in frames)) != 1:
-            raise ValueError("DELAY with explicit frames requires all frames are on the same qubits.")
-
-        self.frames = frames
-        self.duration = duration
+class Delay(quil_rs.Delay, AbstractInstruction):
+    def __new__(cls, frames: List[Frame], qubits: List[Union[int, Qubit, FormalArgument]], duration: float) -> "Delay":
+        frame_names = [frame.name for frame in frames]
+        rs_qubits = _convert_to_rs_qubits(Delay._join_frame_qubits(frames, qubits))
+        expression = quil_rs_expr.Expression.from_number(complex(duration))
+        return super().__new__(cls, expression, frame_names, rs_qubits)
 
     def out(self) -> str:
-        qubits = self.frames[0].qubits
-        ret = "DELAY " + _format_qubits_str(qubits)
-        for f in self.frames:
-            ret += f' "{f.name}"'
-        ret += f" {self.duration}"
-        return ret
+        return str(self)
+
+    @staticmethod
+    def _join_frame_qubits(
+        frames: List[Frame], qubits: List[Union[int, Qubit, FormalArgument]]
+    ) -> List[Union[int, Qubit, FormalArgument]]:
+        merged_qubits = set(qubits)
+        for frame in frames:
+            merged_qubits.update(frame.qubits)  # type: ignore
+        return list(qubits)
+
+    @property
+    def qubits(self) -> List[QubitDesignator]:
+        return _convert_to_py_qubits(super().qubits)
+
+    @qubits.setter
+    def qubits(self, qubits: List[Union[int, Qubit, FormalArgument]]):
+        quil_rs.Delay.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+
+    @property
+    def frames(self) -> List[Frame]:
+        return [Frame([], name) for name in super().frame_names]
+
+    @frames.setter
+    def frames(self, frames: List[Frame]):
+        new_qubits = Delay._join_frame_qubits(frames, self.qubits)
+        frame_names = [frame.name for frame in frames]
+        quil_rs.Delay.qubits.__set__(self, _convert_to_rs_qubits(new_qubits))
+        quil_rs.Delay.frame_names.__set__(self, frame_names)
+
+    @property
+    def duration(self) -> float:
+        return super().duration.to_real()
+
+    @duration.setter
+    def duration(self, duration: float):
+        expression = quil_rs_expr.Expression.from_number(complex(duration))
+        quil_rs.Delay.duration.__set__(self, expression)
 
 
-class DelayQubits(AbstractInstruction):
-    def __init__(self, qubits: List[Union[Qubit, FormalArgument]], duration: float):
-        self.qubits = qubits
-        self.duration = duration
+class DelayFrames(Delay):
+    def __new__(cls, frames: List[Frame], duration: float):
+        return super().__new__(cls, frames, [], duration)
 
-    def out(self) -> str:
-        return f"DELAY {_format_qubits_str(self.qubits)} {self.duration}"
+
+class DelayQubits(Delay):
+    def __new__(cls, qubits: List[Union[Qubit, FormalArgument]], duration: float):
+        return super().__new__(cls, [], qubits, duration)
 
 
 class FenceAll(SimpleInstruction):
