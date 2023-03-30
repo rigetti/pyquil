@@ -32,6 +32,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    Type,
     Union,
     TYPE_CHECKING,
     cast,
@@ -452,7 +453,7 @@ class ResetQubit(AbstractInstruction):
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    def __init__(self, qubit: Union[Qubit, QubitPlaceholder, FormalArgument]):
+    def __init__(self, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument]]):
         if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
             raise TypeError("qubit should be a Qubit")
         self.qubit = qubit
@@ -1068,7 +1069,7 @@ class Jump(AbstractInstruction):
         return "JUMP %s" % self.target
 
 
-class Pragma(AbstractInstruction):
+class Pragma(quil_rs.Pragma, AbstractInstruction):
     """
     A PRAGMA instruction.
 
@@ -1078,39 +1079,63 @@ class Pragma(AbstractInstruction):
 
     """
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         command: str,
         args: Iterable[Union[QubitDesignator, str]] = (),
         freeform_string: str = "",
-    ):
-        if not isinstance(command, str):
-            raise TypeError(f"Pragma's require an identifier: {command}")
+    ) -> Type["Pragma"]:
+        data = freeform_string or None
+        return super().__new__(cls, command, Pragma._to_pragma_arguments(args), data)
 
-        if not isinstance(args, collections.abc.Iterable):
-            raise TypeError(f"Pragma arguments must be an Iterable: {args}")
-        for a in args:
-            if not (
-                isinstance(a, str) or isinstance(a, int) or isinstance(a, QubitPlaceholder) or isinstance(a, Qubit)
-            ):
-                raise TypeError(f"Pragma arguments must be strings or integers: {a}")
-        if not isinstance(freeform_string, str):
-            raise TypeError(f"The freeform string argument must be a string: {freeform_string}")
+    @staticmethod
+    def _to_pragma_arguments(args: Iterable[Union[QubitDesignator, str]]) -> List[quil_rs.PragmaArgument]:
+        pragma_arguments = []
+        for arg in args:
+            if isinstance(arg, Qubit):
+                pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg.index))
+            elif isinstance(arg, (str, FormalArgument)):
+                pragma_arguments.append(quil_rs.PragmaArgument.from_identifier(str(arg)))
+            else:
+                raise TypeError("type(arg) isn't a valid QubitDesignator")
+        return pragma_arguments
 
-        self.command = command
-        self.args = tuple(args)
-        self.freeform_string = freeform_string
+    @staticmethod
+    def _to_py_arguments(args: List[quil_rs.PragmaArgument]) -> List[QubitDesignator]:
+        arguments = []
+        for arg in args:
+            if arg.is_integer():
+                arguments.append(Qubit(arg.to_integer()))
+            else:
+                arguments.append(FormalArgument(arg.to_identifier()))
+        return arguments
 
     def out(self) -> str:
-        ret = "PRAGMA {}".format(self.command)
-        if self.args:
-            ret += " {}".format(" ".join(str(a) for a in self.args))
-        if self.freeform_string:
-            ret += ' "{}"'.format(self.freeform_string)
-        return ret
+        return self.__str__()
 
-    def __repr__(self) -> str:
-        return "<PRAGMA {}>".format(self.command)
+    @property
+    def command(self) -> str:
+        return super().name
+
+    @command.setter
+    def command(self, command: str):
+        quil_rs.Pragma.name.__set__(self, command)
+
+    @property
+    def args(self) -> Tuple[QubitDesignator]:
+        return tuple(Pragma._to_py_arguments(super().arguments))
+
+    @args.setter
+    def args(self, args: str):
+        quil_rs.Pragma.arguments.__set__(self, Pragma._to_pragma_arguments(args))
+
+    @property
+    def freeform_string(self) -> str:
+        return super().data or ""
+
+    @freeform_string.setter
+    def freeform_string(self, freeform_string: str):
+        quil_rs.Pragma.data.__set__(self, freeform_string)
 
 
 class Declare(quil_rs.Declaration, AbstractInstruction):

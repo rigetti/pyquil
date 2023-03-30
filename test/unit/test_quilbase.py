@@ -342,7 +342,7 @@ class TestDeclare:
     ("command", "args", "freeform_string"),
     [
         ("NO-NOISE", [], ""),
-        ("DOES-A-THING", [Qubit(0), "b"], ""),
+        ("DOES-A-THING", [Qubit(0), FormalArgument("b")], ""),
         ("INITIAL_REWIRING", [], "GREEDY"),
         ("READOUT-POVM", [Qubit(1)], "(0.9 0.19999999999999996 0.09999999999999998 0.8)"),
     ],
