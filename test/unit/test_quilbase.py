@@ -12,6 +12,9 @@ from pyquil.quilbase import (
     DefCalibration,
     DefFrame,
     DefMeasureCalibration,
+    DelayFrames,
+    DelayQubits,
+    Fence,
     FormalArgument,
     Gate,
     Measurement,
@@ -347,7 +350,7 @@ class TestDeclare:
 )
 class TestPragma:
     @pytest.fixture
-    def pragma(self, command: str, args: List[Union[QubitDesignator, str]], freeform_string: str):
+    def pragma(self, command: str, args: List[Union[QubitDesignator, str]], freeform_string: str) -> Pragma:
         return Pragma(command, args, freeform_string)
 
     def test_out(self, pragma: Pragma, snapshot: SnapshotAssertion):
@@ -380,7 +383,7 @@ class TestPragma:
 )
 class TestReset:
     @pytest.fixture
-    def reset_qubit(self, qubit: Qubit):
+    def reset_qubit(self, qubit: Qubit) -> ResetQubit:
         return ResetQubit(qubit)
 
     def test_out(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):
@@ -389,7 +392,81 @@ class TestReset:
     def test_str(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):
         assert str(reset_qubit) == snapshot
 
-    def test_command(self, reset_qubit: ResetQubit, qubit: Qubit):
+    def test_qubit(self, reset_qubit: ResetQubit, qubit: Qubit):
         assert reset_qubit.qubit == qubit
         reset_qubit.qubit = FormalArgument("a")
         assert reset_qubit.qubit == FormalArgument("a")
+
+
+@pytest.mark.parametrize(
+    ("frames", "duration"),
+    [
+        ([Frame([Qubit(0)], "frame")], 5.0),
+    ],
+)
+class TestDelayFrames:
+    @pytest.fixture
+    def delay_frames(self, frames: List[Frame], duration: float) -> DelayFrames:
+        return DelayFrames(frames, duration)
+
+    def test_out(self, delay_frames: DelayFrames, snapshot: SnapshotAssertion):
+        assert delay_frames.out() == snapshot
+
+    def test_frames(self, delay_frames: DelayFrames, frames: List[Frame]):
+        assert delay_frames.frames == frames
+        delay_frames.frames = [Frame([Qubit(123)], "new_frame")]
+        assert delay_frames.frames == [Frame([Qubit(123)], "new_frame")]
+
+    def test_duration(self, delay_frames: DelayFrames, duration: float):
+        assert delay_frames.duration == duration
+        delay_frames.duration = 3.14
+        assert delay_frames.duration == 3.14
+
+
+@pytest.mark.parametrize(
+    ("qubits", "duration"),
+    [
+        ([Qubit(0)], 5.0),
+        ([FormalArgument("a")], 2.5),
+    ],
+    ids=("Qubit", "FormalArgument"),
+)
+class TestDelayQubits:
+    @pytest.fixture
+    def delay_qubits(self, qubits: List[Union[Qubit, FormalArgument]], duration: float) -> DelayQubits:
+        return DelayQubits(qubits, duration)
+
+    def test_out(self, delay_qubits: DelayQubits, snapshot: SnapshotAssertion):
+        assert delay_qubits.out() == snapshot
+
+    def test_qubits(self, delay_qubits: DelayQubits, qubits: List[Qubit]):
+        assert delay_qubits.qubits == qubits
+        delay_qubits.qubits = [Qubit(123)]  # type: ignore
+        assert delay_qubits.qubits == [Qubit(123)]
+
+    def test_duration(self, delay_qubits: DelayQubits, duration: float):
+        assert delay_qubits.duration == duration
+        delay_qubits.duration = 3.14
+        assert delay_qubits.duration == 3.14
+
+
+@pytest.mark.parametrize(
+    ("qubits"),
+    [
+        ([Qubit(0)]),
+        ([FormalArgument("a")]),
+    ],
+    ids=("Qubit", "FormalArgument"),
+)
+class TestFence:
+    @pytest.fixture
+    def fence(self, qubits: List[Union[Qubit, FormalArgument]]) -> Fence:
+        return Fence(qubits)
+
+    def test_out(self, fence: Fence, snapshot: SnapshotAssertion):
+        assert fence.out() == snapshot
+
+    def test_qubits(self, fence: Fence, qubits: List[Union[Qubit, FormalArgument]]):
+        assert fence.qubits == qubits
+        fence.qubits = [Qubit(123)]  # type: ignore
+        assert fence.qubits == [Qubit(123)]

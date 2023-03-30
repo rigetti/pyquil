@@ -135,6 +135,21 @@
   
   '''
 # ---
+# name: TestDelayFrames.test_out[frames0-5.0]
+  'DELAY 0 "frame" 5.0'
+# ---
+# name: TestDelayQubits.test_out[FormalArgument]
+  'DELAY a 2.5'
+# ---
+# name: TestDelayQubits.test_out[Qubit]
+  'DELAY 0 5.0'
+# ---
+# name: TestFence.test_out[FormalArgument]
+  'FENCE a'
+# ---
+# name: TestFence.test_out[Qubit]
+  'FENCE 0'
+# ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---
@@ -235,11 +250,5 @@
   'RESET 0'
 # ---
 # name: TestReset.test_str[qubit0]
-  'RESET 0'
-# ---
-# name: TestResetQubit.test_out[qubit0]
-  'RESET 0'
-# ---
-# name: TestResetQubit.test_str[qubit0]
   'RESET 0'
 # ---
