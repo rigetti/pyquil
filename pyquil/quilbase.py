@@ -157,6 +157,8 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
         return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return Measurement._from_rs_measurement(instr)
+    if isinstance(instr, quil_rs.GateDefinition):
+        return DefGate._from_rs_gate_definition(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     raise ValueError(f"{type(instr)} is not a valid Instruction type")
@@ -451,7 +453,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         cls,
         name: str,
         matrix: Union[List[List[Expression]], np.ndarray, np.matrix],
-        parameters: Optional[List[Parameter]],
+        parameters: Optional[List[Parameter]] = None,
     ) -> "DefGate":
         specification = DefGate._convert_to_matrix_specification(matrix)
         rs_parameters = [param.name for param in parameters or []]
@@ -506,6 +508,9 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     @parameters.setter
     def parameters(self, parameters: Optional[List[Parameter]]):
         quil_rs.GateDefinition.parameters.__set__(self, [param.name for param in parameters or []])
+
+    def __hash__(self) -> int:
+        return hash(self.out())
 
 
 class DefPermutationGate(DefGate):
