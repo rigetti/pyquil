@@ -135,6 +135,24 @@
   
   '''
 # ---
+# name: TestDefWaveform.test_out[No-Params-Entries]
+  '''
+  DEFWAVEFORM Wavey:
+      
+  '''
+# ---
+# name: TestDefWaveform.test_out[With-Param]
+  '''
+  DEFWAVEFORM Wavey(%x):
+      %x
+  '''
+# ---
+# name: TestDefWaveform.test_out[With-Params-Complex]
+  '''
+  DEFWAVEFORM Wavey(%x, %y):
+      1.0 + (2.0)*i, %x, 3.0+4.0i*%y
+  '''
+# ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---

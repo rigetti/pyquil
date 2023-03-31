@@ -1,5 +1,6 @@
 from math import pi
-from typing import List, Optional, Iterable, Tuple
+from numbers import Complex
+from typing import List, Optional, Iterable, Tuple, Union
 
 import pytest
 from syrupy.assertion import SnapshotAssertion
@@ -12,13 +13,14 @@ from pyquil.quilbase import (
     DefCalibration,
     DefFrame,
     DefMeasureCalibration,
+    DefWaveform,
     Gate,
     Measurement,
     MemoryReference,
     ParameterDesignator,
     Parameter,
 )
-from pyquil.quilatom import BinaryExp, Frame, Qubit
+from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression
 from pyquil.api._compiler import QPUCompiler
 
 
@@ -329,3 +331,40 @@ class TestDeclare:
         else:
             declare.offsets = [(1, "BIT"), (2, "INTEGER")]
             assert declare.offsets == [(1, "BIT"), (2, "INTEGER")]
+
+
+@pytest.mark.parametrize(
+    ("name", "parameters", "entries"),
+    [
+        ("Wavey", [], []),
+        ("Wavey", [Parameter("x")], [Parameter("x")]),
+        (
+            "Wavey",
+            [Parameter("x"), Parameter("y")],
+            [complex(1.0, 2.0), Parameter("x"), Mul(complex(3.0, 4.0), Parameter("y"))],
+        ),
+    ],
+    ids=("No-Params-Entries", "With-Param", "With-Params-Complex"),
+)
+class TestDefWaveform:
+    @pytest.fixture
+    def def_waveform(self, name: str, parameters: List[Parameter], entries: List[Union[Complex, Expression]]):
+        return DefWaveform(name, parameters, entries)
+
+    def test_out(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
+        assert def_waveform.out() == snapshot
+
+    def test_name(self, def_waveform: DefWaveform, name: str):
+        assert def_waveform.name == name
+        def_waveform.name = "new_name"
+        assert def_waveform.name == "new_name"
+
+    def test_parameters(self, def_waveform: DefWaveform, parameters: List[Parameter]):
+        assert def_waveform.parameters == parameters
+        def_waveform.parameters = [Parameter("z")]
+        assert def_waveform.parameters == [Parameter("z")]
+
+    def test_entries(self, def_waveform: DefWaveform, entries: List[Union[Complex, Expression]]):
+        assert def_waveform.entries == entries
+        def_waveform.entries = [Parameter("z")]  # type: ignore
+        assert def_waveform.entries == [Parameter("z")]
