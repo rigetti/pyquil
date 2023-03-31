@@ -90,6 +90,27 @@
   	X 0
   '''
 # ---
+# name: TestDefCircuit.test_out[No-Params]
+  '''
+  DEFCIRCUIT NiftyCircuit a:
+  	MEASURE a
+  
+  '''
+# ---
+# name: TestDefCircuit.test_out[With-Params]
+  '''
+  DEFCIRCUIT NiftyCircuit(%theta) a:
+  	DECLARE ro BIT[1]
+  	MEASURE a ro[0]
+  	DEFGATE ParameterizedGate(%theta) AS MATRIX:
+  	%theta, 0, 0, 0
+  	0, %theta, 0, 0
+  	0, 0, %theta, 0
+  	0, 0, 0, %theta
+  
+  
+  '''
+# ---
 # name: TestDefFrame.test_out[Frame-Only]
   'DEFFRAME 0 "frame":'
 # ---

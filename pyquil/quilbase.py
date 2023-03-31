@@ -1397,6 +1397,50 @@ class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
         quil_rs.WaveformDefinition.definition.__set__(self, waveform)
 
 
+class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
+    def __new__(
+        cls,
+        name: str,
+        parameters: List[Parameter],
+        qubits: List[FormalArgument],
+        instructions: List[AbstractInstruction],
+    ) -> "DefCircuit":
+        rs_parameters = [parameter.name for parameter in parameters]
+        rs_qubits = [qubit.name for qubit in qubits]
+        rs_instructions = _convert_to_rs_instructions(instructions)
+        return super().__new__(cls, name, rs_parameters, rs_qubits, rs_instructions)
+
+    def out(self) -> str:
+        return str(self)
+
+    @property
+    def parameters(self) -> List[Parameter]:
+        return [Parameter(parameter) for parameter in super().parameters]
+
+    @parameters.setter
+    def parameters(self, parameters: List[Parameter]):
+        rs_parameters = [parameter.name for parameter in parameters]
+        quil_rs.CircuitDefinition.parameters.__set__(self, rs_parameters)
+
+    @property
+    def qubit_variables(self) -> List[FormalArgument]:
+        return [FormalArgument(qubit) for qubit in super().qubit_variables]
+
+    @qubit_variables.setter
+    def qubit_variables(self, qubits: List[FormalArgument]):
+        rs_qubits = [qubit.name for qubit in qubits]
+        quil_rs.CircuitDefinition.qubit_variables.__set__(self, rs_qubits)
+
+    @property
+    def instructions(self) -> List[AbstractInstruction]:
+        return _convert_to_py_instructions(super().instructions)
+
+    @instructions.setter
+    def instructions(self, instructions: List[AbstractInstruction]):
+        rs_instructions = _convert_to_rs_instructions(instructions)
+        quil_rs.CircuitDefinition.instructions.__set__(self, rs_instructions)
+
+
 class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     def __new__(
         cls,

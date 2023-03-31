@@ -13,6 +13,7 @@ from pyquil.quilbase import (
     AbstractInstruction,
     Declare,
     DefCalibration,
+    DefCircuit,
     DefFrame,
     DefGate,
     DefMeasureCalibration,
@@ -545,3 +546,55 @@ class TestDefWaveform:
         assert def_waveform.entries == entries
         def_waveform.entries = [Parameter("z")]  # type: ignore
         assert def_waveform.entries == [Parameter("z")]
+
+
+@pytest.mark.parametrize(
+    ("name", "parameters", "qubit_variables", "instructions"),
+    [
+        ("NiftyCircuit", [], [FormalArgument("a")], [Measurement(FormalArgument("a"), None)]),
+        (
+            "NiftyCircuit",
+            [Parameter("theta")],
+            [FormalArgument("a")],
+            [
+                Declare("ro", "BIT", 1),
+                Measurement(FormalArgument("a"), MemoryReference("ro")),
+                DefGate("ParameterizedGate", np.diag([Parameter("theta")] * 4), [Parameter("theta")]),
+            ],
+        ),
+    ],
+    ids=("No-Params", "With-Params"),
+)
+class TestDefCircuit:
+    @pytest.fixture
+    def def_circuit(
+        self,
+        name: str,
+        parameters: List[Parameter],
+        qubit_variables: List[FormalArgument],
+        instructions: List[AbstractInstruction],
+    ):
+        return DefCircuit(name, parameters, qubit_variables, instructions)
+
+    def test_out(self, def_circuit: DefCircuit, snapshot: SnapshotAssertion):
+        assert def_circuit.out() == snapshot
+
+    def test_name(self, def_circuit: DefCircuit, name: str):
+        assert def_circuit.name == name
+        def_circuit.name = "new_name"
+        assert def_circuit.name == "new_name"
+
+    def test_parameters(self, def_circuit: DefCircuit, parameters: List[Parameter]):
+        assert def_circuit.parameters == parameters
+        def_circuit.parameters = [Parameter("z")]
+        assert def_circuit.parameters == [Parameter("z")]
+
+    def test_qubit_variables(self, def_circuit: DefCircuit, qubit_variables: List[FormalArgument]):
+        assert def_circuit.qubit_variables == qubit_variables
+        def_circuit.qubit_variables = [FormalArgument("qubit")]
+        assert def_circuit.qubit_variables == [FormalArgument("qubit")]
+
+    def test_instructions(self, def_circuit: DefCircuit, instructions: List[AbstractInstruction]):
+        assert def_circuit.instructions == instructions
+        def_circuit.instructions = [Gate("new_gate", [], [Qubit(0)], [])]
+        assert def_circuit.instructions == [Gate("new_gate", [], [Qubit(0)], [])]
