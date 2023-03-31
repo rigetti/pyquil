@@ -287,7 +287,7 @@
 # name: TestDefWaveform.test_out[With-Params-Complex]
   '''
   DEFWAVEFORM Wavey(%x,%y):
-  	1+2i, %x, (3+(4i*%y))
+  	1+2i, %x, (3*%y)
   '''
 # ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
