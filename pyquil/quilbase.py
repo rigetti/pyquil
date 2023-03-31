@@ -1491,21 +1491,29 @@ class DelayQubits(Delay):
         return super().__new__(cls, [], qubits, duration)
 
 
-class FenceAll(SimpleInstruction):
+class Fence(quil_rs.Fence, AbstractInstruction):
+    def __new__(cls, qubits: List[Union[Qubit, FormalArgument]]):
+        return super().__new__(cls, _convert_to_rs_qubits(qubits))
+
+    def out(self) -> str:
+        return str(self)
+
+    @property
+    def qubits(self) -> List[Union[Qubit, FormalArgument]]:
+        return _convert_to_py_qubits(super().qubits)
+
+    @qubits.setter
+    def qubits(self, qubits: List[Union[Qubit, FormalArgument]]):
+        quil_rs.Fence.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+
+
+class FenceAll(Fence):
     """
     The FENCE instruction.
     """
 
-    op = "FENCE"
-
-
-class Fence(AbstractInstruction):
-    def __init__(self, qubits: List[Union[Qubit, FormalArgument]]):
-        self.qubits = qubits
-
-    def out(self) -> str:
-        ret = "FENCE " + _format_qubits_str(self.qubits)
-        return ret
+    def __new__(cls):
+        return super().__new__(cls, [])
 
 
 class DefWaveform(AbstractInstruction):

@@ -15,6 +15,7 @@ from pyquil.quilbase import (
     DelayFrames,
     DelayQubits,
     Fence,
+    FenceAll,
     FormalArgument,
     Gate,
     Measurement,
@@ -482,3 +483,9 @@ class TestFence:
         assert fence.qubits == qubits
         fence.qubits = [Qubit(123)]  # type: ignore
         assert fence.qubits == [Qubit(123)]
+
+
+def test_fence_all():
+    fa = FenceAll()
+    assert fa.out() == "FENCE"
+    assert fa.qubits == []
