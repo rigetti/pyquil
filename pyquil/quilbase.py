@@ -157,8 +157,12 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
         return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return Measurement._from_rs_measurement(instr)
+    if isinstance(instr, quil_rs.CircuitDefinition):
+        return DefCircuit._from_rs_circuit_definition(instr)
     if isinstance(instr, quil_rs.GateDefinition):
         return DefGate._from_rs_gate_definition(instr)
+    if isinstance(instr, quil_rs.WaveformDefinition):
+        return DefWaveform._from_rs_waveform_definition(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     raise ValueError(f"{type(instr)} is not a valid Instruction type")
@@ -1368,6 +1372,10 @@ class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
         rs_waveform = DefWaveform._build_rs_waveform(parameters, entries)
         return super().__new__(cls, name, rs_waveform)
 
+    @classmethod
+    def _from_rs_waveform_definition(cls, waveform_definition: quil_rs.WaveformDefinition) -> "DefWaveform":
+        return super().__new__(cls, waveform_definition.name, waveform_definition.definition)
+
     @staticmethod
     def _build_rs_waveform(parameters: List[Parameter], entries: List[Union[Complex, Expression]]) -> quil_rs.Waveform:
         rs_parameters = [parameter.name for parameter in parameters]
@@ -1409,6 +1417,16 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
         rs_qubits = [qubit.name for qubit in qubits]
         rs_instructions = _convert_to_rs_instructions(instructions)
         return super().__new__(cls, name, rs_parameters, rs_qubits, rs_instructions)
+
+    @classmethod
+    def _from_rs_circuit_definition(cls, circuit_definition: quil_rs.CircuitDefinition) -> "DefCircuit":
+        return super().__new__(
+            cls,
+            circuit_definition.name,
+            circuit_definition.parameters,
+            circuit_definition.qubit_variables,
+            circuit_definition.instructions,
+        )
 
     def out(self) -> str:
         return str(self)
