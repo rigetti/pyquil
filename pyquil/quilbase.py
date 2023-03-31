@@ -126,16 +126,26 @@ class AbstractInstruction(metaclass=_InstructionMeta):
 def _convert_to_rs_instruction(instr: AbstractInstruction) -> quil_rs.Instruction:
     if isinstance(instr, quil_rs.Instruction):
         return instr
-    if isinstance(instr, AbstractInstruction):
-        return quil_rs.Instruction(instr)
     if isinstance(instr, quil_rs.Calibration):
         return quil_rs.Instruction.from_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Declaration):
+        return quil_rs.Instruction.from_declaration(instr)
+    if isinstance(instr, quil_rs.Delay):
+        return quil_rs.Instruction.from_delay(instr)
+    if isinstance(instr, quil_rs.Fence):
+        return quil_rs.Instruction.from_fence(instr)
     if isinstance(instr, quil_rs.Gate):
         return quil_rs.Instruction.from_gate(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
         return quil_rs.Instruction.from_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return quil_rs.Instruction.from_measurement(instr)
+    if isinstance(instr, quil_rs.Pragma):
+        return quil_rs.Instruction.from_pragma(instr)
+    if isinstance(instr, quil_rs.Reset):
+        return quil_rs.Instruction.from_reset(instr)
+    if isinstance(instr, AbstractInstruction):
+        return quil_rs.Instruction(instr)
     else:
         raise ValueError(f"{type(instr)} is not an Instruction")
 
@@ -148,16 +158,24 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
     if isinstance(instr, quil_rs.Instruction):
         # TODOV4: Will have to handle unit variants since they don't have inner data
         instr = instr.inner()
-    if isinstance(instr, quil_rs.Declaration):
-        return Declare._from_rs_declaration(instr)
     if isinstance(instr, quil_rs.Calibration):
         return DefCalibration._from_rs_calibration(instr)
+    if isinstance(instr, quil_rs.Declaration):
+        return Declare._from_rs_declaration(instr)
+    if isinstance(instr, quil_rs.Delay):
+        return Delay._from_rs_delay(instr)
+    if isinstance(instr, quil_rs.Fence):
+        return Fence._from_rs_fence(instr)
     if isinstance(instr, quil_rs.Gate):
         return Gate._from_rs_gate(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
         return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return Measurement._from_rs_measurement(instr)
+    if isinstance(instr, quil_rs.Pragma):
+        return Pragma._from_rs_pragma(instr)
+    if isinstance(instr, quil_rs.Reset):
+        return Reset._from_rs_reset(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     raise ValueError(f"{type(instr)} is not a valid Instruction type")
@@ -458,6 +476,10 @@ class Reset(quil_rs.Reset, AbstractInstruction):
         if qubit is not None:
             rs_qubit = _convert_to_rs_qubit(qubit)
         return super().__new__(cls, rs_qubit)
+
+    @classmethod
+    def _from_rs_reset(cls, reset: quil_rs.Reset) -> "Reset":
+        return super().__new__(cls, reset.qubit)
 
     def out(self) -> str:
         return str(self)
@@ -1114,6 +1136,10 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
         data = freeform_string or None
         return super().__new__(cls, command, Pragma._to_pragma_arguments(args), data)
 
+    @classmethod
+    def _from_rs_pragma(cls, pragma: quil_rs.Pragma) -> "Pragma":
+        return super().__new__(cls, pragma.name, pragma.arguments, pragma.data)
+
     @staticmethod
     def _to_pragma_arguments(args: Iterable[Union[QubitDesignator, str]]) -> List[quil_rs.PragmaArgument]:
         pragma_arguments = []
@@ -1436,8 +1462,9 @@ class Delay(quil_rs.Delay, AbstractInstruction):
         expression = quil_rs_expr.Expression.from_number(complex(duration))
         return super().__new__(cls, expression, frame_names, rs_qubits)
 
-    def out(self) -> str:
-        return str(self)
+    @classmethod
+    def _from_rs_delay(cls, delay: quil_rs.Delay) -> "Delay":
+        return super().__new__(cls, delay.duration, delay.frame_names, delay.qubits)
 
     @staticmethod
     def _join_frame_qubits(
@@ -1447,6 +1474,9 @@ class Delay(quil_rs.Delay, AbstractInstruction):
         for frame in frames:
             merged_qubits.update(frame.qubits)  # type: ignore
         return list(merged_qubits)
+
+    def out(self) -> str:
+        return str(self)
 
     @property
     def qubits(self) -> List[QubitDesignator]:
@@ -1491,6 +1521,10 @@ class DelayQubits(Delay):
 class Fence(quil_rs.Fence, AbstractInstruction):
     def __new__(cls, qubits: List[Union[Qubit, FormalArgument]]):
         return super().__new__(cls, _convert_to_rs_qubits(qubits))
+
+    @classmethod
+    def _from_rs_fence(cls, fence: quil_rs.Fence) -> "Fence":
+        return super().__new__(cls, fence.qubits)
 
     def out(self) -> str:
         return str(self)
