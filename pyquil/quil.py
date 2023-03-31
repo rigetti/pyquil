@@ -179,7 +179,7 @@ class Program:
         """
         A list of defined gates on the program.
         """
-        return self._program.defined_gates
+        return [DefGate._from_rs_gate_definition(gate) for gate in self._program.defined_gates]
 
     @property
     def instructions(self) -> List[AbstractInstruction]:
@@ -230,6 +230,7 @@ class Program:
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
             elif isinstance(instruction, AbstractInstruction):
+                print(instruction.out())
                 self.inst(RSProgram.parse(instruction.out()))
             else:
                 raise ValueError("Invalid instruction: {}".format(instruction))

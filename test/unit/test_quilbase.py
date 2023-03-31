@@ -1,7 +1,10 @@
 from math import pi
 from numbers import Complex
 from typing import List, Optional, Iterable, Tuple, Union
+from numbers import Number
+from typing import Any, List, Optional, Union, Iterable, Tuple
 
+import numpy as np
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
@@ -12,15 +15,21 @@ from pyquil.quilbase import (
     Declare,
     DefCalibration,
     DefFrame,
+    DefGate,
     DefMeasureCalibration,
     DefWaveform,
+    DefPermutationGate,
+    DefGateByPaulis,
+    FormalArgument,
     Gate,
     Measurement,
     MemoryReference,
     ParameterDesignator,
     Parameter,
+    QubitDesignator,
 )
 from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression
+from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.api._compiler import QPUCompiler
 
 
@@ -92,6 +101,175 @@ class TestGate:
             compiler.quil_to_native_quil(program)
         except Exception as e:
             assert False, f"Failed to compile the program: {e}\n{program}"
+
+
+@pytest.mark.parametrize(
+    ("name", "matrix", "parameters"),
+    [
+        ("NoParamGate", np.eye(4), []),
+        ("ParameterizedGate", np.diag([Parameter("X")] * 4), [Parameter("X")]),
+    ],
+    ids=("No-Params", "Params"),
+)
+class TestDefGate:
+    @pytest.fixture
+    def def_gate(
+        self, name: str, matrix: Union[List[List[Any]], np.ndarray, np.matrix], parameters: Optional[List[Parameter]]
+    ) -> DefGate:
+        return DefGate(name, matrix, parameters)
+
+    def test_out(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+        assert def_gate.out() == snapshot
+
+    def test_str(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+        assert str(def_gate) == snapshot
+
+    def test_get_constructor(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+        constructor = def_gate.get_constructor()
+        if def_gate.parameters:
+            g = constructor(Parameter("theta"))(Qubit(123))
+            assert g.out() == snapshot
+        else:
+            g = constructor(Qubit(123))
+            assert g.out() == snapshot
+
+    def test_num_args(self, def_gate: DefGate, matrix: Union[List[List[Any]], np.ndarray, np.matrix]):
+        assert def_gate.num_args() == np.log2(len(matrix))
+
+    def test_name(self, def_gate: DefGate, name: str):
+        assert def_gate.name == name
+        def_gate.name = "new_name"
+        assert def_gate.name == "new_name"
+
+    def test_matrix(self, def_gate: DefGate, matrix: Union[List[List[Any]], np.ndarray, np.matrix]):
+        assert np.array_equal(def_gate.matrix, matrix)
+        new_matrix = np.asarray([[0, 1, 2, 3], [3, 2, 1, 0]])
+        def_gate.matrix = new_matrix
+        assert np.array_equal(def_gate.matrix, new_matrix)
+
+    def test_parameters(self, def_gate: DefGate, parameters: Optional[List[Parameter]]):
+        assert def_gate.parameters == parameters
+        def_gate.parameters = [Parameter("brand_new_param")]
+        assert def_gate.parameters == [Parameter("brand_new_param")]
+
+
+@pytest.mark.parametrize(
+    ("name", "permutation"),
+    [
+        ("PermGate", np.asarray([4, 3, 2, 1])),
+    ],
+)
+class TestDefPermutationGate:
+    @pytest.fixture
+    def def_permutation_gate(self, name: str, permutation: np.ndarray) -> DefPermutationGate:
+        return DefPermutationGate(name, permutation)
+
+    def test_out(self, def_permutation_gate: DefPermutationGate, snapshot: SnapshotAssertion):
+        assert def_permutation_gate.out() == snapshot
+
+    def test_str(self, def_permutation_gate: DefPermutationGate, snapshot: SnapshotAssertion):
+        assert str(def_permutation_gate) == snapshot
+
+    def test_get_constructor(self, def_permutation_gate: DefPermutationGate, snapshot: SnapshotAssertion):
+        constructor = def_permutation_gate.get_constructor()
+        g = constructor(Qubit(123))
+        assert g.out() == snapshot
+
+    def test_num_args(
+        self, def_permutation_gate: DefPermutationGate, permutation: Union[List[List[Any]], np.ndarray, np.matrix]
+    ):
+        assert def_permutation_gate.num_args() == np.log2(len(permutation))
+
+    def test_name(self, def_permutation_gate: DefPermutationGate, name: str):
+        assert def_permutation_gate.name == name
+        def_permutation_gate.name = "new_name"
+        assert def_permutation_gate.name == "new_name"
+
+    def test_permutation(
+        self, def_permutation_gate: DefPermutationGate, permutation: Union[List[List[Any]], np.ndarray, np.matrix]
+    ):
+        assert np.array_equal(def_permutation_gate.permutation, permutation)
+        new_permutation = [1, 2, 3, 4]
+        def_permutation_gate.permutation = new_permutation
+        assert np.array_equal(def_permutation_gate.permutation, new_permutation)
+
+    def test_parameters(self, def_permutation_gate: DefPermutationGate):
+        assert not def_permutation_gate.parameters
+
+
+@pytest.mark.parametrize(
+    ("gate_name", "parameters", "arguments", "body"),
+    [
+        ("PauliGate", [], [FormalArgument("p")], PauliSum([])),
+        ("PauliGate", [Parameter("theta")], [FormalArgument("p")], PauliSum([])),
+        ("PauliGate", [], [FormalArgument("p")], PauliSum([PauliTerm("Y", FormalArgument("p"), 2.0)])),
+        (
+            "PauliGate",
+            [Parameter("theta")],
+            [FormalArgument("p"), FormalArgument("q")],
+            PauliSum(
+                [
+                    PauliTerm("Z", FormalArgument("p"), Mul(1.0, Parameter("theta"))),
+                    PauliTerm("Y", FormalArgument("p"), 2.0),
+                    PauliTerm("X", FormalArgument("q"), 3.0),
+                    PauliTerm("I", None, 3.0),
+                ]
+            ),
+        ),
+    ],
+    ids=("Default", "DefaultWithParams", "WithSum", "WithSumAndParams"),
+)
+class TestDefGateByPaulis:
+    @pytest.fixture
+    def def_gate_pauli(
+        self, gate_name: str, parameters: List[Parameter], arguments: List[QubitDesignator], body: PauliSum
+    ) -> DefGateByPaulis:
+        return DefGateByPaulis(gate_name, parameters, arguments, body)
+
+    def test_out(self, def_gate_pauli: DefGateByPaulis, snapshot: SnapshotAssertion):
+        assert def_gate_pauli.out() == snapshot
+
+    def test_str(self, def_gate_pauli: DefGateByPaulis, snapshot: SnapshotAssertion):
+        assert str(def_gate_pauli) == snapshot
+
+    def test_get_constructor(self, def_gate_pauli: DefGateByPaulis, snapshot: SnapshotAssertion):
+        constructor = def_gate_pauli.get_constructor()
+        if def_gate_pauli.parameters:
+            g = constructor(Parameter("theta"))(Qubit(123))
+            assert g.out() == snapshot
+        else:
+            g = constructor(Qubit(123))
+            assert g.out() == snapshot
+
+    def test_num_args(
+        self,
+        def_gate_pauli: DefGateByPaulis,
+        arguments: List[QubitDesignator],
+    ):
+        assert def_gate_pauli.num_args() == len(arguments)
+
+    def test_name(self, def_gate_pauli: DefGateByPaulis, gate_name: str):
+        assert def_gate_pauli.name == gate_name
+        def_gate_pauli.name = "new_name"
+        assert def_gate_pauli.name == "new_name"
+
+    def test_parameters(self, def_gate_pauli: DefGate, parameters: Optional[List[Parameter]]):
+        assert def_gate_pauli.parameters == parameters
+        def_gate_pauli.parameters = [Parameter("brand_new_param")]
+        assert def_gate_pauli.parameters == [Parameter("brand_new_param")]
+
+    def test_arguments(self, def_gate_pauli: DefGateByPaulis, arguments: List[QubitDesignator]):
+        assert def_gate_pauli.arguments == arguments
+        def_gate_pauli.arguments = [FormalArgument("NewArgument")]  # type: ignore
+        assert def_gate_pauli.arguments == [FormalArgument("NewArgument")]
+
+    def test_body(self, def_gate_pauli: DefGateByPaulis, body: PauliSum):
+        if all([isinstance(term.coefficient, Number) for term in body.terms]):
+            # PauliTerm equality is only defined for terms with Numbered coefficients
+            assert def_gate_pauli.body == body
+        new_body = PauliSum([PauliTerm("X", FormalArgument("a"), 5.0)])
+        def_gate_pauli.body = new_body
+        assert def_gate_pauli.body == new_body
 
 
 @pytest.mark.parametrize(
@@ -341,7 +519,7 @@ class TestDeclare:
         (
             "Wavey",
             [Parameter("x"), Parameter("y")],
-            [complex(1.0, 2.0), Parameter("x"), Mul(complex(3.0, 4.0), Parameter("y"))],
+            [complex(1.0, 2.0), Parameter("x"), Mul(complex(3.0, 0.0), Parameter("y"))],
         ),
     ],
     ids=("No-Params-Entries", "With-Param", "With-Params-Complex"),
