@@ -103,11 +103,11 @@
   	DECLARE ro BIT[1]
   	MEASURE a ro[0]
   	DEFGATE ParameterizedGate(%theta) AS MATRIX:
-  	%theta, 0, 0, 0
-  	0, %theta, 0, 0
-  	0, 0, %theta, 0
-  	0, 0, 0, %theta
-  
+  		%theta, 0, 0, 0
+  		0, %theta, 0, 0
+  		0, 0, %theta, 0
+  		0, 0, 0, %theta
+  	
   
   '''
 # ---
