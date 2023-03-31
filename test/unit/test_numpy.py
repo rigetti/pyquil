@@ -203,7 +203,7 @@ def test_expectation_vs_ref_qvm(n_qubits):
         np.testing.assert_allclose(ref_exp, np_exp, atol=1e-15)
 
 
-# TODO: Instruction API - DefGate
+# TODO: PyQVM Review
 def test_defgate():
     # regression test for https://github.com/rigetti/pyquil/issues/1059
     theta = np.pi / 2

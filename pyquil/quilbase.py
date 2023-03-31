@@ -33,6 +33,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    Type,
     Union,
     TYPE_CHECKING,
     cast,
@@ -63,17 +64,15 @@ from pyquil.quilatom import (
     _convert_to_rs_expressions,
     _convert_to_rs_qubit,
     _convert_to_rs_qubits,
-    _convert_to_py_parameter,
+    _convert_to_py_expression,
     _convert_to_py_parameters,
     format_parameter,
     unpack_qubit,
     _complex_str,
 )
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # avoids circular import
     from pyquil.paulis import PauliSum
-
-from dataclasses import dataclass
 
 import quil.instructions as quil_rs
 import quil.expression as quil_rs_expr
@@ -158,6 +157,8 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
         return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return Measurement._from_rs_measurement(instr)
+    if isinstance(instr, quil_rs.GateDefinition):
+        return DefGate._from_rs_gate_definition(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     raise ValueError(f"{type(instr)} is not a valid Instruction type")
@@ -187,37 +188,6 @@ RESERVED_WORDS: Container[str] = [
     "AND",
     "IOR",
     "XOR",
-    "MOVE",
-    "EXCHANGE",
-    "CONVERT",
-    "ADD",
-    "SUB",
-    "MUL",
-    "DIV",
-    "EQ",
-    "GT",
-    "GE",
-    "LT",
-    "LE",
-    "LOAD",
-    "STORE",
-    # Quil-T additions:
-    "DEFCAL",
-    "DEFFRAME",
-    "DEFWAVEFORM",
-    "PULSE",
-    "CAPTURE",
-    "RAW-CAPTURE",
-    "DELAY",
-    "FENCE",
-    "SET-FREQUENCY",
-    "SET-PHASE",
-    "SHIFT-PHASE",
-    "SWAP-PHASES",
-    "SET-SCALE",
-    "SAMPLE-RATE",
-    "INITIAL-FREQUENCY",
-    # to be removed:
     "TRUE",
     "FALSE",
     "OR",
@@ -271,11 +241,13 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]],
         modifiers: Iterable[quil_rs.GateModifier] = [],
     ) -> "Gate":
-        return super().__new__(cls, name, _convert_to_rs_expressions(params), _convert_to_rs_qubits(qubits), modifiers)
+        return super().__new__(
+            cls, name, _convert_to_rs_expressions(params), _convert_to_rs_qubits(qubits), list(modifiers)
+        )
 
     @classmethod
     def _from_rs_gate(cls, gate: quil_rs.Gate) -> "Gate":
-        return cls(gate.name, gate.parameters, gate.qubits, gate.modifiers)
+        return super().__new__(cls, gate.name, gate.parameters, gate.qubits, gate.modifiers)
 
     @deprecated(
         deprecated_in="4.0",
@@ -468,7 +440,7 @@ class ResetQubit(AbstractInstruction):
         return {_extract_qubit_index(self.qubit, indices)}
 
 
-class DefGate(AbstractInstruction):
+class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     """
     A DEFGATE directive.
 
@@ -477,86 +449,29 @@ class DefGate(AbstractInstruction):
     :param parameters: list of parameters that are used in this gate
     """
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         name: str,
-        matrix: Union[List[List[Any]], np.ndarray, np.matrix],
+        matrix: Union[List[List[Expression]], np.ndarray, np.matrix],
         parameters: Optional[List[Parameter]] = None,
-    ):
-        if not isinstance(name, str):
-            raise TypeError("Gate name must be a string")
+    ) -> "DefGate":
+        specification = DefGate._convert_to_matrix_specification(matrix)
+        rs_parameters = [param.name for param in parameters or []]
+        return super().__new__(cls, name, rs_parameters, specification)
 
-        if name in RESERVED_WORDS:
-            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+    @classmethod
+    def _from_rs_gate_definition(cls, gate_definition: quil_rs.GateDefinition) -> "DefGate":
+        return super().__new__(cls, gate_definition.name, gate_definition.parameters, gate_definition.specification)
 
-        if isinstance(matrix, list):
-            rows = len(matrix)
-            if not all([len(row) == rows for row in matrix]):
-                raise ValueError("Matrix must be square.")
-        elif isinstance(matrix, (np.ndarray, np.matrix)):
-            rows, cols = matrix.shape
-            if rows != cols:
-                raise ValueError("Matrix must be square.")
-        else:
-            raise TypeError("Matrix argument must be a list or NumPy array/matrix")
-
-        if 0 != rows & (rows - 1):
-            raise ValueError("Dimension of matrix must be a power of 2, got {0}".format(rows))
-        self.name = name
-        self.matrix = np.asarray(matrix)
-
-        if parameters:
-            if not isinstance(parameters, list):
-                raise TypeError("Paramaters must be a list")
-
-            expressions = [elem for row in self.matrix for elem in row if isinstance(elem, Expression)]
-            used_params = {param for exp in expressions for param in _contained_parameters(exp)}
-
-            if set(parameters) != used_params:
-                raise ValueError(
-                    "Parameters list does not match parameters actually used in gate matrix:\n"
-                    "Parameters in argument: {}, Parameters in matrix: {}".format(parameters, used_params)
-                )
-        else:
-            is_unitary = np.allclose(np.eye(rows), self.matrix.dot(self.matrix.T.conj()))
-            if not is_unitary:
-                raise ValueError("Matrix must be unitary.")
-
-        self.parameters = parameters
+    @staticmethod
+    def _convert_to_matrix_specification(
+        matrix: Union[List[List[Expression]], np.ndarray, np.matrix]
+    ) -> quil_rs.GateSpecification:
+        to_rs_matrix = np.vectorize(_convert_to_rs_expression)
+        return quil_rs.GateSpecification.from_matrix(to_rs_matrix(np.asarray(matrix)))
 
     def out(self) -> str:
-        """
-        Prints a readable Quil string representation of this gate.
-
-        :returns: String representation of a gate
-        """
-
-        def format_matrix_element(element: Union[ExpressionDesignator, str]) -> str:
-            """
-            Formats a parameterized matrix element.
-
-            :param element: The parameterized element to format.
-            """
-            if isinstance(element, (int, float, complex, np.int_)):
-                return format_parameter(element)
-            elif isinstance(element, str):
-                return element
-            elif isinstance(element, Expression):
-                return str(element)
-            else:
-                raise TypeError("Invalid matrix element: %r" % element)
-
-        if self.parameters:
-            result = "DEFGATE {}({}):\n".format(self.name, ", ".join(map(str, self.parameters)))
-        else:
-            result = "DEFGATE {}:\n".format(self.name)
-
-        for row in self.matrix:
-            result += "    "
-            fcols = [format_matrix_element(col) for col in row]
-            result += ", ".join(fcols)
-            result += "\n"
-        return result
+        return str(self)
 
     def get_constructor(self) -> Union[Callable[..., Gate], Callable[..., Callable[..., Gate]]]:
         """
@@ -577,35 +492,45 @@ class DefGate(AbstractInstruction):
         rows = len(self.matrix)
         return int(np.log2(rows))
 
+    @property
+    def matrix(self) -> np.ndarray:
+        to_py_matrix = np.vectorize(_convert_to_py_expression)
+        return to_py_matrix(np.asarray(super().specification.to_matrix()))
+
+    @matrix.setter
+    def matrix(self, matrix: np.ndarray):
+        quil_rs.GateDefinition.specification.__set__(self, DefGate._convert_to_matrix_specification(matrix))
+
+    @property
+    def parameters(self) -> List[Parameter]:
+        return [Parameter(name) for name in super().parameters]
+
+    @parameters.setter
+    def parameters(self, parameters: Optional[List[Parameter]]):
+        quil_rs.GateDefinition.parameters.__set__(self, [param.name for param in parameters or []])
+
+    def __hash__(self) -> int:
+        return hash(self.out())
+
 
 class DefPermutationGate(DefGate):
-    def __init__(self, name: str, permutation: Union[List[Union[int, np.int_]], np.ndarray]):
-        if not isinstance(name, str):
-            raise TypeError("Gate name must be a string")
+    def __new__(cls, name: str, permutation: Union[List[int], np.ndarray]):
+        specification = DefPermutationGate._convert_to_permutation_specification(permutation)
+        gate_definition = quil_rs.GateDefinition(name, [], specification)
+        return cls._from_rs_gate_definition(gate_definition)
 
-        if name in RESERVED_WORDS:
-            raise ValueError(f"Cannot use {name} for a gate name since it's a reserved word")
+    @staticmethod
+    def _convert_to_permutation_specification(permutation: Union[List[int], np.ndarray]) -> quil_rs.GateSpecification:
+        return quil_rs.GateSpecification.from_permutation([int(x) for x in permutation])
 
-        if not isinstance(permutation, (list, np.ndarray)):
-            raise ValueError(f"Permutation must be a list or NumPy array, got value of type {type(permutation)}")
+    @property
+    def permutation(self) -> List[int]:
+        return super().specification.to_permutation()
 
-        permutation = np.asarray(permutation)
-
-        ndim = permutation.ndim
-        if 1 != ndim:
-            raise ValueError(f"Permutation must have dimension 1, got {permutation.ndim}")
-
-        elts = permutation.shape[0]
-        if 0 != elts & (elts - 1):
-            raise ValueError(f"Dimension of permutation must be a power of 2, got {elts}")
-
-        self.name = name
-        self.permutation = permutation
-        self.parameters = None
-
-    def out(self) -> str:
-        body = ", ".join([str(p) for p in self.permutation])
-        return f"DEFGATE {self.name} AS PERMUTATION:\n    {body}"
+    @permutation.setter
+    def permutation(self, permutation: List[int]):
+        specification = DefPermutationGate._convert_to_permutation_specification(permutation)
+        quil_rs.GateDefinition.specification.__set__(self, specification)
 
     def num_args(self) -> int:
         """
@@ -619,34 +544,42 @@ class DefGateByPaulis(DefGate):
     Records a gate definition as the exponentiation of a PauliSum.
     """
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         gate_name: str,
         parameters: List[Parameter],
         arguments: List[QubitDesignator],
         body: "PauliSum",
     ):
-        if not isinstance(gate_name, str):
-            raise TypeError("Gate name must be a string")
+        specification = DefGateByPaulis._convert_to_pauli_specification(body, arguments)
+        rs_parameters = [param.name for param in parameters]
+        gate_definition = quil_rs.GateDefinition(gate_name, rs_parameters, specification)
+        return cls._from_rs_gate_definition(gate_definition)
 
-        if gate_name in RESERVED_WORDS:
-            raise ValueError(f"Cannot use {gate_name} for a gate name since it's a reserved word")
+    @staticmethod
+    def _convert_to_pauli_specification(body: "PauliSum", arguments: List[QubitDesignator]):
+        return quil_rs.GateSpecification.from_pauli_sum(body._to_rs_pauli_sum(arguments))
 
-        self.name = gate_name
-        self.parameters = parameters
-        self.arguments = arguments
-        self.body = body
+    @property
+    def arguments(self) -> List[FormalArgument]:
+        return [FormalArgument(arg) for arg in super().specification.to_pauli_sum().arguments]
 
-    def out(self) -> str:
-        out = f"DEFGATE {self.name}"
-        if self.parameters is not None:
-            out += f"({', '.join(map(str, self.parameters))}) "
-        out += f"{' '.join(map(str, self.arguments))} AS PAULI-SUM:\n"
-        for term in self.body:
-            args = term._ops.keys()
-            word = term._ops.values()
-            out += f"    {''.join(word)}({term.coefficient}) " + " ".join(map(str, args)) + "\n"
-        return out
+    @arguments.setter
+    def arguments(self, arguments: List[QubitDesignator]):
+        pauli_sum = super().specification.to_pauli_sum()
+        pauli_sum.arguments = [str(arg) for arg in arguments]
+        quil_rs.GateDefinition.specification.__set__(self, quil_rs.GateSpecification.from_pauli_sum(pauli_sum))
+
+    @property
+    def body(self) -> "PauliSum":
+        from pyquil.paulis import PauliSum  # avoids circular import
+
+        return PauliSum._from_rs_pauli_sum(super().specification.to_pauli_sum())
+
+    @body.setter
+    def body(self, body: "PauliSum"):
+        specification = quil_rs.GateSpecification.from_pauli_sum(body._to_rs_pauli_sum())
+        quil_rs.GateDefinition.specification.__set__(self, specification)
 
     def num_args(self) -> int:
         return len(self.arguments)

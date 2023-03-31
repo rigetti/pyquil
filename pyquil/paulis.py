@@ -38,12 +38,17 @@ from typing import (
 )
 
 from pyquil.quilatom import (
+    Qubit,
     QubitPlaceholder,
     FormalArgument,
     Expression,
     ExpressionDesignator,
     MemoryReference,
+    _convert_to_py_expression,
+    _convert_to_rs_expression,
 )
+
+import quil.instructions as quil_rs
 
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
@@ -51,7 +56,7 @@ from numbers import Number, Complex
 from collections import OrderedDict
 import warnings
 
-PauliTargetDesignator = Union[int, FormalArgument, QubitPlaceholder]
+PauliTargetDesignator = Union[int, FormalArgument, Qubit, QubitPlaceholder]
 PauliDesignator = Union["PauliTerm", "PauliSum"]
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
@@ -158,6 +163,17 @@ class PauliTerm(object):
             self.coefficient: Union[complex, Expression] = complex(coefficient)
         else:
             self.coefficient = coefficient
+
+    @classmethod
+    def _from_rs_pauli_term(cls, term: quil_rs.PauliTerm) -> "PauliTerm":
+        term_list = [(str(gate), FormalArgument(arg)) for (gate, arg) in term.arguments]
+        coefficient = _convert_to_py_expression(term.expression.into_simplified())
+
+        return cls.from_list(term_list, coefficient)
+
+    def _to_rs_pauli_term(self) -> quil_rs.PauliTerm:
+        arguments = [(quil_rs.PauliGate.parse(gate), str(arg)) for arg, gate in self._ops.items()]
+        return quil_rs.PauliTerm(arguments, _convert_to_rs_expression(self.coefficient))
 
     def id(self, sort_ops: bool = True) -> str:
         """
@@ -383,7 +399,9 @@ class PauliTerm(object):
         return f"{self.coefficient}*{self.id(sort_ops=False)}"
 
     @classmethod
-    def from_list(cls, terms_list: List[Tuple[str, int]], coefficient: float = 1.0) -> "PauliTerm":
+    def from_list(
+        cls, terms_list: List[Tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
+    ) -> "PauliTerm":
         """
         Allocates a Pauli Term from a list of operators and indices. This is more efficient than
         multiplying together individual terms.
@@ -568,6 +586,22 @@ class PauliSum(object):
             self.terms = [0.0 * ID()]
         else:
             self.terms = terms
+
+    @classmethod
+    def _from_rs_pauli_sum(cls, pauli_sum: quil_rs.PauliSum) -> "PauliSum":
+        return cls([PauliTerm._from_rs_pauli_term(term) for term in pauli_sum.terms])
+
+    def _to_rs_pauli_sum(self, arguments: Optional[List[PauliTargetDesignator]] = None) -> quil_rs.PauliSum:
+        rs_arguments: List[str]
+        if arguments is None:
+            argument_set: Dict[str, None] = {}
+            for term_arguments in [term.get_qubits() for term in self.terms]:
+                argument_set.update({str(arg): None for arg in term_arguments})
+            rs_arguments = list(argument_set.keys())
+        else:
+            rs_arguments = [str(arg) for arg in arguments]
+        terms = [term._to_rs_pauli_term() for term in self.terms]
+        return quil_rs.PauliSum(rs_arguments, terms)
 
     def __eq__(self, other: object) -> bool:
         """Equality testing to see if two PauliSum's are equivalent.
@@ -840,7 +874,6 @@ def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
         isAssigned_bool = False
         for p in range(m_s):  # check if it commutes with each group
             if isAssigned_bool is False:
-
                 if check_commutation(groups[p], pauli_terms.terms[j]):
                     isAssigned_bool = True
                     groups[p].append(pauli_terms.terms[j])
