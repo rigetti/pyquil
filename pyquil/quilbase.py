@@ -1425,33 +1425,43 @@ class Fence(AbstractInstruction):
         return ret
 
 
-class DefWaveform(AbstractInstruction):
-    def __init__(
-        self,
+class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
+    def __new__(
+        cls,
         name: str,
         parameters: List[Parameter],
         entries: List[Union[Complex, Expression]],
-    ):
-        self.name = name
-        self.parameters = parameters
-        self.entries = entries
-        for e in entries:
-            if not isinstance(e, (Complex, Expression)):
-                raise TypeError(f"Unsupported waveform entry {e}")
+    ) -> "DefWaveform":
+        rs_waveform = DefWaveform._build_rs_waveform(parameters, entries)
+        return super().__new__(cls, name, rs_waveform)
+
+    @staticmethod
+    def _build_rs_waveform(parameters: List[Parameter], entries: List[Union[Complex, Expression]]) -> quil_rs.Waveform:
+        rs_parameters = [parameter.name for parameter in parameters]
+        return quil_rs.Waveform(_convert_to_rs_expressions(entries), rs_parameters)
 
     def out(self) -> str:
-        ret = f"DEFWAVEFORM {self.name}"
-        # TODO: simplify this
-        if len(self.parameters) > 0:
-            first_param, *params = self.parameters
-            ret += f"({first_param}"
-            for param in params:
-                ret += f", {param}"
-            ret += ")"
-        ret += ":\n    "
+        return str(self)
 
-        ret += ", ".join(map(_complex_str, self.entries))
-        return ret
+    @property
+    def parameters(self) -> List[Parameter]:
+        return [Parameter(parameter) for parameter in super().definition.parameters]
+
+    @parameters.setter
+    def parameters(self, parameters: List[Parameter]):
+        waveform = super().definition
+        waveform.parameters = [parameter.name for parameter in parameters]
+        quil_rs.WaveformDefinition.definition.__set__(self, waveform)
+
+    @property
+    def entries(self) -> List[Union[Complex, Expression]]:
+        return _convert_to_py_parameters(super().definition.matrix)
+
+    @entries.setter
+    def entries(self, entries: List[Union[Complex, Expression]]):
+        waveform = super().definition
+        waveform.matrix = _convert_to_rs_expressions(entries)
+        quil_rs.WaveformDefinition.definition.__set__(self, waveform)
 
 
 class DefCalibration(quil_rs.Calibration, AbstractInstruction):
