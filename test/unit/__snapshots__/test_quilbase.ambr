@@ -255,9 +255,6 @@
 # name: TestReset.test_out[Qubit]
   'RESET 0'
 # ---
-# name: TestReset.test_out[qubit0]
-  'RESET 0'
-# ---
 # name: TestReset.test_str[FormalArgument]
   'RESET a'
 # ---
@@ -265,8 +262,5 @@
   'RESET'
 # ---
 # name: TestReset.test_str[Qubit]
-  'RESET 0'
-# ---
-# name: TestReset.test_str[qubit0]
   'RESET 0'
 # ---

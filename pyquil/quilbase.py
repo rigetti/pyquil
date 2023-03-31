@@ -1434,7 +1434,6 @@ class Delay(quil_rs.Delay, AbstractInstruction):
         frame_names = [frame.name for frame in frames]
         rs_qubits = _convert_to_rs_qubits(Delay._join_frame_qubits(frames, qubits))
         expression = quil_rs_expr.Expression.from_number(complex(duration))
-        print("rs_qubits", rs_qubits)
         return super().__new__(cls, expression, frame_names, rs_qubits)
 
     def out(self) -> str:
@@ -1446,7 +1445,6 @@ class Delay(quil_rs.Delay, AbstractInstruction):
     ) -> List[Union[int, Qubit, FormalArgument]]:
         merged_qubits = set(qubits)
         for frame in frames:
-            print("frame qubits", frame)
             merged_qubits.update(frame.qubits)  # type: ignore
         return list(merged_qubits)
 
@@ -1460,7 +1458,6 @@ class Delay(quil_rs.Delay, AbstractInstruction):
 
     @property
     def frames(self) -> List[Frame]:
-        print(super().qubits)
         py_qubits = self.qubits
         return [Frame(py_qubits, name) for name in super().frame_names]
 
