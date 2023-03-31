@@ -1,6 +1,5 @@
 from math import pi
 from numbers import Complex
-from typing import List, Optional, Iterable, Tuple, Union
 from numbers import Number
 from typing import Any, List, Optional, Union, Iterable, Tuple
 
