@@ -19,8 +19,9 @@ from qcs_sdk import QCSClient
 
 from pyquil.api._abstract_compiler import AbstractBenchmarker
 from pyquil.api._compiler_client import (
-    GenerateRandomizedBenchmarkingSequenceRequest,
-    ConjugatePauliByCliffordRequest,
+    RandomizedBenchmarkingRequest,
+    ConjugateByCliffordRequest,
+    PauliTerm as QuilcPauliTerm,
     CompilerClient,
 )
 
@@ -65,9 +66,11 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
 
-        request = ConjugatePauliByCliffordRequest(
-            pauli_indices=list(indices_and_terms[0]),
-            pauli_symbols=list(indices_and_terms[1]),
+        request = ConjugateByCliffordRequest(
+            pauli=QuilcPauliTerm(
+                indices=list(indices_and_terms[0]),
+                symbols=list(indices_and_terms[1]),
+            ),
             clifford=clifford.out(calibrations=False),
         )
         response = self._compiler_client.conjugate_pauli_by_clifford(request)
@@ -133,7 +136,7 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
 
-        request = GenerateRandomizedBenchmarkingSequenceRequest(
+        request = RandomizedBenchmarkingRequest(
             depth=depth,
             num_qubits=qubits,
             gateset=gateset_for_api,

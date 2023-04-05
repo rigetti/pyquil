@@ -25,6 +25,7 @@ from qcs_sdk.compiler.quilc import (
     TargetDevice,
     conjugate_pauli_by_clifford,
     generate_randomized_benchmarking_sequence,
+    PauliTerm as PauliTerm,
     ConjugateByCliffordRequest,
     ConjugatePauliByCliffordResponse,
     RandomizedBenchmarkingRequest,
