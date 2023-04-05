@@ -16,12 +16,12 @@
 from typing import List, Optional, Sequence, cast
 
 from qcs_sdk import QCSClient
+from qcs_sdk.compiler.quilc import PauliTerm as QuilcPauliTerm
 
 from pyquil.api._abstract_compiler import AbstractBenchmarker
 from pyquil.api._compiler_client import (
     RandomizedBenchmarkingRequest,
     ConjugateByCliffordRequest,
-    PauliTerm as QuilcPauliTerm,
     CompilerClient,
 )
 
@@ -75,7 +75,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         )
         response = self._compiler_client.conjugate_pauli_by_clifford(request)
 
-        phase_factor, paulis = response.phase_factor, response.pauli
+        phase_factor, paulis = response.phase, response.pauli
 
         pauli_out = PauliTerm("I", 0, 1.0j**phase_factor)
         clifford_qubits = clifford.get_qubits()
@@ -138,7 +138,7 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         request = RandomizedBenchmarkingRequest(
             depth=depth,
-            num_qubits=qubits,
+            qubits=qubits,
             gateset=gateset_for_api,
             seed=seed,
             interleaver=interleaver_out,
