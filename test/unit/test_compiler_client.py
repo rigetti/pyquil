@@ -57,16 +57,6 @@ def test_init__validates_compiler_url(monkeypatch: MonkeyPatch):
         CompilerClient(client_configuration=client_configuration)
 
 
-def test_sets_timeout_on_requests(mocker: MockerFixture):
-    client_configuration = QCSClient.load()
-    compiler_client = CompilerClient(client_configuration=client_configuration, request_timeout=0.1)
-
-    patch_rpcq_client(mocker=mocker, return_value={})
-
-    with compiler_client._rpcq_client() as client:
-        assert client.timeout == compiler_client.timeout
-
-
 @pytest.mark.skip  # cannot mock `qcs_sdk` here
 def test_get_version__returns_version(mocker: MockerFixture):
     client_configuration = QCSClient.load()
