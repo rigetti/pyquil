@@ -13,14 +13,23 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from contextlib import contextmanager
 from dataclasses import dataclass
 import json
-from typing import Iterator, List, Optional
+from typing import List, Optional
 
 from qcs_sdk import QCSClient
-from qcs_sdk.compiler.quilc import get_version_info, compile_program, CompilerOpts, TargetDevice
-import rpcq
+from qcs_sdk.compiler.quilc import (
+    get_version_info,
+    compile_program,
+    CompilerOpts,
+    TargetDevice,
+    conjugate_pauli_by_clifford,
+    generate_randomized_benchmarking_sequence,
+    ConjugateByCliffordRequest,
+    ConjugatePauliByCliffordResponse,
+    RandomizedBenchmarkingRequest,
+    GenerateRandomizedBenchmarkingSequenceResponse,
+)
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
 
@@ -87,67 +96,6 @@ class CompileToNativeQuilResponse:
     """Metadata for the returned Native Quil."""
 
 
-@dataclass
-class ConjugatePauliByCliffordRequest:
-    """
-    Request to conjugate a Pauli element by a Clifford element.
-    """
-
-    pauli_indices: List[int]
-    """Qubit indices onto which the factors of the Pauli term are applied."""
-
-    pauli_symbols: List[str]
-    """Ordered factors of the Pauli term."""
-
-    clifford: str
-    """Clifford element."""
-
-
-@dataclass
-class ConjugatePauliByCliffordResponse:
-    """
-    Conjugate Pauli by Clifford response.
-    """
-
-    phase_factor: int
-    """Encoded global phase factor on the emitted Pauli."""
-
-    pauli: str
-    """Description of the encoded Pauli."""
-
-
-@dataclass
-class GenerateRandomizedBenchmarkingSequenceRequest:
-    """
-    Request to generate a randomized benchmarking sequence.
-    """
-
-    depth: int
-    """Depth of the benchmarking sequence."""
-
-    num_qubits: int
-    """Number of qubits involved in the benchmarking sequence."""
-
-    gateset: List[str]
-    """List of Quil programs, each describing a Clifford."""
-
-    seed: Optional[int]
-    """PRNG seed. Set this to guarantee repeatable results."""
-
-    interleaver: Optional[str]
-    """Fixed Clifford, specified as a Quil string, to interleave through an RB sequence."""
-
-
-@dataclass
-class GenerateRandomizedBenchmarkingSequenceResponse:
-    """
-    Randomly generated benchmarking sequence response.
-    """
-
-    sequence: List[List[int]]
-    """List of Cliffords, each expressed as a list of generator indices."""
-
-
 class CompilerClient:
     """
     Client for making requests to a Quil compiler.
@@ -197,48 +145,16 @@ class CompilerClient:
         )
         return CompileToNativeQuilResponse(native_program=native_program, metadata=None)
 
-    def conjugate_pauli_by_clifford(self, request: ConjugatePauliByCliffordRequest) -> ConjugatePauliByCliffordResponse:
+    def conjugate_pauli_by_clifford(self, request: ConjugateByCliffordRequest) -> ConjugatePauliByCliffordResponse:
         """
         Conjugate a Pauli element by a Clifford element.
         """
-        rpcq_request = rpcq.messages.ConjugateByCliffordRequest(
-            pauli=rpcq.messages.PauliTerm(indices=request.pauli_indices, symbols=request.pauli_symbols),
-            clifford=request.clifford,
-        )
-        with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            response: rpcq.messages.ConjugateByCliffordResponse = rpcq_client.call(
-                "conjugate_pauli_by_clifford",
-                rpcq_request,
-            )
-            return ConjugatePauliByCliffordResponse(phase_factor=response.phase, pauli=response.pauli)
+        return conjugate_pauli_by_clifford(request=request, client=self._client_configuration)
 
     def generate_randomized_benchmarking_sequence(
-        self, request: GenerateRandomizedBenchmarkingSequenceRequest
+        self, request: RandomizedBenchmarkingRequest
     ) -> GenerateRandomizedBenchmarkingSequenceResponse:
         """
         Generate a randomized benchmarking sequence.
         """
-        rpcq_request = rpcq.messages.RandomizedBenchmarkingRequest(
-            depth=request.depth,
-            qubits=request.num_qubits,
-            gateset=request.gateset,
-            seed=request.seed,
-            interleaver=request.interleaver,
-        )
-        with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            response: rpcq.messages.RandomizedBenchmarkingResponse = rpcq_client.call(
-                "generate_rb_sequence",
-                rpcq_request,
-            )
-            return GenerateRandomizedBenchmarkingSequenceResponse(sequence=response.sequence)
-
-    @contextmanager
-    def _rpcq_client(self) -> Iterator[rpcq.Client]:
-        client = rpcq.Client(
-            endpoint=self.base_url,
-            timeout=self.timeout,
-        )
-        try:
-            yield client
-        finally:
-            client.close()  # type: ignore
+        return generate_randomized_benchmarking_sequence(request=request, client=self._client_configuration)
