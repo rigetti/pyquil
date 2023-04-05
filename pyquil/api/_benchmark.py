@@ -16,14 +16,14 @@
 from typing import List, Optional, Sequence, cast
 
 from qcs_sdk import QCSClient
-from qcs_sdk.compiler.quilc import PauliTerm as QuilcPauliTerm
-
-from pyquil.api._abstract_compiler import AbstractBenchmarker
-from pyquil.api._compiler_client import (
+from qcs_sdk.compiler.quilc import (
+    PauliTerm as QuilcPauliTerm,
     RandomizedBenchmarkingRequest,
     ConjugateByCliffordRequest,
-    CompilerClient,
 )
+
+from pyquil.api._abstract_compiler import AbstractBenchmarker
+from pyquil.api._compiler_client import CompilerClient
 
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
