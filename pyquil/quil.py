@@ -161,7 +161,13 @@ class Program:
 
         :return: a new Program
         """
-        new_prog = Program(self._program.to_headers())
+        new_prog = Program(
+            list(self.declarations.values()),
+            list(self.frames.values()),
+            list(self.waveforms.values()),
+            self.calibrations,
+            self.measure_calibrations,
+        )
         new_prog.num_shots = self.num_shots
         new_prog._memory = self._memory.copy()
         return new_prog
@@ -728,8 +734,7 @@ class Program:
         Removes the last instruction from the program and returns it
         """
         last = self.instructions[-1]
-        instructions = self._program.to_headers() + self.instructions
-        new_program = Program(instructions[:-1])
+        new_program = Program(self.instructions[:-1])
         self._program = new_program._program
         self._memory = new_program._memory
         return last
