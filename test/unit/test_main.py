@@ -99,7 +99,7 @@ DEFGATE XGATE:
 """
 
 
-# TODO: Instruction API - DefGate
+# TODO: Instruction API - Reset
 def test_remove_reset_from_program(snapshot):
     p = Program(DEFGATE_X)
     p += RESET()

@@ -110,7 +110,7 @@ def test_noise_helpers():
     assert set(inferred_gates) == set(gates)
 
 
-# TODO: Instruction API - DefGate
+# TODO: Instruction API - Hashing
 def test_decoherence_noise():
     prog = Program(RX(np.pi / 2, 0), CZ(0, 1), RZ(np.pi, 0))
     gates = _get_program_gates(prog)
@@ -308,7 +308,7 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
     ]
     ap_target = np.array([[p00, 1 - p11], [1 - p00, p11]])
 
-    povm_pragma = Pragma("READOUT-POVM", (0, "({} {} {} {})".format(*ap_target.flatten())))
+    povm_pragma = Pragma("READOUT-POVM", [0], "({} {} {} {})".format(*ap_target.flatten()))
     ap = estimate_assignment_probs(0, trials, mock_qc, Program(povm_pragma))
 
     assert mock_compiler.native_quil_to_executable.call_count == 2
@@ -317,7 +317,7 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
     for call in mock_compiler.native_quil_to_executable.call_args_list:
         args, kwargs = call
         prog = args[0]
-        assert prog._instructions[0] == povm_pragma
+        assert prog.instructions[0] == povm_pragma
 
     assert np.allclose(ap, ap_target)
 

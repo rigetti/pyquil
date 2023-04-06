@@ -128,6 +128,126 @@
     '\tSAMPLE-RATE: 44.1',
   })
 # ---
+# name: TestDefGate.test_get_constructor[No-Params]
+  'NoParamGate 123'
+# ---
+# name: TestDefGate.test_get_constructor[Params]
+  'ParameterizedGate(%theta) 123'
+# ---
+# name: TestDefGate.test_out[No-Params]
+  '''
+  DEFGATE NoParamGate AS MATRIX:
+  	1, 0, 0, 0
+  	0, 1, 0, 0
+  	0, 0, 1, 0
+  	0, 0, 0, 1
+  
+  '''
+# ---
+# name: TestDefGate.test_out[Params]
+  '''
+  DEFGATE ParameterizedGate(%X) AS MATRIX:
+  	%X, 0, 0, 0
+  	0, %X, 0, 0
+  	0, 0, %X, 0
+  	0, 0, 0, %X
+  
+  '''
+# ---
+# name: TestDefGate.test_str[No-Params]
+  '''
+  DEFGATE NoParamGate AS MATRIX:
+  	1, 0, 0, 0
+  	0, 1, 0, 0
+  	0, 0, 1, 0
+  	0, 0, 0, 1
+  
+  '''
+# ---
+# name: TestDefGate.test_str[Params]
+  '''
+  DEFGATE ParameterizedGate(%X) AS MATRIX:
+  	%X, 0, 0, 0
+  	0, %X, 0, 0
+  	0, 0, %X, 0
+  	0, 0, 0, %X
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_get_constructor[DefaultWithParams]
+  'PauliGate(%theta) 123'
+# ---
+# name: TestDefGateByPaulis.test_get_constructor[Default]
+  'PauliGate 123'
+# ---
+# name: TestDefGateByPaulis.test_get_constructor[WithSumAndParams]
+  'PauliGate(%theta) 123'
+# ---
+# name: TestDefGateByPaulis.test_get_constructor[WithSum]
+  'PauliGate 123'
+# ---
+# name: TestDefGateByPaulis.test_out[DefaultWithParams]
+  '''
+  DEFGATE PauliGate(%theta) p AS PAULI-SUM:
+  	(0)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_out[Default]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	(0)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_out[WithSumAndParams]
+  '''
+  DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
+  	Z((1*%theta)) p
+  	Y(2) p
+  	X(3) q
+  	(3)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_out[WithSum]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	Y(2) p
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[DefaultWithParams]
+  '''
+  DEFGATE PauliGate(%theta) p AS PAULI-SUM:
+  	(0)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[Default]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	(0)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[WithSumAndParams]
+  '''
+  DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
+  	Z((1*%theta)) p
+  	Y(2) p
+  	X(3) q
+  	(3)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[WithSum]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	Y(2) p
+  
+  '''
+# ---
 # name: TestDefMeasureCalibration.test_out[qubit0-memory_reference0-instrs0]
   '''
   DEFCAL MEASURE 0 theta:
@@ -149,6 +269,23 @@
 # ---
 # name: TestFence.test_out[Qubit]
   'FENCE 0'
+# ---
+# name: TestDefPermutationGate.test_get_constructor[PermGate-permutation0]
+  'PermGate 123'
+# ---
+# name: TestDefPermutationGate.test_out[PermGate-permutation0]
+  '''
+  DEFGATE PermGate AS PERMUTATION:
+  	4, 3, 2, 1
+  
+  '''
+# ---
+# name: TestDefPermutationGate.test_str[PermGate-permutation0]
+  '''
+  DEFGATE PermGate AS PERMUTATION:
+  	4, 3, 2, 1
+  
+  '''
 # ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
