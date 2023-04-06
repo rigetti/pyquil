@@ -22,7 +22,6 @@ except ImportError:  # 3.7 requires this backport of AsyncMock
     from mock import AsyncMock
 
 from qcs_sdk import QCSClient
-import rpcq
 from _pytest.monkeypatch import MonkeyPatch
 import pytest
 from pytest import raises
@@ -32,11 +31,6 @@ from pyquil.api._compiler_client import (
     CompilerClient,
     CompileToNativeQuilRequest,
     CompileToNativeQuilResponse,
-    ConjugatePauliByCliffordRequest,
-    ConjugatePauliByCliffordResponse,
-    GenerateRandomizedBenchmarkingSequenceRequest,
-    GenerateRandomizedBenchmarkingSequenceResponse,
-    NativeQuilMetadataResponse,
 )
 from pyquil.external.rpcq import CompilerISA, compiler_isa_to_target_quantum_processor
 
@@ -61,16 +55,6 @@ def test_init__validates_compiler_url(monkeypatch: MonkeyPatch):
         match="Expected compiler URL 'not-http-or-tcp://example.com' to start with 'tcp://'",
     ):
         CompilerClient(client_configuration=client_configuration)
-
-
-def test_sets_timeout_on_requests(mocker: MockerFixture):
-    client_configuration = QCSClient.load()
-    compiler_client = CompilerClient(client_configuration=client_configuration, request_timeout=0.1)
-
-    patch_rpcq_client(mocker=mocker, return_value={})
-
-    with compiler_client._rpcq_client() as client:
-        assert client.timeout == compiler_client.timeout
 
 
 @pytest.mark.skip  # cannot mock `qcs_sdk` here
@@ -101,61 +85,4 @@ def test_compile_to_native_quil__returns_native_quil(
     assert compiler_client.compile_to_native_quil(request) == CompileToNativeQuilResponse(
         native_program="DECLARE ro BIT[1]\n",
         metadata=None,
-    )
-
-
-def test_conjugate_pauli_by_clifford__returns_conjugation_result(mocker: MockerFixture):
-    client_configuration = QCSClient.load()
-    compiler_client = CompilerClient(client_configuration=client_configuration)
-    rpcq_client = patch_rpcq_client(
-        mocker=mocker, return_value=rpcq.messages.ConjugateByCliffordResponse(phase=42, pauli="pauli")
-    )
-
-    request = ConjugatePauliByCliffordRequest(
-        pauli_indices=[0, 1, 2],
-        pauli_symbols=["x", "y", "z"],
-        clifford="cliff",
-    )
-    assert compiler_client.conjugate_pauli_by_clifford(request) == ConjugatePauliByCliffordResponse(
-        phase_factor=42,
-        pauli="pauli",
-    )
-    rpcq_client.call.assert_called_once_with(
-        "conjugate_pauli_by_clifford",
-        rpcq.messages.ConjugateByCliffordRequest(
-            pauli=rpcq.messages.PauliTerm(indices=[0, 1, 2], symbols=["x", "y", "z"]),
-            clifford="cliff",
-        ),
-    )
-
-
-def test_generate_randomized_benchmarking_sequence__returns_benchmarking_sequence(
-    mocker: MockerFixture,
-):
-    client_configuration = QCSClient.load()
-    compiler_client = CompilerClient(client_configuration=client_configuration)
-
-    rpcq_client = patch_rpcq_client(
-        mocker=mocker, return_value=rpcq.messages.RandomizedBenchmarkingResponse(sequence=[[3, 1, 4], [1, 6, 1]])
-    )
-
-    request = GenerateRandomizedBenchmarkingSequenceRequest(
-        depth=42,
-        num_qubits=3,
-        gateset=["some", "gate", "set"],
-        seed=314,
-        interleaver="some-interleaver",
-    )
-    assert compiler_client.generate_randomized_benchmarking_sequence(
-        request
-    ) == GenerateRandomizedBenchmarkingSequenceResponse(sequence=[[3, 1, 4], [1, 6, 1]])
-    rpcq_client.call.assert_called_once_with(
-        "generate_rb_sequence",
-        rpcq.messages.RandomizedBenchmarkingRequest(
-            depth=42,
-            qubits=3,
-            gateset=["some", "gate", "set"],
-            seed=314,
-            interleaver="some-interleaver",
-        ),
     )
