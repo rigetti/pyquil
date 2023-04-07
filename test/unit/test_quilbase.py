@@ -29,6 +29,7 @@ from pyquil.quilbase import (
     Parameter,
     Pragma,
     QubitDesignator,
+    Reset,
     ResetQubit,
 )
 from pyquil.paulis import PauliSum, PauliTerm
@@ -563,6 +564,10 @@ class TestPragma:
 class TestReset:
     @pytest.fixture
     def reset_qubit(self, qubit: Qubit) -> ResetQubit:
+        if qubit is None:
+            with pytest.raises(TypeError):
+                ResetQubit(qubit)
+            return Reset(None)
         return ResetQubit(qubit)
 
     def test_out(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):

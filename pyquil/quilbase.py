@@ -492,7 +492,10 @@ class ResetQubit(Reset):
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    ...
+    def __new__(cls, qubit: Union[Qubit, QubitPlaceholder, FormalArgument]):
+        if qubit is None:
+            raise TypeError("qubit should not be None")
+        return super().__new__(cls, qubit)
 
 
 class DefGate(quil_rs.GateDefinition, AbstractInstruction):
@@ -1081,7 +1084,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
             elif isinstance(arg, (str, FormalArgument)):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_identifier(str(arg)))
             else:
-                raise TypeError("type(arg) isn't a valid QubitDesignator")
+                raise TypeError(f"{type(arg)} isn't a valid QubitDesignator")
         return pragma_arguments
 
     @staticmethod
@@ -1095,7 +1098,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
         return arguments
 
     def out(self) -> str:
-        return self.__str__()
+        return str(self)
 
     @property
     def command(self) -> str:
@@ -1420,8 +1423,7 @@ class Delay(quil_rs.Delay, AbstractInstruction):
 
     @property
     def frames(self) -> List[Frame]:
-        py_qubits = self.qubits
-        return [Frame(py_qubits, name) for name in super().frame_names]
+        return [Frame(self.qubits, name) for name in super().frame_names]
 
     @frames.setter
     def frames(self, frames: List[Frame]):
