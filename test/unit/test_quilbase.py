@@ -1,6 +1,6 @@
 from math import pi
 from typing import Any, List, Optional, Iterable, Tuple, Union
-from numbers import Number
+from numbers import Complex, Number
 
 import numpy as np
 import pytest
@@ -12,8 +12,11 @@ from pyquil.quilbase import (
     AbstractInstruction,
     Declare,
     DefCalibration,
+    DefCircuit,
     DefFrame,
     DefGate,
+    DefMeasureCalibration,
+    DefWaveform,
     DefPermutationGate,
     DefGateByPaulis,
     DefMeasureCalibration,
@@ -33,7 +36,8 @@ from pyquil.quilbase import (
     ResetQubit,
 )
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilatom import BinaryExp, Frame, Qubit, Mul
+from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression
+from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.api._compiler import QPUCompiler
 
 
@@ -669,3 +673,92 @@ def test_fence_all():
     fa = FenceAll()
     assert fa.out() == "FENCE"
     assert fa.qubits == []
+
+
+@pytest.mark.parametrize(
+    ("name", "parameters", "entries"),
+    [
+        ("Wavey", [], []),
+        ("Wavey", [Parameter("x")], [Parameter("x")]),
+        (
+            "Wavey",
+            [Parameter("x"), Parameter("y")],
+            [complex(1.0, 2.0), Parameter("x"), Mul(complex(3.0, 0.0), Parameter("y"))],
+        ),
+    ],
+    ids=("No-Params-Entries", "With-Param", "With-Params-Complex"),
+)
+class TestDefWaveform:
+    @pytest.fixture
+    def def_waveform(self, name: str, parameters: List[Parameter], entries: List[Union[Complex, Expression]]):
+        return DefWaveform(name, parameters, entries)
+
+    def test_out(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
+        assert def_waveform.out() == snapshot
+
+    def test_name(self, def_waveform: DefWaveform, name: str):
+        assert def_waveform.name == name
+        def_waveform.name = "new_name"
+        assert def_waveform.name == "new_name"
+
+    def test_parameters(self, def_waveform: DefWaveform, parameters: List[Parameter]):
+        assert def_waveform.parameters == parameters
+        def_waveform.parameters = [Parameter("z")]
+        assert def_waveform.parameters == [Parameter("z")]
+
+    def test_entries(self, def_waveform: DefWaveform, entries: List[Union[Complex, Expression]]):
+        assert def_waveform.entries == entries
+        def_waveform.entries = [Parameter("z")]  # type: ignore
+        assert def_waveform.entries == [Parameter("z")]
+
+
+@pytest.mark.parametrize(
+    ("name", "parameters", "qubit_variables", "instructions"),
+    [
+        ("NiftyCircuit", [], [FormalArgument("a")], [Measurement(FormalArgument("a"), None)]),
+        (
+            "NiftyCircuit",
+            [Parameter("theta")],
+            [FormalArgument("a")],
+            [
+                Declare("ro", "BIT", 1),
+                Measurement(FormalArgument("a"), MemoryReference("ro")),
+                DefGate("ParameterizedGate", np.diag([Parameter("theta")] * 4), [Parameter("theta")]),
+            ],
+        ),
+    ],
+    ids=("No-Params", "With-Params"),
+)
+class TestDefCircuit:
+    @pytest.fixture
+    def def_circuit(
+        self,
+        name: str,
+        parameters: List[Parameter],
+        qubit_variables: List[FormalArgument],
+        instructions: List[AbstractInstruction],
+    ):
+        return DefCircuit(name, parameters, qubit_variables, instructions)
+
+    def test_out(self, def_circuit: DefCircuit, snapshot: SnapshotAssertion):
+        assert def_circuit.out() == snapshot
+
+    def test_name(self, def_circuit: DefCircuit, name: str):
+        assert def_circuit.name == name
+        def_circuit.name = "new_name"
+        assert def_circuit.name == "new_name"
+
+    def test_parameters(self, def_circuit: DefCircuit, parameters: List[Parameter]):
+        assert def_circuit.parameters == parameters
+        def_circuit.parameters = [Parameter("z")]
+        assert def_circuit.parameters == [Parameter("z")]
+
+    def test_qubit_variables(self, def_circuit: DefCircuit, qubit_variables: List[FormalArgument]):
+        assert def_circuit.qubit_variables == qubit_variables
+        def_circuit.qubit_variables = [FormalArgument("qubit")]
+        assert def_circuit.qubit_variables == [FormalArgument("qubit")]
+
+    def test_instructions(self, def_circuit: DefCircuit, instructions: List[AbstractInstruction]):
+        assert def_circuit.instructions == instructions
+        def_circuit.instructions = [Gate("new_gate", [], [Qubit(0)], [])]
+        assert def_circuit.instructions == [Gate("new_gate", [], [Qubit(0)], [])]
