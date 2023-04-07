@@ -157,8 +157,12 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
         return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return Measurement._from_rs_measurement(instr)
+    if isinstance(instr, quil_rs.CircuitDefinition):
+        return DefCircuit._from_rs_circuit_definition(instr)
     if isinstance(instr, quil_rs.GateDefinition):
         return DefGate._from_rs_gate_definition(instr)
+    if isinstance(instr, quil_rs.WaveformDefinition):
+        return DefWaveform._from_rs_waveform_definition(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     raise ValueError(f"{type(instr)} is not a valid Instruction type")
@@ -1358,33 +1362,101 @@ class Fence(AbstractInstruction):
         return ret
 
 
-class DefWaveform(AbstractInstruction):
-    def __init__(
-        self,
+class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
+    def __new__(
+        cls,
         name: str,
         parameters: List[Parameter],
         entries: List[Union[Complex, Expression]],
-    ):
-        self.name = name
-        self.parameters = parameters
-        self.entries = entries
-        for e in entries:
-            if not isinstance(e, (Complex, Expression)):
-                raise TypeError(f"Unsupported waveform entry {e}")
+    ) -> "DefWaveform":
+        rs_waveform = DefWaveform._build_rs_waveform(parameters, entries)
+        return super().__new__(cls, name, rs_waveform)
+
+    @classmethod
+    def _from_rs_waveform_definition(cls, waveform_definition: quil_rs.WaveformDefinition) -> "DefWaveform":
+        return super().__new__(cls, waveform_definition.name, waveform_definition.definition)
+
+    @staticmethod
+    def _build_rs_waveform(parameters: List[Parameter], entries: List[Union[Complex, Expression]]) -> quil_rs.Waveform:
+        rs_parameters = [parameter.name for parameter in parameters]
+        return quil_rs.Waveform(_convert_to_rs_expressions(entries), rs_parameters)
 
     def out(self) -> str:
-        ret = f"DEFWAVEFORM {self.name}"
-        # TODO: simplify this
-        if len(self.parameters) > 0:
-            first_param, *params = self.parameters
-            ret += f"({first_param}"
-            for param in params:
-                ret += f", {param}"
-            ret += ")"
-        ret += ":\n    "
+        return str(self)
 
-        ret += ", ".join(map(_complex_str, self.entries))
-        return ret
+    @property
+    def parameters(self) -> List[Parameter]:
+        return [Parameter(parameter) for parameter in super().definition.parameters]
+
+    @parameters.setter
+    def parameters(self, parameters: List[Parameter]):
+        waveform = super().definition
+        waveform.parameters = [parameter.name for parameter in parameters]
+        quil_rs.WaveformDefinition.definition.__set__(self, waveform)
+
+    @property
+    def entries(self) -> List[Union[Complex, Expression]]:
+        return _convert_to_py_parameters(super().definition.matrix)
+
+    @entries.setter
+    def entries(self, entries: List[Union[Complex, Expression]]):
+        waveform = super().definition
+        waveform.matrix = _convert_to_rs_expressions(entries)
+        quil_rs.WaveformDefinition.definition.__set__(self, waveform)
+
+
+class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
+    def __new__(
+        cls,
+        name: str,
+        parameters: List[Parameter],
+        qubits: List[FormalArgument],
+        instructions: List[AbstractInstruction],
+    ) -> "DefCircuit":
+        rs_parameters = [parameter.name for parameter in parameters]
+        rs_qubits = [qubit.name for qubit in qubits]
+        rs_instructions = _convert_to_rs_instructions(instructions)
+        return super().__new__(cls, name, rs_parameters, rs_qubits, rs_instructions)
+
+    @classmethod
+    def _from_rs_circuit_definition(cls, circuit_definition: quil_rs.CircuitDefinition) -> "DefCircuit":
+        return super().__new__(
+            cls,
+            circuit_definition.name,
+            circuit_definition.parameters,
+            circuit_definition.qubit_variables,
+            circuit_definition.instructions,
+        )
+
+    def out(self) -> str:
+        return str(self)
+
+    @property
+    def parameters(self) -> List[Parameter]:
+        return [Parameter(parameter) for parameter in super().parameters]
+
+    @parameters.setter
+    def parameters(self, parameters: List[Parameter]):
+        rs_parameters = [parameter.name for parameter in parameters]
+        quil_rs.CircuitDefinition.parameters.__set__(self, rs_parameters)
+
+    @property
+    def qubit_variables(self) -> List[FormalArgument]:
+        return [FormalArgument(qubit) for qubit in super().qubit_variables]
+
+    @qubit_variables.setter
+    def qubit_variables(self, qubits: List[FormalArgument]):
+        rs_qubits = [qubit.name for qubit in qubits]
+        quil_rs.CircuitDefinition.qubit_variables.__set__(self, rs_qubits)
+
+    @property
+    def instructions(self) -> List[AbstractInstruction]:
+        return _convert_to_py_instructions(super().instructions)
+
+    @instructions.setter
+    def instructions(self, instructions: List[AbstractInstruction]):
+        rs_instructions = _convert_to_rs_instructions(instructions)
+        quil_rs.CircuitDefinition.instructions.__set__(self, rs_instructions)
 
 
 class DefCalibration(quil_rs.Calibration, AbstractInstruction):
