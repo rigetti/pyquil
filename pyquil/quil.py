@@ -161,7 +161,13 @@ class Program:
 
         :return: a new Program
         """
-        new_prog = Program(self._program.to_headers())
+        new_prog = Program(
+            list(self.declarations.values()),
+            list(self.frames.values()),
+            list(self.waveforms.values()),
+            self.calibrations,
+            self.measure_calibrations,
+        )
         new_prog.num_shots = self.num_shots
         new_prog._memory = self._memory.copy()
         return new_prog
@@ -186,7 +192,7 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        return _convert_to_py_instructions(self._program.to_instructions(False))
+        return _convert_to_py_instructions(self._program.to_instructions())
 
     def inst(self, *instructions: InstructionDesignator) -> "Program":
         """
@@ -719,20 +725,6 @@ class Program:
         :return: The Quil program's inverse
         """
         return Program(self._program.dagger())
-
-    @deprecated(
-        deprecated_in="4.0", removed_in="5.0", current_version=pyquil_version, details="This function will be removed."
-    )
-    def pop(self) -> AbstractInstruction:
-        """
-        Removes the last instruction from the program and returns it
-        """
-        last = self.instructions[-1]
-        instructions = self._program.to_headers() + self.instructions
-        new_program = Program(instructions[:-1])
-        self._program = new_program._program
-        self._memory = new_program._memory
-        return last
 
     def __add__(self, other: InstructionDesignator) -> "Program":
         """

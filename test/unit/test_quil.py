@@ -159,13 +159,6 @@ def test_inst_string(snapshot):
     assert p.out() == snapshot
 
 
-def test_program_pop(snapshot):
-    prog = Program(X(0), X(1))
-    instruction = prog.pop()
-    assert prog.out() == snapshot
-    assert Program(instruction).out() == snapshot
-
-
 def test_len_zero():
     prog = Program()
     assert len(prog) == 0
@@ -1256,8 +1249,8 @@ def test_subtracting_memory_regions():
     beta = p.declare("beta", "REAL")
     p += RZ(alpha - beta, 0)
     p2 = Program(p.out())
-    parsed_rz = p2.pop()  # type: Gate
-    parsed_param = parsed_rz.params[0]
+    parsed_rz = p2[-1]
+    parsed_param = parsed_rz.params[0]  # type: Gate
     assert isinstance(parsed_param, Sub)
     assert parsed_param.op1 == alpha
     assert parsed_param.op2 == beta
