@@ -42,6 +42,7 @@ from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.api._compiler import QPUCompiler
+from pyquil.quiltwaveforms import FlatWaveform
 
 
 @pytest.mark.parametrize(
@@ -782,8 +783,14 @@ class TestDefCircuit:
             MemoryReference("ro"),
             True,
         ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
+            MemoryReference("ro"),
+            True,
+        ),
     ],
-    ids=("Blocking", "NonBlocking"),
+    ids=("Blocking", "NonBlocking", "TemplateWaveform"),
 )
 class TestCapture:
     @pytest.fixture
@@ -827,8 +834,13 @@ class TestCapture:
             WaveformReference("WAVEFORMY"),
             True,
         ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
+            True,
+        ),
     ],
-    ids=("Blocking", "NonBlocking"),
+    ids=("Blocking", "NonBlocking", "FlatWaveform"),
 )
 class TestPulse:
     @pytest.fixture
@@ -869,8 +881,14 @@ class TestPulse:
             WaveformReference("WAVEFORMY"),
             True,
         ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            2.5,
+            FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
+            True,
+        ),
     ],
-    ids=("Blocking", "NonBlocking"),
+    ids=("Blocking", "NonBlocking", "FlatWaveform"),
 )
 class TestRawCapture:
     @pytest.fixture

@@ -4,6 +4,9 @@
 # name: TestCapture.test_out[NonBlocking]
   'NONBLOCKING CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
 # ---
+# name: TestCapture.test_out[TemplateWaveform]
+  'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1.0 + (2.0)*i) ro[0]'
+# ---
 # name: TestDeclare.test_asdict[Defaults]
   dict({
     'memory_size': 1,
@@ -431,11 +434,17 @@
 # name: TestPulse.test_out[Blocking]
   'PULSE 123 q "FRAMEX" WAVEFORMY'
 # ---
+# name: TestPulse.test_out[FlatWaveform]
+  'NONBLOCKING PULSE 123 q "FRAMEX" flat(duration: 2.5, iq: 1.0 + (2.0)*i)'
+# ---
 # name: TestPulse.test_out[NonBlocking]
   'NONBLOCKING PULSE 123 q "FRAMEX" WAVEFORMY'
 # ---
 # name: TestRawCapture.test_out[Blocking]
   'RAW-CAPTURE 123 q "FRAMEX" 0.5 ro[0]'
+# ---
+# name: TestRawCapture.test_out[FlatWaveform]
+  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 flat(duration: 2.5, iq: 1.0 + (2.0)*i)'
 # ---
 # name: TestRawCapture.test_out[NonBlocking]
   'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 WAVEFORMY'

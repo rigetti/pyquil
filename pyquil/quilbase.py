@@ -1350,6 +1350,16 @@ class SetScale(AbstractInstruction):
 
 
 class Capture(AbstractInstruction):
+    # def __new__(
+    #     cls,
+    #     frame: Frame,
+    #     kernel: Waveform,
+    #     memory_region: MemoryReference,
+    #     nonblocking: bool = False,
+    # ):
+    #     rs_memory_reference = _convert_to_rs_expression(memory_region)
+    #     return super().__new__(cls, not nonblocking, frame, rs_memory_reference, kernel)
+
     def __init__(
         self,
         frame: Frame,
