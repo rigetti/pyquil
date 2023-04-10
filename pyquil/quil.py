@@ -726,19 +726,6 @@ class Program:
         """
         return Program(self._program.dagger())
 
-    @deprecated(
-        deprecated_in="4.0", removed_in="5.0", current_version=pyquil_version, details="This function will be removed."
-    )
-    def pop(self) -> AbstractInstruction:
-        """
-        Removes the last instruction from the program and returns it
-        """
-        last = self.instructions[-1]
-        new_program = Program(self.instructions[:-1])
-        self._program = new_program._program
-        self._memory = new_program._memory
-        return last
-
     def __add__(self, other: InstructionDesignator) -> "Program":
         """
         Concatenate two programs together, returning a new one.
