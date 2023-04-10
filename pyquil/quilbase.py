@@ -18,7 +18,6 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import abc
 import collections
-import json
 
 from numbers import Complex
 from typing import (
@@ -125,16 +124,26 @@ class AbstractInstruction(metaclass=_InstructionMeta):
 def _convert_to_rs_instruction(instr: AbstractInstruction) -> quil_rs.Instruction:
     if isinstance(instr, quil_rs.Instruction):
         return instr
-    if isinstance(instr, AbstractInstruction):
-        return quil_rs.Instruction(instr)
     if isinstance(instr, quil_rs.Calibration):
         return quil_rs.Instruction.from_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Declaration):
+        return quil_rs.Instruction.from_declaration(instr)
+    if isinstance(instr, quil_rs.Delay):
+        return quil_rs.Instruction.from_delay(instr)
+    if isinstance(instr, quil_rs.Fence):
+        return quil_rs.Instruction.from_fence(instr)
     if isinstance(instr, quil_rs.Gate):
         return quil_rs.Instruction.from_gate(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
         return quil_rs.Instruction.from_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return quil_rs.Instruction.from_measurement(instr)
+    if isinstance(instr, quil_rs.Pragma):
+        return quil_rs.Instruction.from_pragma(instr)
+    if isinstance(instr, quil_rs.Reset):
+        return quil_rs.Instruction.from_reset(instr)
+    if isinstance(instr, AbstractInstruction):
+        return quil_rs.Instruction(instr)
     else:
         raise ValueError(f"{type(instr)} is not an Instruction")
 
@@ -147,18 +156,30 @@ def _convert_to_py_instruction(instr: quil_rs.Instruction) -> AbstractInstructio
     if isinstance(instr, quil_rs.Instruction):
         # TODOV4: Will have to handle unit variants since they don't have inner data
         instr = instr.inner()
-    if isinstance(instr, quil_rs.Declaration):
-        return Declare._from_rs_declaration(instr)
     if isinstance(instr, quil_rs.Calibration):
         return DefCalibration._from_rs_calibration(instr)
+    if isinstance(instr, quil_rs.Declaration):
+        return Declare._from_rs_declaration(instr)
+    if isinstance(instr, quil_rs.Delay):
+        return Delay._from_rs_delay(instr)
+    if isinstance(instr, quil_rs.Fence):
+        return Fence._from_rs_fence(instr)
     if isinstance(instr, quil_rs.Gate):
         return Gate._from_rs_gate(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
         return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return Measurement._from_rs_measurement(instr)
+    if isinstance(instr, quil_rs.Pragma):
+        return Pragma._from_rs_pragma(instr)
+    if isinstance(instr, quil_rs.Reset):
+        return Reset._from_rs_reset(instr)
+    if isinstance(instr, quil_rs.CircuitDefinition):
+        return DefCircuit._from_rs_circuit_definition(instr)
     if isinstance(instr, quil_rs.GateDefinition):
         return DefGate._from_rs_gate_definition(instr)
+    if isinstance(instr, quil_rs.WaveformDefinition):
+        return DefWaveform._from_rs_waveform_definition(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     raise ValueError(f"{type(instr)} is not a valid Instruction type")
@@ -420,24 +441,65 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
         return str(self)
 
 
-class ResetQubit(AbstractInstruction):
+class Reset(quil_rs.Reset, AbstractInstruction):
+    """
+    The RESET instruction.
+    """
+
+    def __new__(cls, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument]] = None):
+        rs_qubit: Optional[quil_rs.Qubit] = None
+        if qubit is not None:
+            rs_qubit = _convert_to_rs_qubit(qubit)
+        return super().__new__(cls, rs_qubit)
+
+    @classmethod
+    def _from_rs_reset(cls, reset: quil_rs.Reset) -> "Reset":
+        return super().__new__(cls, reset.qubit)
+
+    def out(self) -> str:
+        return str(self)
+
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
+    def get_qubits(self, indices: bool = True) -> Optional[Set[QubitDesignator]]:
+        if super().qubit is None:
+            return None
+        if indices:
+            return self.get_qubit_indices()  # type: ignore
+        return {_convert_to_py_qubit(super().qubit)}  # type: ignore
+
+    def get_qubit_indices(self) -> Optional[Set[int]]:
+        if super().qubit is None:
+            return None
+        return {super().qubit.to_fixed()}  # type: ignore
+
+    @property
+    def qubit(self) -> Optional[QubitDesignator]:
+        if super().qubit:
+            return _convert_to_py_qubit(super().qubit)  # type: ignore
+        return super().qubit
+
+    @qubit.setter
+    def qubit(self, qubit: Optional[QubitDesignator]):
+        rs_qubit: Optional[quil_rs.Qubit] = None
+        if qubit is not None:
+            rs_qubit = _convert_to_rs_qubit(qubit)
+        quil_rs.Reset.qubit.__set__(self, rs_qubit)
+
+
+class ResetQubit(Reset):
     """
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    def __init__(self, qubit: Union[Qubit, QubitPlaceholder, FormalArgument]):
-        if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
-            raise TypeError("qubit should be a Qubit")
-        self.qubit = qubit
-
-    def out(self) -> str:
-        return "RESET {}".format(self.qubit.out())
-
-    def __str__(self) -> str:
-        return "RESET {}".format(_format_qubit_str(self.qubit))
-
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return {_extract_qubit_index(self.qubit, indices)}
+    def __new__(cls, qubit: Union[Qubit, QubitPlaceholder, FormalArgument]):
+        if qubit is None:
+            raise TypeError("qubit should not be None")
+        return super().__new__(cls, qubit)
 
 
 class DefGate(quil_rs.GateDefinition, AbstractInstruction):
@@ -665,14 +727,6 @@ class Wait(SimpleInstruction):
     """
 
     op = "WAIT"
-
-
-class Reset(SimpleInstruction):
-    """
-    The RESET instruction.
-    """
-
-    op = "RESET"
 
 
 class Nop(SimpleInstruction):
@@ -1002,7 +1056,7 @@ class Jump(AbstractInstruction):
         return "JUMP %s" % self.target
 
 
-class Pragma(AbstractInstruction):
+class Pragma(quil_rs.Pragma, AbstractInstruction):
     """
     A PRAGMA instruction.
 
@@ -1012,39 +1066,67 @@ class Pragma(AbstractInstruction):
 
     """
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         command: str,
         args: Iterable[Union[QubitDesignator, str]] = (),
         freeform_string: str = "",
-    ):
-        if not isinstance(command, str):
-            raise TypeError(f"Pragma's require an identifier: {command}")
+    ) -> Type["Pragma"]:
+        data = freeform_string or None
+        return super().__new__(cls, command, Pragma._to_pragma_arguments(args), data)
 
-        if not isinstance(args, collections.abc.Iterable):
-            raise TypeError(f"Pragma arguments must be an Iterable: {args}")
-        for a in args:
-            if not (
-                isinstance(a, str) or isinstance(a, int) or isinstance(a, QubitPlaceholder) or isinstance(a, Qubit)
-            ):
-                raise TypeError(f"Pragma arguments must be strings or integers: {a}")
-        if not isinstance(freeform_string, str):
-            raise TypeError(f"The freeform string argument must be a string: {freeform_string}")
+    @classmethod
+    def _from_rs_pragma(cls, pragma: quil_rs.Pragma) -> "Pragma":
+        return super().__new__(cls, pragma.name, pragma.arguments, pragma.data)
 
-        self.command = command
-        self.args = tuple(args)
-        self.freeform_string = freeform_string
+    @staticmethod
+    def _to_pragma_arguments(args: Iterable[Union[QubitDesignator, str]]) -> List[quil_rs.PragmaArgument]:
+        pragma_arguments = []
+        for arg in args:
+            if isinstance(arg, Qubit):
+                pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg.index))
+            elif isinstance(arg, (str, FormalArgument)):
+                pragma_arguments.append(quil_rs.PragmaArgument.from_identifier(str(arg)))
+            else:
+                raise TypeError(f"{type(arg)} isn't a valid QubitDesignator")
+        return pragma_arguments
+
+    @staticmethod
+    def _to_py_arguments(args: List[quil_rs.PragmaArgument]) -> List[QubitDesignator]:
+        arguments = []
+        for arg in args:
+            if arg.is_integer():
+                arguments.append(Qubit(arg.to_integer()))
+            else:
+                arguments.append(FormalArgument(arg.to_identifier()))
+        return arguments
 
     def out(self) -> str:
-        ret = "PRAGMA {}".format(self.command)
-        if self.args:
-            ret += " {}".format(" ".join(str(a) for a in self.args))
-        if self.freeform_string:
-            ret += ' "{}"'.format(self.freeform_string)
-        return ret
+        return str(self)
 
-    def __repr__(self) -> str:
-        return "<PRAGMA {}>".format(self.command)
+    @property
+    def command(self) -> str:
+        return super().name
+
+    @command.setter
+    def command(self, command: str):
+        quil_rs.Pragma.name.__set__(self, command)
+
+    @property
+    def args(self) -> Tuple[QubitDesignator]:
+        return tuple(Pragma._to_py_arguments(super().arguments))
+
+    @args.setter
+    def args(self, args: str):
+        quil_rs.Pragma.arguments.__set__(self, Pragma._to_pragma_arguments(args))
+
+    @property
+    def freeform_string(self) -> str:
+        return super().data or ""
+
+    @freeform_string.setter
+    def freeform_string(self, freeform_string: str):
+        quil_rs.Pragma.data.__set__(self, freeform_string)
 
 
 class Declare(quil_rs.Declaration, AbstractInstruction):
@@ -1312,79 +1394,192 @@ class RawCapture(AbstractInstruction):
         return _get_frame_qubits(self.frame, indices)
 
 
-class DelayFrames(AbstractInstruction):
-    def __init__(self, frames: List[Frame], duration: float):
-        # all frames should be on the same qubits
-        if len(frames) == 0:
-            raise ValueError("DELAY expected nonempty list of frames.")
-        if len(set(tuple(f.qubits) for f in frames)) != 1:
-            raise ValueError("DELAY with explicit frames requires all frames are on the same qubits.")
+class Delay(quil_rs.Delay, AbstractInstruction):
+    def __new__(cls, frames: List[Frame], qubits: List[Union[int, Qubit, FormalArgument]], duration: float) -> "Delay":
+        frame_names = [frame.name for frame in frames]
+        rs_qubits = _convert_to_rs_qubits(Delay._join_frame_qubits(frames, qubits))
+        expression = quil_rs_expr.Expression.from_number(complex(duration))
+        return super().__new__(cls, expression, frame_names, rs_qubits)
 
-        self.frames = frames
-        self.duration = duration
+    @classmethod
+    def _from_rs_delay(cls, delay: quil_rs.Delay) -> "Delay":
+        return super().__new__(cls, delay.duration, delay.frame_names, delay.qubits)
 
-    def out(self) -> str:
-        qubits = self.frames[0].qubits
-        ret = "DELAY " + _format_qubits_str(qubits)
-        for f in self.frames:
-            ret += f' "{f.name}"'
-        ret += f" {self.duration}"
-        return ret
-
-
-class DelayQubits(AbstractInstruction):
-    def __init__(self, qubits: List[Union[Qubit, FormalArgument]], duration: float):
-        self.qubits = qubits
-        self.duration = duration
+    @staticmethod
+    def _join_frame_qubits(
+        frames: List[Frame], qubits: List[Union[int, Qubit, FormalArgument]]
+    ) -> List[Union[int, Qubit, FormalArgument]]:
+        merged_qubits = set(qubits)
+        for frame in frames:
+            merged_qubits.update(frame.qubits)  # type: ignore
+        return list(merged_qubits)
 
     def out(self) -> str:
-        return f"DELAY {_format_qubits_str(self.qubits)} {self.duration}"
+        return str(self)
+
+    @property
+    def qubits(self) -> List[QubitDesignator]:
+        return _convert_to_py_qubits(super().qubits)
+
+    @qubits.setter
+    def qubits(self, qubits: List[Union[int, Qubit, FormalArgument]]):
+        quil_rs.Delay.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+
+    @property
+    def frames(self) -> List[Frame]:
+        return [Frame(self.qubits, name) for name in super().frame_names]
+
+    @frames.setter
+    def frames(self, frames: List[Frame]):
+        new_qubits = Delay._join_frame_qubits(frames, [])
+        frame_names = [frame.name for frame in frames]
+        quil_rs.Delay.qubits.__set__(self, _convert_to_rs_qubits(new_qubits))
+        quil_rs.Delay.frame_names.__set__(self, frame_names)
+
+    @property
+    def duration(self) -> float:
+        return super().duration.to_real()
+
+    @duration.setter
+    def duration(self, duration: float):
+        expression = quil_rs_expr.Expression.from_number(complex(duration))
+        quil_rs.Delay.duration.__set__(self, expression)
 
 
-class FenceAll(SimpleInstruction):
+class DelayFrames(Delay):
+    def __new__(cls, frames: List[Frame], duration: float):
+        return super().__new__(cls, frames, [], duration)
+
+
+class DelayQubits(Delay):
+    def __new__(cls, qubits: List[Union[Qubit, FormalArgument]], duration: float):
+        return super().__new__(cls, [], qubits, duration)
+
+
+class Fence(quil_rs.Fence, AbstractInstruction):
+    def __new__(cls, qubits: List[Union[Qubit, FormalArgument]]):
+        return super().__new__(cls, _convert_to_rs_qubits(qubits))
+
+    @classmethod
+    def _from_rs_fence(cls, fence: quil_rs.Fence) -> "Fence":
+        return super().__new__(cls, fence.qubits)
+
+    def out(self) -> str:
+        return str(self)
+
+    @property
+    def qubits(self) -> List[Union[Qubit, FormalArgument]]:
+        return _convert_to_py_qubits(super().qubits)
+
+    @qubits.setter
+    def qubits(self, qubits: List[Union[Qubit, FormalArgument]]):
+        quil_rs.Fence.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+
+
+class FenceAll(Fence):
     """
     The FENCE instruction.
     """
 
-    op = "FENCE"
+    def __new__(cls):
+        return super().__new__(cls, [])
 
 
-class Fence(AbstractInstruction):
-    def __init__(self, qubits: List[Union[Qubit, FormalArgument]]):
-        self.qubits = qubits
-
-    def out(self) -> str:
-        ret = "FENCE " + _format_qubits_str(self.qubits)
-        return ret
-
-
-class DefWaveform(AbstractInstruction):
-    def __init__(
-        self,
+class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
+    def __new__(
+        cls,
         name: str,
         parameters: List[Parameter],
         entries: List[Union[Complex, Expression]],
-    ):
-        self.name = name
-        self.parameters = parameters
-        self.entries = entries
-        for e in entries:
-            if not isinstance(e, (Complex, Expression)):
-                raise TypeError(f"Unsupported waveform entry {e}")
+    ) -> "DefWaveform":
+        rs_waveform = DefWaveform._build_rs_waveform(parameters, entries)
+        return super().__new__(cls, name, rs_waveform)
+
+    @classmethod
+    def _from_rs_waveform_definition(cls, waveform_definition: quil_rs.WaveformDefinition) -> "DefWaveform":
+        return super().__new__(cls, waveform_definition.name, waveform_definition.definition)
+
+    @staticmethod
+    def _build_rs_waveform(parameters: List[Parameter], entries: List[Union[Complex, Expression]]) -> quil_rs.Waveform:
+        rs_parameters = [parameter.name for parameter in parameters]
+        return quil_rs.Waveform(_convert_to_rs_expressions(entries), rs_parameters)
 
     def out(self) -> str:
-        ret = f"DEFWAVEFORM {self.name}"
-        # TODO: simplify this
-        if len(self.parameters) > 0:
-            first_param, *params = self.parameters
-            ret += f"({first_param}"
-            for param in params:
-                ret += f", {param}"
-            ret += ")"
-        ret += ":\n    "
+        return str(self)
 
-        ret += ", ".join(map(_complex_str, self.entries))
-        return ret
+    @property
+    def parameters(self) -> List[Parameter]:
+        return [Parameter(parameter) for parameter in super().definition.parameters]
+
+    @parameters.setter
+    def parameters(self, parameters: List[Parameter]):
+        waveform = super().definition
+        waveform.parameters = [parameter.name for parameter in parameters]
+        quil_rs.WaveformDefinition.definition.__set__(self, waveform)
+
+    @property
+    def entries(self) -> List[Union[Complex, Expression]]:
+        return _convert_to_py_parameters(super().definition.matrix)
+
+    @entries.setter
+    def entries(self, entries: List[Union[Complex, Expression]]):
+        waveform = super().definition
+        waveform.matrix = _convert_to_rs_expressions(entries)
+        quil_rs.WaveformDefinition.definition.__set__(self, waveform)
+
+
+class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
+    def __new__(
+        cls,
+        name: str,
+        parameters: List[Parameter],
+        qubits: List[FormalArgument],
+        instructions: List[AbstractInstruction],
+    ) -> "DefCircuit":
+        rs_parameters = [parameter.name for parameter in parameters]
+        rs_qubits = [qubit.name for qubit in qubits]
+        rs_instructions = _convert_to_rs_instructions(instructions)
+        return super().__new__(cls, name, rs_parameters, rs_qubits, rs_instructions)
+
+    @classmethod
+    def _from_rs_circuit_definition(cls, circuit_definition: quil_rs.CircuitDefinition) -> "DefCircuit":
+        return super().__new__(
+            cls,
+            circuit_definition.name,
+            circuit_definition.parameters,
+            circuit_definition.qubit_variables,
+            circuit_definition.instructions,
+        )
+
+    def out(self) -> str:
+        return str(self)
+
+    @property
+    def parameters(self) -> List[Parameter]:
+        return [Parameter(parameter) for parameter in super().parameters]
+
+    @parameters.setter
+    def parameters(self, parameters: List[Parameter]):
+        rs_parameters = [parameter.name for parameter in parameters]
+        quil_rs.CircuitDefinition.parameters.__set__(self, rs_parameters)
+
+    @property
+    def qubit_variables(self) -> List[FormalArgument]:
+        return [FormalArgument(qubit) for qubit in super().qubit_variables]
+
+    @qubit_variables.setter
+    def qubit_variables(self, qubits: List[FormalArgument]):
+        rs_qubits = [qubit.name for qubit in qubits]
+        quil_rs.CircuitDefinition.qubit_variables.__set__(self, rs_qubits)
+
+    @property
+    def instructions(self) -> List[AbstractInstruction]:
+        return _convert_to_py_instructions(super().instructions)
+
+    @instructions.setter
+    def instructions(self, instructions: List[AbstractInstruction]):
+        rs_instructions = _convert_to_rs_instructions(instructions)
+        quil_rs.CircuitDefinition.instructions.__set__(self, rs_instructions)
 
 
 class DefCalibration(quil_rs.Calibration, AbstractInstruction):
