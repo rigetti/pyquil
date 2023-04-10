@@ -276,6 +276,21 @@
   
   '''
 # ---
+# name: TestDelayFrames.test_out[frames0-5.0]
+  'DELAY 0 "frame" 5'
+# ---
+# name: TestDelayQubits.test_out[FormalArgument]
+  'DELAY a 2.5'
+# ---
+# name: TestDelayQubits.test_out[Qubit]
+  'DELAY 0 5'
+# ---
+# name: TestFence.test_out[FormalArgument]
+  'FENCE a'
+# ---
+# name: TestFence.test_out[Qubit]
+  'FENCE 0'
+# ---
 # name: TestDefPermutationGate.test_get_constructor[PermGate-permutation0]
   'PermGate 123'
 # ---
@@ -382,4 +397,46 @@
 # ---
 # name: TestMeasurement.test_str[No-MemoryReference]
   'MEASURE 0'
+# ---
+# name: TestPragma.test_out[Command-Only]
+  'PRAGMA NO-NOISE'
+# ---
+# name: TestPragma.test_out[With-Arg-And-String]
+  'PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"'
+# ---
+# name: TestPragma.test_out[With-Arg]
+  'PRAGMA DOES-A-THING 0 b'
+# ---
+# name: TestPragma.test_out[With-String]
+  'PRAGMA INITIAL_REWIRING "GREEDY"'
+# ---
+# name: TestPragma.test_str[Command-Only]
+  'PRAGMA NO-NOISE'
+# ---
+# name: TestPragma.test_str[With-Arg-And-String]
+  'PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"'
+# ---
+# name: TestPragma.test_str[With-Arg]
+  'PRAGMA DOES-A-THING 0 b'
+# ---
+# name: TestPragma.test_str[With-String]
+  'PRAGMA INITIAL_REWIRING "GREEDY"'
+# ---
+# name: TestReset.test_out[FormalArgument]
+  'RESET a'
+# ---
+# name: TestReset.test_out[None]
+  'RESET'
+# ---
+# name: TestReset.test_out[Qubit]
+  'RESET 0'
+# ---
+# name: TestReset.test_str[FormalArgument]
+  'RESET a'
+# ---
+# name: TestReset.test_str[None]
+  'RESET'
+# ---
+# name: TestReset.test_str[Qubit]
+  'RESET 0'
 # ---

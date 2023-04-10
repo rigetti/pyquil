@@ -1,7 +1,6 @@
 from math import pi
-from numbers import Complex
-from numbers import Number
-from typing import Any, List, Optional, Union, Iterable, Tuple
+from typing import Any, List, Optional, Iterable, Tuple, Union
+from numbers import Complex, Number
 
 import numpy as np
 import pytest
@@ -20,14 +19,23 @@ from pyquil.quilbase import (
     DefWaveform,
     DefPermutationGate,
     DefGateByPaulis,
+    DefMeasureCalibration,
+    DelayFrames,
+    DelayQubits,
+    Fence,
+    FenceAll,
     FormalArgument,
     Gate,
     Measurement,
     MemoryReference,
     ParameterDesignator,
     Parameter,
+    Pragma,
     QubitDesignator,
+    Reset,
+    ResetQubit,
 )
+from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.api._compiler import QPUCompiler
@@ -509,6 +517,162 @@ class TestDeclare:
         else:
             declare.offsets = [(1, "BIT"), (2, "INTEGER")]
             assert declare.offsets == [(1, "BIT"), (2, "INTEGER")]
+
+
+@pytest.mark.parametrize(
+    ("command", "args", "freeform_string"),
+    [
+        ("NO-NOISE", [], ""),
+        ("DOES-A-THING", [Qubit(0), FormalArgument("b")], ""),
+        ("INITIAL_REWIRING", [], "GREEDY"),
+        ("READOUT-POVM", [Qubit(1)], "(0.9 0.19999999999999996 0.09999999999999998 0.8)"),
+    ],
+    ids=("Command-Only", "With-Arg", "With-String", "With-Arg-And-String"),
+)
+class TestPragma:
+    @pytest.fixture
+    def pragma(self, command: str, args: List[Union[QubitDesignator, str]], freeform_string: str) -> Pragma:
+        return Pragma(command, args, freeform_string)
+
+    def test_out(self, pragma: Pragma, snapshot: SnapshotAssertion):
+        assert pragma.out() == snapshot
+
+    def test_str(self, pragma: Pragma, snapshot: SnapshotAssertion):
+        assert str(pragma) == snapshot
+
+    def test_command(self, pragma: Pragma, command: str):
+        assert pragma.command == command
+        pragma.command = "NEW_COMMAND"
+        assert pragma.command == "NEW_COMMAND"
+
+    def test_args(self, pragma: Pragma, args: List[Union[QubitDesignator, str]]):
+        assert pragma.args == tuple(args)
+        pragma.args = (Qubit(123),)
+        assert pragma.args == (Qubit(123),)
+
+    def test_freeform_string(self, pragma: Pragma, freeform_string: str):
+        assert pragma.freeform_string == freeform_string
+        pragma.freeform_string = "new string"
+        assert pragma.freeform_string == "new string"
+
+
+@pytest.mark.parametrize(
+    ("qubit"),
+    [
+        (Qubit(0)),
+        (FormalArgument("a")),
+        (None),
+    ],
+    ids=("Qubit", "FormalArgument", "None"),
+)
+class TestReset:
+    @pytest.fixture
+    def reset_qubit(self, qubit: Qubit) -> ResetQubit:
+        if qubit is None:
+            with pytest.raises(TypeError):
+                ResetQubit(qubit)
+            return Reset(None)
+        return ResetQubit(qubit)
+
+    def test_out(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):
+        assert reset_qubit.out() == snapshot
+
+    def test_str(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):
+        assert str(reset_qubit) == snapshot
+
+    def test_qubit(self, reset_qubit: ResetQubit, qubit: Qubit):
+        assert reset_qubit.qubit == qubit
+        reset_qubit.qubit = FormalArgument("a")
+        assert reset_qubit.qubit == FormalArgument("a")
+
+    def test_get_qubits(self, reset_qubit: ResetQubit, qubit: Qubit):
+        if qubit is None:
+            assert reset_qubit.get_qubits(False) is None
+            assert reset_qubit.get_qubit_indices() is None
+        else:
+            assert reset_qubit.get_qubits(False) == {qubit}
+            if isinstance(qubit, Qubit):
+                assert reset_qubit.get_qubit_indices() == {qubit.index}
+
+
+@pytest.mark.parametrize(
+    ("frames", "duration"),
+    [
+        ([Frame([Qubit(0)], "frame")], 5.0),
+    ],
+)
+class TestDelayFrames:
+    @pytest.fixture
+    def delay_frames(self, frames: List[Frame], duration: float) -> DelayFrames:
+        return DelayFrames(frames, duration)
+
+    def test_out(self, delay_frames: DelayFrames, snapshot: SnapshotAssertion):
+        assert delay_frames.out() == snapshot
+
+    def test_frames(self, delay_frames: DelayFrames, frames: List[Frame]):
+        assert delay_frames.frames == frames
+        delay_frames.frames = [Frame([Qubit(123)], "new_frame")]
+        assert delay_frames.frames == [Frame([Qubit(123)], "new_frame")]
+
+    def test_duration(self, delay_frames: DelayFrames, duration: float):
+        assert delay_frames.duration == duration
+        delay_frames.duration = 3.14
+        assert delay_frames.duration == 3.14
+
+
+@pytest.mark.parametrize(
+    ("qubits", "duration"),
+    [
+        ([Qubit(0)], 5.0),
+        ([FormalArgument("a")], 2.5),
+    ],
+    ids=("Qubit", "FormalArgument"),
+)
+class TestDelayQubits:
+    @pytest.fixture
+    def delay_qubits(self, qubits: List[Union[Qubit, FormalArgument]], duration: float) -> DelayQubits:
+        return DelayQubits(qubits, duration)
+
+    def test_out(self, delay_qubits: DelayQubits, snapshot: SnapshotAssertion):
+        assert delay_qubits.out() == snapshot
+
+    def test_qubits(self, delay_qubits: DelayQubits, qubits: List[Qubit]):
+        assert delay_qubits.qubits == qubits
+        delay_qubits.qubits = [Qubit(123)]  # type: ignore
+        assert delay_qubits.qubits == [Qubit(123)]
+
+    def test_duration(self, delay_qubits: DelayQubits, duration: float):
+        assert delay_qubits.duration == duration
+        delay_qubits.duration = 3.14
+        assert delay_qubits.duration == 3.14
+
+
+@pytest.mark.parametrize(
+    ("qubits"),
+    [
+        ([Qubit(0)]),
+        ([FormalArgument("a")]),
+    ],
+    ids=("Qubit", "FormalArgument"),
+)
+class TestFence:
+    @pytest.fixture
+    def fence(self, qubits: List[Union[Qubit, FormalArgument]]) -> Fence:
+        return Fence(qubits)
+
+    def test_out(self, fence: Fence, snapshot: SnapshotAssertion):
+        assert fence.out() == snapshot
+
+    def test_qubits(self, fence: Fence, qubits: List[Union[Qubit, FormalArgument]]):
+        assert fence.qubits == qubits
+        fence.qubits = [Qubit(123)]  # type: ignore
+        assert fence.qubits == [Qubit(123)]
+
+
+def test_fence_all():
+    fa = FenceAll()
+    assert fa.out() == "FENCE"
+    assert fa.qubits == []
 
 
 @pytest.mark.parametrize(
