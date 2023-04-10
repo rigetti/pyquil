@@ -1,3 +1,9 @@
+# name: TestCapture.test_out[Blocking]
+  'CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
+# ---
+# name: TestCapture.test_out[NonBlocking]
+  'NONBLOCKING CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
+# ---
 # name: TestDeclare.test_asdict[Defaults]
   dict({
     'memory_size': 1,
@@ -276,21 +282,6 @@
   
   '''
 # ---
-# name: TestDelayFrames.test_out[frames0-5.0]
-  'DELAY 0 "frame" 5'
-# ---
-# name: TestDelayQubits.test_out[FormalArgument]
-  'DELAY a 2.5'
-# ---
-# name: TestDelayQubits.test_out[Qubit]
-  'DELAY 0 5'
-# ---
-# name: TestFence.test_out[FormalArgument]
-  'FENCE a'
-# ---
-# name: TestFence.test_out[Qubit]
-  'FENCE 0'
-# ---
 # name: TestDefPermutationGate.test_get_constructor[PermGate-permutation0]
   'PermGate 123'
 # ---
@@ -325,6 +316,21 @@
   DEFWAVEFORM Wavey(%x,%y):
   	1+2i, %x, (3*%y)
   '''
+# ---
+# name: TestDelayFrames.test_out[frames0-5.0]
+  'DELAY 0 "frame" 5'
+# ---
+# name: TestDelayQubits.test_out[FormalArgument]
+  'DELAY a 2.5'
+# ---
+# name: TestDelayQubits.test_out[Qubit]
+  'DELAY 0 5'
+# ---
+# name: TestFence.test_out[FormalArgument]
+  'FENCE a'
+# ---
+# name: TestFence.test_out[Qubit]
+  'FENCE 0'
 # ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'

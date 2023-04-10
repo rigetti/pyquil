@@ -10,6 +10,7 @@ from pyquil.gates import X
 from pyquil.quil import Program
 from pyquil.quilbase import (
     AbstractInstruction,
+    Capture,
     Declare,
     DefCalibration,
     DefCircuit,
@@ -36,7 +37,7 @@ from pyquil.quilbase import (
     ResetQubit,
 )
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression
+from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.api._compiler import QPUCompiler
 
@@ -762,3 +763,50 @@ class TestDefCircuit:
         assert def_circuit.instructions == instructions
         def_circuit.instructions = [Gate("new_gate", [], [Qubit(0)], [])]
         assert def_circuit.instructions == [Gate("new_gate", [], [Qubit(0)], [])]
+
+
+@pytest.mark.parametrize(
+    ("frame", "kernel", "memory_region", "nonblocking"),
+    [
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            WaveformReference("WAVEFORMY"),
+            MemoryReference("ro"),
+            False,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            WaveformReference("WAVEFORMY"),
+            MemoryReference("ro"),
+            True,
+        ),
+    ],
+    ids=("Blocking", "NonBlocking"),
+)
+class TestCapture:
+    @pytest.fixture
+    def capture(self, frame: Frame, kernel: Waveform, memory_region: MemoryReference, nonblocking: bool):
+        return Capture(frame, kernel, memory_region, nonblocking)
+
+    def test_out(self, capture: Capture, snapshot: SnapshotAssertion):
+        assert capture.out() == snapshot
+
+    def test_frame(self, capture: Capture, frame: Frame):
+        assert capture.frame == frame
+        capture.frame = Frame([Qubit(123)], "new-frame")
+        assert capture.frame == Frame([Qubit(123)], "new-frame")
+
+    def test_kernel(self, capture: Capture, kernel: Waveform):
+        assert capture.kernel == kernel
+        capture.kernel = WaveformReference("new-waveform")
+        assert capture.kernel == WaveformReference("new-waveform")
+
+    def test_memory_region(self, capture: Capture, memory_region: MemoryReference):
+        assert capture.memory_region == memory_region
+        capture.memory_region = MemoryReference("new-memory-reference")
+        assert capture.memory_region == MemoryReference("new-memory-reference")
+
+    def test_nonblocking(self, capture: Capture, nonblocking: bool):
+        assert capture.nonblocking == nonblocking
+        capture.nonblocking = not nonblocking
+        assert capture.nonblocking == (not nonblocking)
