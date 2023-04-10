@@ -34,6 +34,7 @@ from pyquil.quilbase import (
     Pragma,
     Pulse,
     QubitDesignator,
+    RawCapture,
     Reset,
     ResetQubit,
 )
@@ -851,3 +852,50 @@ class TestPulse:
         assert pulse.nonblocking == nonblocking
         pulse.nonblocking = not nonblocking
         assert pulse.nonblocking == (not nonblocking)
+
+
+@pytest.mark.parametrize(
+    ("frame", "duration", "memory_region", "nonblocking"),
+    [
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            0.5,
+            MemoryReference("ro"),
+            False,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            2.5,
+            WaveformReference("WAVEFORMY"),
+            True,
+        ),
+    ],
+    ids=("Blocking", "NonBlocking"),
+)
+class TestRawCapture:
+    @pytest.fixture
+    def raw_capture(self, frame: Frame, duration: float, memory_region: MemoryReference, nonblocking: bool):
+        return RawCapture(frame, duration, memory_region, nonblocking)
+
+    def test_out(self, raw_capture: RawCapture, snapshot: SnapshotAssertion):
+        assert raw_capture.out() == snapshot
+
+    def test_frame(self, raw_capture: RawCapture, frame: Frame):
+        assert raw_capture.frame == frame
+        raw_capture.frame = Frame([Qubit(123)], "new-frame")
+        assert raw_capture.frame == Frame([Qubit(123)], "new-frame")
+
+    def test_duration(self, raw_capture: RawCapture, duration: float):
+        assert raw_capture.duration == duration
+        raw_capture.duration = 3.14
+        assert raw_capture.duration == 3.14
+
+    def test_memory_region(self, raw_capture: RawCapture, memory_region: MemoryReference):
+        assert raw_capture.memory_region == memory_region
+        raw_capture.memory_region = MemoryReference("new-memory-reference")
+        assert raw_capture.memory_region == MemoryReference("new-memory-reference")
+
+    def test_nonblocking(self, raw_capture: RawCapture, nonblocking: bool):
+        assert raw_capture.nonblocking == nonblocking
+        raw_capture.nonblocking = not nonblocking
+        assert raw_capture.nonblocking == (not nonblocking)

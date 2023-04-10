@@ -434,6 +434,12 @@
 # name: TestPulse.test_out[NonBlocking]
   'NONBLOCKING PULSE 123 q "FRAMEX" WAVEFORMY'
 # ---
+# name: TestRawCapture.test_out[Blocking]
+  'RAW-CAPTURE 123 q "FRAMEX" 0.5 ro[0]'
+# ---
+# name: TestRawCapture.test_out[NonBlocking]
+  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 WAVEFORMY'
+# ---
 # name: TestReset.test_out[FormalArgument]
   'RESET a'
 # ---
