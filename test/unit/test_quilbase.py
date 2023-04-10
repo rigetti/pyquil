@@ -32,6 +32,7 @@ from pyquil.quilbase import (
     ParameterDesignator,
     Parameter,
     Pragma,
+    Pulse,
     QubitDesignator,
     Reset,
     ResetQubit,
@@ -810,3 +811,43 @@ class TestCapture:
         assert capture.nonblocking == nonblocking
         capture.nonblocking = not nonblocking
         assert capture.nonblocking == (not nonblocking)
+
+
+@pytest.mark.parametrize(
+    ("frame", "waveform", "nonblocking"),
+    [
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            WaveformReference("WAVEFORMY"),
+            False,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            WaveformReference("WAVEFORMY"),
+            True,
+        ),
+    ],
+    ids=("Blocking", "NonBlocking"),
+)
+class TestPulse:
+    @pytest.fixture
+    def pulse(self, frame: Frame, waveform: Waveform, nonblocking: bool):
+        return Pulse(frame, waveform, nonblocking)
+
+    def test_out(self, pulse: Pulse, snapshot: SnapshotAssertion):
+        assert pulse.out() == snapshot
+
+    def test_frame(self, pulse: Pulse, frame: Frame):
+        assert pulse.frame == frame
+        pulse.frame = Frame([Qubit(123)], "new-frame")
+        assert pulse.frame == Frame([Qubit(123)], "new-frame")
+
+    def test_waveform(self, pulse: Pulse, waveform: Waveform):
+        assert pulse.waveform == waveform
+        pulse.waveform = WaveformReference("new-waveform")
+        assert pulse.waveform == WaveformReference("new-waveform")
+
+    def test_nonblocking(self, pulse: Pulse, nonblocking: bool):
+        assert pulse.nonblocking == nonblocking
+        pulse.nonblocking = not nonblocking
+        assert pulse.nonblocking == (not nonblocking)

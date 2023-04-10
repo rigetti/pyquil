@@ -428,6 +428,12 @@
 # name: TestPragma.test_str[With-String]
   'PRAGMA INITIAL_REWIRING "GREEDY"'
 # ---
+# name: TestPulse.test_out[Blocking]
+  'PULSE 123 q "FRAMEX" WAVEFORMY'
+# ---
+# name: TestPulse.test_out[NonBlocking]
+  'NONBLOCKING PULSE 123 q "FRAMEX" WAVEFORMY'
+# ---
 # name: TestReset.test_out[FormalArgument]
   'RESET a'
 # ---
