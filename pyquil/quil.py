@@ -192,7 +192,7 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        return _convert_to_py_instructions(self._program.to_instructions(False))
+        return _convert_to_py_instructions(self._program.to_instructions())
 
     def inst(self, *instructions: InstructionDesignator) -> "Program":
         """
