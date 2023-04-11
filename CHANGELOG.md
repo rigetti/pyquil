@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.5
+
+### Fixes
+
+- Allow benchmarks to be missing for 1QRB; fallback to default RX fidelity (#1556)
+
 ## 3.3.4
 
 ## 3.3.3
