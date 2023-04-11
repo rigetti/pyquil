@@ -44,7 +44,6 @@ import numpy as np
 from pyquil._version import pyquil_version
 from pyquil.quilatom import (
     Expression,
-    ExpressionDesignator,
     Label,
     LabelPlaceholder,
     MemoryReference,
@@ -56,7 +55,6 @@ from pyquil.quilatom import (
     QubitDesignator,
     QubitPlaceholder,
     FormalArgument,
-    _contained_parameters,
     _convert_to_py_qubit,
     _convert_to_py_qubits,
     _convert_to_rs_expression,
@@ -65,12 +63,10 @@ from pyquil.quilatom import (
     _convert_to_rs_qubits,
     _convert_to_rs_waveform,
     _convert_to_py_expression,
-    _convert_to_py_parameter,
     _convert_to_py_parameters,
     _convert_to_py_waveform,
     format_parameter,
     unpack_qubit,
-    _complex_str,
 )
 
 if TYPE_CHECKING:  # avoids circular import
@@ -1265,19 +1261,53 @@ class RawInstr(AbstractInstruction):
         return "<RawInstr {}>".format(self.instr)
 
 
-class Pulse(AbstractInstruction):
-    def __init__(self, frame: Frame, waveform: Waveform, nonblocking: bool = False):
-        self.frame = frame
-        self.waveform = waveform
-        self.nonblocking = nonblocking
+class Pulse(quil_rs.Pulse, AbstractInstruction):
+    def __new__(cls, frame: Frame, waveform: Waveform, nonblocking: bool = False):
+        rs_waveform = _convert_to_rs_waveform(waveform)
+        return super().__new__(cls, not nonblocking, frame, rs_waveform)
 
     def out(self) -> str:
-        result = "NONBLOCKING " if self.nonblocking else ""
-        result += f"PULSE {self.frame} {self.waveform.out()}"
-        return result
+        return str(self)
 
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frame, indices)
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        else:
+            return set(_convert_to_py_qubits(super().frame.qubits))
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame.qubits}
+
+    @property
+    def frame(self) -> Frame:
+        return Frame._from_rs_frame_identifier(super().frame)
+
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.Pulse.frame.__set__(self, frame)
+
+    @property
+    def waveform(self) -> Waveform:
+        return _convert_to_py_waveform(super().waveform)
+
+    @waveform.setter
+    def waveform(self, waveform: Waveform):
+        rs_waveform = _convert_to_rs_waveform(waveform)
+        quil_rs.Pulse.waveform.__set__(self, rs_waveform)
+
+    @property
+    def nonblocking(self) -> bool:
+        return not super().blocking
+
+    @nonblocking.setter
+    def nonblocking(self, nonblocking: bool):
+        quil_rs.Pulse.blocking.__set__(self, not nonblocking)
 
 
 class SetFrequency(AbstractInstruction):
