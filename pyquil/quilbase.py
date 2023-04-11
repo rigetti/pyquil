@@ -61,7 +61,6 @@ from pyquil.quilatom import (
     _convert_to_rs_expressions,
     _convert_to_rs_qubit,
     _convert_to_rs_qubits,
-    _convert_to_rs_waveform,
     _convert_to_py_expression,
     _convert_to_py_parameters,
     _convert_to_py_waveform,
@@ -1263,8 +1262,7 @@ class RawInstr(AbstractInstruction):
 
 class Pulse(quil_rs.Pulse, AbstractInstruction):
     def __new__(cls, frame: Frame, waveform: Waveform, nonblocking: bool = False):
-        rs_waveform = _convert_to_rs_waveform(waveform)
-        return super().__new__(cls, not nonblocking, frame, rs_waveform)
+        return super().__new__(cls, not nonblocking, frame, waveform)
 
     def out(self) -> str:
         return str(self)
@@ -1298,8 +1296,7 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
 
     @waveform.setter
     def waveform(self, waveform: Waveform):
-        rs_waveform = _convert_to_rs_waveform(waveform)
-        quil_rs.Pulse.waveform.__set__(self, rs_waveform)
+        quil_rs.Pulse.waveform.__set__(self, waveform)
 
     @property
     def nonblocking(self) -> bool:
@@ -1391,8 +1388,7 @@ class Capture(quil_rs.Capture, AbstractInstruction):
         nonblocking: bool = False,
     ):
         rs_memory_reference = _convert_to_rs_expression(memory_region).to_address()
-        rs_waveform = _convert_to_rs_waveform(kernel)
-        return super().__new__(cls, not nonblocking, frame, rs_memory_reference, rs_waveform)
+        return super().__new__(cls, not nonblocking, frame, rs_memory_reference, kernel)
 
     @property
     def frame(self) -> Frame:
@@ -1408,8 +1404,7 @@ class Capture(quil_rs.Capture, AbstractInstruction):
 
     @kernel.setter
     def kernel(self, kernel: Waveform):
-        rs_waveform = _convert_to_rs_waveform(kernel)
-        quil_rs.Capture.waveform.__set__(self, rs_waveform)
+        quil_rs.Capture.waveform.__set__(self, kernel)
 
     @property
     def memory_region(self) -> MemoryReference:

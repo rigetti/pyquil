@@ -56,8 +56,8 @@ from pyquil.quilbase import (
     ClassicalLessThan,
     ClassicalLessEqual,
 )
-from pyquil.quiltwaveforms import _wf_from_dict
 from pyquil.quilatom import (
+    TemplateWaveform,
     WaveformReference,
     Expression,
     quil_sqrt,
@@ -140,7 +140,7 @@ class QuilTransformer(Transformer):  # type: ignore
         }
         options = {}
 
-        for (spec_name, spec_value) in specs:
+        for spec_name, spec_value in specs:
             name = names.get(spec_name, None)
             if name:
                 options[name] = json.loads(str(spec_value))
@@ -451,7 +451,7 @@ class QuilTransformer(Transformer):  # type: ignore
     def waveform(self, name, *params):
         param_dict = {k: v for (k, v) in params}
         if param_dict:
-            return _wf_from_dict(name, param_dict)
+            return TemplateWaveform(name, **param_dict)
         else:
             return WaveformReference(name)
 
