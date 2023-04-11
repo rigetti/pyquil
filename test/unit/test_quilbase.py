@@ -878,13 +878,13 @@ class TestPulse:
         (
             Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
             2.5,
-            WaveformReference("WAVEFORMY"),
+            MemoryReference("ro"),
             True,
         ),
         (
             Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
             2.5,
-            FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
+            MemoryReference("ro"),
             True,
         ),
     ],

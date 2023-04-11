@@ -444,10 +444,10 @@
   'RAW-CAPTURE 123 q "FRAMEX" 0.5 ro[0]'
 # ---
 # name: TestRawCapture.test_out[FlatWaveform]
-  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 flat(duration: 2.5, iq: 1.0 + (2.0)*i)'
+  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 ro[0]'
 # ---
 # name: TestRawCapture.test_out[NonBlocking]
-  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 WAVEFORMY'
+  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 ro[0]'
 # ---
 # name: TestReset.test_out[FormalArgument]
   'RESET a'

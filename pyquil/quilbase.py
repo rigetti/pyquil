@@ -1431,30 +1431,85 @@ class Capture(quil_rs.Capture, AbstractInstruction):
     def out(self) -> str:
         return str(self)
 
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frame, indices)
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        else:
+            return set(_convert_to_py_qubits(super().frame.qubits))
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame.qubits}
 
 
-class RawCapture(AbstractInstruction):
-    def __init__(
-        self,
+class RawCapture(quil_rs.RawCapture, AbstractInstruction):
+    def __new__(
+        cls,
         frame: Frame,
         duration: float,
         memory_region: MemoryReference,
         nonblocking: bool = False,
     ):
-        self.frame = frame
-        self.duration = duration
-        self.memory_region = memory_region
-        self.nonblocking = nonblocking
+        rs_duration = _convert_to_rs_expression(duration)
+        rs_memory_reference = _convert_to_rs_expression(memory_region).to_address()
+        return super().__new__(cls, not nonblocking, frame, rs_duration, rs_memory_reference)
+
+    @property
+    def frame(self) -> Frame:
+        return Frame._from_rs_frame_identifier(super().frame)
+
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.RawCapture.frame.__set__(self, frame)
+
+    @property
+    def duration(self) -> complex:
+        return super().duration.to_number()
+
+    @duration.setter
+    def duration(self, duration: float):
+        rs_duration = _convert_to_rs_expression(duration)
+        quil_rs.RawCapture.duration.__set__(self, rs_duration)
+
+    @property
+    def memory_region(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().memory_reference)
+
+    @memory_region.setter
+    def memory_region(self, memory_region: MemoryReference):
+        rs_memory_reference = _convert_to_rs_expression(memory_region).to_address()
+        quil_rs.RawCapture.memory_reference.__set__(self, rs_memory_reference)
+
+    @property
+    def nonblocking(self) -> bool:
+        return not super().blocking
+
+    @nonblocking.setter
+    def nonblocking(self, nonblocking: bool):
+        quil_rs.RawCapture.blocking.__set__(self, not nonblocking)
 
     def out(self) -> str:
-        result = "NONBLOCKING " if self.nonblocking else ""
-        result += f"RAW-CAPTURE {self.frame} {self.duration} {self.memory_region.out()}"
-        return result
+        return str(self)
 
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frame, indices)
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The indices flag will be removed, use get_qubit_indices() instead.",
+    )
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        else:
+            return set(_convert_to_py_qubits(super().frame.qubits))
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame.qubits}
 
 
 class Delay(quil_rs.Delay, AbstractInstruction):
