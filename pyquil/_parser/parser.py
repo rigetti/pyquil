@@ -137,6 +137,7 @@ class QuilTransformer(Transformer):  # type: ignore
             "INITIAL-FREQUENCY": "initial_frequency",
             "SAMPLE-RATE": "sample_rate",
             "CENTER-FREQUENCY": "center_frequency",
+            "ENABLE-RAW-CAPTURE": "enable_raw_capture",
         }
         options = {}
 
