@@ -20,6 +20,12 @@ from pyquil.gates import (
     X,
     Y,
     Z,
+    SQISW,
+    FSIM,
+    PHASEDFSIM,
+    RZZ,
+    RXX,
+    RYY,
 )
 from pyquil.quilbase import _strip_modifiers
 
@@ -34,13 +40,23 @@ def param_oneq_gate(request):
     return request.param
 
 
-@pytest.fixture(params=[CZ, CNOT, SWAP, ISWAP])
+@pytest.fixture(params=[CZ, CNOT, SWAP, ISWAP, SQISW])
 def twoq_gate(request):
     return request.param
 
 
-@pytest.fixture(params=[CPHASE, CPHASE00, CPHASE01, CPHASE10, PSWAP])
+@pytest.fixture(params=[CPHASE, CPHASE00, CPHASE01, CPHASE10, PSWAP, RZZ, RXX, RYY])
 def param_twoq_gate(request):
+    return request.param
+
+
+@pytest.fixture(params=[FSIM])
+def two_param_twoq_gate(request):
+    return request.param
+
+
+@pytest.fixture(params=[PHASEDFSIM])
+def five_param_twoq_gate(request):
     return request.param
 
 
@@ -82,7 +98,7 @@ def test_twoq_gate_kwarg(twoq_gate):
     func_name = twoq_gate.__name__
     if func_name.startswith("C"):
         qubits = {"control": 234, "target": 567}
-    elif "SWAP" in func_name:
+    elif "SWAP" in func_name or func_name.startswith("R") or func_name == "SQISW":
         qubits = {"q1": 234, "q2": 567}
     else:
         raise ValueError()
@@ -99,15 +115,31 @@ def test_param_twoq_gate(param_twoq_gate):
     assert g.name == func_name
 
 
+def test_two_param_twoq_gate(two_param_twoq_gate):
+    g = two_param_twoq_gate(0.2, 0.4, 234, 567)
+    assert g.out() == "{}(0.2,0.4) 234 567".format(g.name)
+
+    func_name = two_param_twoq_gate.__name__
+    assert g.name == func_name
+
+
+def test_five_param_twoq_gate(five_param_twoq_gate):
+    g = five_param_twoq_gate(0.2, 0.4, 0.1, 0.3, 0.5, 234, 567)
+    assert g.out() == "{}(0.2,0.4,0.1,0.3,0.5) 234 567".format(g.name)
+
+    func_name = five_param_twoq_gate.__name__
+    assert g.name == func_name
+
+
 def test_param_twoq_gate_kwarg(param_twoq_gate):
     func_name = param_twoq_gate.__name__
     if func_name.startswith("C"):
         qubits = {"control": 234, "target": 567}
-    elif "SWAP" in func_name:
+    elif "SWAP" in func_name or func_name.startswith("R") or func_name == "SQISW" or "FSIM" in func_name:
         qubits = {"q1": 234, "q2": 567}
     else:
         raise ValueError()
-    g = param_twoq_gate(angle=0.2, **qubits)
+    g = param_twoq_gate(0.2, **qubits)
     assert g.out() == "{}(0.2) 234 567".format(g.name)
 
 
