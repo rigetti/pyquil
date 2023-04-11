@@ -14,9 +14,8 @@
 #    limitations under the License.
 ##############################################################################
 
-from dataclasses import FrozenInstanceError, dataclass
+from dataclasses import asdict, dataclass
 from fractions import Fraction
-from math import pi
 from numbers import Complex, Number
 from typing import (
     Any,
@@ -328,7 +327,7 @@ def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> Lis
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
-def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesignator:
+def _convert_to_py_parameter(parameter: Union[ParameterDesignator, quil_rs.MemoryReference]) -> ParameterDesignator:
     if isinstance(parameter, quil_rs_expr.Expression):
         if parameter.is_address():
             return MemoryReference._from_rs_memory_reference(parameter.to_address())
@@ -946,6 +945,14 @@ class TemplateWaveform(QuilAtom):
         """
         raise NotImplementedError()
 
+    def name(self) -> str:
+        """The name for this sample waveform"""
+        raise NotImplementedError()
+
+    def _to_rs_waveform_invocation(self):
+        parameters = {key: _convert_to_rs_expression(value) for key, value in asdict(self).items() if value is not None}
+        return quil_rs.WaveformInvocation(self.name(), parameters)
+
 
 def _update_envelope(
     iqs: np.ndarray,
@@ -976,6 +983,28 @@ def _update_envelope(
 
 
 Waveform = Union[WaveformReference, TemplateWaveform]
+
+
+def _convert_to_rs_waveform(waveform: Waveform) -> quil_rs.WaveformInvocation:
+    if isinstance(waveform, WaveformReference):
+        return quil_rs.WaveformInvocation(waveform.name, {})
+    if isinstance(waveform, TemplateWaveform):
+        return waveform._to_rs_waveform_invocation()
+
+
+def _convert_to_py_waveform(waveform: quil_rs.WaveformInvocation) -> Waveform:
+    if not isinstance(waveform, quil_rs.WaveformInvocation):
+        raise TypeError(f"{type(waveform)} is not a WaveformInvocation")
+    if len(waveform.parameters) == 0:
+        return WaveformReference(waveform.name)
+
+    from pyquil.quiltwaveforms import _waveform_classes
+
+    template_class = _waveform_classes.get(waveform.name, None)
+    if template_class is None:
+        raise TypeError(f"{waveform.name} is not a known TemplateWaveform")
+    parameters = {key: _convert_to_py_expression(value) for key, value in waveform.parameters.items()}
+    return template_class(**parameters)
 
 
 def _complex_str(iq: Any) -> str:

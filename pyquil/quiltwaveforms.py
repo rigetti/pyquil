@@ -106,6 +106,9 @@ class FlatWaveform(TemplateWaveform):
         iqs = np.full(self.num_samples(rate), self.iq, dtype=np.complex128)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
+    def name(self) -> str:
+        return "flat"
+
 
 @waveform("gaussian")
 class GaussianWaveform(TemplateWaveform):
@@ -142,6 +145,9 @@ class GaussianWaveform(TemplateWaveform):
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
         iqs = np.exp(-0.5 * (ts - self.t0) ** 2 / sigma**2)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
+
+    def name(self) -> str:
+        return "gaussian"
 
 
 @waveform("drag_gaussian")
@@ -194,6 +200,9 @@ class DragGaussianWaveform(TemplateWaveform):
         env_der = (self.alpha * (1.0 / (2 * np.pi * self.anh * sigma**2))) * (ts - self.t0) * env
         iqs = env + 1.0j * env_der
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
+
+    def name(self) -> str:
+        return "drag_gaussian"
 
 
 @waveform("hrm_gaussian")
@@ -265,6 +274,9 @@ class HrmGaussianWaveform(TemplateWaveform):
         iqs = env + 1.0j * env_der
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
+    def name(self) -> str:
+        return "hrm_gaussian"
+
 
 @waveform("erf_square")
 class ErfSquareWaveform(TemplateWaveform):
@@ -315,10 +327,12 @@ class ErfSquareWaveform(TemplateWaveform):
         iqs = np.concatenate((zeros_left, vals, zeros_right))  # type: ignore
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
+    def name(self) -> str:
+        return "erf_square"
+
 
 @waveform("boxcar_kernel")
 class BoxcarAveragerKernel(TemplateWaveform):
-
     scale: Optional[float] = None
     """ An optional global scaling factor. """
 
@@ -341,3 +355,6 @@ class BoxcarAveragerKernel(TemplateWaveform):
         n = self.num_samples(rate)
         iqs = np.full(n, 1.0 / n, dtype=np.complex128)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
+
+    def name(self) -> str:
+        return "boxcar_kernel"
