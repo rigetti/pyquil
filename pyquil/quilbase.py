@@ -63,8 +63,11 @@ from pyquil.quilatom import (
     _convert_to_rs_expressions,
     _convert_to_rs_qubit,
     _convert_to_rs_qubits,
+    _convert_to_rs_waveform,
     _convert_to_py_expression,
+    _convert_to_py_parameter,
     _convert_to_py_parameters,
+    _convert_to_py_waveform,
     format_parameter,
     unpack_qubit,
     _complex_str,
@@ -1349,34 +1352,54 @@ class SetScale(AbstractInstruction):
         return _get_frame_qubits(self.frame, indices)
 
 
-class Capture(AbstractInstruction):
-    # def __new__(
-    #     cls,
-    #     frame: Frame,
-    #     kernel: Waveform,
-    #     memory_region: MemoryReference,
-    #     nonblocking: bool = False,
-    # ):
-    #     rs_memory_reference = _convert_to_rs_expression(memory_region)
-    #     return super().__new__(cls, not nonblocking, frame, rs_memory_reference, kernel)
-
-    def __init__(
-        self,
+class Capture(quil_rs.Capture, AbstractInstruction):
+    def __new__(
+        cls,
         frame: Frame,
         kernel: Waveform,
         memory_region: MemoryReference,
         nonblocking: bool = False,
     ):
-        self.frame = frame
-        self.kernel = kernel
-        self.memory_region = memory_region
-        self.nonblocking = nonblocking
+        rs_memory_reference = _convert_to_rs_expression(memory_region).to_address()
+        rs_waveform = _convert_to_rs_waveform(kernel)
+        return super().__new__(cls, not nonblocking, frame, rs_memory_reference, rs_waveform)
+
+    @property
+    def frame(self) -> Frame:
+        return Frame._from_rs_frame_identifier(super().frame)
+
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.Capture.frame.__set__(self, frame)
+
+    @property
+    def kernel(self) -> Waveform:
+        return _convert_to_py_waveform(super().waveform)
+
+    @kernel.setter
+    def kernel(self, kernel: Waveform):
+        rs_waveform = _convert_to_rs_waveform(kernel)
+        quil_rs.Capture.waveform.__set__(self, rs_waveform)
+
+    @property
+    def memory_region(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().memory_reference)
+
+    @memory_region.setter
+    def memory_region(self, memory_region: MemoryReference):
+        rs_memory_reference = _convert_to_rs_expression(memory_region).to_address()
+        quil_rs.Capture.memory_reference.__set__(self, rs_memory_reference)
+
+    @property
+    def nonblocking(self) -> bool:
+        return not super().blocking
+
+    @nonblocking.setter
+    def nonblocking(self, nonblocking: bool):
+        quil_rs.Capture.blocking.__set__(self, not nonblocking)
 
     def out(self) -> str:
-        result = "NONBLOCKING " if self.nonblocking else ""
-        result += f"CAPTURE {self.frame} {self.kernel.out()}"
-        result += f" {self.memory_region.out()}" if self.memory_region else ""
-        return result
+        return str(self)
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         return _get_frame_qubits(self.frame, indices)

@@ -5,7 +5,7 @@
   'NONBLOCKING CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
 # ---
 # name: TestCapture.test_out[TemplateWaveform]
-  'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1.0 + (2.0)*i) ro[0]'
+  'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2i) ro[0]'
 # ---
 # name: TestDeclare.test_asdict[Defaults]
   dict({
