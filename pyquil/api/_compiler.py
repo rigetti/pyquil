@@ -17,7 +17,7 @@ from typing import Dict, Optional
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
-from qcs_sdk.qpu.translation import get_quilt_calibrations, translate
+from qcs_sdk.qpu.translation import get_quilt_calibrations, translate, TranslationOptions, TranslationBackend
 from rpcq.messages import ParameterSpec
 
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
@@ -88,7 +88,9 @@ class QPUCompiler(AbstractCompiler):
         self.quantum_processor_id = quantum_processor_id
         self._calibration_program: Optional[Program] = None
 
-    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
+    def native_quil_to_executable(
+        self, nq_program: Program, translation_options: Optional[TranslationOptions] = None
+    ) -> QuantumExecutable:
         """
         Convert a native Quil program into an executable binary which can be executed by a QPU.
         """
@@ -98,6 +100,7 @@ class QPUCompiler(AbstractCompiler):
             native_quil=rewrite_response.program,
             num_shots=nq_program.num_shots,
             quantum_processor_id=self.quantum_processor_id,
+            translation_options=translation_options,
         )
 
         ro_sources = translated_program.ro_sources or {}

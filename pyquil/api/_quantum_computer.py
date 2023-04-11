@@ -38,6 +38,7 @@ import numpy as np
 from rpcq.messages import ParameterAref
 
 from qcs_sdk import QCSClient
+from qcs_sdk.qpu.translation import TranslationOptions
 from qcs_sdk.qpu import list_quantum_processors
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
@@ -365,6 +366,7 @@ class QuantumComputer:
         optimize: bool = True,
         *,
         protoquil: Optional[bool] = None,
+        translation_options: Optional[TranslationOptions],
     ) -> QuantumExecutable:
         """
         A high-level interface to program compilation.
@@ -393,7 +395,9 @@ class QuantumComputer:
         quilc = all(flags)
 
         if quilc:
-            nq_program = self.compiler.quil_to_native_quil(program, protoquil=protoquil)
+            nq_program = self.compiler.quil_to_native_quil(
+                program, protoquil=protoquil, translation_options=translation_options
+            )
         else:
             nq_program = program
 
