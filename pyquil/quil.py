@@ -926,6 +926,9 @@ class Program:
     def __len__(self) -> int:
         return len(self.instructions)
 
+    def __hash__(self) -> int:
+        return hash(self.out())
+
     def __str__(self) -> str:
         """
         A string representation of the Quil program for inspection.
