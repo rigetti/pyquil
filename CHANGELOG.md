@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.4.0
+
+### Features
+
+- check and warn for existing gate when using defgate (#1512)
+- add hash method to Program (#1527)
+
 ## 3.3.5
 
 ### Fixes
