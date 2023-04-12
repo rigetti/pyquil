@@ -1,5 +1,7 @@
 from typing import Optional
+from warnings import warn
 
+from deprecation import deprecated
 import numpy as np
 from scipy.special import erf
 
@@ -9,7 +11,21 @@ from pyquil.quilatom import (
     _template_waveform_property,
 )
 
+from pyquil._version import pyquil_version
 
+warn(
+    DeprecationWarning("The quiltwaveforms module is deprecated. Use quilatom.WaveformInvocation instead."),
+    category=DeprecationWarning,
+    stacklevel=2,
+)
+
+
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class FlatWaveform(TemplateWaveform):
     """
     A flat (constant) waveform.
@@ -35,6 +51,12 @@ class FlatWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class GaussianWaveform(TemplateWaveform):
     """A Gaussian pulse."""
 
@@ -68,6 +90,12 @@ class GaussianWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class DragGaussianWaveform(TemplateWaveform):
     """A DRAG Gaussian pulse."""
 
@@ -118,6 +146,12 @@ class DragGaussianWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class HrmGaussianWaveform(TemplateWaveform):
     """A Hermite Gaussian waveform.
 
@@ -188,6 +222,12 @@ class HrmGaussianWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class ErfSquareWaveform(TemplateWaveform):
     """A pulse with a flat top and edges that are error functions (erf)."""
 
@@ -244,6 +284,12 @@ class ErfSquareWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class BoxcarAveragerKernel(TemplateWaveform):
     def __new__(
         cls,

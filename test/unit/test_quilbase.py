@@ -16,7 +16,6 @@ from pyquil.quilbase import (
     DefCircuit,
     DefFrame,
     DefGate,
-    DefMeasureCalibration,
     DefWaveform,
     DefPermutationGate,
     DefGateByPaulis,
@@ -40,7 +39,6 @@ from pyquil.quilbase import (
 )
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference
-from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.api._compiler import QPUCompiler
 from pyquil.quiltwaveforms import FlatWaveform
 
