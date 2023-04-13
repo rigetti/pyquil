@@ -336,19 +336,19 @@
   'FENCE 0'
 # ---
 # name: TestFrameMutations.test_out[frame0-5.0]
-  'SET-FREQUENCY 1 "FRAMEX" 5.0'
+  'SET-FREQUENCY 1 "FRAMEX" 5'
 # ---
 # name: TestFrameMutations.test_out[frame0-5.0].1
-  'SET-PHASE 1 "FRAMEX" 5.0'
+  'SET-PHASE 1 "FRAMEX" 5'
 # ---
 # name: TestFrameMutations.test_out[frame0-5.0].2
-  'SHIFT-FREQUENCY 1 "FRAMEX" 5.0'
+  'SHIFT-FREQUENCY 1 "FRAMEX" 5'
 # ---
 # name: TestFrameMutations.test_out[frame0-5.0].3
-  'SHIFT-PHASE 1 "FRAMEX" 5.0'
+  'SHIFT-PHASE 1 "FRAMEX" 5'
 # ---
 # name: TestFrameMutations.test_out[frame0-5.0].4
-  'SET-SCALE 1 "FRAMEX" 5.0'
+  'SET-SCALE 1 "FRAMEX" 5'
 # ---
 # name: TestFrameMutations.test_out[frame1-expression1]
   'SET-FREQUENCY 2 "FRAMEX" ro[0]'

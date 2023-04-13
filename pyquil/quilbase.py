@@ -62,6 +62,7 @@ from pyquil.quilatom import (
     _convert_to_rs_qubit,
     _convert_to_rs_qubits,
     _convert_to_py_expression,
+    _convert_to_py_parameter,
     _convert_to_py_parameters,
     _convert_to_py_waveform,
     format_parameter,
@@ -1307,52 +1308,132 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
         quil_rs.Pulse.blocking.__set__(self, not nonblocking)
 
 
-class SetFrequency(AbstractInstruction):
-    def __init__(self, frame: Frame, freq: ParameterDesignator):
-        self.frame = frame
-        self.freq = freq
+class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
+    def __new__(cls, frame: Frame, freq: ParameterDesignator):
+        return super().__new__(cls, frame, _convert_to_rs_expression(freq))
 
     def out(self) -> str:
-        return f"SET-FREQUENCY {self.frame} {self.freq}"
+        return str(self)
 
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frame, indices)
+    @property
+    def frame(self):
+        return Frame._from_rs_frame_identifier(super().frame)
 
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.SetFrequency.frame.__set__(self, frame)
 
-class ShiftFrequency(AbstractInstruction):
-    def __init__(self, frame: Frame, freq: ParameterDesignator):
-        self.frame = frame
-        self.freq = freq
+    @property
+    def freq(self):
+        return _convert_to_py_parameter(super().frequency)
 
-    def out(self) -> str:
-        return f"SHIFT-FREQUENCY {self.frame} {self.freq}"
+    @freq.setter
+    def freq(self, freq: ParameterDesignator):
+        quil_rs.SetFrequency.frequency.__set__(self, _convert_to_rs_expression(freq))
 
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frame, indices)
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        return set(self.frame.qubits)
 
-
-class SetPhase(AbstractInstruction):
-    def __init__(self, frame: Frame, phase: ParameterDesignator):
-        self.frame = frame
-        self.phase = phase
-
-    def out(self) -> str:
-        return f"SET-PHASE {self.frame} {self.phase}"
-
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frame, indices)
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame.qubits}
 
 
-class ShiftPhase(AbstractInstruction):
-    def __init__(self, frame: Frame, phase: ParameterDesignator):
-        self.frame = frame
-        self.phase = phase
+class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
+    def __new__(cls, frame: Frame, freq: ParameterDesignator):
+        return super().__new__(cls, frame, _convert_to_rs_expression(freq))
 
     def out(self) -> str:
-        return f"SHIFT-PHASE {self.frame} {self.phase}"
+        return str(self)
 
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frame, indices)
+    @property
+    def frame(self):
+        return Frame._from_rs_frame_identifier(super().frame)
+
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.ShiftFrequency.frame.__set__(self, frame)
+
+    @property
+    def freq(self):
+        return _convert_to_py_parameter(super().frequency)
+
+    @freq.setter
+    def freq(self, freq: ParameterDesignator):
+        quil_rs.ShiftFrequency.frequency.__set__(self, _convert_to_rs_expression(freq))
+
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        return set(self.frame.qubits)
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame.qubits}
+
+
+class SetPhase(quil_rs.SetPhase, AbstractInstruction):
+    def __new__(cls, frame: Frame, phase: ParameterDesignator):
+        return super().__new__(cls, frame, _convert_to_rs_expression(phase))
+
+    def out(self) -> str:
+        return str(self)
+
+    @property
+    def frame(self):
+        return Frame._from_rs_frame_identifier(super().frame)
+
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.SetPhase.frame.__set__(self, frame)
+
+    @property
+    def phase(self):
+        return _convert_to_py_parameter(super().phase)
+
+    @phase.setter
+    def phase(self, phase: ParameterDesignator):
+        quil_rs.SetPhase.phase.__set__(self, _convert_to_rs_expression(phase))
+
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        return set(self.frame.qubits)
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame.qubits}
+
+
+class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
+    def __new__(cls, frame: Frame, phase: ParameterDesignator):
+        return super().__new__(cls, frame, _convert_to_rs_expression(phase))
+
+    def out(self) -> str:
+        return str(self)
+
+    @property
+    def frame(self):
+        return Frame._from_rs_frame_identifier(super().frame)
+
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.ShiftPhase.frame.__set__(self, frame)
+
+    @property
+    def phase(self):
+        return _convert_to_py_parameter(super().phase)
+
+    @phase.setter
+    def phase(self, phase: ParameterDesignator):
+        quil_rs.ShiftPhase.phase.__set__(self, _convert_to_rs_expression(phase))
+
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        return set(self.frame.qubits)
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame.qubits}
 
 
 class SwapPhase(AbstractInstruction):
@@ -1367,16 +1448,36 @@ class SwapPhase(AbstractInstruction):
         return _get_frame_qubits(self.frameA, indices) | _get_frame_qubits(self.frameB, indices)
 
 
-class SetScale(AbstractInstruction):
-    def __init__(self, frame: Frame, scale: ParameterDesignator):
-        self.frame = frame
-        self.scale = scale
+class SetScale(quil_rs.SetScale, AbstractInstruction):
+    def __new__(cls, frame: Frame, scale: ParameterDesignator):
+        return super().__new__(cls, frame, _convert_to_rs_expression(scale))
 
     def out(self) -> str:
-        return f"SET-SCALE {self.frame} {self.scale}"
+        return str(self)
 
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frame, indices)
+    @property
+    def frame(self):
+        return Frame._from_rs_frame_identifier(super().frame)
+
+    @frame.setter
+    def frame(self, frame: Frame):
+        quil_rs.SetScale.frame.__set__(self, frame)
+
+    @property
+    def scale(self):
+        return _convert_to_py_parameter(super().scale)
+
+    @scale.setter
+    def scale(self, scale: ParameterDesignator):
+        quil_rs.SetScale.scale.__set__(self, _convert_to_rs_expression(scale))
+
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        return set(self.frame.qubits)
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame.qubits}
 
 
 class Capture(quil_rs.Capture, AbstractInstruction):
