@@ -1,0 +1,62 @@
+DEFCAL CZ 110 111:
+    FENCE
+    NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
+    DELAY 110 "rf" 1.6e-07
+    SHIFT-PHASE 110 "rf" 0.6
+    DELAY 111 "rf" 1.6e-07
+    SHIFT-PHASE 111 "rf" 0.4
+    FENCE
+    SHIFT-PHASE 110 111 "xy" 0.3
+    SHIFT-PHASE 110 117 "xy" 0.3
+    SHIFT-PHASE 110 111 "xy" -0.2
+    SHIFT-PHASE 111 112 "xy" -0.2
+    SHIFT-PHASE 111 126 "xy" -0.2
+
+DEFCAL CZ 111 110:
+    FENCE
+    NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
+    DELAY 110 "rf" 1.6e-07
+    SHIFT-PHASE 110 "rf" 0.6
+    DELAY 111 "rf" 1.6e-07
+    SHIFT-PHASE 111 "rf" 0.4
+    FENCE
+    SHIFT-PHASE 110 111 "xy" 0.3
+    SHIFT-PHASE 110 117 "xy" 0.3
+    SHIFT-PHASE 110 111 "xy" -0.2
+    SHIFT-PHASE 111 112 "xy" -0.2
+    SHIFT-PHASE 111 126 "xy" -0.2
+
+DEFCAL CPHASE(%theta) 110 111:
+    FENCE
+    NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
+    SHIFT-PHASE 110 111 "cphase" -1.2 + 0.5*%theta
+    NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
+    SHIFT-PHASE 110 111 "cphase" -1*(-1.2 + 0.5*%theta)
+    DELAY 110 "rf" 3.2e-07
+    SHIFT-PHASE 110 "rf" 2.2
+    DELAY 111 "rf" 3.2e-07
+    SHIFT-PHASE 111 "rf" 1.2
+    FENCE
+    SHIFT-PHASE 110 111 "xy" 1.1
+    SHIFT-PHASE 110 117 "xy" 1.1
+    SHIFT-PHASE 110 111 "xy" -0.6
+    SHIFT-PHASE 111 112 "xy" -0.6
+    SHIFT-PHASE 111 126 "xy" -0.6
+
+DEFCAL CPHASE(%theta) 111 110:
+    FENCE
+    NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
+    SHIFT-PHASE 110 111 "cphase" -1.2 + 0.5*%theta
+    NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
+    SHIFT-PHASE 110 111 "cphase" -1*(-1.2 + 0.5*%theta)
+    DELAY 110 "rf" 3.2e-07
+    SHIFT-PHASE 110 "rf" 2.2
+    DELAY 111 "rf" 3.2e-07
+    SHIFT-PHASE 111 "rf" 1.2
+    FENCE
+    SHIFT-PHASE 110 111 "xy" 1.1
+    SHIFT-PHASE 110 117 "xy" 1.1
+    SHIFT-PHASE 110 111 "xy" -0.6
+    SHIFT-PHASE 111 112 "xy" -0.6
+    SHIFT-PHASE 111 126 "xy" -0.6
+

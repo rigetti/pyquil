@@ -322,6 +322,7 @@ class Program:
                         if isinstance(gate, DefCalibration)
                         and (gate.name == instruction.name)
                         and (gate.parameters == instruction.parameters)
+                        and (gate.qubits == instruction.qubits)
                     ),
                     (0, None),
                 )
@@ -338,7 +339,9 @@ class Program:
                     (
                         (i, meas)
                         for i, meas in enumerate(reversed(self.calibrations))
-                        if isinstance(meas, DefMeasureCalibration) and (meas.name == instruction.name)
+                        if isinstance(meas, DefMeasureCalibration)
+                        and (meas.name == instruction.name)
+                        and (meas.qubit == instruction.qubit)
                     ),
                     (0, None),
                 )

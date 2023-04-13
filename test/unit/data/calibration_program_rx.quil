@@ -1,0 +1,40 @@
+DEFCAL RX(pi/2) 0:
+    FENCE 0
+    NONBLOCKING PULSE 0 "rf" drag_gaussian(duration: 1e-08, fwhm: 1e-08, t0: 1e-08, anh: -100000000.0, alpha: -0.1, scale: 0.1, phase: 0.0, detuning: 0.0)
+    FENCE 0
+
+DEFCAL RX(-pi/2) 0:
+    FENCE 0
+    NONBLOCKING PULSE 0 "rf" drag_gaussian(duration: 1e-08, fwhm: 1e-08, t0: 1e-08, anh: -100000000.0, alpha: -0.2, scale: 0.2, phase: 0.0, detuning: 0.0)
+    FENCE 0
+
+DEFCAL RX(pi) 0:
+    FENCE 0
+    NONBLOCKING PULSE 0 "rf" drag_gaussian(duration: 1e-08, fwhm: 1e-08, t0: 1e-08, anh: -100000000.0, alpha: -0.3, scale: 0.3, phase: 0.0, detuning: 0.0)
+    FENCE 0
+
+DEFCAL RX(-pi) 0:
+    FENCE 0
+    NONBLOCKING PULSE 0 "rf" drag_gaussian(duration: 1e-08, fwhm: 1e-08, t0: 1e-08, anh: -100000000.0, alpha: -0.4, scale: 0.4, phase: 0.0, detuning: 0.0)
+    FENCE 0
+
+DEFCAL RX(pi/2) 3:
+    FENCE 3
+    NONBLOCKING PULSE 3 "rf" drag_gaussian(duration: 2e-08, fwhm: 1e-08, t0: 1e-08, anh: -100000000.0, alpha: -0.1, scale: 0.1, phase: 0.0, detuning: 0.0)
+    FENCE 3
+
+DEFCAL RX(-pi/2) 3:
+    FENCE 3
+    NONBLOCKING PULSE 3 "rf" drag_gaussian(duration: 2e-08, fwhm: 1e-08, t0: 1e-08, anh: -100000000.0, alpha: -0.2, scale: 0.2, phase: 0.0, detuning: 0.0)
+    FENCE 3
+
+DEFCAL RX(pi) 3:
+    FENCE 3
+    NONBLOCKING PULSE 3 "rf" drag_gaussian(duration: 2e-08, fwhm: 1e-08, t0: 1e-08, anh: -100000000.0, alpha: -0.3, scale: 0.3, phase: 0.0, detuning: 0.0)
+    FENCE 3
+
+DEFCAL RX(-pi) 3:
+    FENCE 3
+    NONBLOCKING PULSE 3 "rf" drag_gaussian(duration: 2e-08, fwhm: 1e-08, t0: 1e-08, anh: -100000000.0, alpha: -0.4, scale: 0.4, phase: 0.0, detuning: 0.0)
+    FENCE 3
+
