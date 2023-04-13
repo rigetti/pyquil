@@ -926,8 +926,8 @@ class TestRawCapture:
 @pytest.mark.parametrize(
     ("frame", "expression"),
     [
-        (Frame([Qubit(1), FormalArgument("a")], "FRAMEX"), 5.0),
-        (Frame([Qubit(2), FormalArgument("b")], "FRAMEX"), MemoryReference("ro")),
+        (Frame([Qubit(1)], "FRAMEX"), 5.0),
+        (Frame([Qubit(2)], "FRAMEX"), MemoryReference("ro")),
     ],
 )
 class TestFrameMutations:
@@ -961,20 +961,46 @@ class TestFrameMutations:
         for instr in frame_mutation_instructions:
             assert instr.out() == snapshot
 
-    def test_frame(self, frame_mutation_instructions, frame):
+    def test_frame(self, frame_mutation_instructions, frame: Frame):
         for instr in frame_mutation_instructions:
             assert instr.frame == frame
             instr.frame = Frame([Qubit(123)], "NEW-FRAME")
             assert instr.frame == Frame([Qubit(123)], "NEW-FRAME")
 
-    def test_get_qubits(self, frame_mutation_instructions, frame):
+    def test_get_qubits(self, frame_mutation_instructions, frame: Frame):
         for instr in frame_mutation_instructions:
             assert instr.get_qubits() == set([q.index for q in frame.qubits if isinstance(q, Qubit)])
-            assert instr.get_qubits(False) == frame.qubits
+            assert instr.get_qubits(False) == set(frame.qubits)
 
-    def test_expression(self, frame_mutation_instructions, expression):
+    def test_expression(self, frame_mutation_instructions, expression: ParameterDesignator):
         expression_names = ["freq", "phase", "freq", "phase", "scale"]
         for instr, expression_name in zip(frame_mutation_instructions, expression_names):
             assert getattr(instr, expression_name) == expression
             setattr(instr, expression_name, 3.14)
             assert getattr(instr, expression_name) == 3.14
+
+
+@pytest.mark.parametrize(
+    ("frame_a", "frame_b"),
+    [(Frame([Qubit(1)], "FRAMEX"), Frame([Qubit(2)], "FRAMEX"))],
+)
+class TestSwapPhase:
+    @pytest.fixture
+    def swap_phase(self, frame_a, frame_b):
+        return SwapPhase(frame_a, frame_b)
+
+    def test_out(self, swap_phase: SwapPhase, snapshot: SnapshotAssertion):
+        assert swap_phase.out() == snapshot
+
+    def test_frames(self, swap_phase: SwapPhase, frame_a: Frame, frame_b: Frame):
+        assert swap_phase.frameA == frame_a
+        assert swap_phase.frameB == frame_b
+        swap_phase.frameA = Frame([Qubit(123)], "NEW-FRAME")
+        swap_phase.frameB = Frame([Qubit(123)], "NEW-FRAME")
+        assert swap_phase.frameA == Frame([Qubit(123)], "NEW-FRAME")
+        assert swap_phase.frameB == Frame([Qubit(123)], "NEW-FRAME")
+
+    def test_get_qubits(self, swap_phase: SwapPhase, frame_a: Frame, frame_b: Frame):
+        expected_qubits = set(frame_a.qubits + frame_b.qubits)
+        assert swap_phase.get_qubits() == set([q.index for q in expected_qubits if isinstance(q, Qubit)])
+        assert swap_phase.get_qubits(False) == expected_qubits
