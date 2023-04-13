@@ -81,7 +81,7 @@ from pyquil.quilbase import (
     ShiftFrequency,
     SetPhase,
     ShiftPhase,
-    SwapPhase,
+    SwapPhases,
     SetScale,
     Capture,
     RawCapture,
@@ -387,9 +387,7 @@ DEFCIRCUIT parameterized(%theta, %phi) a:
 """.strip()
     gate_param = "parameterized(0.0, 1.0) 0"
 
-    parse_equals(
-        defcircuit + "\n" + gate, RawInstr(defcircuit), Gate("bell", [], [Qubit(0), Qubit(1)])
-    )
+    parse_equals(defcircuit + "\n" + gate, RawInstr(defcircuit), Gate("bell", [], [Qubit(0), Qubit(1)]))
     parse_equals(
         defcircuit_no_qubits + "\n" + gate_no_qubits,
         RawInstr(defcircuit_no_qubits),
@@ -544,10 +542,10 @@ def test_parsing_frame_mutations():
 
 
 def test_parsing_swap_phase():
-    parse_equals('SWAP-PHASE 0 "rf" 1 "rf"', SwapPhase(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf")))
+    parse_equals('SWAP-PHASE 0 "rf" 1 "rf"', SwapPhases(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf")))
     parse_equals(
         'SWAP-PHASE 0 1 "ff" 1 0 "ff"',
-        SwapPhase(Frame([Qubit(0), Qubit(1)], "ff"), Frame([Qubit(1), Qubit(0)], "ff")),
+        SwapPhases(Frame([Qubit(0), Qubit(1)], "ff"), Frame([Qubit(1), Qubit(0)], "ff")),
     )
 
 
@@ -674,7 +672,7 @@ def test_parse_defcal_error_on_mref():
 
 
 def test_parse_defgate_as_pauli():
-    """ Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now). """
+    """Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now)."""
     assert parse("DEFGATE RY(%theta) q AS PAULI-SUM:\n    Y(-%theta/2) q")
     with pytest.raises(UnexpectedToken) as excp:
         parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) q")
@@ -710,11 +708,17 @@ def test_parse_comments(program):
 
 
 def test_parse_strings_with_spaces():
-    Program(str(Program("""
+    Program(
+        str(
+            Program(
+                """
 DEFFRAME 0 "readout_tx":
     DIRECTION: "tx"
     INITIAL-FREQUENCY: 7220000000.0
     CENTER-FREQUENCY: 7125000000
     HARDWARE-OBJECT: "A_string_with_one space"
     SAMPLE-RATE: 1000000000.0
-""")))
+"""
+            )
+        )
+    )

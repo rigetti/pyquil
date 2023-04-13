@@ -335,6 +335,36 @@
 # name: TestFence.test_out[Qubit]
   'FENCE 0'
 # ---
+# name: TestFrameMutations.test_out[frame0-5.0]
+  'SET-FREQUENCY 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0].1
+  'SET-PHASE 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0].2
+  'SHIFT-FREQUENCY 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0].3
+  'SHIFT-PHASE 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0].4
+  'SET-SCALE 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1]
+  'SET-FREQUENCY 2 "FRAMEX" ro[0]'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1].1
+  'SET-PHASE 2 "FRAMEX" ro[0]'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1].2
+  'SHIFT-FREQUENCY 2 "FRAMEX" ro[0]'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1].3
+  'SHIFT-PHASE 2 "FRAMEX" ro[0]'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1].4
+  'SET-SCALE 2 "FRAMEX" ro[0]'
+# ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---
@@ -466,4 +496,7 @@
 # ---
 # name: TestReset.test_str[Qubit]
   'RESET 0'
+# ---
+# name: TestSwapPhases.test_out[frame_a0-frame_b0]
+  'SWAP-PHASES 1 "FRAMEX" 2 "FRAMEX"'
 # ---
