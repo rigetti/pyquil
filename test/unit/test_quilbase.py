@@ -34,6 +34,12 @@ from pyquil.quilbase import (
     Pulse,
     QubitDesignator,
     RawCapture,
+    SetFrequency,
+    SetPhase,
+    SetScale,
+    ShiftFrequency,
+    ShiftPhase,
+    SwapPhase,
     Reset,
     ResetQubit,
 )
@@ -915,3 +921,60 @@ class TestRawCapture:
         assert raw_capture.nonblocking == nonblocking
         raw_capture.nonblocking = not nonblocking
         assert raw_capture.nonblocking == (not nonblocking)
+
+
+@pytest.mark.parametrize(
+    ("frame", "expression"),
+    [
+        (Frame([Qubit(1), FormalArgument("a")], "FRAMEX"), 5.0),
+        (Frame([Qubit(2), FormalArgument("b")], "FRAMEX"), MemoryReference("ro")),
+    ],
+)
+class TestFrameMutations:
+    @pytest.fixture
+    def set_frequency(self, frame: Frame, expression: ParameterDesignator):
+        return SetFrequency(frame, expression)
+
+    @pytest.fixture
+    def set_phase(self, frame: Frame, expression: ParameterDesignator):
+        return SetPhase(frame, expression)
+
+    @pytest.fixture
+    def shift_frequency(self, frame: Frame, expression: ParameterDesignator):
+        return ShiftFrequency(frame, expression)
+
+    @pytest.fixture
+    def shift_phase(self, frame: Frame, expression: ParameterDesignator):
+        return ShiftPhase(frame, expression)
+
+    @pytest.fixture
+    def set_scale(self, frame: Frame, expression: ParameterDesignator):
+        return SetScale(frame, expression)
+
+    @pytest.fixture
+    def frame_mutation_instructions(
+        self, set_frequency, set_phase, shift_frequency, shift_phase, set_scale
+    ) -> tuple[SetFrequency, SetPhase, ShiftFrequency, ShiftPhase, SetScale]:
+        return (set_frequency, set_phase, shift_frequency, shift_phase, set_scale)
+
+    def test_out(self, frame_mutation_instructions, snapshot: SnapshotAssertion):
+        for instr in frame_mutation_instructions:
+            assert instr.out() == snapshot
+
+    def test_frame(self, frame_mutation_instructions, frame):
+        for instr in frame_mutation_instructions:
+            assert instr.frame == frame
+            instr.frame = Frame([Qubit(123)], "NEW-FRAME")
+            assert instr.frame == Frame([Qubit(123)], "NEW-FRAME")
+
+    def test_get_qubits(self, frame_mutation_instructions, frame):
+        for instr in frame_mutation_instructions:
+            assert instr.get_qubits() == set([q.index for q in frame.qubits if isinstance(q, Qubit)])
+            assert instr.get_qubits(False) == frame.qubits
+
+    def test_expression(self, frame_mutation_instructions, expression):
+        expression_names = ["freq", "phase", "freq", "phase", "scale"]
+        for instr, expression_name in zip(frame_mutation_instructions, expression_names):
+            assert getattr(instr, expression_name) == expression
+            setattr(instr, expression_name, 3.14)
+            assert getattr(instr, expression_name) == 3.14
