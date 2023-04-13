@@ -1468,7 +1468,6 @@ class SwapPhase(quil_rs.SwapPhases, AbstractInstruction):
         return {qubit.to_fixed() for qubit in super().frame_1.qubits + super().frame_2.qubits}
 
 
-
 class SetScale(quil_rs.SetScale, AbstractInstruction):
     def __new__(cls, frame: Frame, scale: ParameterDesignator):
         return super().__new__(cls, frame, _convert_to_rs_expression(scale))
