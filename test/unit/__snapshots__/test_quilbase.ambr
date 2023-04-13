@@ -498,5 +498,5 @@
   'RESET 0'
 # ---
 # name: TestSwapPhase.test_out[frame_a0-frame_b0]
-  'SWAP-PHASE 1 "FRAMEX" 2 "FRAMEX"'
+  'SWAP-PHASES 1 "FRAMEX" 2 "FRAMEX"'
 # ---

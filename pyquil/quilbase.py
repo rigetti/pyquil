@@ -1436,16 +1436,37 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
         return {qubit.to_fixed() for qubit in super().frame.qubits}
 
 
-class SwapPhase(AbstractInstruction):
-    def __init__(self, frameA: Frame, frameB: Frame):
-        self.frameA = frameA
-        self.frameB = frameB
+class SwapPhase(quil_rs.SwapPhases, AbstractInstruction):
+    def __new__(cls, frameA: Frame, frameB: Frame):
+        return super().__new__(cls, frameA, frameB)
+
+    @property
+    def frameA(self) -> Frame:
+        return Frame._from_rs_frame_identifier(super().frame_1)
+
+    @frameA.setter
+    def frameA(self, frame: Frame):
+        quil_rs.SwapPhases.frame_1.__set__(self, frame)
+
+    @property
+    def frameB(self) -> Frame:
+        return Frame._from_rs_frame_identifier(super().frame_2)
+
+    @frameB.setter
+    def frameB(self, frame: Frame):
+        quil_rs.SwapPhases.frame_2.__set__(self, frame)
 
     def out(self) -> str:
-        return f"SWAP-PHASE {self.frameA} {self.frameB}"
+        return str(self)
 
-    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
-        return _get_frame_qubits(self.frameA, indices) | _get_frame_qubits(self.frameB, indices)
+    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+        if indices:
+            return self.get_qubit_indices()
+        return set(self.frameA.qubits) | set(self.frameB.qubits)
+
+    def get_qubit_indices(self) -> Set[int]:
+        return {qubit.to_fixed() for qubit in super().frame_1.qubits + super().frame_2.qubits}
+
 
 
 class SetScale(quil_rs.SetScale, AbstractInstruction):
