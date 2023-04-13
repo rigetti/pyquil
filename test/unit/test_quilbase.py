@@ -10,12 +10,12 @@ from pyquil.gates import X
 from pyquil.quil import Program
 from pyquil.quilbase import (
     AbstractInstruction,
+    Capture,
     Declare,
     DefCalibration,
     DefCircuit,
     DefFrame,
     DefGate,
-    DefMeasureCalibration,
     DefWaveform,
     DefPermutationGate,
     DefGateByPaulis,
@@ -31,14 +31,16 @@ from pyquil.quilbase import (
     ParameterDesignator,
     Parameter,
     Pragma,
+    Pulse,
     QubitDesignator,
+    RawCapture,
     Reset,
     ResetQubit,
 )
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression
-from pyquil.paulis import PauliSum, PauliTerm
+from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference
 from pyquil.api._compiler import QPUCompiler
+from pyquil.quiltwaveforms import FlatWaveform
 
 
 @pytest.mark.parametrize(
@@ -762,3 +764,154 @@ class TestDefCircuit:
         assert def_circuit.instructions == instructions
         def_circuit.instructions = [Gate("new_gate", [], [Qubit(0)], [])]
         assert def_circuit.instructions == [Gate("new_gate", [], [Qubit(0)], [])]
+
+
+@pytest.mark.parametrize(
+    ("frame", "kernel", "memory_region", "nonblocking"),
+    [
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            WaveformReference("WAVEFORMY"),
+            MemoryReference("ro"),
+            False,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            WaveformReference("WAVEFORMY"),
+            MemoryReference("ro"),
+            True,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
+            MemoryReference("ro"),
+            True,
+        ),
+    ],
+    ids=("Blocking", "NonBlocking", "TemplateWaveform"),
+)
+class TestCapture:
+    @pytest.fixture
+    def capture(self, frame: Frame, kernel: Waveform, memory_region: MemoryReference, nonblocking: bool):
+        return Capture(frame, kernel, memory_region, nonblocking)
+
+    def test_out(self, capture: Capture, snapshot: SnapshotAssertion):
+        assert capture.out() == snapshot
+
+    def test_frame(self, capture: Capture, frame: Frame):
+        assert capture.frame == frame
+        capture.frame = Frame([Qubit(123)], "new-frame")
+        assert capture.frame == Frame([Qubit(123)], "new-frame")
+
+    def test_kernel(self, capture: Capture, kernel: Waveform):
+        assert capture.kernel == kernel
+        capture.kernel = WaveformReference("new-waveform")
+        assert capture.kernel == WaveformReference("new-waveform")
+
+    def test_memory_region(self, capture: Capture, memory_region: MemoryReference):
+        assert capture.memory_region == memory_region
+        capture.memory_region = MemoryReference("new-memory-reference")
+        assert capture.memory_region == MemoryReference("new-memory-reference")
+
+    def test_nonblocking(self, capture: Capture, nonblocking: bool):
+        assert capture.nonblocking == nonblocking
+        capture.nonblocking = not nonblocking
+        assert capture.nonblocking == (not nonblocking)
+
+
+@pytest.mark.parametrize(
+    ("frame", "waveform", "nonblocking"),
+    [
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            WaveformReference("WAVEFORMY"),
+            False,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            WaveformReference("WAVEFORMY"),
+            True,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
+            True,
+        ),
+    ],
+    ids=("Blocking", "NonBlocking", "FlatWaveform"),
+)
+class TestPulse:
+    @pytest.fixture
+    def pulse(self, frame: Frame, waveform: Waveform, nonblocking: bool):
+        return Pulse(frame, waveform, nonblocking)
+
+    def test_out(self, pulse: Pulse, snapshot: SnapshotAssertion):
+        assert pulse.out() == snapshot
+
+    def test_frame(self, pulse: Pulse, frame: Frame):
+        assert pulse.frame == frame
+        pulse.frame = Frame([Qubit(123)], "new-frame")
+        assert pulse.frame == Frame([Qubit(123)], "new-frame")
+
+    def test_waveform(self, pulse: Pulse, waveform: Waveform):
+        assert pulse.waveform == waveform
+        pulse.waveform = WaveformReference("new-waveform")
+        assert pulse.waveform == WaveformReference("new-waveform")
+
+    def test_nonblocking(self, pulse: Pulse, nonblocking: bool):
+        assert pulse.nonblocking == nonblocking
+        pulse.nonblocking = not nonblocking
+        assert pulse.nonblocking == (not nonblocking)
+
+
+@pytest.mark.parametrize(
+    ("frame", "duration", "memory_region", "nonblocking"),
+    [
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            0.5,
+            MemoryReference("ro"),
+            False,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            2.5,
+            MemoryReference("ro"),
+            True,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            2.5,
+            MemoryReference("ro"),
+            True,
+        ),
+    ],
+    ids=("Blocking", "NonBlocking", "FlatWaveform"),
+)
+class TestRawCapture:
+    @pytest.fixture
+    def raw_capture(self, frame: Frame, duration: float, memory_region: MemoryReference, nonblocking: bool):
+        return RawCapture(frame, duration, memory_region, nonblocking)
+
+    def test_out(self, raw_capture: RawCapture, snapshot: SnapshotAssertion):
+        assert raw_capture.out() == snapshot
+
+    def test_frame(self, raw_capture: RawCapture, frame: Frame):
+        assert raw_capture.frame == frame
+        raw_capture.frame = Frame([Qubit(123)], "new-frame")
+        assert raw_capture.frame == Frame([Qubit(123)], "new-frame")
+
+    def test_duration(self, raw_capture: RawCapture, duration: float):
+        assert raw_capture.duration == duration
+        raw_capture.duration = 3.14
+        assert raw_capture.duration == 3.14
+
+    def test_memory_region(self, raw_capture: RawCapture, memory_region: MemoryReference):
+        assert raw_capture.memory_region == memory_region
+        raw_capture.memory_region = MemoryReference("new-memory-reference")
+        assert raw_capture.memory_region == MemoryReference("new-memory-reference")
+
+    def test_nonblocking(self, raw_capture: RawCapture, nonblocking: bool):
+        assert raw_capture.nonblocking == nonblocking
+        raw_capture.nonblocking = not nonblocking
+        assert raw_capture.nonblocking == (not nonblocking)

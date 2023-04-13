@@ -1,3 +1,12 @@
+# name: TestCapture.test_out[Blocking]
+  'CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
+# ---
+# name: TestCapture.test_out[NonBlocking]
+  'NONBLOCKING CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
+# ---
+# name: TestCapture.test_out[TemplateWaveform]
+  'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2i) ro[0]'
+# ---
 # name: TestDeclare.test_asdict[Defaults]
   dict({
     'memory_size': 1,
@@ -276,21 +285,6 @@
   
   '''
 # ---
-# name: TestDelayFrames.test_out[frames0-5.0]
-  'DELAY 0 "frame" 5'
-# ---
-# name: TestDelayQubits.test_out[FormalArgument]
-  'DELAY a 2.5'
-# ---
-# name: TestDelayQubits.test_out[Qubit]
-  'DELAY 0 5'
-# ---
-# name: TestFence.test_out[FormalArgument]
-  'FENCE a'
-# ---
-# name: TestFence.test_out[Qubit]
-  'FENCE 0'
-# ---
 # name: TestDefPermutationGate.test_get_constructor[PermGate-permutation0]
   'PermGate 123'
 # ---
@@ -325,6 +319,21 @@
   DEFWAVEFORM Wavey(%x,%y):
   	1+2i, %x, (3*%y)
   '''
+# ---
+# name: TestDelayFrames.test_out[frames0-5.0]
+  'DELAY 0 "frame" 5'
+# ---
+# name: TestDelayQubits.test_out[FormalArgument]
+  'DELAY a 2.5'
+# ---
+# name: TestDelayQubits.test_out[Qubit]
+  'DELAY 0 5'
+# ---
+# name: TestFence.test_out[FormalArgument]
+  'FENCE a'
+# ---
+# name: TestFence.test_out[Qubit]
+  'FENCE 0'
 # ---
 # name: TestGate.test_controlled_modifier[CPHASE-Expression]
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
@@ -421,6 +430,24 @@
 # ---
 # name: TestPragma.test_str[With-String]
   'PRAGMA INITIAL_REWIRING "GREEDY"'
+# ---
+# name: TestPulse.test_out[Blocking]
+  'PULSE 123 q "FRAMEX" WAVEFORMY'
+# ---
+# name: TestPulse.test_out[FlatWaveform]
+  'NONBLOCKING PULSE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2i)'
+# ---
+# name: TestPulse.test_out[NonBlocking]
+  'NONBLOCKING PULSE 123 q "FRAMEX" WAVEFORMY'
+# ---
+# name: TestRawCapture.test_out[Blocking]
+  'RAW-CAPTURE 123 q "FRAMEX" 0.5 ro[0]'
+# ---
+# name: TestRawCapture.test_out[FlatWaveform]
+  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 ro[0]'
+# ---
+# name: TestRawCapture.test_out[NonBlocking]
+  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 ro[0]'
 # ---
 # name: TestReset.test_out[FormalArgument]
   'RESET a'

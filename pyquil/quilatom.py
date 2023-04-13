@@ -14,14 +14,13 @@
 #    limitations under the License.
 ##############################################################################
 
-from dataclasses import FrozenInstanceError, dataclass
 from fractions import Fraction
-from math import pi
 from numbers import Complex, Number
 from typing import (
     Any,
     Callable,
     ClassVar,
+    Dict,
     List,
     Iterable,
     Mapping,
@@ -33,11 +32,14 @@ from typing import (
     Union,
     cast,
 )
+from deprecation import deprecated
 
 import numpy as np
 
 import quil.instructions as quil_rs
 import quil.expression as quil_rs_expr
+
+from pyquil._version import pyquil_version
 
 
 class QuilAtom(object):
@@ -328,7 +330,9 @@ def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> Lis
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
-def _convert_to_py_parameter(parameter: ParameterDesignator) -> ParameterDesignator:
+def _convert_to_py_parameter(
+    parameter: Union[ParameterDesignator, quil_rs.MemoryReference, quil_rs_expr.Expression]
+) -> ParameterDesignator:
     if isinstance(parameter, quil_rs_expr.Expression):
         if parameter.is_address():
             return MemoryReference._from_rs_memory_reference(parameter.to_address())
@@ -899,26 +903,87 @@ class Frame(quil_rs.FrameIdentifier):
         return str(self)
 
 
-@dataclass
-class WaveformReference(QuilAtom):
+class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
+    def __new__(cls, name: str, parameters: Optional[Dict[str, ParameterDesignator]] = None):
+        if parameters is None:
+            parameters = {}
+        rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
+        return super().__new__(cls, name, rs_parameters)
+
+    @property
+    def parameters(self) -> Dict[str, ParameterDesignator]:
+        return {key: _convert_to_py_parameter(value) for key, value in super().parameters.items()}
+
+    @parameters.setter
+    def parameters(self, parameters: Dict[str, ParameterDesignator]):
+        rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
+        quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)
+
+    def out(self) -> str:
+        return str(self)
+
+
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The WaveformReference class will be removed, consider using WaveformInvocation instead.",
+)
+class WaveformReference(WaveformInvocation):
     """
     Representation of a Waveform reference.
     """
 
-    name: str
-    """ The name of the waveform. """
+    def __new__(cls, name: str):
+        return super().__new__(cls, name, {})
+
+
+def _template_waveform_property(name: str, doc: Optional[str] = None):
+    """
+    Helper method for initializing getters, setters, and deleters for
+    parameters on a ``TemplateWaveform``. Should only be used inside of
+    ``TemplateWaveform`` or one its base classes.
+    """
+
+    def fget(self: "TemplateWaveform"):
+        return self.get_parameter(name)
+
+    def fset(self: "TemplateWaveform", value: ParameterDesignator):
+        self.set_parameter(name, value)
+
+    def fdel(self: "TemplateWaveform"):
+        self.set_parameter(name, None)
+
+    return property(fget, fset, fdel, doc)
+
+
+class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
+    @deprecated(
+        deprecated_in="4.0",
+        removed_in="5.0",
+        current_version=pyquil_version,
+        details="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
+    )
+    def __new__(cls, name: str, *, duration: float, **kwargs):
+        rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
+        rs_parameters["duration"] = _convert_to_rs_expression(duration)
+        return super().__new__(cls, name, rs_parameters)
 
     def out(self) -> str:
-        return self.name
+        return str(self)
 
-    def __str__(self) -> str:
-        return self.out()
+    def get_parameter(self, name: str) -> Optional[ParameterDesignator]:
+        return _convert_to_py_parameter(super().parameters.get(name, None))
 
+    def set_parameter(self, name: str, value: Optional[ParameterDesignator]):
+        parameters = super().parameters
+        if value is None:
+            parameters.pop(name, None)
+        else:
+            parameters[name] = _convert_to_rs_expression(value)
+        quil_rs.WaveformInvocation.parameters.__set__(self, parameters)
 
-@dataclass
-class TemplateWaveform(QuilAtom):
-    duration: float
-    """ The duration [seconds] of the waveform. """
+    duration = _template_waveform_property("duration")
 
     def num_samples(self, rate: float) -> int:
         """The number of samples in the reference implementation of the waveform.
@@ -945,6 +1010,10 @@ class TemplateWaveform(QuilAtom):
 
         """
         raise NotImplementedError()
+
+    @classmethod
+    def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation):
+        return super().__new__(cls, waveform.name, waveform.parameters)
 
 
 def _update_envelope(
@@ -976,6 +1045,15 @@ def _update_envelope(
 
 
 Waveform = Union[WaveformReference, TemplateWaveform]
+
+
+def _convert_to_py_waveform(waveform: quil_rs.WaveformInvocation) -> Waveform:
+    if not isinstance(waveform, quil_rs.WaveformInvocation):
+        raise TypeError(f"{type(waveform)} is not a WaveformInvocation")
+    if len(waveform.parameters) == 0:
+        return WaveformReference(waveform.name)
+
+    return TemplateWaveform._from_rs_waveform_invocation(waveform)
 
 
 def _complex_str(iq: Any) -> str:
