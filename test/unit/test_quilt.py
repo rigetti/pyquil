@@ -1,5 +1,5 @@
+import os
 import pytest
-
 import numpy as np
 
 from pyquil.quil import Program
@@ -31,6 +31,7 @@ from pyquil.quilbase import (
     DelayQubits,
     Qubit,
 )
+from test.unit.conftest import TEST_DATA_DIR
 
 
 def test_waveform_samples():
@@ -368,3 +369,14 @@ DEFWAVEFORM foo:
     prog_2 = Program()
     prog_2 += prog_1
     assert len(prog_2.waveforms) == 1
+
+
+@pytest.mark.parametrize("calibration_program_suffix", ["rx", "cz", "cz_cphase", "xy", "measure"])
+def test_round_trip_calibration_program(calibration_program_suffix):
+    """Test we round-trip a multi-part Quil-T calibration program; tests calibration overlap elimination."""
+    with open(os.path.join(TEST_DATA_DIR, f"calibration_program_{calibration_program_suffix}.quil")) as file:
+        calibration_program_text = file.read()
+
+    calibration_program = Program(calibration_program_text)
+    calibration_program_text_out = calibration_program.out()
+    assert calibration_program_text_out == calibration_program_text
