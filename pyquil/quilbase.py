@@ -1436,7 +1436,7 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
         return {qubit.to_fixed() for qubit in super().frame.qubits}
 
 
-class SwapPhase(quil_rs.SwapPhases, AbstractInstruction):
+class SwapPhases(quil_rs.SwapPhases, AbstractInstruction):
     def __new__(cls, frameA: Frame, frameB: Frame):
         return super().__new__(cls, frameA, frameB)
 

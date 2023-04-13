@@ -39,7 +39,7 @@ from pyquil.quilbase import (
     SetScale,
     ShiftFrequency,
     ShiftPhase,
-    SwapPhase,
+    SwapPhases,
     Reset,
     ResetQubit,
 )
@@ -984,15 +984,15 @@ class TestFrameMutations:
     ("frame_a", "frame_b"),
     [(Frame([Qubit(1)], "FRAMEX"), Frame([Qubit(2)], "FRAMEX"))],
 )
-class TestSwapPhase:
+class TestSwapPhases:
     @pytest.fixture
     def swap_phase(self, frame_a, frame_b):
-        return SwapPhase(frame_a, frame_b)
+        return SwapPhases(frame_a, frame_b)
 
-    def test_out(self, swap_phase: SwapPhase, snapshot: SnapshotAssertion):
+    def test_out(self, swap_phase: SwapPhases, snapshot: SnapshotAssertion):
         assert swap_phase.out() == snapshot
 
-    def test_frames(self, swap_phase: SwapPhase, frame_a: Frame, frame_b: Frame):
+    def test_frames(self, swap_phase: SwapPhases, frame_a: Frame, frame_b: Frame):
         assert swap_phase.frameA == frame_a
         assert swap_phase.frameB == frame_b
         swap_phase.frameA = Frame([Qubit(123)], "NEW-FRAME")
@@ -1000,7 +1000,7 @@ class TestSwapPhase:
         assert swap_phase.frameA == Frame([Qubit(123)], "NEW-FRAME")
         assert swap_phase.frameB == Frame([Qubit(123)], "NEW-FRAME")
 
-    def test_get_qubits(self, swap_phase: SwapPhase, frame_a: Frame, frame_b: Frame):
+    def test_get_qubits(self, swap_phase: SwapPhases, frame_a: Frame, frame_b: Frame):
         expected_qubits = set(frame_a.qubits + frame_b.qubits)
         assert swap_phase.get_qubits() == set([q.index for q in expected_qubits if isinstance(q, Qubit)])
         assert swap_phase.get_qubits(False) == expected_qubits

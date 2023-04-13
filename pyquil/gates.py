@@ -65,7 +65,7 @@ from pyquil.quilbase import (
     ShiftFrequency,
     SetPhase,
     ShiftPhase,
-    SwapPhase,
+    SwapPhases,
     SetScale,
     Capture,
     RawCapture,
@@ -930,7 +930,7 @@ def SHIFT_PHASE(frame: Frame, phase: ParameterDesignator) -> ShiftPhase:
     return ShiftPhase(frame, phase)
 
 
-def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhase:
+def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhases:
     """
     Produce a SWAP-PHASE instruction.
 
@@ -938,7 +938,7 @@ def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhase:
     :param frameB: A frame.
     :returns: A SwapPhase instance.
     """
-    return SwapPhase(frameA, frameB)
+    return SwapPhases(frameA, frameB)
 
 
 def SET_SCALE(frame: Frame, scale: ParameterDesignator) -> SetScale:
