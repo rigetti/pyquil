@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.1
+
+### Fixes
+
+- regression on pyquil 3.4.0 regarding DEFCAL filtering (#1562)
+
 ## 3.4.0
 
 ### Features
