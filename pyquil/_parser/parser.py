@@ -138,6 +138,7 @@ class QuilTransformer(Transformer):  # type: ignore
             "SAMPLE-RATE": "sample_rate",
             "CENTER-FREQUENCY": "center_frequency",
             "ENABLE-RAW-CAPTURE": "enable_raw_capture",
+            "CHANNEL-DELAY": "channel_delay",
         }
         options = {}
 
