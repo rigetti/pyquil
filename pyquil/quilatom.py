@@ -15,7 +15,7 @@
 ##############################################################################
 
 from fractions import Fraction
-from numbers import Complex, Number
+from numbers import Number
 from typing import (
     Any,
     Callable,
@@ -907,8 +907,8 @@ class Frame(quil_rs.FrameIdentifier):
         return super().__new__(cls, frame.name, frame.qubits)
 
     @property  # type: ignore[override]
-    def qubits(self) -> Tuple[QubitDesignator]:
-        return tuple(_convert_to_py_qubits(super().qubits))  # type: ignore
+    def qubits(self) -> Tuple[QubitDesignator, ...]:
+        return tuple(_convert_to_py_qubits(super().qubits))
 
     @qubits.setter
     def qubits(self, qubits: Tuple[Qubit, FormalArgument]) -> None:
