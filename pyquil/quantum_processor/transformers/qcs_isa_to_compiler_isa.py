@@ -168,13 +168,12 @@ def _make_rx_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
 
 
 def _make_rz_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
-    fidelity = _get_frb_sim_1q(node_id, benchmarks)
     return [
         GateInfo(
             operator=Supported1QGate.RZ,
             parameters=["_"],
             arguments=[node_id],
-            fidelity=fidelity,
+            fidelity=PERFECT_FIDELITY,
             duration=PERFECT_DURATION,
         )
     ]

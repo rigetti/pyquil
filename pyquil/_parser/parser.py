@@ -1,3 +1,4 @@
+import json
 import pkgutil
 import operator
 from typing import List
@@ -142,7 +143,7 @@ class QuilTransformer(Transformer):  # type: ignore
         for (spec_name, spec_value) in specs:
             name = names.get(spec_name, None)
             if name:
-                options[name] = spec_value
+                options[name] = json.loads(str(spec_value))
             else:
                 raise ValueError(
                     f"Unexpectected attribute {spec_name} in definition of frame {frame}. " f"{frame}, {specs}"

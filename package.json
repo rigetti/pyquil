@@ -30,7 +30,7 @@
       }],
       "@semantic-release/github",
       ["@semantic-release/git", {
-        "assets": ["pyproject.toml", "setup.py"],
+        "assets": ["pyproject.toml"],
         "message": "Release v${nextRelease.version} [skip ci]"
       }]
     ],
