@@ -912,7 +912,7 @@ class Frame(quil_rs.FrameIdentifier):
 
     @qubits.setter
     def qubits(self, qubits: Tuple[Qubit, FormalArgument]) -> None:
-        quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))
+        quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
     def out(self) -> str:
         return str(self)
@@ -925,14 +925,14 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
         return super().__new__(cls, name, rs_parameters)
 
-    @property
+    @property  # type: ignore[override]
     def parameters(self) -> Dict[str, ParameterDesignator]:
         return {key: _convert_to_py_parameter(value) for key, value in super().parameters.items()}
 
     @parameters.setter
-    def parameters(self, parameters: Dict[str, ParameterDesignator]):
+    def parameters(self, parameters: Dict[str, ParameterDesignator]) -> None:
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
-        quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)
+        quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
 
     def out(self) -> str:
         return str(self)
@@ -949,7 +949,7 @@ class WaveformReference(WaveformInvocation):
     Representation of a Waveform reference.
     """
 
-    def __new__(cls, name: str):
+    def __new__(cls, name: str) -> Self:
         return super().__new__(cls, name, {})
 
 
@@ -960,7 +960,7 @@ def _template_waveform_property(name: str, doc: Optional[str] = None) -> propert
     ``TemplateWaveform`` or one its base classes.
     """
 
-    def fget(self: "TemplateWaveform"):  # type: ignore[no-untyped-def]
+    def fget(self: "TemplateWaveform") -> Optional[ParameterDesignator]:
         return self.get_parameter(name)
 
     def fset(self: "TemplateWaveform", value: ParameterDesignator) -> None:
