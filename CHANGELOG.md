@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.5.0-rc.0
+
+### Features
+
+- Add CHANNEL-DELAY attribute to DefFrame (#1564)
+
 ## 3.4.1
 
 ### Fixes
