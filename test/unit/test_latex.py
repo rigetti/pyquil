@@ -3,7 +3,7 @@ import pytest
 from pyquil.quil import Program, Pragma
 from pyquil.quilbase import Declare, Measurement, JumpTarget, Jump
 from pyquil.quilatom import MemoryReference, Label
-from pyquil.gates import H, X, Y, RX, CZ, SWAP, MEASURE, CNOT, WAIT, MOVE
+from pyquil.gates import H, X, Y, XY, RX, CZ, CPHASE, SWAP, MEASURE, CNOT, WAIT, MOVE
 from pyquil.latex import to_latex, DiagramSettings
 from pyquil.latex._diagram import split_on_terminal_measures
 
@@ -125,6 +125,71 @@ def test_controlled_gate():
     \begin{tikzcd}
     \lstick{\ket{q_{2}}} & \gate{H} &  \qw \\
     \lstick{\ket{q_{3}}} & \ctrl{-1} & \qw
+    \end{tikzcd}
+    """.strip().split()
+
+    actual = to_latex(prog).split()
+    start_idx = actual.index("\\begin{tikzcd}")
+    assert expected == actual[start_idx : start_idx + len(expected)]
+
+
+def test_3q_xy_circuit():
+    """Check to ensure gates are placed on the expected wires."""
+    prog = Program(XY(0.1, 2, 1), XY(0.2, 2, 3))
+
+    expected = r"""
+    \begin{tikzcd}
+    \lstick{\ket{q_{1}}} & \gate[wires=2]{XY(0.1)} & \qw & \qw \\
+    \lstick{\ket{q_{2}}} & \qw & \gate[wires=2]{XY(0.2)} & \qw \\
+    \lstick{\ket{q_{3}}} & \qw & \qw & \qw
+    \end{tikzcd}
+    """.strip().split()
+
+    actual = to_latex(prog).split()
+    start_idx = actual.index("\\begin{tikzcd}")
+    assert expected == actual[start_idx : start_idx + len(expected)]
+
+
+def test_2q_cphase_circuit():
+    """Check CPHASE is explicitly placed on the diagram."""
+    prog = Program(CPHASE(0.1, 1, 2))
+
+    expected = r"""
+    \begin{tikzcd}
+    \lstick{\ket{q_{1}}} & \gate[wires=2]{CPHASE(0.1)} & \qw \\
+    \lstick{\ket{q_{2}}} & \qw & \qw
+    \end{tikzcd}
+    """.strip().split()
+
+    actual = to_latex(prog).split()
+    start_idx = actual.index("\\begin{tikzcd}")
+    assert expected == actual[start_idx : start_idx + len(expected)]
+
+
+def test_2q_cnot_circuit():
+    """Check CNOT circuit displays expected control and target qubits."""
+    prog = Program(CNOT(0, 1))
+
+    expected = r"""
+    \begin{tikzcd}
+    \lstick{\ket{q_{0}}} & \ctrl{1} & \qw \\
+    \lstick{\ket{q_{1}}} & \targ{} & \qw
+    \end{tikzcd}
+    """.strip().split()
+
+    actual = to_latex(prog).split()
+    start_idx = actual.index("\\begin{tikzcd}")
+    assert expected == actual[start_idx : start_idx + len(expected)]
+
+
+def test_2q_swap_cnot_circuit():
+    """Check qubit swap of CNOT circuit displays expected control and target qubits."""
+    prog = Program(CNOT(1, 0))
+
+    expected = r"""
+    \begin{tikzcd}
+    \lstick{\ket{q_{0}}} & \targ{} & \qw \\
+    \lstick{\ket{q_{1}}} & \ctrl{-1} & \qw
     \end{tikzcd}
     """.strip().split()
 

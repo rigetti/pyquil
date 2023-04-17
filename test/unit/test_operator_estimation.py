@@ -1393,7 +1393,7 @@ def test_measure_2q_observable_raw_statistics(client_configuration: QCSClientCon
     # calculate expectation value of Z^{\otimes 2}
     z_expectation = (p0000 + p1100) - (p0100 + p1000)
     # calculate standard deviation of the mean
-    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / p.num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation**2) / p.num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
@@ -1465,7 +1465,7 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(client_configuration: Q
     pr11 = p1100 * alph00 + p1101 * alph01 + p1110 * alph10 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
-    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / p.num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation**2) / p.num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
@@ -1525,7 +1525,7 @@ def test_raw_statistics_2q_nontrivial_entangled_state(client_configuration: QCSC
     pr11 = p1100 * alph00 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
-    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / p.num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation**2) / p.num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)

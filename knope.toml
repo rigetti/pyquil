@@ -1,0 +1,40 @@
+[[packages]]
+versioned_files = ["pyproject.toml"]
+changelog = "CHANGELOG.md"
+
+[[workflows]]
+name = "release"
+
+[[workflows.steps]]
+type = "PrepareRelease"
+
+[[workflows.steps]]
+type = "Command"
+command = "git add pyproject.toml CHANGELOG.md && git commit -m \"chore: prepare release $version\" && git push"
+
+[workflows.steps.variables]
+"$version" = "Version"
+
+[[workflows.steps]]
+type = "Release"
+
+[[workflows]]
+name = "prerelease"
+
+[[workflows.steps]]
+type = "PrepareRelease"
+prerelease_label = "rc"
+
+[[workflows.steps]]
+type = "Command"
+command = "git add pyproject.toml CHANGELOG.md && git commit -m \"chore: prepare release $version\" && git push"
+
+[workflows.steps.variables]
+"$version" = "Version"
+
+[[workflows.steps]]
+type = "Release"
+
+[github]
+owner = "rigetti"
+repo = "pyquil"

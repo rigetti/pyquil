@@ -66,6 +66,8 @@ frame_spec : _NEWLINE_TAB frame_attr ":" ( expression | string )
             | "DIRECTION"
             | "HARDWARE-OBJECT"
             | "CENTER-FREQUENCY"
+            | "ENABLE-RAW-CAPTURE"
+            | "CHANNEL-DELAY"
 
 def_waveform : "DEFWAVEFORM" waveform_name params ":" matrix
 

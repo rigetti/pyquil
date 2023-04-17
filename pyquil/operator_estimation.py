@@ -324,7 +324,7 @@ def _stats_from_measurements(
     setting: ExperimentSetting,
     n_shots: int,
     coeff: float = 1.0,
-) -> Tuple[np.number, np.number]:  # type: ignore
+) -> Tuple[np.number, np.number]:
     """
     :param bs_results: results from running `qc.run`
     :param qubit_index_map: dict mapping qubit to classical register index

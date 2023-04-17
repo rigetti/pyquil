@@ -160,22 +160,22 @@ class Program:
 
     @property
     def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
-        """ A list of Quil-T calibration definitions. """
+        """A list of Quil-T calibration definitions."""
         return self._calibrations
 
     @property
     def waveforms(self) -> Dict[str, DefWaveform]:
-        """ A mapping from waveform names to their corresponding definitions. """
+        """A mapping from waveform names to their corresponding definitions."""
         return self._waveforms
 
     @property
     def frames(self) -> Dict[Frame, DefFrame]:
-        """ A mapping from Quil-T frames to their definitions. """
+        """A mapping from Quil-T frames to their definitions."""
         return self._frames
 
     @property
     def declarations(self) -> Dict[str, Declare]:
-        """ A mapping from declared region names to their declarations. """
+        """A mapping from declared region names to their declarations."""
         return self._declarations
 
     def copy_everything_except_instructions(self) -> "Program":
@@ -289,13 +289,68 @@ class Program:
 
             # Implementation note: these two base cases are the only ones which modify the program
             elif isinstance(instruction, DefGate):
-                defined_gate_names = [gate.name for gate in self._defined_gates]
-                if instruction.name in defined_gate_names:
-                    warnings.warn("Gate {} has already been defined in this program".format(instruction.name))
+                # If the gate definition differs from the current one, print a warning and replace it.
+                r_idx, existing_defgate = next(
+                    (
+                        (i, gate)
+                        for i, gate in enumerate(reversed(self._defined_gates))
+                        if gate.name == instruction.name
+                    ),
+                    (0, None),
+                )
+                if existing_defgate is None:
+                    self._defined_gates.append(instruction)
 
-                self._defined_gates.append(instruction)
-            elif isinstance(instruction, DefCalibration) or isinstance(instruction, DefMeasureCalibration):
-                self.calibrations.append(instruction)
+                # numerical unitary
+                elif (instruction.matrix.dtype == np.complex_) or (instruction.matrix.dtype == np.float_):
+                    if not np.allclose(existing_defgate.matrix, instruction.matrix):
+                        warnings.warn("Redefining gate {}".format(instruction.name))
+                        self._defined_gates[-r_idx] = instruction
+
+                # parametric unitary
+                else:
+                    if not np.all(existing_defgate.matrix == instruction.matrix):
+                        warnings.warn("Redefining gate {}".format(instruction.name))
+                        self._defined_gates[-r_idx] = instruction
+
+            elif isinstance(instruction, DefCalibration):
+                # If the instruction calibration differs from the current one, print a warning and replace it.
+                r_idx, existing_calibration = next(
+                    (
+                        (i, gate)
+                        for i, gate in enumerate(reversed(self.calibrations))
+                        if isinstance(gate, DefCalibration)
+                        and (gate.name == instruction.name)
+                        and (gate.parameters == instruction.parameters)
+                        and (gate.qubits == instruction.qubits)
+                    ),
+                    (0, None),
+                )
+
+                if existing_calibration is None:
+                    self._calibrations.append(instruction)
+                else:
+                    if existing_calibration.out() != instruction.out():
+                        warnings.warn("Redefining calibration {}".format(instruction.name))
+                        self._calibrations[-r_idx] = instruction
+
+            elif isinstance(instruction, DefMeasureCalibration):
+                r_idx, existing_measure_calibration = next(
+                    (
+                        (i, meas)
+                        for i, meas in enumerate(reversed(self.calibrations))
+                        if isinstance(meas, DefMeasureCalibration)
+                        and (meas.name == instruction.name)
+                        and (meas.qubit == instruction.qubit)
+                    ),
+                    (0, None),
+                )
+                if existing_measure_calibration is None:
+                    self._calibrations.append(instruction)
+                else:
+                    warnings.warn("Redefining DefMeasureCalibration {}".format(instruction.name))
+                    self._calibrations[-r_idx] = instruction
+
             elif isinstance(instruction, DefWaveform):
                 self.waveforms[instruction.name] = instruction
             elif isinstance(instruction, DefFrame):
@@ -874,9 +929,9 @@ class Program:
         p = Program()
         p.inst(self)
         p.inst(other)
-        p._calibrations = self.calibrations
-        p._waveforms = self.waveforms
-        p._frames = self.frames
+        p._calibrations = self.calibrations.copy()
+        p._waveforms = self.waveforms.copy()
+        p._frames = self.frames.copy()
         p._memory = self._memory.copy()
         if isinstance(other, Program):
             p.calibrations.extend(other.calibrations)
@@ -925,6 +980,9 @@ class Program:
 
     def __len__(self) -> int:
         return len(self.instructions)
+
+    def __hash__(self) -> int:
+        return hash(self.out())
 
     def __str__(self) -> str:
         """

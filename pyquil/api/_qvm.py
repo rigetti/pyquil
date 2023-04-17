@@ -131,7 +131,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         if not isinstance(executable, Program):
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
-        result_memory = {}
+        result_memory: dict = {}
 
         for region in executable.declarations.keys():
             result_memory[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
