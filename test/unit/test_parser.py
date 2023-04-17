@@ -602,17 +602,25 @@ def test_parsing_defframe():
         'DEFFRAME 0 "rf":\n'
         '    SAMPLE-RATE: 2.0\n'
         '    INITIAL-FREQUENCY: 10\n'
-        '    ENABLE-RAW-CAPTURE: "true"',
+        '    ENABLE-RAW-CAPTURE: "true"\n'
+        '    CHANNEL-DELAY: 20e-9',
         DefFrame(
             Frame([Qubit(0)], "rf"),
             sample_rate=2.0,
             initial_frequency=10,
             enable_raw_capture="true",
+            channel_delay=20e-9,
         ),
     )
     assert DefFrame(
-        Frame([Qubit(0)], "rf"), enable_raw_capture="true"
-    ).out() == 'DEFFRAME 0 "rf":\n    ENABLE-RAW-CAPTURE: "true"\n'
+        Frame([Qubit(0)], "rf"),
+        enable_raw_capture="true",
+        channel_delay=12e-9,
+    ).out() == (
+        'DEFFRAME 0 "rf":\n'
+        '    ENABLE-RAW-CAPTURE: "true"\n'
+        '    CHANNEL-DELAY: 1.2e-08\n'
+    )
 
     with pytest.raises(UnexpectedToken) as excp:
         parse('DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n")
