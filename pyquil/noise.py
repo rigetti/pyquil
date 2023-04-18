@@ -62,7 +62,7 @@ class KrausModel(_KrausModel):
         """
         matrix = np.asarray(m, dtype=complex)
         if matrix.ndim == 3:
-            matrix: np.ndarray = matrix[0] + 1j * matrix[1]
+            matrix = matrix[0] + 1j * matrix[1]
         if not matrix.ndim == 2:  # pragma no coverage
             raise ValueError("Need 2d array.")
         if not matrix.shape[0] == matrix.shape[1]:  # pragma no coverage
@@ -281,7 +281,7 @@ def damping_kraus_map(p: float = 0.10) -> List[np.ndarray]:
     """
     damping_op = np.sqrt(p) * np.array([[0, 1], [0, 0]])
 
-    residual_kraus = np.diag([1, np.sqrt(1 - p)])  # type: ignore
+    residual_kraus = np.diag([1, np.sqrt(1 - p)])
     return [residual_kraus, damping_op]
 
 
@@ -293,7 +293,7 @@ def dephasing_kraus_map(p: float = 0.10) -> List[np.ndarray]:
     :return: A list [k1, k2] of the Kraus operators that parametrize the map.
     :rtype: list
     """
-    return [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * np.diag([1, -1])]  # type: ignore
+    return [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * np.diag([1, -1])]
 
 
 def tensor_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.ndarray]:
@@ -305,7 +305,7 @@ def tensor_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.nda
     :param k2: The Kraus operators for the second qubit.
     :return: A list of tensored Kraus operators.
     """
-    return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]  # type: ignore
+    return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]
 
 
 def combine_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.ndarray]:
@@ -318,7 +318,7 @@ def combine_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.nd
     :param k2: The list of Kraus operators that are applied first.
     :return: A combinatorially generated list of composed Kraus operators.
     """
-    return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]  # type: ignore
+    return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]
 
 
 def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> List[np.ndarray]:
@@ -391,7 +391,7 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tup
             return np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180"
     elif gate_name == "CZ":
         assert params == ()
-        return np.diag([1, 1, 1, -1]), "NOISY-CZ"  # type: ignore
+        return np.diag([1, 1, 1, -1]), "NOISY-CZ"
 
     raise NoisyGateUndefined(
         "Undefined gate and params: {}{}\n"
@@ -745,7 +745,7 @@ def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.nda
         the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
         ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
     """
-    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))  # type: ignore
+    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))
 
 
 def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:

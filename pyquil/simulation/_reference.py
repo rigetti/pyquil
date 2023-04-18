@@ -60,7 +60,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
     trace_one = np.isclose(np.trace(state_matrix), 1, rtol, atol)
     if not trace_one:
         raise ValueError("The state matrix is not trace one.")
-    evals = np.linalg.eigvals(state_matrix)  # type: ignore
+    evals = np.linalg.eigvals(state_matrix)
     non_neg_eigs = all([False if val < -atol else True for val in evals])
     if not non_neg_eigs:
         raise ValueError("The state matrix has negative Eigenvalues of order -" + str(atol) + ".")
@@ -84,7 +84,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
-        super().__init__(n_qubits=n_qubits, rs=rs)  # type: ignore
+        super().__init__(n_qubits=n_qubits, rs=rs)
 
         self.n_qubits = n_qubits
         self.rs = rs
@@ -277,7 +277,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         # for np.real_if_close the actual tolerance is (machine_eps * tol_factor),
         # where `machine_epsilon = np.finfo(float).eps`. If we use tol_factor = 1e8, then the
         # overall tolerance is \approx 2.2e-8.
-        probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)  # type: ignore
+        probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)
         # Next set negative probabilities to zero
         probabilities = np.array([0 if p < 0.0 else p for p in probabilities])
         # Ensure they sum to one
@@ -285,7 +285,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2**self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
-        bitstrings: np.ndarray = np.flip(bitstrings, axis=1)  # type: ignore[no-untyped-call]
+        bitstrings: np.ndarray = np.flip(bitstrings, axis=1)
         return bitstrings
 
     def do_gate(self, gate: Gate) -> "AbstractQuantumSimulator":
