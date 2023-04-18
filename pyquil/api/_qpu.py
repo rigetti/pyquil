@@ -64,8 +64,8 @@ def _extract_memory_regions(
         }
         try:
             return np.ndarray((num_shots, spec.length), dtype=dtype[spec.type])
-        except KeyError:
-            raise ValueError(f"Unexpected memory type {spec.type}.")
+        except KeyError as e:
+            raise ValueError(f"Unexpected memory type {spec.type}.") from e
 
     regions: Dict[str, np.ndarray] = {}
 
@@ -81,8 +81,8 @@ def _extract_memory_regions(
         if buf.ndim == 1:
             buf = buf.reshape((num_shots, 1))
 
-        if np.iscomplexobj(buf):
-            buf = np.column_stack((buf.real, buf.imag))
+        if np.iscomplexobj(buf):  # type: ignore
+            buf = np.column_stack((buf.real, buf.imag))  # type: ignore
         _, width = buf.shape
 
         end = mref.offset + width

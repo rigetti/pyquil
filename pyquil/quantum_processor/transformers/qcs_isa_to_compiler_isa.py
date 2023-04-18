@@ -8,7 +8,7 @@ from pyquil.external.rpcq import (
     Supported2QGate,
     make_edge_id,
 )
-from typing import List, Union, cast, DefaultDict, Set
+from typing import List, Union, cast, DefaultDict, Set, Optional
 from collections import defaultdict
 
 
@@ -142,6 +142,7 @@ def _make_measure_gates(node_id: int, characteristics: List[Characteristic]) -> 
 
 def _make_rx_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
     default_duration = _operation_names_to_compiler_duration_default[Supported1QGate.RX]
+    default_fidelity = _operation_names_to_compiler_fidelity_default[Supported1QGate.RX]
 
     gates = [
         GateInfo(
@@ -154,6 +155,8 @@ def _make_rx_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
     ]
 
     fidelity = _get_frb_sim_1q(node_id, benchmarks)
+    if fidelity is None:
+        fidelity = default_fidelity
     for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]:
         gates.append(
             GateInfo(
@@ -167,7 +170,7 @@ def _make_rx_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
     return gates
 
 
-def _make_rz_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
+def _make_rz_gates(node_id: int) -> List[GateInfo]:
     return [
         GateInfo(
             operator=Supported1QGate.RZ,
@@ -179,12 +182,12 @@ def _make_rz_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
     ]
 
 
-def _get_frb_sim_1q(node_id: int, benchmarks: List[Operation]) -> float:
+def _get_frb_sim_1q(node_id: int, benchmarks: List[Operation]) -> Optional[float]:
     frb_sim_1q = next(
         (benchmark for benchmark in benchmarks if benchmark.name == "randomized_benchmark_simultaneous_1q"), None
     )
     if frb_sim_1q is None:
-        raise ValueError('benchmarks do not include "randomized_benchmark_simultaneous_1q"')
+        return None
 
     site = next(
         (
@@ -197,7 +200,7 @@ def _get_frb_sim_1q(node_id: int, benchmarks: List[Operation]) -> float:
         None,
     )
     if site is None:
-        raise ValueError(f"randomized_benchmark_simultaneous_1q benchmarks do not include node {node_id}")
+        return None
 
     return site.value
 
@@ -223,7 +226,7 @@ def _transform_qubit_operation_to_gates(
     if operation_name == Supported1QGate.RX:
         return cast(List[Union[GateInfo, MeasureInfo]], _make_rx_gates(node_id, benchmarks))
     elif operation_name == Supported1QGate.RZ:
-        return cast(List[Union[GateInfo, MeasureInfo]], _make_rz_gates(node_id, benchmarks))
+        return cast(List[Union[GateInfo, MeasureInfo]], _make_rz_gates(node_id))
     elif operation_name == Supported1QGate.MEASURE:
         return cast(List[Union[GateInfo, MeasureInfo]], _make_measure_gates(node_id, characteristics))
     elif operation_name == Supported1QGate.WILDCARD:
@@ -236,8 +239,8 @@ def _transform_qubit_operation_to_gates(
 
 def _make_cz_gates(characteristics: List[Characteristic]) -> List[GateInfo]:
     default_duration = _operation_names_to_compiler_duration_default[Supported2QGate.CZ]
-
     default_fidelity = _operation_names_to_compiler_fidelity_default[Supported2QGate.CZ]
+
     fidelity = default_fidelity
     for characteristic in characteristics:
         if characteristic.name == "fCZ":
@@ -257,8 +260,8 @@ def _make_cz_gates(characteristics: List[Characteristic]) -> List[GateInfo]:
 
 def _make_iswap_gates(characteristics: List[Characteristic]) -> List[GateInfo]:
     default_duration = _operation_names_to_compiler_duration_default[Supported2QGate.ISWAP]
-
     default_fidelity = _operation_names_to_compiler_fidelity_default[Supported2QGate.ISWAP]
+
     fidelity = default_fidelity
     for characteristic in characteristics:
         if characteristic.name == "fISWAP":
@@ -278,8 +281,8 @@ def _make_iswap_gates(characteristics: List[Characteristic]) -> List[GateInfo]:
 
 def _make_cphase_gates(characteristics: List[Characteristic]) -> List[GateInfo]:
     default_duration = _operation_names_to_compiler_duration_default[Supported2QGate.CPHASE]
-
     default_fidelity = _operation_names_to_compiler_fidelity_default[Supported2QGate.CPHASE]
+
     fidelity = default_fidelity
     for characteristic in characteristics:
         if characteristic.name == "fCPHASE":
@@ -299,8 +302,8 @@ def _make_cphase_gates(characteristics: List[Characteristic]) -> List[GateInfo]:
 
 def _make_xy_gates(characteristics: List[Characteristic]) -> List[GateInfo]:
     default_duration = _operation_names_to_compiler_duration_default[Supported2QGate.XY]
-
     default_fidelity = _operation_names_to_compiler_fidelity_default[Supported2QGate.XY]
+
     fidelity = default_fidelity
     for characteristic in characteristics:
         if characteristic.name == "fXY":

@@ -36,6 +36,9 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm, n_qubits: int) -> Any:
         op_mat = lifted_gate_matrix(matrix=op_mat, qubit_inds=[qubit_i], n_qubits=n_qubits)
         wf2 = op_mat @ wf2
 
+    if not isinstance(term.coefficient, complex):
+        raise TypeError("Operation only supported for complex numbers")
+
     # `wf2` is XYZ..XXZ|psi>
     # hit it with a <psi| i.e. `wf.dag`
     return term.coefficient * (wf.conj().T @ wf2)
@@ -57,7 +60,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
     trace_one = np.isclose(np.trace(state_matrix), 1, rtol, atol)
     if not trace_one:
         raise ValueError("The state matrix is not trace one.")
-    evals = np.linalg.eigvals(state_matrix)
+    evals = np.linalg.eigvals(state_matrix)  # type: ignore
     non_neg_eigs = all([False if val < -atol else True for val in evals])
     if not non_neg_eigs:
         raise ValueError("The state matrix has negative Eigenvalues of order -" + str(atol) + ".")
@@ -81,7 +84,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
-        super().__init__(n_qubits=n_qubits, rs=rs)
+        super().__init__(n_qubits=n_qubits, rs=rs)  # type: ignore
 
         self.n_qubits = n_qubits
         self.rs = rs
@@ -221,7 +224,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
 
         self.n_qubits = n_qubits
         self.rs = rs
-        self.density: Optional[np.ndarray] = None
+        self.density: np.ndarray
         self.set_initial_state(zero_state_matrix(n_qubits)).reset()
 
     def set_initial_state(self, state_matrix: np.ndarray) -> "ReferenceDensitySimulator":
@@ -282,7 +285,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2**self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
-        bitstrings = np.flip(bitstrings, axis=1)
+        bitstrings: np.ndarray = np.flip(bitstrings, axis=1)  # type: ignore[no-untyped-call]
         return bitstrings
 
     def do_gate(self, gate: Gate) -> "AbstractQuantumSimulator":
@@ -292,7 +295,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate(gate=gate, n_qubits=self.n_qubits)
-        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)  # type: ignore
+        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
         return self
 
     def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "AbstractQuantumSimulator":
@@ -304,7 +307,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate_matrix(matrix=matrix, qubit_inds=qubits, n_qubits=self.n_qubits)
-        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)  # type: ignore
+        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
         return self
 
     def do_measurement(self, qubit: int) -> int:
@@ -349,13 +352,13 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "ReferenceDensitySimulator":
         kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
         if np.isclose(noise_prob, 0.0):
-            warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0")
+            warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0", stacklevel=2)
             return self
 
         for q in qubits:
             new_density = np.zeros_like(self.density)
             for kraus_op in kraus_ops:
                 lifted_kraus_op = lifted_gate_matrix(matrix=kraus_op, qubit_inds=[q], n_qubits=self.n_qubits)
-                new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))  # type: ignore
+                new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))
             self.density = new_density
         return self

@@ -1,0 +1,39 @@
+DEFCAL MEASURE 0 addr:
+    FENCE 0
+    DECLARE q0_unclassified REAL[2]
+    PULSE 0 "rf_f12" gaussian(duration: 6e-08, fwhm: 1.6e-08, t0: 3e-08, scale: 0.5, phase: 0.0, detuning: 0.0)
+    NONBLOCKING PULSE 0 "ro_tx" flat(duration: 1.6e-06, iq: 1.0, scale: 0.1, phase: 0.0, detuning: 0.0)
+    NONBLOCKING CAPTURE 0 "ro_rx" boxcar_kernel(duration: 1.6e-06, scale: 1.0, phase: 0.0, detuning: 0.0) q0_unclassified[0]
+    PRAGMA FILTER-NODE q0_unclassified "{'module':'standard.filters.io','filter_type':'DataBuffer','source':'q0_ro_rx/filter','publish':true,'params':{},'_type':'FilterNode'}"
+    PRAGMA LOAD-MEMORY q0_unclassified "q0_unclassified[0]"
+    PRAGMA FILTER-NODE q0_classified "{'module':'standard.filters.classifiers','filter_type':'SingleQLinear','source':'q0_ro_rx/filter','publish':false,'params':{'a':[1.0,0.0],'threshold':0.01},'_type':'FilterNode'}"
+    PRAGMA FILTER-NODE q0 "{'module':'standard.filters.io','filter_type':'DataBuffer','source':'q0_classified','publish':true,'params':{},'_type':'FilterNode'}"
+    PRAGMA LOAD-MEMORY q0 "addr"
+    FENCE 0
+
+DEFCAL MEASURE 10 addr:
+    FENCE 10
+    DECLARE q10_unclassified REAL[2]
+    PULSE 10 "rf_f12" gaussian(duration: 7e-08, fwhm: 1.7e-08, t0: 3e-08, scale: 0.5, phase: 0.0, detuning: 0.0)
+    NONBLOCKING PULSE 10 "ro_tx" flat(duration: 1.6e-06, iq: 1.0, scale: 0.1, phase: 0.0, detuning: 0.0)
+    NONBLOCKING CAPTURE 10 "ro_rx" boxcar_kernel(duration: 1.6e-06, scale: 1.0, phase: 0.0, detuning: 0.0) q10_unclassified[0]
+    PRAGMA FILTER-NODE q10_unclassified "{'module':'standard.filters.io','filter_type':'DataBuffer','source':'q10_ro_rx/filter','publish':true,'params':{},'_type':'FilterNode'}"
+    PRAGMA LOAD-MEMORY q10_unclassified "q10_unclassified[0]"
+    PRAGMA FILTER-NODE q10_classified "{'module':'standard.filters.classifiers','filter_type':'SingleQLinear','source':'q10_ro_rx/filter','publish':false,'params':{'a':[1.0,0.0],'threshold':0.01},'_type':'FilterNode'}"
+    PRAGMA FILTER-NODE q10 "{'module':'standard.filters.io','filter_type':'DataBuffer','source':'q10_classified','publish':true,'params':{},'_type':'FilterNode'}"
+    PRAGMA LOAD-MEMORY q10 "addr"
+    FENCE 10
+
+DEFCAL MEASURE 100 addr:
+    FENCE 100
+    DECLARE q100_unclassified REAL[2]
+    PULSE 100 "rf_f12" gaussian(duration: 8e-08, fwhm: 1.8e-08, t0: 3e-08, scale: 0.5, phase: 0.0, detuning: 0.0)
+    NONBLOCKING PULSE 100 "ro_tx" flat(duration: 1.6e-06, iq: 1.0, scale: 0.1, phase: 0.0, detuning: 0.0)
+    NONBLOCKING CAPTURE 100 "ro_rx" boxcar_kernel(duration: 1.6e-06, scale: 1.0, phase: 0.0, detuning: 0.0) q100_unclassified[0]
+    PRAGMA FILTER-NODE q100_unclassified "{'module':'standard.filters.io','filter_type':'DataBuffer','source':'q100_ro_rx/filter','publish':true,'params':{},'_type':'FilterNode'}"
+    PRAGMA LOAD-MEMORY q100_unclassified "q100_unclassified[0]"
+    PRAGMA FILTER-NODE q100_classified "{'module':'standard.filters.classifiers','filter_type':'SingleQLinear','source':'q10_ro_rx/filter','publish':false,'params':{'a':[1.0,0.0],'threshold':0.01},'_type':'FilterNode'}"
+    PRAGMA FILTER-NODE q100 "{'module':'standard.filters.io','filter_type':'DataBuffer','source':'q100_classified','publish':true,'params':{},'_type':'FilterNode'}"
+    PRAGMA LOAD-MEMORY q100 "addr"
+    FENCE 100
+
