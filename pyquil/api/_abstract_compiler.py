@@ -28,7 +28,6 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import ExpressionDesignator, MemoryReference
 from pyquil.quilbase import Gate
-from pyquil._version import DOCS_URL
 from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import NativeQuilMetadata, ParameterAref, ParameterSpec
 
