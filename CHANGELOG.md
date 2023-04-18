@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.5.0
+
+### Features
+
+- Add CHANNEL-DELAY attribute to DefFrame (#1564)
+
+### Fixes
+
+- improve messaging on QPU and compiler timeout (#1397)
+
 ## 3.5.0-rc.0
 
 ### Features
