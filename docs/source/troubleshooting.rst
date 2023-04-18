@@ -24,7 +24,7 @@ Timeout in Execution
 This may occur due to one of several different problems. Often, it's because you don't have network access
 to the execution endpoint.
 
-If you're running against a QVM, ensure that it is properly running: :ref:`server`. If you're using docker,
+If you're running against the QVM, ensure that it is properly running: :ref:`server`. If you're using docker,
 you can check this using ``docker ps``.
 
 If you're running against the QPU, ensure that you are running your program from a supported environment.
