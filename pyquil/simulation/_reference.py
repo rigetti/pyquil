@@ -36,6 +36,9 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm, n_qubits: int) -> Any:
         op_mat = lifted_gate_matrix(matrix=op_mat, qubit_inds=[qubit_i], n_qubits=n_qubits)
         wf2 = op_mat @ wf2
 
+    if not isinstance(term.coefficient, complex):
+        raise TypeError("Operation only supported for complex numbers")
+
     # `wf2` is XYZ..XXZ|psi>
     # hit it with a <psi| i.e. `wf.dag`
     return term.coefficient * (wf.conj().T @ wf2)
@@ -221,7 +224,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
 
         self.n_qubits = n_qubits
         self.rs = rs
-        self.density: Optional[np.ndarray] = None
+        self.density: np.ndarray
         self.set_initial_state(zero_state_matrix(n_qubits)).reset()
 
     def set_initial_state(self, state_matrix: np.ndarray) -> "ReferenceDensitySimulator":
@@ -274,7 +277,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         # for np.real_if_close the actual tolerance is (machine_eps * tol_factor),
         # where `machine_epsilon = np.finfo(float).eps`. If we use tol_factor = 1e8, then the
         # overall tolerance is \approx 2.2e-8.
-        probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)  # type: ignore
+        probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)
         # Next set negative probabilities to zero
         probabilities = np.array([0 if p < 0.0 else p for p in probabilities])
         # Ensure they sum to one
@@ -282,7 +285,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2**self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
-        bitstrings = np.flip(bitstrings, axis=1)
+        bitstrings: np.ndarray = np.flip(bitstrings, axis=1)
         return bitstrings
 
     def do_gate(self, gate: Gate) -> "AbstractQuantumSimulator":
@@ -292,7 +295,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate(gate=gate, n_qubits=self.n_qubits)
-        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)  # type: ignore
+        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
         return self
 
     def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "AbstractQuantumSimulator":
@@ -304,7 +307,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate_matrix(matrix=matrix, qubit_inds=qubits, n_qubits=self.n_qubits)
-        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)  # type: ignore
+        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
         return self
 
     def do_measurement(self, qubit: int) -> int:
@@ -349,13 +352,13 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "ReferenceDensitySimulator":
         kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
         if np.isclose(noise_prob, 0.0):
-            warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0")
+            warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0", stacklevel=2)
             return self
 
         for q in qubits:
             new_density = np.zeros_like(self.density)
             for kraus_op in kraus_ops:
                 lifted_kraus_op = lifted_gate_matrix(matrix=kraus_op, qubit_inds=[q], n_qubits=self.n_qubits)
-                new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))  # type: ignore
+                new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))
             self.density = new_density
         return self

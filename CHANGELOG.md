@@ -4,427 +4,52 @@
 
 ### Breaking Changes
 
-- use qcs-sdk-python implementation of conjugate_pauli_by_clifford and generate_randomized_benchmarking_sequence (#1557)
-- remove qcs-api-client dependency (#1550)
-- Removes the compatilbility.v2 subpackage
+- Use qcs-sdk-python implementation of conjugate_pauli_by_clifford and generate_randomized_benchmarking_sequence (#1557)
+- Replace `qcs-api-client` with `qcs-sdk-python` (#1550)
+- Removed the `compatilbility.v2` subpackage (#1475)
+- Removed the `EngagementManager` class as RPCQ is no longer used.
+- Python 3.7 is no longer supported.
 
 ### Features
 
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
+- pyQuil now uses `qcs-sdk-python` (bindings to the QCS Rust SDK) for compiling and executing programs.
+- RPCQ has been removed in favor of OpenAPI and GRPC calls. This enables:
+    - Better performance
+    - Better error messages when a request fails
+- The improved Rust backend allows on-demand access to a QPU.
 
-### Fixes
-
-- bump qcs-sdk-python to fix waveforms (#1507)
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0.0-rc.9
-
-### Breaking Changes
-
-- remove qcs-api-client dependency (#1550)
-- Removes the compatilbility.v2 subpackage
+## 3.5.0-rc.0
 
 ### Features
 
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
+- Add CHANNEL-DELAY attribute to DefFrame (#1564)
+
+## 3.4.1
 
 ### Fixes
 
-- bump qcs-sdk-python to fix waveforms (#1507)
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
+- regression on pyquil 3.4.0 regarding DEFCAL filtering (#1562)
 
-## 4.0.0-rc.8
-
-### Breaking Changes
-
-- Removes the compatilbility.v2 subpackage
+## 3.4.0
 
 ### Features
 
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
+- check and warn for existing gate when using defgate (#1512)
+- add hash method to Program (#1527)
+
+## 3.3.5
 
 ### Fixes
 
-- bump qcs-sdk-python to fix waveforms (#1507)
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
+- Allow benchmarks to be missing for 1QRB; fallback to default RX fidelity (#1556)
 
-## 4.0.0-rc.7
+## 3.3.4
 
-### Breaking Changes
-
-- Removes the compatilbility.v2 subpackage
-
-### Features
-
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
+## 3.3.3
 
 ### Fixes
 
-- bump qcs-sdk-python to fix waveforms (#1507)
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0.0-rc.6
-
-### Breaking Changes
-
-- Removes the compatilbility.v2 subpackage
-
-### Features
-
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
-
-### Fixes
-
-- bump qcs-sdk-python to fix waveforms (#1507)
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0.0-rc.5
-
-### Breaking Changes
-
-- Removes the compatilbility.v2 subpackage
-
-### Features
-
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
-
-### Fixes
-
-- bump qcs-sdk-python to fix waveforms (#1507)
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0.0-rc.4
-
-### Breaking Changes
-
-- Removes the compatilbility.v2 subpackage
-
-### Features
-
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
-
-### Fixes
-
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0.0-rc.3
-
-### Breaking Changes
-
-- Removes the compatilbility.v2 subpackage
-
-### Features
-
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
-
-### Fixes
-
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0.0-rc.2
-
-### Breaking Changes
-
-- Removes the compatilbility.v2 subpackage
-
-### Features
-
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
-
-### Fixes
-
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0
-
-### Removed
-
-- The v2 compatibility layer.
+- incorrect circuit rendering (#1520)
 
 ## 3.3.2
 

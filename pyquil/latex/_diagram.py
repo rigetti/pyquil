@@ -197,7 +197,6 @@ SOURCE_TARGET_OP = {
     "CNOT": (TIKZ_CONTROL, TIKZ_CNOT_TARGET),
     "SWAP": (TIKZ_SWAP, TIKZ_SWAP_TARGET),
     "CZ": (TIKZ_CONTROL, lambda: TIKZ_GATE("Z")),
-    "CPHASE": (TIKZ_CONTROL, TIKZ_CPHASE_TARGET),
 }
 
 
@@ -498,8 +497,9 @@ class DiagramBuilder:
         self.diagram.extend_lines_to_common_edge(qubits)
 
         control_qubits = qubits[:controls]
-        target_qubits = qubits[controls:]
-        if not self.diagram.is_interval(sorted(target_qubits)):
+        # sort the target qubit list because the first qubit indicates wire placement on the diagram
+        target_qubits = sorted(qubits[controls:])
+        if not self.diagram.is_interval(target_qubits):
             raise ValueError(f"Unable to render instruction {instr} which targets non-adjacent qubits.")
 
         for q in control_qubits:

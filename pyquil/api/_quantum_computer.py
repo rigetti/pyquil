@@ -351,7 +351,8 @@ class QuantumComputer:
                 f"The number of trials was modified from {trials} to "
                 f"{num_shots_per_prog * len(sym_programs)}. To be consistent with the "
                 f"number of trials required by the type of readout symmetrization "
-                f"chosen."
+                f"chosen.",
+                stacklevel=2,
             )
 
         results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
@@ -944,14 +945,14 @@ def local_forest_runtime(
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):
         warning_msg = ("Unable to start qvm server, since the specified port {} is in use.").format(qvm_port)
-        warnings.warn(RuntimeWarning(warning_msg))
+        warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         qvm_cmd = ["qvm", "-S", "--host", host, "-p", str(qvm_port)]
         qvm = subprocess.Popen(qvm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):
         warning_msg = ("Unable to start quilc server, since the specified port {} is in use.").format(quilc_port)
-        warnings.warn(RuntimeWarning(warning_msg))
+        warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         quilc_cmd = ["quilc", "--host", host, "-p", str(quilc_port), "-R"]
 
@@ -1036,7 +1037,7 @@ def _symmetrization(
     elif symm_type == -1:
         # exhaustive = all possible binary strings
         flip_matrix = np.asarray(list(itertools.product([0, 1], repeat=len(meas_qubits))))
-    elif symm_type >= 0:
+    else:
         flip_matrix = _construct_orthogonal_array(len(meas_qubits), symm_type)
 
     # The next part is not rigorous in the sense that we simply truncate to the desired
@@ -1137,7 +1138,7 @@ def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarra
         flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)
     elif strength == 2:
         flip_matrix = _construct_strength_two_orthogonal_array(num_qubits)
-    elif strength == 3:
+    else:  # strength == 3
         flip_matrix = _construct_strength_three_orthogonal_array(num_qubits)
 
     return flip_matrix
@@ -1291,5 +1292,5 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
 
     if trials < min_num_trials:
         trials = min_num_trials
-        warnings.warn(f"Number of trials was too low, it is now {trials}.")
+        warnings.warn(f"Number of trials was too low, it is now {trials}.", stacklevel=2)
     return trials

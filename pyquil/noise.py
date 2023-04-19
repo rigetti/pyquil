@@ -60,14 +60,14 @@ class KrausModel(_KrausModel):
             (as nested lists) representing the element-wise real and imaginary part of m.
         :return: A complex square numpy array representing the Kraus operator.
         """
-        m = np.asarray(m, dtype=complex)
-        if m.ndim == 3:
-            m = m[0] + 1j * m[1]
-        if not m.ndim == 2:  # pragma no coverage
+        matrix = np.asarray(m, dtype=complex)
+        if matrix.ndim == 3:
+            matrix = matrix[0] + 1j * matrix[1]
+        if not matrix.ndim == 2:  # pragma no coverage
             raise ValueError("Need 2d array.")
-        if not m.shape[0] == m.shape[1]:  # pragma no coverage
+        if not matrix.shape[0] == matrix.shape[1]:  # pragma no coverage
             raise ValueError("Need square matrix.")
-        return m
+        return matrix
 
     def to_dict(self) -> Dict[str, Any]:
         """

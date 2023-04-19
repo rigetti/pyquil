@@ -64,8 +64,8 @@ def _extract_memory_regions(
         }
         try:
             return np.ndarray((num_shots, spec.length), dtype=dtype[spec.type])
-        except KeyError:
-            raise ValueError(f"Unexpected memory type {spec.type}.")
+        except KeyError as e:
+            raise ValueError(f"Unexpected memory type {spec.type}.") from e
 
     regions: Dict[str, np.ndarray] = {}
 

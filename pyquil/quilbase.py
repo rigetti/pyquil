@@ -70,7 +70,7 @@ class AbstractInstruction(object):
     Abstract class for representing single instructions.
     """
 
-    def out(self) -> str:
+    def out(self) -> str:  # type: ignore
         pass
 
     def __str__(self) -> str:
@@ -1225,7 +1225,6 @@ class RawCapture(AbstractInstruction):
 
 class DelayFrames(AbstractInstruction):
     def __init__(self, frames: List[Frame], duration: float):
-
         # all frames should be on the same qubits
         if len(frames) == 0:
             raise ValueError("DELAY expected nonempty list of frames.")
@@ -1329,6 +1328,7 @@ class DefMeasureCalibration(AbstractInstruction):
         memory_reference: Optional[MemoryReference],
         instrs: List[AbstractInstruction],
     ):
+        self.name = "MEASURE"
         self.qubit = qubit
         self.memory_reference = memory_reference
         self.instrs = instrs
@@ -1363,6 +1363,12 @@ class DefFrame(AbstractInstruction):
     center_frequency: Optional[float] = None
     """ The 'center' frequency of the frame, used for detuning arithmetic. """
 
+    enable_raw_capture: Optional[str] = None
+    """ A flag signalling that raw capture is enabled for this frame. """
+
+    channel_delay: Optional[float] = None
+    """ The amount to delay this frame, to account for hardware signal offsets [seconds]. """
+
     def out(self) -> str:
         r = f"DEFFRAME {self.frame.out()}"
         options = [
@@ -1371,6 +1377,8 @@ class DefFrame(AbstractInstruction):
             (self.center_frequency, "CENTER-FREQUENCY"),
             (self.hardware_object, "HARDWARE-OBJECT"),
             (self.sample_rate, "SAMPLE-RATE"),
+            (self.enable_raw_capture, "ENABLE-RAW-CAPTURE"),
+            (self.channel_delay, "CHANNEL-DELAY"),
         ]
         if any(value for (value, name) in options):
             r += ":"

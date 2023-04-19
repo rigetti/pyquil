@@ -20,7 +20,7 @@ packages = [{ include = "pyquil" }]
 
 [tool.poetry.dependencies]
 python = "^3.8,<3.12"
-numpy = "^1.21"
+numpy = "^1.22"
 scipy = "^1.7.3"
 lark = "^0.11.1"
 rpcq = "^3.10.0"
@@ -47,7 +47,7 @@ black = "^22.8.0"
 flake8 = "^3.8.1"
 pytest = "^6.2.2"
 pytest-cov = "^2.11.1"
-mypy = "0.981"
+mypy = "^1.2.0"
 pytest-xdist = "^2.2.1"
 pytest-rerunfailures = "^9.1.1"
 pytest-timeout = "^1.4.2"
