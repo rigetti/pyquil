@@ -738,13 +738,13 @@ class SimpleInstruction(AbstractInstruction):
     Abstract class for simple instructions with no arguments.
     """
 
-    op: ClassVar[str]
+    instruction: ClassVar[quil_rs.Instruction]
 
     def out(self) -> str:
-        return self.op
+        return str(self.instruction)
 
     def __str__(self) -> str:
-        return self.out()
+        return str(self)
 
 
 class Halt(SimpleInstruction):
@@ -752,7 +752,7 @@ class Halt(SimpleInstruction):
     The HALT instruction.
     """
 
-    op = "HALT"
+    instruction = quil_rs.Instruction.new_halt()
 
 
 class Wait(SimpleInstruction):
@@ -760,7 +760,7 @@ class Wait(SimpleInstruction):
     The WAIT instruction.
     """
 
-    op = "WAIT"
+    instruction = quil_rs.Instruction.new_wait()
 
 
 class Nop(SimpleInstruction):
@@ -768,7 +768,7 @@ class Nop(SimpleInstruction):
     The NOP instruction.
     """
 
-    op = "NOP"
+    instruction = quil_rs.Instruction.new_nop()
 
 
 class UnaryClassicalInstruction(AbstractInstruction):

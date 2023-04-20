@@ -58,6 +58,8 @@ from pyquil.quilbase import (
     ResetQubit,
     UnaryClassicalInstruction,
     Wait,
+    Halt,
+    Nop,
 )
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference
@@ -1232,3 +1234,11 @@ def test_include():
 
 def test_wait():
     assert Wait().out() == "WAIT"
+
+
+def test_halt():
+    assert Halt().out() == "HALT"
+
+
+def test_nop():
+    assert Nop().out() == "NOP"
