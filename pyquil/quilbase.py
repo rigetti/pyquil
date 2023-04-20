@@ -771,20 +771,26 @@ class Nop(SimpleInstruction):
     instruction = quil_rs.Instruction.new_nop()
 
 
-class UnaryClassicalInstruction(AbstractInstruction):
+class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
     """
     The abstract class for unary classical instructions.
     """
 
-    op: ClassVar[str]
+    op: ClassVar[quil_rs.UnaryOperator]
 
-    def __init__(self, target: MemoryReference):
-        if not isinstance(target, MemoryReference):
-            raise TypeError("target operand should be an MemoryReference")
-        self.target = target
+    def __new__(cls, target: MemoryReference) -> "UnaryClassicalInstruction":
+        return super().__new__(cls, cls.op, target._to_rs_memory_reference())
+
+    @property
+    def target(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().operand)
+
+    @target.setter
+    def target(self, target: MemoryReference) -> None:
+        quil_rs.UnaryLogic.operand.__set__(self, target._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return "%s %s" % (self.op, self.target)
+        return str(self)
 
 
 class ClassicalNeg(UnaryClassicalInstruction):
@@ -792,7 +798,7 @@ class ClassicalNeg(UnaryClassicalInstruction):
     The NEG instruction.
     """
 
-    op = "NEG"
+    op = quil_rs.UnaryOperator.Neg
 
 
 class ClassicalNot(UnaryClassicalInstruction):
@@ -800,7 +806,7 @@ class ClassicalNot(UnaryClassicalInstruction):
     The NOT instruction.
     """
 
-    op = "NOT"
+    op = quil_rs.UnaryOperator.Not
 
 
 class LogicalBinaryOp(AbstractInstruction):
