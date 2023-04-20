@@ -15,7 +15,7 @@
 ##############################################################################
 
 from fractions import Fraction
-from numbers import Complex, Number
+from numbers import Number
 from typing import (
     Any,
     Callable,
@@ -32,6 +32,7 @@ from typing import (
     Union,
     cast,
 )
+from typing_extensions import Self
 from deprecation import deprecated
 
 import numpy as np
@@ -165,7 +166,7 @@ class QubitPlaceholder(QuilAtom):
 QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
 
-def _convert_to_rs_qubit(qubit: QubitDesignator) -> quil_rs.Qubit:
+def _convert_to_rs_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit]) -> quil_rs.Qubit:
     if isinstance(qubit, quil_rs.Qubit):
         return qubit
     if isinstance(qubit, Qubit):
@@ -311,22 +312,24 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", Number, complex]
+ParameterDesignator = Union["Expression", "MemoryReference", int, float, complex, np.number]
 
 
-def _convert_to_rs_expression(parameter: ParameterDesignator) -> quil_rs_expr.Expression:
+def _convert_to_rs_expression(
+    parameter: Union[ParameterDesignator, quil_rs_expr.Expression]
+) -> quil_rs_expr.Expression:
     if isinstance(parameter, quil_rs_expr.Expression):
         return parameter
     elif isinstance(parameter, (int, float, complex, np.number)):
         return quil_rs_expr.Expression.from_number(complex(parameter))
-    elif isinstance(parameter, Number):
-        return quil_rs_expr.Expression.from_number(complex(parameter))  # type: ignore
     elif isinstance(parameter, (Expression, MemoryReference)):
         return quil_rs_expr.Expression.parse(str(parameter))
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
 
-def _convert_to_rs_expressions(parameters: Iterable[ParameterDesignator]) -> List[quil_rs_expr.Expression]:
+def _convert_to_rs_expressions(
+    parameters: Sequence[Union[ParameterDesignator, quil_rs_expr.Expression]]
+) -> List[quil_rs_expr.Expression]:
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
@@ -348,15 +351,23 @@ def _convert_to_py_parameter(
             return np.pi
         if parameter.is_variable():
             return Parameter(parameter.to_variable())
-    elif isinstance(parameter, (Expression, MemoryReference, quil_rs.MemoryReference, Number)):
+    elif isinstance(parameter, (Expression, MemoryReference, Number, complex)):
         return parameter
     raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
 
 
-def _convert_to_py_parameters(parameters: Iterable[ParameterDesignator]) -> List[ParameterDesignator]:
+def _convert_to_py_parameters(
+    parameters: Sequence[Union[ParameterDesignator, quil_rs.MemoryReference, quil_rs_expr.Expression]]
+) -> List[ParameterDesignator]:
     return [_convert_to_py_parameter(parameter) for parameter in parameters]
 
 
+@deprecated(
+    deprecated_in="4.0",
+    removed_in="5.0",
+    current_version=pyquil_version,
+    details="The format_parameter function will be removed.",
+)
 def format_parameter(element: ParameterDesignator) -> str:
     """
     Formats a particular parameter. Essentially the same as built-in formatting except using 'i'
@@ -364,7 +375,7 @@ def format_parameter(element: ParameterDesignator) -> str:
 
     :param element: The parameter to format for Quil output.
     """
-    if isinstance(element, int) or isinstance(element, np.int_):
+    if isinstance(element, (int, np.integer)):
         return repr(element)
     elif isinstance(element, float):
         return _check_for_pi(element)
@@ -554,6 +565,19 @@ class Function(Expression):
         self.expression = expression
         self.fn = fn
 
+    @classmethod
+    def _from_rs_function_call(cls, function_call: quil_rs_expr.FunctionCallExpression) -> "Function":
+        expression = _convert_to_py_expression(function_call.expression)
+        if function_call.function == quil_rs_expr.ExpressionFunction.Cis:
+            return quil_cis(expression)
+        if function_call.function == quil_rs_expr.ExpressionFunction.Cosine:
+            return quil_cos(expression)
+        if function_call.function == quil_rs_expr.ExpressionFunction.Exponent:
+            return quil_exp(expression)
+        if function_call.function == quil_rs_expr.ExpressionFunction.Sine:
+            return quil_sin(expression)
+        return quil_sqrt(expression)
+
     def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["Function", ExpressionValueDesignator]:
         sop = substitute(self.expression, d)
         if isinstance(sop, Expression):
@@ -606,7 +630,7 @@ class BinaryExp(Expression):
         self.op2 = op2
 
     @classmethod
-    def _from_rs_infix_expression(cls, infix_expression: quil_rs_expr.InfixExpression):
+    def _from_rs_infix_expression(cls, infix_expression: quil_rs_expr.InfixExpression) -> "BinaryExp":
         left = _convert_to_py_expression(infix_expression.left)
         right = _convert_to_py_expression(infix_expression.right)
         if infix_expression.operator == quil_rs_expr.InfixOperator.Plus:
@@ -875,49 +899,40 @@ class Frame(quil_rs.FrameIdentifier):
     Representation of a frame descriptor.
     """
 
-    @staticmethod
-    def __new__(cls, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str) -> "Frame":
+    def __new__(cls, qubits: Sequence[QubitDesignator], name: str) -> Self:
         return super().__new__(cls, name, _convert_to_rs_qubits(qubits))
 
     @classmethod
     def _from_rs_frame_identifier(cls, frame: quil_rs.FrameIdentifier) -> "Frame":
-        return cls(frame.qubits, frame.name)
+        return super().__new__(cls, frame.name, frame.qubits)
 
-    @property
-    def qubits(self) -> Tuple[QubitDesignator]:
+    @property  # type: ignore[override]
+    def qubits(self) -> Tuple[QubitDesignator, ...]:
         return tuple(_convert_to_py_qubits(super().qubits))
 
     @qubits.setter
-    def qubits(self, qubits: Tuple[Qubit, FormalArgument]):
-        return quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))
-
-    @property
-    def name(self) -> str:
-        return super().name
-
-    @name.setter
-    def name(self, name: str):
-        return quil_rs.FrameIdentifier.name.__set__(self, name)
+    def qubits(self, qubits: Tuple[Qubit, FormalArgument]) -> None:
+        quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
     def out(self) -> str:
         return str(self)
 
 
 class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
-    def __new__(cls, name: str, parameters: Optional[Dict[str, ParameterDesignator]] = None):
+    def __new__(cls, name: str, parameters: Optional[Dict[str, ParameterDesignator]] = None) -> Self:
         if parameters is None:
             parameters = {}
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
         return super().__new__(cls, name, rs_parameters)
 
-    @property
+    @property  # type: ignore[override]
     def parameters(self) -> Dict[str, ParameterDesignator]:
         return {key: _convert_to_py_parameter(value) for key, value in super().parameters.items()}
 
     @parameters.setter
-    def parameters(self, parameters: Dict[str, ParameterDesignator]):
+    def parameters(self, parameters: Dict[str, ParameterDesignator]) -> None:
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
-        quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)
+        quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
 
     def out(self) -> str:
         return str(self)
@@ -934,24 +949,24 @@ class WaveformReference(WaveformInvocation):
     Representation of a Waveform reference.
     """
 
-    def __new__(cls, name: str):
+    def __new__(cls, name: str) -> Self:
         return super().__new__(cls, name, {})
 
 
-def _template_waveform_property(name: str, doc: Optional[str] = None):
+def _template_waveform_property(name: str, doc: Optional[str] = None) -> property:
     """
     Helper method for initializing getters, setters, and deleters for
     parameters on a ``TemplateWaveform``. Should only be used inside of
     ``TemplateWaveform`` or one its base classes.
     """
 
-    def fget(self: "TemplateWaveform"):
+    def fget(self: "TemplateWaveform") -> Optional[ParameterDesignator]:
         return self.get_parameter(name)
 
-    def fset(self: "TemplateWaveform", value: ParameterDesignator):
+    def fset(self: "TemplateWaveform", value: ParameterDesignator) -> None:
         self.set_parameter(name, value)
 
-    def fdel(self: "TemplateWaveform"):
+    def fdel(self: "TemplateWaveform") -> None:
         self.set_parameter(name, None)
 
     return property(fget, fset, fdel, doc)
@@ -964,7 +979,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         current_version=pyquil_version,
         details="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
     )
-    def __new__(cls, name: str, *, duration: float, **kwargs):
+    def __new__(cls, name: str, *, duration: float, **kwargs: Union[ParameterDesignator, ExpressionDesignator]) -> Self:
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
         rs_parameters["duration"] = _convert_to_rs_expression(duration)
         return super().__new__(cls, name, rs_parameters)
@@ -973,15 +988,18 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         return str(self)
 
     def get_parameter(self, name: str) -> Optional[ParameterDesignator]:
-        return _convert_to_py_parameter(super().parameters.get(name, None))
+        parameter = super().parameters.get(name, None)
+        if parameter is None:
+            return None
+        return _convert_to_py_parameter(parameter)
 
-    def set_parameter(self, name: str, value: Optional[ParameterDesignator]):
+    def set_parameter(self, name: str, value: Optional[ParameterDesignator]) -> None:
         parameters = super().parameters
         if value is None:
             parameters.pop(name, None)
         else:
             parameters[name] = _convert_to_rs_expression(value)
-        quil_rs.WaveformInvocation.parameters.__set__(self, parameters)
+        quil_rs.WaveformInvocation.parameters.__set__(self, parameters)  # type: ignore[attr-defined]
 
     duration = _template_waveform_property("duration")
 
@@ -1012,7 +1030,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         raise NotImplementedError()
 
     @classmethod
-    def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation):
+    def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
         return super().__new__(cls, waveform.name, waveform.parameters)
 
 
@@ -1054,11 +1072,3 @@ def _convert_to_py_waveform(waveform: quil_rs.WaveformInvocation) -> Waveform:
         return WaveformReference(waveform.name)
 
     return TemplateWaveform._from_rs_waveform_invocation(waveform)
-
-
-def _complex_str(iq: Any) -> str:
-    """Convert a number to a string."""
-    if isinstance(iq, Complex):
-        return f"{iq.real}" if iq.imag == 0.0 else f"{iq.real} + ({iq.imag})*i"
-    else:
-        return str(iq)

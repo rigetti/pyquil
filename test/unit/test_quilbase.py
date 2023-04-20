@@ -1,5 +1,5 @@
 from math import pi
-from typing import Any, List, Optional, Iterable, Tuple, Union
+from typing import Any, Callable, List, Optional, Iterable, Tuple, Union
 from numbers import Complex, Number
 
 import numpy as np
@@ -116,7 +116,7 @@ class TestGate:
         try:
             compiler.quil_to_native_quil(program)
         except Exception as e:
-            assert False, f"Failed to compile the program: {e}\n{program}"
+            raise AssertionError(f"Failed to compile the program: \n{program}") from e
 
 
 @pytest.mark.parametrize(
@@ -142,7 +142,7 @@ class TestDefGate:
 
     def test_get_constructor(self, def_gate: DefGate, snapshot: SnapshotAssertion):
         constructor = def_gate.get_constructor()
-        if def_gate.parameters:
+        if def_gate.parameters and isinstance(constructor, Callable[..., Callable[..., Gate]]):
             g = constructor(Parameter("theta"))(Qubit(123))
             assert g.out() == snapshot
         else:
@@ -250,7 +250,7 @@ class TestDefGateByPaulis:
 
     def test_get_constructor(self, def_gate_pauli: DefGateByPaulis, snapshot: SnapshotAssertion):
         constructor = def_gate_pauli.get_constructor()
-        if def_gate_pauli.parameters:
+        if def_gate_pauli.parameters and isinstance(constructor, Callable[..., Callable[..., Gate]]):
             g = constructor(Parameter("theta"))(Qubit(123))
             assert g.out() == snapshot
         else:
@@ -575,7 +575,7 @@ class TestPragma:
 )
 class TestReset:
     @pytest.fixture
-    def reset_qubit(self, qubit: Qubit) -> ResetQubit:
+    def reset_qubit(self, qubit: Qubit) -> Union[Reset, ResetQubit]:
         if qubit is None:
             with pytest.raises(TypeError):
                 ResetQubit(qubit)
@@ -698,7 +698,7 @@ def test_fence_all():
 )
 class TestDefWaveform:
     @pytest.fixture
-    def def_waveform(self, name: str, parameters: List[Parameter], entries: List[Union[Complex, Expression]]):
+    def def_waveform(self, name: str, parameters: List[Parameter], entries: List[Union[complex, Expression]]):
         return DefWaveform(name, parameters, entries)
 
     def test_out(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):

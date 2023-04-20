@@ -16,7 +16,6 @@
 ##############################################################################
 import re
 from math import pi
-from typing import Dict
 
 import numpy as np
 import pytest
@@ -90,7 +89,6 @@ from pyquil.quilbase import (
     Declare,
     DefCalibration,
     DefMeasureCalibration,
-    ClassicalNot,
     DefPermutationGate,
 )
 from test.unit.utils import parse_equals
