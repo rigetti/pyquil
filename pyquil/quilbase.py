@@ -931,23 +931,36 @@ class ClassicalMove(AbstractInstruction):
         return "%s %s %s" % (self.op, self.left, self.right)
 
 
-class ClassicalExchange(AbstractInstruction):
+class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
     """
     The EXCHANGE instruction.
     """
 
-    op = "EXCHANGE"
+    def __new__(
+        cls,
+        left: Union[int, float, MemoryReference],
+        right: Union[int, float, MemoryReference]
+    ) -> "ClassicalExchange":
+        return super().__new__(cls, _to_rs_arithmetic_operand(left), _to_rs_arithmetic_operand(right))
 
-    def __init__(self, left: MemoryReference, right: MemoryReference):
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference):
-            raise TypeError("right operand should be an MemoryReference")
-        self.left = left
-        self.right = right
+    @property  # type: ignore[override]
+    def left(self) -> Union[int, float, MemoryReference]:
+        return _to_py_arithmetic_operand(super().left)
+
+    @left.setter
+    def left(self, left: Union[int, float, MemoryReference]) -> None:
+        quil_rs.Exchange.left.__set__(self, _to_rs_arithmetic_operand(left))  # type: ignore
+
+    @property  # type: ignore[override]
+    def right(self) -> Union[int, float, MemoryReference]:
+        return _to_py_arithmetic_operand(super().right)
+
+    @right.setter
+    def right(self, right: Union[int, float, MemoryReference]) -> None:
+        quil_rs.Exchange.right.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s" % (self.op, self.left, self.right)
+        return str(self)
 
 
 class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
