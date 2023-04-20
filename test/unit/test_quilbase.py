@@ -15,6 +15,7 @@ from pyquil.quilbase import (
     ClassicalExchange,
     ClassicalLoad,
     ClassicalMove,
+    ClassicalStore,
     Declare,
     DefCalibration,
     DefCircuit,
@@ -1106,6 +1107,38 @@ class TestClassicalLoad:
         assert load.left == "new-left"
 
     def test_right(self, load: ClassicalLoad, right: MemoryReference):
+        assert load.right == right
+        load.right = MemoryReference("new-memory-reference")
+        assert load.right == MemoryReference("new-memory-reference")
+
+
+@pytest.mark.parametrize(
+    ("target", "left", "right"),
+    [
+        ("t", MemoryReference("y"), MemoryReference("z")),
+        ("t", MemoryReference("y", 5, 10), 2),
+        ("t", MemoryReference("y", 5, 10), 3.14),
+    ],
+)
+class TestClassicalStore:
+    @pytest.fixture
+    def load(self, target: str, left: MemoryReference, right: MemoryReference) -> ClassicalStore:
+        return ClassicalStore(target, left, right)
+
+    def test_out(self, load: ClassicalStore, snapshot: SnapshotAssertion):
+        assert load.out() == snapshot
+
+    def test_target(self, load: ClassicalStore, target: str):
+        assert load.target == target
+        load.target = "new-target"
+        assert load.target == "new-target"
+
+    def test_left(self, load: ClassicalStore, left: MemoryReference):
+        assert load.left == left
+        load.left = MemoryReference("new-memory-reference")
+        assert load.left == MemoryReference("new-memory-reference")
+
+    def test_right(self, load: ClassicalStore, right: Union[MemoryReference, int, float]):
         assert load.right == right
         load.right = MemoryReference("new-memory-reference")
         assert load.right == MemoryReference("new-memory-reference")

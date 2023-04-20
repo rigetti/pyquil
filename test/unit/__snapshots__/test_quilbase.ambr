@@ -34,6 +34,15 @@
 # name: TestClassicalMove.test_out[left2-3.2]
   'MOVE bar[0] 3.2'
 # ---
+# name: TestClassicalStore.test_out[t-left0-right0]
+  'STORE t y[0] z[0]'
+# ---
+# name: TestClassicalStore.test_out[t-left1-2]
+  'STORE t y[5] 2'
+# ---
+# name: TestClassicalStore.test_out[t-left2-3.14]
+  'STORE t y[5] 3.14'
+# ---
 # name: TestDeclare.test_asdict[Defaults]
   dict({
     'memory_size': 1,
