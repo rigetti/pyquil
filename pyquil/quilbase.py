@@ -1275,6 +1275,11 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
         return str(self)
 
 
+class Include(quil_rs.Include, AbstractInstruction):
+    def out(self) -> str:
+        return str(self)
+
+
 class RawInstr(AbstractInstruction):
     """
     A raw instruction represented as a string.

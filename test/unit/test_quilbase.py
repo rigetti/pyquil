@@ -39,6 +39,7 @@ from pyquil.quilbase import (
     FenceAll,
     FormalArgument,
     Gate,
+    Include,
     Measurement,
     MemoryReference,
     ParameterDesignator,
@@ -56,6 +57,7 @@ from pyquil.quilbase import (
     Reset,
     ResetQubit,
     UnaryClassicalInstruction,
+    Wait,
 )
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference
@@ -1219,3 +1221,14 @@ class TestUnaryClassicalInstruction:
         assert unary.target == target
         unary.target = MemoryReference("new-memory-reference")
         assert unary.target == MemoryReference("new-memory-reference")
+
+
+def test_include():
+    include = Include("my-cool-file.quil")
+    assert include.out() == 'INCLUDE "my-cool-file.quil"'
+    include.filename = "my-other-file.quil"
+    assert include.filename == "my-other-file.quil"
+
+
+def test_wait():
+    assert Wait().out() == "WAIT"
