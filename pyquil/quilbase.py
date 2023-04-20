@@ -950,23 +950,32 @@ class ClassicalExchange(AbstractInstruction):
         return "%s %s %s" % (self.op, self.left, self.right)
 
 
-class ClassicalConvert(AbstractInstruction):
+class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
     """
     The CONVERT instruction.
     """
 
-    op = "CONVERT"
+    def __new__(cls, left: MemoryReference, right: MemoryReference) -> "ClassicalConvert":
+        return super().__new__(cls, left._to_rs_memory_reference(), right._to_rs_memory_reference())
 
-    def __init__(self, left: MemoryReference, right: MemoryReference):
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference):
-            raise TypeError("right operand should be an MemoryReference")
-        self.left = left
-        self.right = right
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().original)
+
+    @left.setter
+    def left(self, memory_reference: MemoryReference) -> None:
+        quil_rs.Convert.original.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
+
+    @property
+    def right(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().to)
+
+    @right.setter
+    def right(self, memory_reference: MemoryReference) -> None:
+        quil_rs.Convert.to.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s" % (self.op, self.left, self.right)
+        return str(self)
 
 
 class ClassicalLoad(AbstractInstruction):
