@@ -1012,25 +1012,57 @@ class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     def out(self) -> str:
         return str(self)
 
+def _to_rs_arithmetic_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ArithmeticOperand:
+    if isinstance(operand, MemoryReference):
+        return quil_rs.ArithmeticOperand.from_memory_reference(operand._to_rs_memory_reference())
+    if isinstance(operand, int):
+        return quil_rs.ArithmeticOperand.from_literal_integer(operand)
+    if isinstance(operand, float):
+        return quil_rs.ArithmeticOperand.from_literal_real(operand)
+    raise TypeError(f"{type(operand)} is not a valid ArithmeticOperand")
 
-class ClassicalStore(AbstractInstruction):
+def _from_rs_arithmetic_operand(operand: quil_rs.ArithmeticOperand) -> Union[MemoryReference, int, float]:
+    if not isinstance(operand, quil_rs.ArithmeticOperand):
+        raise TypeError(f"{type(operand)} is not an ArithmeticOperand")
+    inner = operand.inner()
+    if isinstance(inner, quil_rs.MemoryReference):
+        return MemoryReference._from_rs_memory_reference(inner)
+    return inner
+
+class ClassicalStore(quil_rs.Store, AbstractInstruction):
     """
     The STORE instruction.
     """
+    def __new__(cls, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalStore":
+        rs_right = _to_rs_arithmetic_operand(right)
+        return super().__new__(cls, target, left._to_rs_memory_reference(), rs_right)
 
-    op = "STORE"
+    @property
+    def target(self) -> str:
+        return super().destination
 
-    def __init__(self, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]):
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not (isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)):
-            raise TypeError("right operand should be an MemoryReference or an int or float.")
-        self.target = target
-        self.left = left
-        self.right = right
+    @target.setter
+    def target(self, target: str) -> None:
+        quil_rs.Store.destination.__set__(self, target)  # type: ignore
+
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().offset)
+
+    @left.setter
+    def left(self, left: MemoryReference) -> None:
+        quil_rs.Store.offset.__set__(self, left._to_rs_memory_reference())  # type: ignore
+
+    @property
+    def right(self) -> Union[MemoryReference, int, float]:
+        return _from_rs_arithmetic_operand(super().source)
+
+    @right.setter
+    def right(self, right: Union[MemoryReference, int, float]) -> None:
+        quil_rs.Store.source.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s %s" % (self.op, self.target, self.left, self.right)
+        return str(self)
 
 
 class ClassicalComparison(AbstractInstruction):
