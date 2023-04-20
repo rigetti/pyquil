@@ -1,5 +1,5 @@
 from math import pi
-from typing import Any, Callable, List, Optional, Iterable, Tuple, Union
+from typing import Any, Callable, List, Optional, Iterable, Tuple, Union, cast
 from numbers import Complex, Number
 
 import numpy as np
@@ -142,8 +142,8 @@ class TestDefGate:
 
     def test_get_constructor(self, def_gate: DefGate, snapshot: SnapshotAssertion):
         constructor = def_gate.get_constructor()
-        if def_gate.parameters and isinstance(constructor, Callable[..., Callable[..., Gate]]):
-            g = constructor(Parameter("theta"))(Qubit(123))
+        if def_gate.parameters:
+            g = constructor(Parameter("theta"))(Qubit(123))  # type: ignore
             assert g.out() == snapshot
         else:
             g = constructor(Qubit(123))
@@ -250,8 +250,8 @@ class TestDefGateByPaulis:
 
     def test_get_constructor(self, def_gate_pauli: DefGateByPaulis, snapshot: SnapshotAssertion):
         constructor = def_gate_pauli.get_constructor()
-        if def_gate_pauli.parameters and isinstance(constructor, Callable[..., Callable[..., Gate]]):
-            g = constructor(Parameter("theta"))(Qubit(123))
+        if def_gate_pauli.parameters:
+            g = constructor(Parameter("theta"))(Qubit(123))  # type: ignore
             assert g.out() == snapshot
         else:
             g = constructor(Qubit(123))
