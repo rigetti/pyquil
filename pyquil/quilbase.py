@@ -978,24 +978,39 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
         return str(self)
 
 
-class ClassicalLoad(AbstractInstruction):
+class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     """
     The LOAD instruction.
     """
+    def __new__(cls, target: MemoryReference, left: str, right: MemoryReference) -> "ClassicalLoad":
+        return super().__new__(cls, target._to_rs_memory_reference(), left, right._to_rs_memory_reference())
 
-    op = "LOAD"
+    @property
+    def target(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
-    def __init__(self, target: MemoryReference, left: str, right: MemoryReference):
-        if not isinstance(target, MemoryReference):
-            raise TypeError("target operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference):
-            raise TypeError("right operand should be an MemoryReference")
-        self.target = target
-        self.left = left
-        self.right = right
+    @target.setter
+    def target(self, target: MemoryReference) -> None:
+        quil_rs.Load.destination.__set__(self, target._to_rs_memory_reference())  # type: ignore
+
+    @property
+    def left(self) -> str:
+        return super().source
+
+    @left.setter
+    def left(self, left: str) -> None:
+        quil_rs.Load.source.__set__(self, left)  # type: ignore
+
+    @property
+    def right(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().offset)
+
+    @right.setter
+    def right(self, right: MemoryReference) -> None:
+        quil_rs.Load.offset.__set__(self, right._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s %s" % (self.op, self.target, self.left, self.right)
+        return str(self)
 
 
 class ClassicalStore(AbstractInstruction):
