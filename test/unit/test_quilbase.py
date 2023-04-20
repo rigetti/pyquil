@@ -12,6 +12,9 @@ from pyquil.quilbase import (
     AbstractInstruction,
     Capture,
     ClassicalConvert,
+    ClassicalExchange,
+    ClassicalLoad,
+    ClassicalMove,
     Declare,
     DefCalibration,
     DefCircuit,
@@ -1009,6 +1012,56 @@ class TestSwapPhases:
 
 @pytest.mark.parametrize(
     ("left", "right"),
+    [
+        (MemoryReference("ro"), MemoryReference("bar")),
+        (MemoryReference("foo", 5, 10), 5),
+        (MemoryReference("bar"), 3.2),
+    ],
+)
+class TestClassicalMove:
+    @pytest.fixture
+    def move(self, left: MemoryReference, right: Union[MemoryReference, int, float]) -> ClassicalMove:
+        return ClassicalMove(left, right)
+
+    def test_out(self, move: ClassicalMove, snapshot: SnapshotAssertion):
+        assert move.out() == snapshot
+
+    def test_left(self, move: ClassicalMove, left: MemoryReference):
+        assert move.left == left
+        move.left = MemoryReference("new-memory-reference")
+        assert move.left == MemoryReference("new-memory-reference")
+
+    def test_right(self, move: ClassicalMove, right: Union[MemoryReference, int, float]):
+        assert move.right == right
+        move.right = MemoryReference("new-memory-reference")
+        assert move.right == MemoryReference("new-memory-reference")
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    [(MemoryReference("ro"), MemoryReference("bar")), (MemoryReference("foo", 5, 10), MemoryReference("bar"))],
+)
+class TestClassicalExchange:
+    @pytest.fixture
+    def exchange(self, left: MemoryReference, right: MemoryReference) -> ClassicalExchange:
+        return ClassicalExchange(left, right)
+
+    def test_out(self, exchange: ClassicalExchange, snapshot: SnapshotAssertion):
+        assert exchange.out() == snapshot
+
+    def test_left(self, exchange: ClassicalExchange, left: MemoryReference):
+        assert exchange.left == left
+        exchange.left = MemoryReference("new-memory-reference")
+        assert exchange.left == MemoryReference("new-memory-reference")
+
+    def test_right(self, exchange: ClassicalExchange, right: MemoryReference):
+        assert exchange.right == right
+        exchange.right = MemoryReference("new-memory-reference")
+        assert exchange.right == MemoryReference("new-memory-reference")
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
     [(MemoryReference("ro"), MemoryReference("bar")), (MemoryReference("foo", 5, 10), MemoryReference("bar"))],
 )
 class TestClassicalConvert:
@@ -1028,3 +1081,31 @@ class TestClassicalConvert:
         assert convert.right == right
         convert.right = MemoryReference("new-memory-reference")
         assert convert.right == MemoryReference("new-memory-reference")
+
+
+@pytest.mark.parametrize(
+    ("target", "left", "right"),
+    [(MemoryReference("t"), "y", MemoryReference("z")), (MemoryReference("t", 5, 10), "y", MemoryReference("bar", 1))],
+)
+class TestClassicalLoad:
+    @pytest.fixture
+    def load(self, target: MemoryReference, left: str, right: MemoryReference) -> ClassicalLoad:
+        return ClassicalLoad(target, left, right)
+
+    def test_out(self, load: ClassicalLoad, snapshot: SnapshotAssertion):
+        assert load.out() == snapshot
+
+    def test_target(self, load: ClassicalLoad, target: MemoryReference):
+        assert load.target == target
+        load.target = MemoryReference("new-memory-reference")
+        assert load.target == MemoryReference("new-memory-reference")
+
+    def test_left(self, load: ClassicalLoad, left: MemoryReference):
+        assert load.left == left
+        load.left = "new-left"
+        assert load.left == "new-left"
+
+    def test_right(self, load: ClassicalLoad, right: MemoryReference):
+        assert load.right == right
+        load.right = MemoryReference("new-memory-reference")
+        assert load.right == MemoryReference("new-memory-reference")

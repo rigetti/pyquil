@@ -13,6 +13,27 @@
 # name: TestClassicalConvert.test_out[left1-right1]
   'CONVERT foo[5] bar[0]'
 # ---
+# name: TestClassicalExchange.test_out[left0-right0]
+  'EXCHANGE ro[0] bar[0]'
+# ---
+# name: TestClassicalExchange.test_out[left1-right1]
+  'EXCHANGE foo[5] bar[0]'
+# ---
+# name: TestClassicalLoad.test_out[target0-y-right0]
+  'LOAD t[0] y z[0]'
+# ---
+# name: TestClassicalLoad.test_out[target1-y-right1]
+  'LOAD t[5] y bar[1]'
+# ---
+# name: TestClassicalMove.test_out[left0-right0]
+  'MOVE ro[0] bar[0]'
+# ---
+# name: TestClassicalMove.test_out[left1-5]
+  'MOVE foo[5] 5'
+# ---
+# name: TestClassicalMove.test_out[left2-3.2]
+  'MOVE bar[0] 3.2'
+# ---
 # name: TestDeclare.test_asdict[Defaults]
   dict({
     'memory_size': 1,
