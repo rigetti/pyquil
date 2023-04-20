@@ -551,3 +551,12 @@
 # name: TestSwapPhases.test_out[frame_a0-frame_b0]
   'SWAP-PHASES 1 "FRAMEX" 2 "FRAMEX"'
 # ---
+# name: TestUnaryClassicalInstruction.test_out[NEG-target0]
+  'NEG a[0]'
+# ---
+# name: TestUnaryClassicalInstruction.test_out[NEG-target2]
+  'NEG c[2]'
+# ---
+# name: TestUnaryClassicalInstruction.test_out[NOT-target1]
+  'NOT b[1]'
+# ---

@@ -16,6 +16,8 @@ from pyquil.quilbase import (
     ClassicalExchange,
     ClassicalLoad,
     ClassicalMove,
+    ClassicalNeg,
+    ClassicalNot,
     ClassicalStore,
     ClassicalEqual,
     ClassicalLessThan,
@@ -53,6 +55,7 @@ from pyquil.quilbase import (
     SwapPhases,
     Reset,
     ResetQubit,
+    UnaryClassicalInstruction,
 )
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference
@@ -1192,3 +1195,27 @@ class TestClassicalComparison:
         assert comparison.right == right
         comparison.right = MemoryReference("new-memory-reference")
         assert comparison.right == MemoryReference("new-memory-reference")
+
+
+@pytest.mark.parametrize(
+    ("op", "target"),
+    [
+        ("NEG", MemoryReference("a")),
+        ("NOT", MemoryReference("b", 1)),
+        ("NEG", MemoryReference("c", 2, 4)),
+    ],
+)
+class TestUnaryClassicalInstruction:
+    @pytest.fixture
+    def unary(self, op: str, target: MemoryReference) -> UnaryClassicalInstruction:
+        if op == "NEG":
+            return ClassicalNeg(target)
+        return ClassicalNot(target)
+
+    def test_out(self, unary: UnaryClassicalInstruction, snapshot: SnapshotAssertion):
+        assert unary.out() == snapshot
+
+    def test_target(self, unary: UnaryClassicalInstruction, target: MemoryReference):
+        assert unary.target == target
+        unary.target = MemoryReference("new-memory-reference")
+        assert unary.target == MemoryReference("new-memory-reference")
