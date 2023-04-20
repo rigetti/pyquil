@@ -11,6 +11,7 @@ from pyquil.quil import Program
 from pyquil.quilbase import (
     AbstractInstruction,
     Capture,
+    ClassicalConvert,
     Declare,
     DefCalibration,
     DefCircuit,
@@ -1004,3 +1005,26 @@ class TestSwapPhases:
         expected_qubits = set(frame_a.qubits + frame_b.qubits)
         assert swap_phase.get_qubits() == set([q.index for q in expected_qubits if isinstance(q, Qubit)])
         assert swap_phase.get_qubits(False) == expected_qubits
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    [(MemoryReference("ro"), MemoryReference("bar")), (MemoryReference("foo", 5, 10), MemoryReference("bar"))],
+)
+class TestClassicalConvert:
+    @pytest.fixture
+    def convert(self, left: MemoryReference, right: MemoryReference) -> ClassicalConvert:
+        return ClassicalConvert(left, right)
+
+    def test_out(self, convert: ClassicalConvert, snapshot: SnapshotAssertion):
+        assert convert.out() == snapshot
+
+    def test_left(self, convert: ClassicalConvert, left: MemoryReference):
+        assert convert.left == left
+        convert.left = MemoryReference("new-memory-reference")
+        assert convert.left == MemoryReference("new-memory-reference")
+
+    def test_right(self, convert: ClassicalConvert, right: MemoryReference):
+        assert convert.right == right
+        convert.right = MemoryReference("new-memory-reference")
+        assert convert.right == MemoryReference("new-memory-reference")
