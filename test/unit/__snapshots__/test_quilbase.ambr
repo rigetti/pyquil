@@ -7,6 +7,21 @@
 # name: TestCapture.test_out[TemplateWaveform]
   'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2i) ro[0]'
 # ---
+# name: TestClassicalComparison.test_out[EQ-target0-left0-right0]
+  'EQ t[0] y[0] z[0]'
+# ---
+# name: TestClassicalComparison.test_out[GE-target4-left4-3.14]
+  'GE t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[GT-target3-left3-3.14]
+  'GT t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[LE-target2-left2-3.14]
+  'LE t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[LT-target1-left1-2]
+  'LT t[0] y[5] 2'
+# ---
 # name: TestClassicalConvert.test_out[left0-right0]
   'CONVERT ro[0] bar[0]'
 # ---

@@ -11,11 +11,17 @@ from pyquil.quil import Program
 from pyquil.quilbase import (
     AbstractInstruction,
     Capture,
+    ClassicalComparison,
     ClassicalConvert,
     ClassicalExchange,
     ClassicalLoad,
     ClassicalMove,
     ClassicalStore,
+    ClassicalEqual,
+    ClassicalLessThan,
+    ClassicalLessEqual,
+    ClassicalGreaterThan,
+    ClassicalGreaterEqual,
     Declare,
     DefCalibration,
     DefCircuit,
@@ -1142,3 +1148,47 @@ class TestClassicalStore:
         assert load.right == right
         load.right = MemoryReference("new-memory-reference")
         assert load.right == MemoryReference("new-memory-reference")
+
+
+@pytest.mark.parametrize(
+    ("op", "target", "left", "right"),
+    [
+        ("EQ", MemoryReference("t"), MemoryReference("y"), MemoryReference("z")),
+        ("LT", MemoryReference("t"), MemoryReference("y", 5, 10), 2),
+        ("LE", MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
+        ("GT", MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
+        ("GE", MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
+    ],
+)
+class TestClassicalComparison:
+    @pytest.fixture
+    def comparison(
+        self, op: str, target: MemoryReference, left: MemoryReference, right: Union[MemoryReference, int, float]
+    ) -> ClassicalComparison:
+        if op == "EQ":
+            return ClassicalEqual(target, left, right)
+        if op == "LT":
+            return ClassicalLessThan(target, left, right)
+        if op == "LE":
+            return ClassicalLessEqual(target, left, right)
+        if op == "GT":
+            return ClassicalGreaterThan(target, left, right)
+        return ClassicalGreaterEqual(target, left, right)
+
+    def test_out(self, comparison: ClassicalComparison, snapshot: SnapshotAssertion):
+        assert comparison.out() == snapshot
+
+    def test_target(self, comparison: ClassicalComparison, target: MemoryReference):
+        assert comparison.target == target
+        comparison.target = MemoryReference("new-memory-reference")
+        assert comparison.target == MemoryReference("new-memory-reference")
+
+    def test_left(self, comparison: ClassicalComparison, left: MemoryReference):
+        assert comparison.left == left
+        comparison.left = MemoryReference("new-memory-reference")
+        assert comparison.left == MemoryReference("new-memory-reference")
+
+    def test_right(self, comparison: ClassicalComparison, right: Union[MemoryReference, int, float]):
+        assert comparison.right == right
+        comparison.right = MemoryReference("new-memory-reference")
+        assert comparison.right == MemoryReference("new-memory-reference")
