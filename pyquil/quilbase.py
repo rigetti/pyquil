@@ -910,7 +910,7 @@ class ClassicalDiv(ArithmeticBinaryOp):
     op = "DIV"
 
 
-class ClassicalMove(AbstractInstruction):
+class ClassicalMove(quil_rs.Move, AbstractInstruction):
     """
     The MOVE instruction.
 
@@ -919,22 +919,27 @@ class ClassicalMove(AbstractInstruction):
              These have reversed.
     """
 
-    op = "MOVE"
+    def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalMove":
+        return super().__new__(cls, left._to_rs_memory_reference(), _to_rs_arithmetic_operand(right))
 
-    def __init__(self, left: MemoryReference, right: Union[MemoryReference, int, float]):
-        if not isinstance(left, MemoryReference):
-            raise TypeError(
-                "Left operand of MOVE should be an MemoryReference.  "
-                "Note that the order of the operands in pyQuil 2.0 has reversed from "
-                "the order of pyQuil 1.9 ."
-            )
-        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
-            raise TypeError("Right operand of MOVE should be an MemoryReference or a numeric literal")
-        self.left = left
-        self.right = right
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().destination)
+
+    @left.setter
+    def left(self, left: MemoryReference) -> None:
+        quil_rs.Move.destination.__set__(self, left._to_rs_memory_reference())  # type: ignore
+
+    @property
+    def right(self) -> Union[MemoryReference, int, float]:
+        return _to_py_arithmetic_operand(super().source)
+
+    @right.setter
+    def right(self, right: Union[MemoryReference, int, float]) -> None:
+        quil_rs.Move.source.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s" % (self.op, self.left, self.right)
+        return str(self)
 
 
 class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
@@ -944,26 +949,26 @@ class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
 
     def __new__(
         cls,
-        left: Union[int, float, MemoryReference],
-        right: Union[int, float, MemoryReference]
+        left: MemoryReference,
+        right: MemoryReference,
     ) -> "ClassicalExchange":
-        return super().__new__(cls, _to_rs_arithmetic_operand(left), _to_rs_arithmetic_operand(right))
+        return super().__new__(cls, left._to_rs_memory_reference(), right._to_rs_memory_reference())
 
     @property  # type: ignore[override]
-    def left(self) -> Union[int, float, MemoryReference]:
-        return _to_py_arithmetic_operand(super().left)
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().left)
 
     @left.setter
-    def left(self, left: Union[int, float, MemoryReference]) -> None:
-        quil_rs.Exchange.left.__set__(self, _to_rs_arithmetic_operand(left))  # type: ignore
+    def left(self, left: MemoryReference) -> None:
+        quil_rs.Exchange.left.__set__(self, left._to_rs_memory_reference())  # type: ignore
 
     @property  # type: ignore[override]
-    def right(self) -> Union[int, float, MemoryReference]:
-        return _to_py_arithmetic_operand(super().right)
+    def right(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().right)
 
     @right.setter
-    def right(self, right: Union[int, float, MemoryReference]) -> None:
-        quil_rs.Exchange.right.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore
+    def right(self, right: MemoryReference) -> None:
+        quil_rs.Exchange.right.__set__(self, right._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
         return str(self)
@@ -979,19 +984,19 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
 
     @property
     def left(self) -> MemoryReference:
-        return MemoryReference._from_rs_memory_reference(super().original)
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
     @left.setter
     def left(self, memory_reference: MemoryReference) -> None:
-        quil_rs.Convert.original.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
+        quil_rs.Convert.destination.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
 
     @property
     def right(self) -> MemoryReference:
-        return MemoryReference._from_rs_memory_reference(super().to)
+        return MemoryReference._from_rs_memory_reference(super().source)
 
     @right.setter
     def right(self, memory_reference: MemoryReference) -> None:
-        quil_rs.Convert.to.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
+        quil_rs.Convert.source.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
         return str(self)
