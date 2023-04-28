@@ -744,7 +744,7 @@ class SimpleInstruction(AbstractInstruction):
         return str(self.instruction)
 
     def __str__(self) -> str:
-        return str(self)
+        return self.out()
 
 
 class Halt(SimpleInstruction):

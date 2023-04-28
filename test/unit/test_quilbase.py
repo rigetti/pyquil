@@ -1233,12 +1233,12 @@ def test_include():
 
 
 def test_wait():
-    assert Wait().out() == "WAIT"
+    assert Wait().out() == str(Wait()) == "WAIT"
 
 
 def test_halt():
-    assert Halt().out() == "HALT"
+    assert Halt().out() == str(Halt()) == "HALT"
 
 
 def test_nop():
-    assert Nop().out() == "NOP"
+    assert Nop().out() == str(Nop()) == "NOP"
