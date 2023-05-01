@@ -1,8 +1,8 @@
-from typing import Sequence, Union
+from typing import Sequence, Union, Optional
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quilatom import FormalArgument, Frame, Qubit
+from pyquil.quilatom import FormalArgument, Frame, MemoryReference, Qubit
 
 
 @pytest.mark.parametrize(

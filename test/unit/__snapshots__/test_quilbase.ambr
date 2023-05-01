@@ -7,6 +7,57 @@
 # name: TestCapture.test_out[TemplateWaveform]
   'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2i) ro[0]'
 # ---
+# name: TestClassicalComparison.test_out[EQ-target0-left0-right0]
+  'EQ t[0] y[0] z[0]'
+# ---
+# name: TestClassicalComparison.test_out[GE-target4-left4-3.14]
+  'GE t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[GT-target3-left3-3.14]
+  'GT t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[LE-target2-left2-3.14]
+  'LE t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[LT-target1-left1-2]
+  'LT t[0] y[5] 2'
+# ---
+# name: TestClassicalConvert.test_out[left0-right0]
+  'CONVERT ro[0] bar[0]'
+# ---
+# name: TestClassicalConvert.test_out[left1-right1]
+  'CONVERT foo[5] bar[0]'
+# ---
+# name: TestClassicalExchange.test_out[left0-right0]
+  'EXCHANGE ro[0] bar[0]'
+# ---
+# name: TestClassicalExchange.test_out[left1-right1]
+  'EXCHANGE foo[5] bar[0]'
+# ---
+# name: TestClassicalLoad.test_out[target0-y-right0]
+  'LOAD t[0] y z[0]'
+# ---
+# name: TestClassicalLoad.test_out[target1-y-right1]
+  'LOAD t[5] y bar[1]'
+# ---
+# name: TestClassicalMove.test_out[left0-right0]
+  'MOVE ro[0] bar[0]'
+# ---
+# name: TestClassicalMove.test_out[left1-5]
+  'MOVE foo[5] 5'
+# ---
+# name: TestClassicalMove.test_out[left2-3.2]
+  'MOVE bar[0] 3.2'
+# ---
+# name: TestClassicalStore.test_out[t-left0-right0]
+  'STORE t y[0] z[0]'
+# ---
+# name: TestClassicalStore.test_out[t-left1-2]
+  'STORE t y[5] 2'
+# ---
+# name: TestClassicalStore.test_out[t-left2-3.14]
+  'STORE t y[5] 3.14'
+# ---
 # name: TestDeclare.test_asdict[Defaults]
   dict({
     'memory_size': 1,
@@ -499,4 +550,13 @@
 # ---
 # name: TestSwapPhases.test_out[frame_a0-frame_b0]
   'SWAP-PHASES 1 "FRAMEX" 2 "FRAMEX"'
+# ---
+# name: TestUnaryClassicalInstruction.test_out[NEG-target0]
+  'NEG a[0]'
+# ---
+# name: TestUnaryClassicalInstruction.test_out[NEG-target2]
+  'NEG c[2]'
+# ---
+# name: TestUnaryClassicalInstruction.test_out[NOT-target1]
+  'NOT b[1]'
 # ---

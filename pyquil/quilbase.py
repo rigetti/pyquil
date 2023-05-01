@@ -738,10 +738,10 @@ class SimpleInstruction(AbstractInstruction):
     Abstract class for simple instructions with no arguments.
     """
 
-    op: ClassVar[str]
+    instruction: ClassVar[quil_rs.Instruction]
 
     def out(self) -> str:
-        return self.op
+        return str(self.instruction)
 
     def __str__(self) -> str:
         return self.out()
@@ -752,7 +752,7 @@ class Halt(SimpleInstruction):
     The HALT instruction.
     """
 
-    op = "HALT"
+    instruction = quil_rs.Instruction.new_halt()
 
 
 class Wait(SimpleInstruction):
@@ -760,7 +760,7 @@ class Wait(SimpleInstruction):
     The WAIT instruction.
     """
 
-    op = "WAIT"
+    instruction = quil_rs.Instruction.new_wait()
 
 
 class Nop(SimpleInstruction):
@@ -768,23 +768,29 @@ class Nop(SimpleInstruction):
     The NOP instruction.
     """
 
-    op = "NOP"
+    instruction = quil_rs.Instruction.new_nop()
 
 
-class UnaryClassicalInstruction(AbstractInstruction):
+class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
     """
     The abstract class for unary classical instructions.
     """
 
-    op: ClassVar[str]
+    op: ClassVar[quil_rs.UnaryOperator]
 
-    def __init__(self, target: MemoryReference):
-        if not isinstance(target, MemoryReference):
-            raise TypeError("target operand should be an MemoryReference")
-        self.target = target
+    def __new__(cls, target: MemoryReference) -> "UnaryClassicalInstruction":
+        return super().__new__(cls, cls.op, target._to_rs_memory_reference())
+
+    @property
+    def target(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().operand)
+
+    @target.setter
+    def target(self, target: MemoryReference) -> None:
+        quil_rs.UnaryLogic.operand.__set__(self, target._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return "%s %s" % (self.op, self.target)
+        return str(self)
 
 
 class ClassicalNeg(UnaryClassicalInstruction):
@@ -792,7 +798,7 @@ class ClassicalNeg(UnaryClassicalInstruction):
     The NEG instruction.
     """
 
-    op = "NEG"
+    op = quil_rs.UnaryOperator.Neg
 
 
 class ClassicalNot(UnaryClassicalInstruction):
@@ -800,7 +806,7 @@ class ClassicalNot(UnaryClassicalInstruction):
     The NOT instruction.
     """
 
-    op = "NOT"
+    op = quil_rs.UnaryOperator.Not
 
 
 class LogicalBinaryOp(AbstractInstruction):
@@ -904,7 +910,7 @@ class ClassicalDiv(ArithmeticBinaryOp):
     op = "DIV"
 
 
-class ClassicalMove(AbstractInstruction):
+class ClassicalMove(quil_rs.Move, AbstractInstruction):
     """
     The MOVE instruction.
 
@@ -913,127 +919,243 @@ class ClassicalMove(AbstractInstruction):
              These have reversed.
     """
 
-    op = "MOVE"
+    def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalMove":
+        return super().__new__(cls, left._to_rs_memory_reference(), _to_rs_arithmetic_operand(right))
 
-    def __init__(self, left: MemoryReference, right: Union[MemoryReference, int, float]):
-        if not isinstance(left, MemoryReference):
-            raise TypeError(
-                "Left operand of MOVE should be an MemoryReference.  "
-                "Note that the order of the operands in pyQuil 2.0 has reversed from "
-                "the order of pyQuil 1.9 ."
-            )
-        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
-            raise TypeError("Right operand of MOVE should be an MemoryReference or a numeric literal")
-        self.left = left
-        self.right = right
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().destination)
+
+    @left.setter
+    def left(self, left: MemoryReference) -> None:
+        quil_rs.Move.destination.__set__(self, left._to_rs_memory_reference())  # type: ignore
+
+    @property
+    def right(self) -> Union[MemoryReference, int, float]:
+        return _to_py_arithmetic_operand(super().source)
+
+    @right.setter
+    def right(self, right: Union[MemoryReference, int, float]) -> None:
+        quil_rs.Move.source.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s" % (self.op, self.left, self.right)
+        return str(self)
 
 
-class ClassicalExchange(AbstractInstruction):
+class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
     """
     The EXCHANGE instruction.
     """
 
-    op = "EXCHANGE"
+    def __new__(
+        cls,
+        left: MemoryReference,
+        right: MemoryReference,
+    ) -> "ClassicalExchange":
+        return super().__new__(cls, left._to_rs_memory_reference(), right._to_rs_memory_reference())
 
-    def __init__(self, left: MemoryReference, right: MemoryReference):
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference):
-            raise TypeError("right operand should be an MemoryReference")
-        self.left = left
-        self.right = right
+    @property  # type: ignore[override]
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().left)
+
+    @left.setter
+    def left(self, left: MemoryReference) -> None:
+        quil_rs.Exchange.left.__set__(self, left._to_rs_memory_reference())  # type: ignore
+
+    @property  # type: ignore[override]
+    def right(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().right)
+
+    @right.setter
+    def right(self, right: MemoryReference) -> None:
+        quil_rs.Exchange.right.__set__(self, right._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s" % (self.op, self.left, self.right)
+        return str(self)
 
 
-class ClassicalConvert(AbstractInstruction):
+class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
     """
     The CONVERT instruction.
     """
 
-    op = "CONVERT"
+    def __new__(cls, left: MemoryReference, right: MemoryReference) -> "ClassicalConvert":
+        return super().__new__(cls, left._to_rs_memory_reference(), right._to_rs_memory_reference())
 
-    def __init__(self, left: MemoryReference, right: MemoryReference):
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference):
-            raise TypeError("right operand should be an MemoryReference")
-        self.left = left
-        self.right = right
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().destination)
+
+    @left.setter
+    def left(self, memory_reference: MemoryReference) -> None:
+        quil_rs.Convert.destination.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
+
+    @property
+    def right(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().source)
+
+    @right.setter
+    def right(self, memory_reference: MemoryReference) -> None:
+        quil_rs.Convert.source.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s" % (self.op, self.left, self.right)
+        return str(self)
 
 
-class ClassicalLoad(AbstractInstruction):
+class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     """
     The LOAD instruction.
     """
+    def __new__(cls, target: MemoryReference, left: str, right: MemoryReference) -> "ClassicalLoad":
+        return super().__new__(cls, target._to_rs_memory_reference(), left, right._to_rs_memory_reference())
 
-    op = "LOAD"
+    @property
+    def target(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
-    def __init__(self, target: MemoryReference, left: str, right: MemoryReference):
-        if not isinstance(target, MemoryReference):
-            raise TypeError("target operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference):
-            raise TypeError("right operand should be an MemoryReference")
-        self.target = target
-        self.left = left
-        self.right = right
+    @target.setter
+    def target(self, target: MemoryReference) -> None:
+        quil_rs.Load.destination.__set__(self, target._to_rs_memory_reference())  # type: ignore
+
+    @property
+    def left(self) -> str:
+        return super().source
+
+    @left.setter
+    def left(self, left: str) -> None:
+        quil_rs.Load.source.__set__(self, left)  # type: ignore
+
+    @property
+    def right(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().offset)
+
+    @right.setter
+    def right(self, right: MemoryReference) -> None:
+        quil_rs.Load.offset.__set__(self, right._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s %s" % (self.op, self.target, self.left, self.right)
+        return str(self)
 
+def _to_rs_arithmetic_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ArithmeticOperand:
+    if isinstance(operand, MemoryReference):
+        return quil_rs.ArithmeticOperand.from_memory_reference(operand._to_rs_memory_reference())
+    if isinstance(operand, int):
+        return quil_rs.ArithmeticOperand.from_literal_integer(operand)
+    if isinstance(operand, float):
+        return quil_rs.ArithmeticOperand.from_literal_real(operand)
+    raise TypeError(f"{type(operand)} is not a valid ArithmeticOperand")
 
-class ClassicalStore(AbstractInstruction):
+def _to_py_arithmetic_operand(operand: quil_rs.ArithmeticOperand) -> Union[MemoryReference, int, float]:
+    if not isinstance(operand, quil_rs.ArithmeticOperand):
+        raise TypeError(f"{type(operand)} is not an ArithmeticOperand")
+    inner = operand.inner()
+    if isinstance(inner, quil_rs.MemoryReference):
+        return MemoryReference._from_rs_memory_reference(inner)
+    return inner
+
+class ClassicalStore(quil_rs.Store, AbstractInstruction):
     """
     The STORE instruction.
     """
+    def __new__(cls, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalStore":
+        rs_right = _to_rs_arithmetic_operand(right)
+        return super().__new__(cls, target, left._to_rs_memory_reference(), rs_right)
 
-    op = "STORE"
+    @property
+    def target(self) -> str:
+        return super().destination
 
-    def __init__(self, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]):
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not (isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)):
-            raise TypeError("right operand should be an MemoryReference or an int or float.")
-        self.target = target
-        self.left = left
-        self.right = right
+    @target.setter
+    def target(self, target: str) -> None:
+        quil_rs.Store.destination.__set__(self, target)  # type: ignore
+
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().offset)
+
+    @left.setter
+    def left(self, left: MemoryReference) -> None:
+        quil_rs.Store.offset.__set__(self, left._to_rs_memory_reference())  # type: ignore
+
+    @property
+    def right(self) -> Union[MemoryReference, int, float]:
+        return _to_py_arithmetic_operand(super().source)
+
+    @right.setter
+    def right(self, right: Union[MemoryReference, int, float]) -> None:
+        quil_rs.Store.source.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore
 
     def out(self) -> str:
-        return "%s %s %s %s" % (self.op, self.target, self.left, self.right)
+        return str(self)
 
 
-class ClassicalComparison(AbstractInstruction):
+class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
     """
     Abstract class for ternary comparison instructions.
     """
 
-    op: ClassVar[str]
+    op: ClassVar[quil_rs.ComparisonOperator]
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         target: MemoryReference,
         left: MemoryReference,
         right: Union[MemoryReference, int, float],
-    ):
-        if not isinstance(target, MemoryReference):
-            raise TypeError("target operand should be an MemoryReference")
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not (isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)):
-            raise TypeError("right operand should be an MemoryReference or an int or float.")
-        self.target = target
-        self.left = left
-        self.right = right
+    ) -> "ClassicalComparison":
+        operands = (target._to_rs_memory_reference(), left._to_rs_memory_reference(), cls._to_comparison_operand(right))
+        return super().__new__(cls, cls.op, operands)
 
+    @staticmethod
+    def _to_comparison_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ComparisonOperand:
+        if isinstance(operand, MemoryReference):
+            return quil_rs.ComparisonOperand.from_memory_reference(operand._to_rs_memory_reference())
+        elif isinstance(operand, int):
+            return quil_rs.ComparisonOperand.from_literal_integer(operand)
+        elif isinstance(operand, float):
+            return quil_rs.ComparisonOperand.from_literal_real(operand)
+        raise TypeError(f"{type(operand)} is not a valid ComparisonOperand")
+
+    @staticmethod
+    def _to_py_operand(operand: quil_rs.ComparisonOperand) -> Union[MemoryReference, int, float]:
+        if not isinstance(operand, quil_rs.ComparisonOperand):
+            raise TypeError(f"{type(operand)} is not an ComparisonOperand")
+        inner = operand.inner()
+        if isinstance(inner, quil_rs.MemoryReference):
+            return MemoryReference._from_rs_memory_reference(inner)
+        return inner
+
+    @property
+    def target(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().operands[0])
+
+    @target.setter
+    def target(self, target: MemoryReference) -> None:
+        operands = list(super().operands)
+        operands[0] = target._to_rs_memory_reference()
+        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().operands[1])
+
+    @left.setter
+    def left(self, left: MemoryReference) -> None:
+        operands = list(super().operands)
+        operands[1] = left._to_rs_memory_reference()
+        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+
+    @property
+    def right(self) -> Union[MemoryReference, int, float]:
+        return self._to_py_operand(super().operands[2])
+
+    @right.setter
+    def right(self, right: MemoryReference) -> None:
+        operands = list(super().operands)
+        operands[2] = self._to_comparison_operand(right)
+        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+        
     def out(self) -> str:
-        return "%s %s %s %s" % (self.op, self.target, self.left, self.right)
+        return str(self)
 
 
 class ClassicalEqual(ClassicalComparison):
@@ -1041,7 +1163,7 @@ class ClassicalEqual(ClassicalComparison):
     The EQ comparison instruction.
     """
 
-    op = "EQ"
+    op = quil_rs.ComparisonOperator.Equal
 
 
 class ClassicalLessThan(ClassicalComparison):
@@ -1049,7 +1171,7 @@ class ClassicalLessThan(ClassicalComparison):
     The LT comparison instruction.
     """
 
-    op = "LT"
+    op = quil_rs.ComparisonOperator.LessThan
 
 
 class ClassicalLessEqual(ClassicalComparison):
@@ -1057,7 +1179,7 @@ class ClassicalLessEqual(ClassicalComparison):
     The LE comparison instruction.
     """
 
-    op = "LE"
+    op = quil_rs.ComparisonOperator.LessThanOrEqual
 
 
 class ClassicalGreaterThan(ClassicalComparison):
@@ -1065,7 +1187,7 @@ class ClassicalGreaterThan(ClassicalComparison):
     The GT comparison instruction.
     """
 
-    op = "GT"
+    op = quil_rs.ComparisonOperator.GreaterThan
 
 
 class ClassicalGreaterEqual(ClassicalComparison):
@@ -1073,7 +1195,7 @@ class ClassicalGreaterEqual(ClassicalComparison):
     The GE comparison instruction.
     """
 
-    op = "GE"
+    op = quil_rs.ComparisonOperator.GreaterThanOrEqual
 
 
 class Jump(AbstractInstruction):
@@ -1271,6 +1393,11 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
             "offsets": self.offsets,
         }
 
+    def out(self) -> str:
+        return str(self)
+
+
+class Include(quil_rs.Include, AbstractInstruction):
     def out(self) -> str:
         return str(self)
 
