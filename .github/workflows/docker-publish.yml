@@ -1,0 +1,55 @@
+name: DockerHub Publish
+
+on:
+  release:
+    types: [published]
+
+env:
+  # Only used locally for validating image
+  TEST_TAG: rigetti/pyquil:test
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      # Determine the tags to publish based on the release tag
+      - name: Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            rigetti/pyquil
+          tags: |
+            # publish by version on all release tags 
+            type=semver,pattern={{version}},latest=false
+            # update 'rc' image on RC release tags
+            type=ref,value=rc,enable=${{ github.event.release.tag_name =~ '^v\d+\.\d+\.\d+-rc\.\d+$' }}
+            # update 'latest' image on stable release tags
+            type=ref,value=latest,enable=${{ github.event.release.tag_name =~ '^v\d+\.\d+\.\d+$' }}
+
+      # Build and test the image
+      - name: Build and Test
+        uses: docker/build-push-action@v4
+        with:
+          load: true
+          tags: ${{ env.TEST_TAG }}
+          build-args: |
+            pyquil_version=${{ github.event.release.tag_name }}
+      - name: Test Image
+        run: |
+          docker run --rm ${{ env.TEST_TAG }} python -c "from pyquil import get_qc; qvm = get_qc('9q-qvm')"
+
+      # Build and push the tested image
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Build and Push
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            pyquil_version=${{ github.event.release.tag_name }}
