@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import itertools
+import logging
 import re
 import socket
 import subprocess
@@ -801,6 +802,7 @@ def get_qc(
         try:
             client_configuration = QCSClient.load()
         except LoadClientError:
+            logging.getLogger().info("No QCS client configuration found, only generic QVMs will be accessible.")
             client_configuration = QCSClient()
 
     # 1. Parse name, check for redundant options, canonicalize names.
