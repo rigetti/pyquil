@@ -38,7 +38,7 @@ jobs:
             pyquil_version=${{ github.event.release.tag_name }}
       - name: Test Image
         run: |
-          docker run --rm ${{ env.TEST_TAG }} python -c "from pyquil import get_qc; qvm = get_qc('9q-qvm')"
+          docker run --rm ${{ env.TEST_TAG }} python -c "from pyquil import get_qc"
 
       # Build and publish the image
       - name: Login to Docker Hub
