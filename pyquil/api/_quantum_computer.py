@@ -39,6 +39,7 @@ from rpcq.messages import ParameterAref
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu import list_quantum_processors
+from qcs_sdk.qpu.client import LoadClientError
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
@@ -796,7 +797,11 @@ def get_qc(
     .. _QCS API Docs: https://docs.api.qcs.rigetti.com/#tag/endpoints
     """
 
-    client_configuration = client_configuration or QCSClient.load()
+    if client_configuration is None:
+        try:
+            client_configuration = QCSClient.load()
+        except LoadClientError:
+            client_configuration = QCSClient()
 
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
