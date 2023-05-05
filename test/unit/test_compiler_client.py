@@ -14,8 +14,6 @@
 #    limitations under the License.
 ##############################################################################
 
-from test.unit.utils import patch_rpcq_client
-
 try:
     from unittest.mock import AsyncMock
 except ImportError:  # 3.7 requires this backport of AsyncMock
@@ -30,7 +28,6 @@ from pytest_mock import MockerFixture
 from pyquil.api._compiler_client import (
     CompilerClient,
     CompileToNativeQuilRequest,
-    CompileToNativeQuilResponse,
 )
 from pyquil.external.rpcq import CompilerISA, compiler_isa_to_target_quantum_processor
 
@@ -82,7 +79,7 @@ def test_compile_to_native_quil__returns_native_quil(
         protoquil=True,
     )
 
-    assert compiler_client.compile_to_native_quil(request) == CompileToNativeQuilResponse(
-        native_program="DECLARE ro BIT[1]\n",
-        metadata=None,
-    )
+    response = compiler_client.compile_to_native_quil(request)
+
+    assert response.native_program == "DECLARE ro BIT[1]\n"
+    assert response.metadata is not None
