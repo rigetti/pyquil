@@ -40,6 +40,7 @@ coverage:
 
 .PHONY: docs
 docs:
+	rm -f docs/source/changes.rst
 	poetry install --extras docs --extras latex
 	make -C docs clean html
 
