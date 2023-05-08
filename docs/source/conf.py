@@ -108,17 +108,13 @@ dirname = os.path.dirname(__file__)
 
 
 def builder_inited_handler(app):
-    subprocess.call(
-        [
-            "python",
-            "-m",
-            "pandoc",
-            "--from=markdown",
-            "--to=rst",
-            f"--output={dirname}/changes.rst",
-            f"{dirname}/../../CHANGELOG.md",
-        ]
-    )
+    import pandoc
+
+    infile = f"{dirname}/../../CHANGELOG.md"
+    outfile = f"{dirname}/changes.rst"
+
+    input = pandoc.read(source=None, file=infile, format="markdown")
+    pandoc.write(input, file=outfile, format="rst")
 
     subprocess.call(
         [
