@@ -14,20 +14,20 @@ Introduction
 Quantum programs are written in Forest using the :py:class:`~pyquil.quil.Program` object. This ``Program`` abstraction will help us
 compose `Quil programs <https://arxiv.org/abs/1608.03355>`_.
 
-.. code:: python
+.. testcode:: intro
 
     from pyquil import Program
 
 Programs are constructed by adding quantum gates to it, which are defined in the ``gates`` module. We can import all
 standard gates with the following:
 
-.. code:: python
+.. testcode:: intro
 
      from pyquil.gates import *
 
 Let's instantiate a ``Program`` and add an operation to it. We will act an ``X`` gate on qubit 0.
 
-.. code:: python
+.. testcode:: intro
 
     p = Program()
     p += X(0)
@@ -36,17 +36,20 @@ All qubits begin in the ground state. This means that if we measure a qubit with
 a 0 result. The ``X`` gate will rotate qubit 0 from the ground state to the excited state, so a measurement immediately
 after should return a 1 result.
 
-We can print our pyQuil program (``print(p)``) to see the equivalent Quil representation:
+We can print our pyQuil program to see the equivalent Quil representation:
 
-.. parsed-literal::
+.. testcode:: intro
+
+   print(p)
+
+.. testoutput:: intro
 
     X 0
-
 
 This isn't going to be very useful to us without measurements. To declare memory and write measurement readout data into
 it, write:
 
-.. code:: python
+.. testcode:: intro
 
     from pyquil import Program
     from pyquil.gates import *
@@ -58,7 +61,7 @@ it, write:
 
     print(p)
 
-.. parsed-literal::
+.. testoutput:: intro
 
     DECLARE ro BIT[1]
     X 0
@@ -70,7 +73,7 @@ an ``X`` gate on qubit 0, and finally measured qubit 0 into the zeroth index of 
 Awesome! That's all we need to get results back. Now we can actually see what happens if we run this
 program on the Quantum Virtual Machine (QVM). We just have to add a few lines to do this.
 
-.. code:: python
+.. testcode:: intro
 
     from pyquil import get_qc
 
@@ -84,7 +87,7 @@ program on the Quantum Virtual Machine (QVM). We just have to add a few lines to
 
 Congratulations! You just ran your program on the QVM. The returned value should be:
 
-.. parsed-literal::
+.. testoutput:: intro
 
     [[1]]
 
@@ -147,7 +150,7 @@ and break down each argument:
 
 Now we can get into an example.
 
-.. code:: python
+.. testcode:: declaring_memory
 
     from pyquil import Program
 
@@ -155,13 +158,15 @@ Now we can get into an example.
     ro = p.declare('ro', 'BIT', 16)
     theta = p.declare('theta', 'REAL')
 
+    print(p)
+
 .. warning::
     ``.declare`` cannot be chained, since it doesn't return a modified ``Program`` object.
 
 Notice that the ``.declare`` method returns a reference to the memory we've just declared. We will need this reference
 to make use of these memory spaces again. Let's see how the Quil is looking so far:
 
-.. parsed-literal::
+.. testoutput:: declaring_memory
 
     DECLARE ro BIT[16]
     DECLARE theta REAL[1]
@@ -178,7 +183,7 @@ Measurement
 
 We can use ``MEASURE`` instructions to measure particular qubits in a program:
 
-.. code:: python
+.. testcode:: measurement
 
     from pyquil import Program
     from pyquil.gates import *
@@ -195,7 +200,7 @@ into the 0th bit of ``ro``, and the result of qubit 1 into the 1st bit of ``ro``
 useful way to measure many qubits, in particular, on a lattice that doesn't start at qubit 0 (although you can
 use the compiler to :ref:`re-index <rewiring>` your qubits):
 
-.. code:: python
+.. testcode:: measurement
 
     qubits = [5, 6, 7]
     # ...
@@ -256,7 +261,7 @@ The first step is to build our parametric program, which functions like a templa
 run. Below we create a simple example program to illustrate, which puts the qubit onto the equator of the Bloch Sphere and then
 rotates it around the Z axis for some variable angle theta before applying another X pulse and measuring.
 
-.. code:: python
+.. testcode:: parametric
 
     import numpy as np
 
@@ -283,7 +288,7 @@ rotates it around the Z axis for some variable angle theta before applying anoth
 Notice how ``theta`` hasn't been specified yet. The next steps will have to involve a ``QuantumComputer`` or a compiler
 implementation. For simplicity, we will demonstrate with a ``QuantumComputer`` instance.
 
-.. code:: python
+.. testcode:: parametric
 
     from pyquil import get_qc
 
@@ -294,7 +299,7 @@ implementation. For simplicity, we will demonstrate with a ``QuantumComputer`` i
 We are able to compile our program, even with ``theta`` still not specified. Now we want to run our program with ``theta``
 filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrate this below.
 
-.. code:: python
+.. testcode:: parametric
 
     # Somewhere to store each list of results
     parametric_measurements = []
@@ -361,7 +366,13 @@ can be used to programmatically apply the ``DAGGER``, ``CONTROLLED``, and ``FORK
 For example, to produce the controlled-NOT gate (``CNOT``) with
 control qubit ``0`` and target qubit ``1``
 
-.. code:: python
+.. testsetup:: gate-modifiers
+
+   import numpy as np
+   from pyquil import Program
+   from pyquil.gates import X, RX
+
+.. testcode:: gate-modifiers
 
    prog = Program(X(1).controlled(0))
 
@@ -369,7 +380,7 @@ To produce the doubly-controlled NOT gate (``CCNOT``) with
 control qubits ``0`` and ``1`` and target qubit ``2`` you can stack
 the ``controlled`` modifier, or simply pass a list of control qubits
 
-.. code:: python
+.. testcode:: gate-modifiers
 
    prog = Program(X(2).controlled(0).controlled(1))
    prog = Program(X(2).controlled([0, 1]))
@@ -377,16 +388,16 @@ the ``controlled`` modifier, or simply pass a list of control qubits
 You can achieve the oft-used `control-off` gate (flip the target qubit
 ``1`` if the control qubit ``0`` is zero) with
 
-.. code:: python
+.. testcode:: gate-modifiers
 
    prog = Program(X(0), X(1).controlled(0), X(0))
 
 The gate ``FORKED RX(pi/2, pi) 0 1`` may be produced by
 
-.. code:: python
+.. testcode:: gate-modifiers
 
    prog = Program(RX(np.pi/2, 1).forked(0, [np.pi]))
-    
+
 
 
 Defining New Gates
@@ -396,7 +407,7 @@ New gates can be easily added inline to Quil programs. All you need is a
 matrix representation of the gate. For example, below we define a
 :math:`\sqrt{X}` gate.
 
-.. code:: python
+.. testcode:: define-gates
 
     import numpy as np
 
@@ -418,7 +429,7 @@ matrix representation of the gate. For example, below we define a
     p += SQRT_X(0)
     print(p)
 
-.. parsed-literal::
+.. testoutput:: define-gates
 
     DEFGATE SQRT-X:
         0.5+0.5i, 0.5-0.5i
@@ -428,7 +439,7 @@ matrix representation of the gate. For example, below we define a
 
 Below we show how we can define :math:`X_0\otimes \sqrt{X_1}` as a single gate.
 
-.. code:: python
+.. testcode:: define-gates
 
     # A multi-qubit defgate example
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
@@ -439,7 +450,7 @@ Below we show how we can define :math:`X_0\otimes \sqrt{X_1}` as a single gate.
 Now we can use this gate in the same way that we used ``SQRT_X``, but we will pass it two arguments
 rather than one, since it operates on two qubits.
 
-.. code:: python
+.. testcode:: define-gates
 
     x_sqrt_x_definition = DefGate("X-SQRT-X", x_sqrt_x)
     X_SQRT_X = x_sqrt_x_definition.get_constructor()
@@ -460,9 +471,11 @@ Defining Parametric Gates
 Let's say we want to have a controlled RX gate. Since RX is a parametric gate, we need a slightly different way of
 defining it than in the previous section.
 
-.. code:: python
+.. testcode:: parametric
 
-    from pyquil import Program, WavefunctionSimulator
+    from pyquil import Program
+    from pyquil.api import WavefunctionSimulator
+    from pyquil.gates import H
     from pyquil.quilatom import Parameter, quil_sin, quil_cos
     from pyquil.quilbase import DefGate
     import numpy as np
@@ -504,7 +517,7 @@ Defining Permutation Gates
 
 Some gates can be compactly represented as a permutation. For example, ``CCNOT`` gate can be represented by the matrix
 
-.. code:: python
+.. testcode:: permutation
 
    import numpy as np
    from pyquil.quilbase import DefGate
@@ -526,7 +539,7 @@ Some gates can be compactly represented as a permutation. For example, ``CCNOT``
 
 It can equivalently be defined by the permutation
 
-.. code:: python
+.. testcode:: permutation
 
    import numpy as np
    from pyquil.quilbase import DefPermutationGate
@@ -566,7 +579,7 @@ automatic way.
 
 Consider the following program.
 
-.. code:: python
+.. testcode:: rewiring
 
     from pyquil import Program
     from pyquil.gates import *
@@ -576,7 +589,7 @@ Consider the following program.
 We've tested this on the QVM, and we've targeted a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
 Rather than rewrite our program, we modify our program to tell the compiler to do this for us.
 
-.. code:: python
+.. testcode:: rewiring
 
     from pyquil.quil import Pragma
 
@@ -589,7 +602,7 @@ any other qubit, we would instead use ``Pragma('INITIAL_REWIRING', ['"NAIVE"']]`
 available options is :ref:`here <compiler_rewirings>`.
 
 .. note::
-    In general, we assume that the qubits you're supplying as input are also the ones which you prefer to 
+    In general, we assume that the qubits you're supplying as input are also the ones which you prefer to
     operate on, and so NAIVE rewiring is the default.
 
 Asking for a Delay
@@ -621,7 +634,12 @@ Multiple instructions can be added at once, and programs can be concatenated tog
 ``Program`` by interpreting raw Quil text. You can still use the more pyQuil 1.X style of using
 the ``.inst`` method to add instruction gates. Thus, the following are all valid programs:
 
-.. code:: python
+.. testsetup:: construct-programs
+
+   from pyquil import Program
+   from pyquil.gates import X, Y
+
+.. testcode:: construct-programs
 
     # Preferred method
     p = Program()
@@ -647,10 +665,26 @@ the ``.inst`` method to add instruction gates. Thus, the following are all valid
 
 All of the above methods will produce the same output:
 
-.. parsed-literal::
+.. testoutput:: construct-programs
+   :hide:
 
     X 0
     Y 1
+    X 0
+    Y 1
+    X 0
+    Y 1
+    X 0
+    Y 1
+    X 0
+    Y 1
+    X 0
+    Y 1
+
+.. parsed-literal::
+
+   X 0
+   Y 1
 
 The ``pyquil.parser`` submodule provides a front-end to other similar parser
 functionality.
@@ -661,7 +695,12 @@ Fixing a Mistaken Instruction
 
 If an instruction was appended to a program incorrectly, you can pop it off.
 
-.. code:: python
+.. testsetup:: mistake
+
+   from pyquil import Program
+   from pyquil.gates import X, Y
+
+.. testcode:: mistake
 
     p = Program(X(0), Y(1))
     print(p)
@@ -670,11 +709,10 @@ If an instruction was appended to a program incorrectly, you can pop it off.
     p.pop()
     print(p)
 
-.. parsed-literal::
+.. testoutput:: mistake
 
     X 0
     Y 1
-
     We can fix by popping:
     X 0
 
