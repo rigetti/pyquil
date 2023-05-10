@@ -29,6 +29,7 @@ from qcs_sdk.compiler.quilc import (
     ConjugatePauliByCliffordResponse,
     RandomizedBenchmarkingRequest,
     GenerateRandomizedBenchmarkingSequenceResponse,
+    NativeQuilMetadata,
 )
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
@@ -92,7 +93,7 @@ class CompileToNativeQuilResponse:
     native_program: str
     """Native Quil program."""
 
-    metadata: Optional[NativeQuilMetadataResponse]
+    metadata: Optional[NativeQuilMetadata]
     """Metadata for the returned Native Quil."""
 
 
@@ -137,13 +138,13 @@ class CompilerClient:
         target_device_json = json.dumps(request.target_quantum_processor.asdict())  # type: ignore
         target_device = TargetDevice.from_json(target_device_json)
 
-        native_program = compile_program(
+        result = compile_program(
             quil=request.program,
             target=target_device,
             client=self._client_configuration,
             options=CompilerOpts(protoquil=request.protoquil, timeout=self.timeout),
         )
-        return CompileToNativeQuilResponse(native_program=native_program, metadata=None)
+        return CompileToNativeQuilResponse(native_program=result.program, metadata=result.native_quil_metadata)
 
     def conjugate_pauli_by_clifford(self, request: ConjugateByCliffordRequest) -> ConjugatePauliByCliffordResponse:
         """

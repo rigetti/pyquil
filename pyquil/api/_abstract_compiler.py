@@ -123,18 +123,19 @@ class AbstractCompiler(ABC):
         target_device_json = json.dumps(compiler_isa_to_target_quantum_processor(compiler_isa).asdict())  # type: ignore
         target_device = TargetDevice.from_json(target_device_json)
 
-        native_quil = compile_program(
+        result = compile_program(
             quil=program.out(calibrations=False),
             target=target_device,
             client=self._client_configuration,
             options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout),
         )
 
-        native_program = Program(native_quil)
+        native_program = Program(result.program)
         native_program.num_shots = program.num_shots
         native_program._calibrations = program._calibrations
         native_program._waveforms = program._waveforms
         native_program._memory = program._memory.copy()
+        native_program.native_quil_metadata = result.native_quil_metadata
 
         return native_program
 

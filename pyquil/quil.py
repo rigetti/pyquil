@@ -36,8 +36,12 @@ from typing import (
     no_type_check,
 )
 
+from copy import deepcopy
+
 import numpy as np
-from rpcq.messages import NativeQuilMetadata, ParameterAref
+from rpcq.messages import ParameterAref
+
+from qcs_sdk.compiler.quilc import NativeQuilMetadata
 
 from pyquil._parser.parser import run_parser
 from pyquil._memory import Memory
@@ -191,8 +195,7 @@ class Program:
         new_prog._defined_gates = self._defined_gates.copy()
         new_prog._frames = self.frames.copy()
         if self.native_quil_metadata is not None:
-            # TODO: remove this type: ignore once rpcq._base.Message gets type hints.
-            new_prog.native_quil_metadata = self.native_quil_metadata.copy()  # type: ignore
+            new_prog.native_quil_metadata = deepcopy(self.native_quil_metadata)
         new_prog.num_shots = self.num_shots
         new_prog._memory = self._memory.copy()
         return new_prog
