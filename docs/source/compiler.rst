@@ -47,7 +47,7 @@ A ``QuantumComputer`` object supplied by the function ``pyquil.api.get_qc()`` co
 connection to your local Rigetti Quil compiler.  This can be accessed using the instance method ``.compile()``,
 as in the following:
 
-.. code:: python
+.. testcode:: quilc
 
     from pyquil.quil import Pragma, Program
     from pyquil.api import get_qc
@@ -59,9 +59,17 @@ as in the following:
 
     print(ep)
 
+..
+    Cannot actually check the output because quilc is non-deterministic, but still need to 
+    assert that there is output, otherwise doctests fail.
+.. testoutput:: quilc
+   :hide:
+
+   ...
+
 with output
 
-.. code:: python
+.. code:: quil
 
     RZ(pi/2) 0
     RX(pi/2) 0
@@ -97,7 +105,7 @@ The instance method ``qc.compile`` described above is a combination of these two
 incoming Quil is nativized, and then that is immediately turned into an executable.  Accordingly,
 the previous example snippet is identical to the following:
 
-.. code:: python
+.. testcode:: quilc
 
     from pyquil.quil import Pragma, Program
     from pyquil.api import get_qc
@@ -108,10 +116,14 @@ the previous example snippet is identical to the following:
     p = Program(H(0), CNOT(0,1), CNOT(1,2))
 
     np = qc.compiler.quil_to_native_quil(p, protoquil=True)
-    print(np.metadata)
+    print(np)
 
     ep = qc.compiler.native_quil_to_executable(np)
     print(ep)
+
+.. testoutput:: quilc
+
+   ...
 
 Timeouts
 --------
@@ -119,9 +131,13 @@ Timeouts
 If your circuit is sufficiently complex the compiler may require more time than is permitted by
 default. To change this timeout, use the `compiler_timeout` option on `get_qc`:
 
-.. code:: python
+.. testsetup:: timeouts
 
-    qc = get_qc(..., compiler_timeout=100) # 100 seconds
+    from pyquil.api import get_qc
+
+.. testcode:: timeouts
+
+    qc = get_qc("2q-qvm", compiler_timeout=100) # 100 seconds
 
 Legal compiler input
 --------------------
@@ -171,14 +187,14 @@ dictionary contains the keys
 
 For example, to inspect the ``qpu_runtime_estimation`` you might do the following:
 
-.. code:: python
+.. testcode:: metadata
 
     from pyquil import get_qc, Program
 
     # If you have a reserved QPU, use it here
-    qc = get_qc("Aspen-X")
+    # qc = get_qc("Aspen-X")
     # Otherwise use a QVM
-    # qc = get_qc("8q-qvm")
+    qc = get_qc("8q-qvm")
 
     # Likely you will have a more complex program:
     p = Program("RX(pi) 0")
@@ -188,7 +204,11 @@ For example, to inspect the ``qpu_runtime_estimation`` you might do the followin
     # The program will now have only native gates
     print(native_p)
     # And also a dictionary, with the above keys
-    print(native_p.native_quil_metadata["qpu_runtime_estimation"])
+    # print(native_p.native_quil_metadata["qpu_runtime_estimation"])
+
+.. testoutput:: metadata
+
+   ...
 
 .. _pragma:
 
@@ -220,7 +240,7 @@ the compiler will remove the identity gates that serve to provide the time delay
 regions outside of the ``PRAGMA`` region will still be compiled, converting the Bell state preparation
 to the native gate set.
 
-.. code:: python
+.. code:: quil
 
     DECLARE ro BIT[2]
 
@@ -264,7 +284,7 @@ utilize qubit pairs 0-1 and 2-3) before the second and fourth blocks (which util
 and 0-3), resulting in a reduction in circuit depth by one half.  Without hinting, the compiler will
 instead execute the blocks in their written order.
 
-.. code:: python
+.. code:: quil
 
     DECLARE ro BIT[4]
 
@@ -335,20 +355,32 @@ affect the initial rewiring of the program.
 
 For example, consider running a ``CZ`` on non-neighboring qubits on a linear device:
 
-.. code:: python
+.. testcode:: swaps
 
    import networkx as nx
    from pyquil import Program, get_qc
+   from pyquil.api import QCSClient
    from pyquil.api._quantum_computer import _get_qvm_with_topology
    from pyquil.gates import CZ
 
    graph = nx.from_edgelist([(0, 1), (1, 2)])
-   qc = _get_qvm_with_topology(name="line", topology=graph)
+   qc = _get_qvm_with_topology(
+       client_configuration=QCSClient(),
+       name="line",
+       topology=graph,
+       noisy=False,
+       qvm_type="qvm",
+       compiler_timeout=30.0,
+       execution_timeout=30.0
+   )
 
    p = Program(CZ(0, 2))
    print(qc.compile(p))
 
+.. testoutput:: swaps
+
    CZ 2 1
+   HALT
 
 We see that the resulting program has only a single ``CZ`` even though the original program would
 usually require the insertion of a ``SWAP`` gate. The compiler instead opted to just relabel (or
@@ -357,18 +389,34 @@ rewire) the qubits, thus not inflating the number of gates in the result.
 For larger and more complex programs (with more entanglement) it may not always be possible to avoid
 inserting swaps. For example, the following program requires a ``SWAP`` that increases its gate depth:
 
-.. code:: python
+.. testcode:: swaps
 
    import networkx as nx
    from pyquil import Program, get_qc
+   from pyquil.api import QCSClient
    from pyquil.api._quantum_computer import _get_qvm_with_topology
    from pyquil.gates import H, CZ
 
    graph = nx.from_edgelist([(0, 1), (1, 2)])
-   qc = _get_qvm_with_topology(name="line", topology=graph)
+   qc = _get_qvm_with_topology(
+       client_configuration=QCSClient(),
+       name="line",
+       topology=graph,
+       noisy=False,
+       qvm_type="qvm",
+       compiler_timeout=30.0,
+       execution_timeout=30.0
+   )
 
    p = Program(CZ(0, 1), H(0), CZ(1, 2), CZ(0, 2))
    print(qc.compile(p))
+
+.. testoutput:: swaps
+   :hide:
+
+   ...
+
+.. code:: quil
 
    CZ 2 1
    RX(-pi/2) 2
@@ -386,6 +434,7 @@ inserting swaps. For example, the following program requires a ``SWAP`` that inc
    RZ(pi/2) 1
    RX(pi/2) 2
    RX(pi/2) 2
+   HALT
 
 .. note::
 
@@ -399,7 +448,7 @@ Initial rewiring
 In addition, you have some control over how the compiler constructs its
 rewiring, which is controlled by ``PRAGMA INITIAL_REWIRING``. The syntax is as follows.
 
-.. code:: python
+.. code:: quil
    
    # <type> can be NAIVE, RANDOM, PARTIAL, or GREEDY
    #
@@ -425,7 +474,7 @@ depending on the program:
 
 For example, if your program consists of two-qubit instructions where the qubits in each instruction are nearest neighbors on the device, the compiler will employ the native strategy:
 
-.. code:: python
+.. testcode:: default-rewiring
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -434,6 +483,13 @@ For example, if your program consists of two-qubit instructions where the qubits
    p = Program(CZ(3, 4))
 
    print(qc.compile(p))
+
+.. testoutput:: default-rewiring
+   :hide:
+
+    ...
+
+.. code:: quil
 
    CZ 3 4
 
@@ -444,7 +500,7 @@ qubits to use better ones).
 If however, the program uses qubits that `must` be rewired, then the compiler defaults to the
 partial strategy:
 
-.. code:: python
+.. testcode:: default-rewiring
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -453,6 +509,13 @@ partial strategy:
    p = Program(CZ(3, 4))
 
    print(qc.compile(p))
+
+.. testoutput:: default-rewiring
+   :hide:
+
+    ...
+
+.. code:: quil
 
    RZ(-pi/2) 0
    RX(pi/2) 0
@@ -477,7 +540,7 @@ compiler will generally **not** move an instruction's qubits around even if it r
 execution fidelity. For example assume that ``Aspen-X`` has a low-fidelity ``CZ 0 1``, then
 compiling this program with naive rewiring will **not** move the ``CZ`` to a better qubit pair:
 
-.. code:: python
+.. testcode:: naive-rewiring
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -487,6 +550,14 @@ compiling this program with naive rewiring will **not** move the ``CZ`` to a bet
 
    print(qc.compile(p))
 
+.. testoutput:: naive-rewiring
+   :hide:
+
+   PRAGMA INITIAL_REWIRING "NAIVE"
+   ...
+
+.. code:: quil
+
    PRAGMA INITIAL_REWIRING "NAIVE"
    CZ 0 1
 
@@ -494,7 +565,7 @@ If, however, your program includes an instruction that does **not** use neighbor
 compiler will be required to insert swaps (virtual or real, see swaps_) that might affect the
 logical-physical qubit mapping. For example,
 
-.. code:: python
+.. testcode:: naive-rewiring
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -503,6 +574,14 @@ logical-physical qubit mapping. For example,
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 2))
 
    print(qc.compile(p))
+
+.. testoutput:: naive-rewiring
+   :hide:
+
+   PRAGMA INITIAL_REWIRING "NAIVE"
+   ...
+
+.. code:: naive-rewiring
 
    PRAGMA INITIAL_REWIRING "NAIVE"
    CZ 6 5
@@ -526,7 +605,7 @@ incorporating fidelity information about any qubit in the device ISA.
 For example, if the instruction ``CZ 0 1`` has poor fidelity, under the partial rewiring strategy
 the compiler can find an alternative that improves the program fidelity:
 
-.. code:: python
+.. testcode:: partial-rewiring
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -535,6 +614,14 @@ the compiler can find an alternative that improves the program fidelity:
    p = Program('PRAGMA INITIAL_REWIRING "PARTIAL"', CZ(0, 1))
 
    print(qc.compile(p))
+
+.. testoutput:: partial-rewiring
+   :hide:
+
+   PRAGMA INITIAL_REWIRING "PARTIAL"
+   ...
+
+.. code:: quil
 
    PRAGMA INITIAL_REWIRING "PARTIAL"
    CZ 20 27
