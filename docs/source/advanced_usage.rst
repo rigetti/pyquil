@@ -52,15 +52,18 @@ concurrent context.
 
 Below is an example that demonstrates how to use pyQuil in a multithreading scenario:
 
+.. todo::
+    This should be covered by doctests but hangs locally.
+
 .. code:: python
 
     from multiprocessing.pool import ThreadPool
 
     from pyquil import get_qc, Program
-    from pyquil.api import QCSClientConfiguration
+    from pyquil.api import QCSClient
 
-    configuration = QCSClientConfiguration.load()
-    qc = get_qc("Aspen-X", client_configuration=configuration)
+    configuration = QCSClient.load()
+    qc = get_qc("Aspen-M-3", client_configuration=configuration)
 
 
     def run(program: Program):
@@ -93,13 +96,18 @@ See the `QCS API Docs <https://docs.api.qcs.rigetti.com/#tag/endpoints>`_ for mo
 To be able to call these endpoints using pyQuil, enter the ``endpoint_id`` of your desired endpoint in one
 of the sites where ``quantum_processor_id`` is used:
 
-.. code:: python
+.. testsetup:: endpoints
+
+    from pyquil import get_qc
+    from pyquil.api import QPU
+
+.. testcode:: endpoints
 
     # Option 1
     qc = get_qc("Aspen-9", endpoint_id="my_endpoint")
 
     # Option 2
-    qam = QPU("Aspen-9", endpoint_id="my_endpoint")
+    qam = QPU(quantum_processor_id="Aspen-9", endpoint_id="my_endpoint")
 
 After doing so, for all intents and purposes - compilation, optimization, etc - your program will behave the same
 as when using "default" endpoint for a given quantum processor, except that it will be executed by an
@@ -115,13 +123,13 @@ Using Qubit Placeholders
 
 In pyQuil, we typically use integers to identify qubits
 
-.. code:: python
+.. testcode:: placeholders
 
     from pyquil import Program
     from pyquil.gates import CNOT, H
     print(Program(H(0), CNOT(0, 1)))
 
-.. parsed-literal::
+.. testoutput:: placeholders
 
     H 0
     CNOT 0 1
@@ -131,13 +139,24 @@ particular physical qubits our program will run on. In fact, we may want
 to run the same program on an assortment of different qubits. This is
 where using ``QubitPlaceholder``\ s comes in.
 
-.. code:: python
+.. testsetup:: placeholders
+
+   from pyquil import Program
+   from pyquil.gates import H, CNOT
+
+.. testcode:: placeholders
 
     from pyquil.quilatom import QubitPlaceholder
     q0 = QubitPlaceholder()
     q1 = QubitPlaceholder()
     p = Program(H(q0), CNOT(q0, q1))
     print(p)
+
+.. testoutput:: placeholders
+   :hide:
+
+    H {q...}
+    CNOT {q...} {q...}
 
 .. parsed-literal::
 
@@ -146,11 +165,15 @@ where using ``QubitPlaceholder``\ s comes in.
 
 If you try to use this program directly, it will not work
 
+..
+    Could not make this a doctest because it would keep failing. ``doctest`` is supposed to match the
+    exception text if one occurs, but instead it seemed to fail the test because an exception happened.
+
 .. code:: python
 
     print(p.out())
 
-::
+.. parsed-literal::
 
     RuntimeError: Qubit q4402789176 has not been assigned an index
 
@@ -159,26 +182,26 @@ Instead, you must explicitly map the placeholders to physical qubits. By
 default, the function ``address_qubits`` will address qubits from 0 to
 N.
 
-.. code:: python
+.. testcode:: placeholders
 
     from pyquil.quil import address_qubits
     print(address_qubits(p))
 
-.. parsed-literal::
+.. testoutput:: placeholders
 
     H 0
     CNOT 0 1
 
 The real power comes into play when you provide an explicit mapping:
 
-.. code:: python
+.. testcode:: placeholders
 
-    print(address_qubits(prog, qubit_mapping={
+    print(address_qubits(p, qubit_mapping={
         q0: 14,
         q1: 19,
     }))
 
-.. parsed-literal::
+.. testoutput:: placeholders
 
     H 14
     CNOT 14 19
@@ -191,14 +214,21 @@ Usually, your algorithm will use an assortment of qubits. You can use
 the convenience function ``QubitPlaceholder.register()`` to request a
 list of qubits to build your program.
 
-.. code:: python
+.. testsetup:: register
+
+    from pyquil import Program
+    from pyquil.gates import H
+    from pyquil.quilatom import QubitPlaceholder
+    from pyquil.quil import address_qubits
+
+.. testcode:: register
 
     qbyte = QubitPlaceholder.register(8)
     p_evens = Program(H(q) for q in qbyte)
     print(address_qubits(p_evens, {q: i*2 for i, q in enumerate(qbyte)}))
 
 
-.. parsed-literal::
+.. testoutput:: register
 
     H 0
     H 2
@@ -232,7 +262,7 @@ loop by following these steps:
 
 4. Use the :py:func:`~pyquil.quil.Program.while_do` method to add control flow.
 
-.. code:: python
+.. testcode:: control-flow
 
     from pyquil import Program
     from pyquil.gates import *
@@ -254,7 +284,7 @@ loop by following these steps:
 
     print(outer_loop)
 
-.. parsed-literal::
+.. testoutput:: control-flow
 
     DECLARE flag_register BIT[1]
     MOVE flag_register 1
@@ -281,7 +311,7 @@ languages. Much like the last example, we construct programs for each
 branch of the ``if``, and put it all together by using the :py:func:`~pyquil.quil.Program.if_then`
 method.
 
-.. code:: python
+.. testcode:: control-flow
 
     # Declare our memory spaces
     branching_prog = Program()
@@ -305,7 +335,7 @@ method.
 
     print(branching_prog)
 
-.. parsed-literal::
+.. testoutput:: control-flow
 
     DECLARE test_register BIT[1]
     DECLARE ro BIT[1]
@@ -320,13 +350,28 @@ method.
 
 We can run this program a few times to see what we get in the readout register ``ro``.
 
-.. code:: python
+.. testcode:: control-flow
 
     from pyquil import get_qc
 
     qc = get_qc("2q-qvm")
     branching_prog.wrap_in_numshots_loop(10)
-    qc.run(branching_prog)
+    result = qc.run(branching_prog)
+    print(result.readout_data['test_register'])
+
+.. testoutput:: control-flow
+   :options: +ELLIPSIS
+
+    [[...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]]
 
 .. parsed-literal::
 
@@ -342,7 +387,7 @@ Many algorithms require manipulating sums of Pauli combinations, such as
 can represent such sums by constructing ``PauliTerm`` and ``PauliSum``.
 The above sum can be constructed as follows:
 
-.. code:: python
+.. testcode:: pauli-algebra
 
     from pyquil.paulis import ID, sX, sY, sZ
 
@@ -356,7 +401,7 @@ The above sum can be constructed as follows:
     sigma = a + b + c
     print(f"sigma = {sigma}")
 
-.. parsed-literal::
+.. testoutput:: pauli-algebra
 
     sigma = (0.5+0j)*I + (-0.75+0j)*X0*Y1*Z3 + (5-2j)*Z1*X2
 
@@ -374,7 +419,7 @@ done.
 
 The following shows an instructive example of all three.
 
-.. code:: python
+.. testcode:: pauli-algebra
 
     from pyquil.paulis import exponential_map
 
@@ -386,7 +431,7 @@ The following shows an instructive example of all three.
     print(f"Quil to compute exp[iX] on qubit 0:\n"
            f"{exponential_map(H)(1.0)}")
 
-.. parsed-literal::
+.. testoutput:: pauli-algebra
 
     Simplified: (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
 
@@ -400,14 +445,15 @@ constant later. This commonly occurs in variational algorithms. The function
 ``exponential_map`` is used to compute :math:`\exp[-i \alpha H]` without explicitly filling in a
 value for :math:`\alpha`.
 
-.. code:: python
+.. testcode:: pauli-algebra
 
     expH = exponential_map(H)
     print(f"0:\n{expH(0.0)}\n")
     print(f"1:\n{expH(1.0)}\n")
     print(f"2:\n{expH(2.0)}")
 
-.. parsed-literal::
+.. testoutput:: pauli-algebra
+
     0:
     H 0
     RZ(0) 0
@@ -425,7 +471,11 @@ value for :math:`\alpha`.
 
 To take it one step further, you can use :ref:`parametric_compilation` with ``exponential_map``. For instance:
 
-.. code:: python
+.. testsetup:: pauli-algebra
+
+   from pyquil import Program
+
+.. testcode:: pauli-algebra
 
     ham = sZ(0) * sZ(1)
     prog = Program()
