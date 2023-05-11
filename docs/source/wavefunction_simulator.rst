@@ -11,14 +11,19 @@ be running on the QPU can give a distribution of outputs. When running on the QP
 With the Wavefunction Simulator, you can look at the distribution without having to collect samples from your program.
 This can save a lot of time for small programs. Let's walk through a basic example of using WavefunctionSimulator:
 
-.. code:: python
+.. testcode::
 
     from pyquil import Program
     from pyquil.gates import *
     from pyquil.api import WavefunctionSimulator
     wf_sim = WavefunctionSimulator()
     coin_flip = Program(H(0))
-    wf_sim.wavefunction(coin_flip)
+    print(wf_sim.wavefunction(coin_flip))
+
+.. testoutput::
+    :hide:
+
+    (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
 
 .. parsed-literal::
 
@@ -26,20 +31,22 @@ This can save a lot of time for small programs. Let's walk through a basic examp
 
 The return value is a Wavefunction object that stores the amplitudes of the quantum state. We can print this object
 
-.. code:: python
+.. testcode::
 
     coin_flip = Program(H(0))
     wavefunction = wf_sim.wavefunction(coin_flip)
     print(wavefunction)
 
-.. parsed-literal::
+.. testoutput::
 
   (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
 
 to see the amplitudes listed as a sum of computational basis states. We can index into those
 amplitudes directly or look at a dictionary of associated outcome probabilities.
 
-.. code:: python
+.. testcode::
+
+  import numpy as np
 
   assert wavefunction[0] == 1 / np.sqrt(2)
   # The amplitudes are stored as a numpy array on the Wavefunction object
@@ -49,10 +56,10 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
   prob_dict.keys() # these store the bitstring outcomes
   assert len(wavefunction) == 1 # gives the number of qubits
 
-.. parsed-literal::
+.. testoutput::
 
-  [ 0.70710678+0.j  0.70710678+0.j]
-  {'1': 0.49999999999999989, '0': 0.49999999999999989}
+  [0.70710678+0.j 0.70710678+0.j]
+  {'0': 0.4999999999999999, '1': 0.4999999999999999}
 
 
 It is important to remember that this ``wavefunction`` method is a useful debugging tool for small quantum systems, and

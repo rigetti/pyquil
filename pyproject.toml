@@ -61,6 +61,10 @@ mock = { version = "^4.0", python = "<3.8" }
 latex = ["ipython"]
 docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc"]
 
+[tool.poetry.group.docs.dependencies]
+matplotlib = {version = "^3.7.1", optional = true}
+seaborn = {version = "^0.12.2", optional = true}
+
 [tool.black]
 line-length = 120
 target-version = ['py37']

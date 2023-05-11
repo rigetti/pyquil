@@ -34,7 +34,23 @@ source `here <https://github.com/rigetti/pyquil>`__.
 
 .. note::
 
-    pyQuil requires Python 3.7 or later.
+    pyQuil requires Python 3.8 or later.
+
+.. testcode:: verify-min-version
+    :hide:
+
+    import os
+    import toml
+
+    with open(f"{os.getcwd()}/../pyproject.toml", "r") as file:
+        t = toml.load(file)
+        print(t["tool"]["poetry"]["dependencies"]["python"])
+
+.. testoutput:: verify-min-version
+    :hide:
+
+    ^3.8...
+
 
 .. _sdkinstall:
 
@@ -47,6 +63,9 @@ The Forest 3.0 Downloadable SDK Preview currently contains:
 
 The QVM and the compiler are packed as program binaries that are accessed through the command line. Both of them provide
 support for direct command-line interaction, as well as a server mode. The :ref:`server mode <server>` is required for use with pyQuil.
+
+..
+    TODO: add docs for docker usage
 
 `Download the Forest SDK here <https://qcs.rigetti.com/sdk-downloads>`__, where you can find links
 for Windows, macOS, Linux (.deb), Linux (.rpm), and Linux (bare-bones).
@@ -261,7 +280,7 @@ open an interactive python notebook in your terminal (with ``ipython3``), or sim
 
 Import a few things from pyQuil:
 
-.. code:: python
+.. testcode:: first-program
 
     from pyquil import Program, get_qc
     from pyquil.gates import *
@@ -279,7 +298,7 @@ allows us to declare classical memory regions so that we can receive data from t
     :py:func:`~pyquil.api.local_forest_runtime()`. This will start qvm and quilc instances using subprocesses if they have not already been started.
     You can also use it as a context manager as in the following example:
 
-    .. code:: python
+    .. testcode:: first-program
 
         from pyquil import get_qc, Program
         from pyquil.gates import CNOT, Z, MEASURE
@@ -300,7 +319,7 @@ allows us to declare classical memory regions so that we can receive data from t
 
 Next, let's construct our Bell State.
 
-.. code:: python
+.. testcode:: first-program
 
     # construct a Bell State program
     p = Program(
@@ -314,13 +333,19 @@ Next, let's construct our Bell State.
 We've accomplished this by driving qubit 0 into a superposition state (that's what the "H" gate does), and then creating
 an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Finally, we'll want to run our program:
 
-.. code:: python
+.. testcode:: first-program
 
     # run the program on a QVM
     qc = get_qc('9q-square-qvm')
     result = qc.run(qc.compile(p)).readout_data.get("ro")
     print(result[0])
     print(result[1])
+
+.. testoutput:: first-program
+    :hide:
+
+    [...]
+    [...]
 
 Compare the two arrays of measurement results. The results will be correlated between the qubits and random from shot
 to shot.
