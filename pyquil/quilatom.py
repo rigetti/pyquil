@@ -139,12 +139,14 @@ class QubitPlaceholder(QuilAtom):
     def register(cls, n: int) -> List["QubitPlaceholder"]:
         """Return a 'register' of ``n`` QubitPlaceholders.
 
+        >>> from pyquil import Program
+        >>> from pyquil.gates import H
+        >>> from pyquil.quil import address_qubits
+        >>> from pyquil.quilatom import QubitPlaceholder
         >>> qs = QubitPlaceholder.register(8) # a qubyte
         >>> prog = Program(H(q) for q in qs)
-        >>> address_qubits(prog).out()
-        H 0
-        H 1
-        ...
+        >>> address_qubits(prog).out()  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+        'H 0\\nH 1\\nH 2\\nH 3\\nH 4\\nH 5\\nH 6\\nH 7\\n'
         >>>
 
         The returned register is a Python list of QubitPlaceholder objects, so all

@@ -45,6 +45,8 @@ docs:
 
 .PHONY: doctest
 doctest:
+	poetry install --extras docs --extras latex
+	pytest -v --cov=pyquil --doctest-modules pyquil
 	make -C docs clean doctest
 
 .PHONY: docker

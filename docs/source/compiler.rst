@@ -69,7 +69,7 @@ as in the following:
 
 with output
 
-.. code:: quil
+.. code:: text
 
     RZ(pi/2) 0
     RX(pi/2) 0
@@ -240,7 +240,7 @@ the compiler will remove the identity gates that serve to provide the time delay
 regions outside of the ``PRAGMA`` region will still be compiled, converting the Bell state preparation
 to the native gate set.
 
-.. code:: quil
+.. code:: text
 
     DECLARE ro BIT[2]
 
@@ -284,7 +284,7 @@ utilize qubit pairs 0-1 and 2-3) before the second and fourth blocks (which util
 and 0-3), resulting in a reduction in circuit depth by one half.  Without hinting, the compiler will
 instead execute the blocks in their written order.
 
-.. code:: quil
+.. code:: text
 
     DECLARE ro BIT[4]
 
@@ -416,7 +416,7 @@ inserting swaps. For example, the following program requires a ``SWAP`` that inc
 
    ...
 
-.. code:: quil
+.. code:: text
 
    CZ 2 1
    RX(-pi/2) 2
@@ -448,7 +448,7 @@ Initial rewiring
 In addition, you have some control over how the compiler constructs its
 rewiring, which is controlled by ``PRAGMA INITIAL_REWIRING``. The syntax is as follows.
 
-.. code:: quil
+.. code:: text
    
    # <type> can be NAIVE, RANDOM, PARTIAL, or GREEDY
    #
@@ -489,7 +489,7 @@ For example, if your program consists of two-qubit instructions where the qubits
 
     ...
 
-.. code:: quil
+.. code:: text
 
    CZ 3 4
 
@@ -515,7 +515,7 @@ partial strategy:
 
     ...
 
-.. code:: quil
+.. code:: text
 
    RZ(-pi/2) 0
    RX(pi/2) 0
@@ -556,7 +556,7 @@ compiling this program with naive rewiring will **not** move the ``CZ`` to a bet
    PRAGMA INITIAL_REWIRING "NAIVE"
    ...
 
-.. code:: quil
+.. code:: text
 
    PRAGMA INITIAL_REWIRING "NAIVE"
    CZ 0 1
@@ -581,7 +581,7 @@ logical-physical qubit mapping. For example,
    PRAGMA INITIAL_REWIRING "NAIVE"
    ...
 
-.. code:: naive-rewiring
+.. code:: text
 
    PRAGMA INITIAL_REWIRING "NAIVE"
    CZ 6 5
@@ -621,7 +621,7 @@ the compiler can find an alternative that improves the program fidelity:
    PRAGMA INITIAL_REWIRING "PARTIAL"
    ...
 
-.. code:: quil
+.. code:: text
 
    PRAGMA INITIAL_REWIRING "PARTIAL"
    CZ 20 27

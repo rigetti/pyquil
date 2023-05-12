@@ -732,12 +732,11 @@ def get_qc(
     You can choose the quantum computer to target through a combination of its name and optional
     flags. There are multiple ways to get the same quantum computer. The following are equivalent::
 
-        >>> qc = get_qc("Aspen-1-16Q-A-noisy-qvm")
-        >>> qc = get_qc("Aspen-1-16Q-A", as_qvm=True, noisy=True)
+        >>> qc = get_qc("Aspen-M-3-qvm")
+        >>> qc = get_qc("Aspen-M-3", as_qvm=True)
 
-    and will construct a simulator of an Aspen-1 lattice with a noise model based on quantum_processor
-    characteristics. We also provide a means for constructing generic quantum simulators that
-    are not related to a given piece of Rigetti hardware::
+    and will construct a simulator of an Aspen-M-3 lattice. We also provide a means for constructing
+    generic quantum simulators that are not related to a given piece of Rigetti hardware::
 
         >>> qc = get_qc("9q-square-qvm")
         >>> qc = get_qc("9q-square", as_qvm=True)
@@ -763,6 +762,8 @@ def get_qc(
         >>> qc = get_qc("9q-square-qvm") # qc is fully specified by its name
         >>> qc = get_qc("9q-square-qvm", as_qvm=True) # redundant, but ok
         >>> qc = get_qc("9q-square-qvm", as_qvm=False) # Error!
+        Traceback (most recent call last):
+        ValueError: The provided qc name indicates you are getting a QVM, but you have specified `as_qvm=False`
 
     Use :py:func:`list_quantum_computers` to retrieve a list of known qc names.
 
@@ -925,8 +926,8 @@ def local_forest_runtime(
     >>> qvm = get_qc('9q-square-qvm')
     >>> prog = Program(Z(0), CNOT(0, 1))
     >>>
-    >>> with local_forest_runtime():
-    >>>     results = qvm.run_and_measure(prog, trials=10)
+    >>> with local_forest_runtime():  # doctest: +SKIP
+    >>>     results = qvm.run(prog)   # doctest: +SKIP
 
     :param host: Host on which `qvm` and `quilc` should listen on.
     :param qvm_port: Port which should be used by `qvm`.
