@@ -272,17 +272,15 @@ Getting Started
 
 .. testcode:: damping
 
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.stats import binom
     import matplotlib.colors as colors
-
-.. testcode:: damping
+    import matplotlib.pyplot as plt
+    import numpy as np
 
     from pyquil import Program, get_qc
     from pyquil.gates import CZ, H, I, X, MEASURE
     from pyquil.quilbase import Declare
     from scipy.linalg import expm
+    from scipy.stats import binom
 
 .. testcode:: damping
 
@@ -1290,6 +1288,7 @@ Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 0
     print(zmoments_corr[1, 0, 0], zmoments_corr[0, 1, 0], zmoments_corr[0, 0, 1])
 
 .. testoutput:: readout-noise
+    :hide:
 
     ... ... ...
 
