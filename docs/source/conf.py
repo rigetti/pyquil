@@ -45,15 +45,6 @@ source_suffix = [".rst", ".md"]
 
 doctest_default_flags = doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL | doctest.DONT_ACCEPT_TRUE_FOR_1 | doctest.NORMALIZE_WHITESPACE
 
-#doctest_default_flags = [
-#    # Default flags if doctest_default_flags is not specified
-#    "ELLIPSIS",
-#    "IGNORE_EXCEPTION_DETAIL",
-#    "DONT_ACCEPT_TRUE_FOR_1",
-#    # Added flags
-#    "NORMALIZE_WHITESPACE",
-#]
-
 root_doc = "index"
 autosummary_generate = True
 autoclass_content = "both"

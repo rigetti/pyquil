@@ -207,7 +207,7 @@ For example, to inspect the ``qpu_runtime_estimation`` you might do the followin
     # print(native_p.native_quil_metadata["qpu_runtime_estimation"])
 
 .. testoutput:: metadata
-
+   :hide:
    ...
 
 .. _pragma:

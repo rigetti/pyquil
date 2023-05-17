@@ -52,8 +52,8 @@ concurrent context.
 
 Below is an example that demonstrates how to use pyQuil in a multithreading scenario:
 
-.. todo::
-    This should be covered by doctests but hangs locally.
+..
+    TODO: This should be covered by doctests but hangs locally.
 
 .. code:: python
 
@@ -360,7 +360,7 @@ We can run this program a few times to see what we get in the readout register `
     print(result.readout_data['test_register'])
 
 .. testoutput:: control-flow
-   :options: +ELLIPSIS
+    :hide:
 
     [[...]
      [...]
@@ -375,7 +375,16 @@ We can run this program a few times to see what we get in the readout register `
 
 .. parsed-literal::
 
-    [[1], [1], [1], [0], [1], [0], [0], [1], [1], [0]]
+    [[1]
+     [1]
+     [1]
+     [0]
+     [1]
+     [0]
+     [0]
+     [1]
+     [1]
+     [0]]
 
 
 Pauli Operator Algebra

@@ -1374,6 +1374,7 @@ we should always measure ``1``.
     print(noisy_qc.run(p).readout_data.get("ro"))
 
 .. testoutput:: global-error
+    :hide:
 
     Without Noise:
     [[1]

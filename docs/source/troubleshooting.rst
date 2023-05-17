@@ -16,8 +16,9 @@ to help!
     print(pyquil.__version__)
 
    .. testoutput:: version
+      :hide:
 
-    ...
+      ...
 
    You can update pyQuil with ``pip`` using ``pip install pyquil --upgrade``. You can find
    the latest version available at
