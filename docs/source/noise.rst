@@ -586,7 +586,7 @@ Adding Decoherence Noise
 
 In this example, we investigate how a program might behave on a
 near-term device that is subject to *T1*- and *T2*-type noise using the convenience function
-:py:func:`pyquil.noise.add_single_qubit_noise`. The same module also contains some other useful
+:py:func:`pyquil.noise.add_decoherence_noise`. The same module also contains some other useful
 functions to define your own types of noise models, e.g.,
 :py:func:`pyquil.noise.tensor_kraus_maps` for generating multi-qubit noise processes,
 :py:func:`pyquil.noise.combine_kraus_maps` for describing the succession of two noise processes and
@@ -700,12 +700,12 @@ gate noise, respectively.
 
 .. code:: python
 
-    from pyquil.noise import add_single_qubit_noise
+    from pyquil.noise import add_decoherence_noise
     records = []
     for theta in thetas:
         for t1 in t1s:
             prog = get_compiled_prog(theta)
-            noisy = add_single_qubit_noise(prog, T1=t1).inst([
+            noisy = add_decoherence_noise(prog, T1=t1).inst([
                 Declare("ro", "BIT", 2),
                 MEASURE(0, ("ro", 0)),
                 MEASURE(1, ("ro", 1)),
