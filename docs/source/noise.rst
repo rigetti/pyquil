@@ -586,7 +586,7 @@ Adding Decoherence Noise
 
 In this example, we investigate how a program might behave on a
 near-term device that is subject to *T1*- and *T2*-type noise using the convenience function
-:py:func:`pyquil.noise.add_decoherence_noise`. The same module also contains some other useful
+:py:func:`pyquil.noise.add_single_qubit_noise`. The same module also contains some other useful
 functions to define your own types of noise models, e.g.,
 :py:func:`pyquil.noise.tensor_kraus_maps` for generating multi-qubit noise processes,
 :py:func:`pyquil.noise.combine_kraus_maps` for describing the succession of two noise processes and
@@ -700,12 +700,12 @@ gate noise, respectively.
 
 .. code:: python
 
-    from pyquil.noise import add_decoherence_noise
+    from pyquil.noise import add_single_qubit_noise
     records = []
     for theta in thetas:
         for t1 in t1s:
             prog = get_compiled_prog(theta)
-            noisy = add_decoherence_noise(prog, T1=t1).inst([
+            noisy = add_single_qubit_noise(prog, T1=t1).inst([
                 Declare("ro", "BIT", 2),
                 MEASURE(0, ("ro", 0)),
                 MEASURE(1, ("ro", 1)),
@@ -1335,3 +1335,267 @@ we should always measure ``1``.
      [1]
      [0]
      [1]]
+
+
+A realistic simulation of a noisy quantum computer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The module noise.py facilitates the execution of a realistic simulation of a noisy quantum computer,
+providing users with an accessible and robust tool.
+The core functionality emulates Rigetti's quantum computers,
+utilizing current calibration data from the company.
+Additionally, users have the ability to explore the effects of varying noise intensity or specifying alternative noise parameters.
+
+In the following sections, we will delve into the workings of the simulator,
+along with a comprehensive guide on its usage, accompanied by illustrative examples.
+
+How does the simulator work?
+============================
+
+The simulator employs Kraus operators as its foundation, as described previously. However, instead of incorporating Kraus operators directly into the gate (which poses challenges for parametric gates and does not account for effects on other qubits), we apply them to unity matrices following each gate. This serves as the fundamental concept behind the simulator.
+
+It is important to note that the majority of gates utilized in quantum programs are not physically realized within the quantum computer. Instead, they are implemented using a limited set of native gates. For instance, in Rigetti's Aspen-M-3 computer, the native gates include RX, RZ, CZ, CPHASE, and XY. To accurately simulate the real computer, the simulator, by default, translates the program into native gates and subsequently introduces noise into the native program, unless the user specifies otherwise.
+
+Depolarizing
+------------
+
+Upon the application of a gate to a qubit, some quantum information may be lost, resulting in the density matrix representing the qubit being mapped to a linear combination of itself and a maximally mixed state. For each qubit and gate, the fidelity is known, which is the probability of the qubit remaining consistent.
+
+The corresponding Kraus operators (with :math:`\lambda = 1 - \text{{fidelity}}`) are as follows:
+
+.. math::
+
+    K_0 = \sqrt{1- \frac{3 \lambda}{4}}I
+    K_1 = \sqrt{\frac{\lambda}{4}} \sigma_X
+    K_2 = \sqrt{\frac{\lambda}{4}} \sigma_Y
+    K_3 = \sqrt{\frac{\lambda}{4}} \sigma_Z
+
+For further information on quantum depolarizing channels, please refer to `this <https://en.wikipedia.org/wiki/Quantum_depolarizing_channel>`_.
+
+After each gate, the depolarizing channel is applied to the target qubits. Although there is a probability, dictated by the fidelity, that nothing will occur, there remains the possibility that the qubit will transition into a maximally mixed state.
+
+Damping and dephasing
+-----------
+
+Each gate possesses a specific duration time. Within this module, we assume that the duration of a two-qubit gate is 176 nanoseconds, while the duration of a one-qubit gate is 32 nanoseconds.
+
+During the application of a two-qubit gate, other gates are typically not applied to the additional qubits involved in the program. However, these qubits do experience a waiting period and are subject to damping and dephasing noise: damping and dephasing. The Kraus operators representing damping and dephasing are determined by the times T1 and T2; longer times indicate lower noise levels for the qubit. Consequently, after each two-qubit gate in the program, we introduce noise intensity gates (for damping and dephasing) to all other qubits in the program.
+
+One-qubit gates are presumed to be applied simultaneously, so by default, we do not apply damping and dephasing noise (representing waiting) to qubits not participating in the gate. This default setting can be altered as needed.
+
+Amplitude damping channels are imperfect identity maps with Kraus operators
+
+.. math::
+
+    K_1 = \begin{pmatrix}
+    1 & 0 \\
+    0 & \sqrt{1-p}
+    \end{pmatrix}
+
+    K_2 = \begin{pmatrix}
+    0 & \sqrt{p} \\
+    0 & 0
+    \end{pmatrix}
+
+Here, :math:`p` represents the probability that a qubit in the :math:`|1\rangle` state decays to the :math:`|0\rangle` state, and it is given by :math:`p = 1 - \exp(-T_{\text{{gate}}}/T_1)`.
+
+Dephasing is usually characterized through a qubit's T2 time.
+For a single qubit the dephasing Kraus operators are
+
+.. math::
+
+    K_1(p) = \sqrt{1-p} I_2
+    K_2(p) = \sqrt{p} \sigma_Z
+
+In this case, :math:`p = 0.5 * (1 - \exp(-(\frac{{\text{{gate_time}}}}{{T_2}} - \frac{{\text{{gate_time}}}}{{2 \cdot T_1}})))` denotes the probability that the qubit is dephased over the time interval of interest, :math:`I_2` is the 2x2-identity matrix, and :math:`\sigma_Z` is the Pauli-Z operator.
+
+These two sets of Kraus operators are combined to simulate damping after dephasing, resulting in damping and dephasing noise.
+
+Readout
+-------
+
+The final category of noise, readout noise, is distinct from the previously discussed types. For each qubit, the readout fidelity is known, which is the probability that the read value is accurate. This probability is assumed to be identical for obtaining 0 when the qubit is in state 0 and acquiring 1 when the qubit is in state 1.
+
+The QVM is capable of handling a Pragma that incorporates readout noise. Therefore, the Pyquil module only needs to construct the appropriate Pragma according to the corresponding fidelities.
+
+Usage
+=====
+
+Basic usage
+-----------
+
+Utilizing the simulator is straightforward: First, create a quantum computer object and a program, and then provide them as parameters to the function. The output will be a noisy version of the program, simulating the real quantum computer specified as an input. The process can be summarized as follows:
+
+.. code:: python
+
+   from pyquil.quil import Program
+   from pyquil.api import get_qc
+   from pyquil.noise import add_noise_to_program
+
+   # create a Quantum computer object:
+   qc = get_qc('Aspen-M-3', as_qvm=True)
+   # create a program:
+   prog = Program()
+   # write your quantum program...
+
+   # get the noisy version of your program, fitted to the quantum computer you chose:
+   noisy_prog = add_noise_to_program(qc=qc, p=prog)
+   noisy_prog = add_noise_to_program(qc=qc, p=prog, depolarizing=False, damping_after_dephasing_after_2q_gate=False, damping_after_dephasing_only_on_targets=True)
+
+Advanced usage
+--------------
+
+Certain users may not only wish to evaluate the behavior of their program on a real Rigetti quantum computer, but also explore the effects of varying noise levels or the resolution of specific noise types. Some users might want to define their own fidelities and damping and dephasing times, while others may be interested in investigating different gate types with new estimated noise parameters. For these users, the basic function can be further customized and adapted to accommodate a wide range of requirements.
+
+convert to native gates
+^^^^^^^^^^^^^^^^^^^^^^^
+
+As previously discussed, the function's default behavior is to convert the program into native gates before introducing noise. However, this approach may be problematic in two scenarios:
+
+1. If a user has already written their program using native gates and desires them to execute exactly as written (without altering the qubits or optimizing the program), the default compiler may modify their choices.
+2. If a user wishes to explore the potential of non-native gates, accompanied by their own estimated noise parameters, the default function will convert these gates into native ones, defeating the purpose.
+
+In such instances, the solution is to instruct the function not to convert the program into native gates. This can be achieved with the following command:
+
+.. code:: python
+
+   noisy_prog = add_noise_to_program(qc=qc, p=prog, convert_to_native=False)
+
+intensity parameter
+^^^^^^^^^^^^^^^^^^^
+
+You can assess the impact of noise on your program by adjusting the noise intensity. The default value is 1, which corresponds to the noise level in a real quantum computer. This parameter can be varied from 0 (no noise) to infinity (extremely noisy). For example, to reduce the noise intensity to 0.5, proceed as follows:
+
+.. code:: python
+
+   noisy_prog = add_noise_to_program(qc=qc, p=prog, noise_intensity=0.5)
+
+Setting noise types
+^^^^^^^^^^^^^^^^^^^
+
+You can also configure the types of noise you want to introduce to the program. As previously mentioned, the default assumption is that two-qubit gates operate independently, while one-qubit gates run simultaneously. This assumption may not hold true for different types of programs, so users can modify the settings accordingly. If single-qubit gates do not operate simultaneously, you can add damping and dephasing noise to all other qubits in the program while the one-qubit gate is being applied, effectively simulating the waiting process for the remaining qubits:
+
+.. code:: python
+
+   noisy_prog = add_noise_to_program(qc=qc, p=prog, damping_after_dephasing_after_1q_gate=True)
+
+Conversely, if your two-qubit gates operate simultaneously, you can eliminate the waiting noise following the execution of two-qubit gates:
+
+.. code:: python
+
+   noisy_prog = add_noise_to_program(qc=qc, p=prog, damping_after_dephasing_after_2q_gate=False)
+
+Additionally, you have the option to exclude readout noise, depolarizing noise, or any combination thereof:
+
+.. code:: python
+
+   noisy_prog = add_noise_to_program(qc=qc, p=prog, readout_noise=False, depolarizing=False)
+
+When depolarizing noise is enabled, the target qubit does not receive additional damping and dephasing "waiting" noise, as it is already incorporated within the depolarizing noise. If you choose to disable depolarizing noise, the target qubit, along with all other qubits in the program, will still be subject to damping and dephasing noise based on the parameters `damping_after_dephasing_after_1q_gate` and `damping_after_dephasing_after_2q_gate`. You can also configure the target qubit to receive damping and dephasing noise according to the gate time, as demonstrated below:
+
+.. code:: python
+
+   noisy_prog = add_noise_to_program(qc=qc, p=prog, depolarizing=False, damping_after_dephasing_after_2q_gate=False, damping_after_dephasing_only_on_targets=True)
+
+Calibrations
+^^^^^^^^^^^^
+
+When selecting a quantum computer object and providing it to the function, its calibrations are stored in a class called ``Calibrations``. Each noise type is stored as a dictionary that maps a qubit to its fidelity or time (depending on the noise type). The dictionaries include: ``T1``, ``T2``, ``readout_fidelity``, and ``fidelities`` - which is a nested dictionary for each gate. The class also contains a set of two-qubit gates present in the computer.
+
+In a basic usage of the function, the quantum computer's name is provided, and the appropriate calibrations for the specified computer are retrieved from the web. (A future improvement could involve obtaining this information directly, without relying on a specific URL and JSON format).
+
+Often, you may want to run a loop to test your program with various modifications on the same computer. In such cases, constructing the ``Calibrations`` instance from the web can be inefficient. A better practice would be to create the instance explicitly once and pass it as a parameter to the function:
+
+.. code:: python
+
+   cal = Calibrations('Aspen-M-3')
+   noisy_prog = add_noise_to_program(qc, prog, calibrations=cal)
+
+If you want to define custom noise parameters or gate types, you should create an instance of ``Calibrations``, populate it with your own data, and then provide it as a parameter to the function:
+
+.. code:: python
+
+   cal = Calibrations()
+   # Populate the calibrations with your own data
+   # ...
+   noisy_prog = add_noise_to_program(qc, prog, calibrations=cal)
+
+If you want to define custom noise parameters or gate types, you should create an instance of `Calibrations`, populate it with your own data, and then provide it as a parameter to the function:
+
+.. code:: python
+
+    from pyquil.noise import Calibrations
+
+    cal = Calibrations()
+    cal.T1 = {0: 1.6e-5, 1: 5.1e-6}
+    cal.T2 = {0: 7.6e-6, 1: 9.3e-6}
+    cal.two_q_gates = set(['XY'])
+    cal.readout_fidelity = {0: 0.994, 1: 0.984}
+    # attention: in "fidelities" (and only there), the qubit indexes are strings, not integers.
+    cal.fidelities["1Q_gate"] = {'0': 0.999, '1': 0.998}
+    cal.fidelities["XY"] = {'0-1': 0.977}
+
+    noisy_prog = add_noise_to_program(qc, prog, calibrations=cal)
+
+Example: GHZ
+------------
+
+In a GHZ state, three qubits are entangled, and the measurement results should ideally be half '000' and half '111'. The Greenberger-Horne-Zeilinger (GHZ) experiment is an important demonstration of quantum entanglement involving three or more qubits. This entangled state is highly sensitive to noise and damping and dephasing, making it an ideal testbed for evaluating the performance of quantum computers and error mitigation techniques.
+
+The GHZ experiment can be implemented using the following sequence of quantum gates:
+
+1. Apply a Hadamard gate (H) to the first qubit, which puts it in an equal superposition of '0' and '1' states.
+2. Apply a CNOT gate between the first and second qubits, creating entanglement between them.
+3. Apply another CNOT gate between the second and third qubits, resulting in the entanglement of all three qubits.
+
+After performing these operations, the resulting GHZ state is :math:`(\ket{000} + \ket{111})/\sqrt{2}`. Due to noise, the actual program will yield other results as well. In this example, we examine the results for a noise-free program, as well as the outcomes for a noisy program that simulates a run on Rigetti's Aspen-M-2 computer. Furthermore, we investigate what would have occurred if all noise levels were reduced to half of their actual values. By examining the outcomes of the GHZ experiment in the presence of different noise levels, researchers can gain insights into the behavior of quantum computers under various conditions and investigate strategies for improving their performance.
+
+.. code:: python
+
+    from pyquil.quil import Program
+    from pyquil.gates import H, MEASURE, CNOT
+    from pyquil.api import get_qc
+    from pyquil.noise import add_noise_to_program, Calibrations
+    import matplotlib.pyplot as plt
+
+    def ghz(qc, qubits, numshots, noise=False, cal=None, intensity=1.0):
+        p = Program()
+        p.declare("ro", "BIT", 3)
+        p += H(qubits[0])
+        p += CNOT(qubits[0], qubits[1])
+        p += CNOT(qubits[1], qubits[2])
+        p += MEASURE(qubits[0], ("ro", 0))
+        p += MEASURE(qubits[1], ("ro", 1))
+        p += MEASURE(qubits[2], ("ro", 2))
+        p.wrap_in_numshots_loop(numshots)
+        if noise:
+            if cal is not None:
+                p = add_noise_to_program(qc, p, calibrations=cal, noise_intensity=intensity)
+            else:
+                p = add_noise_to_program(qc, p, noise_intensity=intensity)
+        return p
+
+    def run_experiment(qpu, qubits, numshots):
+        qvm = get_qc(qpu, as_qvm=True, execution_timeout=1000)
+        cal = Calibrations(qvm)
+        no_noise = qvm.run(ghz(qvm,qubits,numshots, False)).readout_data.get("ro")
+        half_noise = qvm.run(ghz(qvm,qubits,numshots, True, cal, intensity=0.5)).readout_data.get("ro")
+        noisy = qvm.run(ghz(qvm,qubits,numshots, True, cal)).readout_data.get("ro")
+        return no_noise, half_noise, noisy
+
+    def plot_results(results, label):
+        histogram={}
+        for i in results:
+            code=("00"+str(int(float(i[2])*100+float(i[1])*10+float(i[0]))))[-3:]
+            histogram[code]=histogram.get(code,0)+1
+        histogram=dict(sorted(histogram.items()))
+        plt.bar(*zip(*histogram.items()), label=label)
+        plt.xlabel('State')
+        plt.ylabel('Counts')
+        plt.legend()
+        plt.show()
+
+    no_noise, half_noise, noisy = run_experiment('Aspen-M-3',[0,1,2], 1000)
+    plot_results(no_noise, 'no noise')
+    plot_results(half_noise, 'half noise')
+    plot_results(noisy, 'noisy')
