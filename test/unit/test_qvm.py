@@ -4,7 +4,7 @@ import pytest
 from pyquil import Program
 from pyquil.api import QVM
 from pyquil.api._errors import QVMError
-from pyquil.api._qvm import validate_noise_probabilities, validate_qubit_list, prepare_register_list
+from pyquil.api._qvm import validate_noise_probabilities, validate_qubit_list
 from pyquil.api import QCSClient
 from pyquil.gates import MEASURE, X
 from pyquil.quilbase import Declare, MemoryReference
@@ -113,8 +113,3 @@ def test_validate_qubit_list():
         validate_qubit_list([-1, 1])
     with pytest.raises(TypeError):
         validate_qubit_list(["a", 0], 1)
-
-
-def test_prepare_register_list():
-    with pytest.raises(TypeError):
-        prepare_register_list({"ro": [-1, 1]})
