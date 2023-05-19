@@ -16,7 +16,7 @@ quil : (all_instr _NEWLINE?)*
        | shift_frequency
        | shift_phase
        | set_phase
-       | swap_phase
+       | swap_phases
        | set_scale
        | declare
        | capture
@@ -131,7 +131,8 @@ set_frequency : "SET-FREQUENCY" frame expression
 shift_frequency : "SHIFT-FREQUENCY" frame expression
 shift_phase : "SHIFT-PHASE" frame expression
 set_phase : "SET-PHASE" frame expression
-swap_phase : "SWAP-PHASE" frame frame
+swap_phases : "SWAP-PHASE" frame frame
+           | "SWAP-PHASES" frame frame
 set_scale : "SET-SCALE" frame expression
 
 declare : "DECLARE" IDENTIFIER IDENTIFIER [ "[" INT "]" ] [ "SHARING" IDENTIFIER ( offset_descriptor )* ]
