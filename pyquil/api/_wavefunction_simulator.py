@@ -18,17 +18,11 @@ from typing import Dict, List, Union, Optional, Set, cast, Iterable, Sequence, T
 
 import numpy as np
 
-from qcs_sdk import QCSClient
+from qcs_sdk import QCSClient, qvm
 
 from pyquil.api._qvm import (
     validate_qubit_list,
     validate_noise_probabilities,
-)
-from pyquil.api._qvm_client import (
-    MeasureExpectationRequest,
-    GetWavefunctionRequest,
-    RunAndMeasureProgramRequest,
-    QVMClient,
 )
 from pyquil.gates import MOVE
 from pyquil.paulis import PauliSum, PauliTerm
@@ -72,8 +66,7 @@ class WavefunctionSimulator:
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
-        client_configuration = client_configuration or QCSClient.load()
-        self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
+        self._client = client_configuration or QCSClient.load()
 
     def wavefunction(
         self, quil_program: Program, memory_map: Optional[Dict[str, List[Union[int, float]]]] = None
@@ -100,8 +93,13 @@ class WavefunctionSimulator:
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
-        request = self._wavefunction_request(quil_program=quil_program)
-        response = self._qvm_client.get_wavefunction(request)
+        request = qvm.api.WavefunctionRequest(
+            quil_program.out(),
+            self.measurement_noise,
+            self.gate_noise,
+            self.random_seed,
+        )
+        response = qvm.api.get_wavefunction(request, self._client)
         return Wavefunction.from_bit_packed_string(response.wavefunction)
 
     def expectation(
@@ -145,27 +143,13 @@ class WavefunctionSimulator:
         if memory_map is not None:
             prep_prog = self.augment_program_with_memory_values(prep_prog, memory_map)
 
-        bare_results = self._expectation(prep_prog, progs)
+        request = qvm.api.ExpectationRequest(prep_prog.out(), progs)
+        response = qvm.api.measure_expectation(request, self._client)
+        bare_results = np.asarray(response.expectations)
         results = coeffs * bare_results
         if is_pauli_sum:
             return np.sum(results)  # type: ignore
         return results  # type: ignore
-
-    def _expectation(self, prep_prog: Program, operator_programs: Iterable[Program]) -> np.ndarray:
-        if isinstance(operator_programs, Program):
-            warnings.warn(
-                "You have provided a Program rather than a list of Programs. The results "
-                "from expectation will be line-wise expectation values of the "
-                "operator_programs.",
-                SyntaxWarning,
-            )
-
-        request = self._expectation_request(
-            prep_prog=prep_prog,
-            operator_programs=operator_programs,
-        )
-        response = self._qvm_client.measure_expectation(request)
-        return np.asarray(response.expectations)
 
     def run_and_measure(
         self,
@@ -210,12 +194,12 @@ class WavefunctionSimulator:
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
-        request = self._run_and_measure_request(
-            quil_program=quil_program,
-            qubits=qubits,
-            trials=trials,
+        request = qvm.api.MultishotMeasureRequest(
+            quil_program.out(),
+            trials,
+            qubits,
         )
-        response = self._qvm_client.run_and_measure_program(request)
+        response = qvm.api.run_and_measure(request)
         return np.asarray(response.results)
 
     @staticmethod
@@ -241,61 +225,3 @@ class WavefunctionSimulator:
         p += quil_program
 
         return percolate_declares(p)
-
-    def _run_and_measure_request(
-        self,
-        *,
-        quil_program: Program,
-        qubits: Sequence[int],
-        trials: int,
-    ) -> RunAndMeasureProgramRequest:
-        if not quil_program:
-            raise ValueError("Cannot execute an empty program")
-
-        if not isinstance(quil_program, Program):
-            raise TypeError(f"quil_program must be a Program object, got type {type(quil_program)}")
-        qubits = validate_qubit_list(qubits)
-        if not isinstance(trials, int):
-            raise TypeError(f"trials must be an integer, got type {type(trials)}")
-
-        return RunAndMeasureProgramRequest(
-            program=quil_program.out(calibrations=False),
-            qubits=list(qubits),
-            trials=trials,
-            measurement_noise=self.measurement_noise,
-            gate_noise=self.gate_noise,
-            seed=self.random_seed,
-        )
-
-    def _wavefunction_request(
-        self,
-        *,
-        quil_program: Program,
-    ) -> GetWavefunctionRequest:
-        if not isinstance(quil_program, Program):
-            raise TypeError(f"quil_program must be a Program object, got type {type(quil_program)}")
-
-        return GetWavefunctionRequest(
-            program=quil_program.out(calibrations=False),
-            measurement_noise=self.measurement_noise,
-            gate_noise=self.gate_noise,
-            seed=self.random_seed,
-        )
-
-    def _expectation_request(
-        self,
-        *,
-        prep_prog: Program,
-        operator_programs: Optional[Iterable[Program]],
-    ) -> MeasureExpectationRequest:
-        if operator_programs is None:
-            operator_programs = [Program()]
-
-        if not isinstance(prep_prog, Program):
-            raise TypeError(f"prep_prog must be a Program object, got type {type(prep_prog)}")
-
-        return MeasureExpectationRequest(
-            prep_program=prep_prog.out(calibrations=False),
-            pauli_operators=[x.out(calibrations=False) for x in operator_programs],
-            seed=self.random_seed,
-        )
