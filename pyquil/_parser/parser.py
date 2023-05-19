@@ -3,6 +3,8 @@ import pkgutil
 import operator
 from typing import List
 
+from deprecated import deprecated
+from deprecated.sphinx import versionadded
 from lark import Lark, Transformer, v_args
 
 import numpy as np
@@ -72,7 +74,7 @@ from pyquil.gates import (
     DELAY,
     SHIFT_PHASE,
     SET_PHASE,
-    SWAP_PHASE,
+    SWAP_PHASES,
     SET_SCALE,
     SET_FREQUENCY,
     SHIFT_FREQUENCY,
@@ -314,9 +316,15 @@ class QuilTransformer(Transformer):  # type: ignore
     def shift_frequency(self, frame, expression):
         return SHIFT_FREQUENCY(frame, expression)
 
+    @deprecated(version = "3.5.1", reason = "The correct instruction is SWAP-PHASES, not SWAP-PHASE")
     @v_args(inline=True)
     def swap_phase(self, framea, frameb):
-        return SWAP_PHASE(framea, frameb)
+        return SWAP_PHASES(framea, frameb)
+
+    @versionadded(version = "3.5.1", reason = "The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+    @v_args(inline=True)
+    def swap_phases(self, framea, frameb):
+        return SWAP_PHASES(framea, frameb)
 
     @v_args(inline=True)
     def pragma(self, name, *pragma_names_and_string):

@@ -81,7 +81,7 @@ from pyquil.quilbase import (
     ShiftFrequency,
     SetPhase,
     ShiftPhase,
-    SwapPhase,
+    SwapPhases,
     SetScale,
     Capture,
     RawCapture,
@@ -543,12 +543,13 @@ def test_parsing_frame_mutations():
                 parse_equals(f"{op_str} {frame_str} {val_str}", op(frame, val))
 
 
-def test_parsing_swap_phase():
-    parse_equals('SWAP-PHASE 0 "rf" 1 "rf"', SwapPhase(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf")))
-    parse_equals(
-        'SWAP-PHASE 0 1 "ff" 1 0 "ff"',
-        SwapPhase(Frame([Qubit(0), Qubit(1)], "ff"), Frame([Qubit(1), Qubit(0)], "ff")),
-    )
+def test_parsing_swap_phases():
+    for command in ["SWAP-PHASE", "SWAP-PHASES"]:
+        parse_equals(f'{command} 0 "rf" 1 "rf"', SwapPhases(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf")))
+        parse_equals(
+            f'{command} 0 1 "ff" 1 0 "ff"',
+            SwapPhases(Frame([Qubit(0), Qubit(1)], "ff"), Frame([Qubit(1), Qubit(0)], "ff")),
+        )
 
 
 def test_parsing_delay():
