@@ -1058,7 +1058,7 @@ def SHIFT_PHASE(frame: Frame, phase: ParameterDesignator) -> ShiftPhase:
     return ShiftPhase(frame, phase)
 
 
-@versionadded(version = "3.5.1", reason = "The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+@versionadded(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
 def SWAP_PHASES(frameA: Frame, frameB: Frame) -> SwapPhases:
     """
     Produce a SWAP-PHASES instruction.
@@ -1070,12 +1070,13 @@ def SWAP_PHASES(frameA: Frame, frameB: Frame) -> SwapPhases:
     return SwapPhases(frameA, frameB)
 
 
-@deprecated(version = "3.5.1", reason = "The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+@deprecated(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
 def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhases:
     """
     Alias of :func:`SWAP_PHASES`.
     """
     return SWAP_PHASES(frameA, frameB)
+
 
 def SET_SCALE(frame: Frame, scale: ParameterDesignator) -> SetScale:
     """

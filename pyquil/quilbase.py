@@ -1156,7 +1156,7 @@ class ShiftPhase(AbstractInstruction):
         return _get_frame_qubits(self.frame, indices)
 
 
-@versionadded(version = "3.5.1", reason = "The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+@versionadded(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
 class SwapPhases(AbstractInstruction):
     def __init__(self, frameA: Frame, frameB: Frame):
         self.frameA = frameA
@@ -1169,7 +1169,7 @@ class SwapPhases(AbstractInstruction):
         return _get_frame_qubits(self.frameA, indices) | _get_frame_qubits(self.frameB, indices)
 
 
-@deprecated(version = "3.5.1", reason = "The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+@deprecated(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
 class SwapPhase(SwapPhases):
     pass
 

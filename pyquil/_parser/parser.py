@@ -316,12 +316,12 @@ class QuilTransformer(Transformer):  # type: ignore
     def shift_frequency(self, frame, expression):
         return SHIFT_FREQUENCY(frame, expression)
 
-    @deprecated(version = "3.5.1", reason = "The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+    @deprecated(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
     @v_args(inline=True)
     def swap_phase(self, framea, frameb):
         return SWAP_PHASES(framea, frameb)
 
-    @versionadded(version = "3.5.1", reason = "The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+    @versionadded(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
     @v_args(inline=True)
     def swap_phases(self, framea, frameb):
         return SWAP_PHASES(framea, frameb)
