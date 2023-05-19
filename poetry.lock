@@ -2525,6 +2525,18 @@ files = [
 ]
 
 [[package]]
+name = "types-deprecated"
+version = "1.2.9.2"
+description = "Typing stubs for Deprecated"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-Deprecated-1.2.9.2.tar.gz", hash = "sha256:91616fd6745f8bf2d457fbbbefd14cde43838e9f00a04b5a0eae4fc1f7bbc697"},
+    {file = "types_Deprecated-1.2.9.2-py3-none-any.whl", hash = "sha256:327783e137353b0ef9cf47a8cd4b1c0b8ae72f6554eb25820783c6a81a3d556f"},
+]
+
+[[package]]
 name = "types-python-dateutil"
 version = "2.8.19"
 description = "Typing stubs for python-dateutil"
@@ -2709,4 +2721,4 @@ latex = ["ipython"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "b42c1eeb6dfb285480ba86949a1a1231937b8dfc30c97c3ac23d1c519d525328"
+content-hash = "46618ff24af782e6c9be74de8c800387cc993de2a953e3afacc7aa06109ce564"
