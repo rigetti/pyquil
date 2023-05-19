@@ -99,8 +99,8 @@ class WavefunctionSimulator:
             self.gate_noise,
             self.random_seed,
         )
-        response = qvm.api.get_wavefunction(request, self._client)
-        return Wavefunction.from_bit_packed_string(response.wavefunction)
+        wavefunction = bytes(qvm.api.get_wavefunction(request, self._client))
+        return Wavefunction.from_bit_packed_string(wavefunction)
 
     def expectation(
         self,
@@ -143,9 +143,9 @@ class WavefunctionSimulator:
         if memory_map is not None:
             prep_prog = self.augment_program_with_memory_values(prep_prog, memory_map)
 
-        request = qvm.api.ExpectationRequest(prep_prog.out(), progs)
-        response = qvm.api.measure_expectation(request, self._client)
-        bare_results = np.asarray(response.expectations)
+        request = qvm.api.ExpectationRequest(prep_prog.out(), [prog.out() for prog in progs])
+        expectations = qvm.api.measure_expectation(request, self._client)
+        bare_results = np.asarray(expectations)
         results = coeffs * bare_results
         if is_pauli_sum:
             return np.sum(results)  # type: ignore
@@ -199,8 +199,8 @@ class WavefunctionSimulator:
             trials,
             qubits,
         )
-        response = qvm.api.run_and_measure(request)
-        return np.asarray(response.results)
+        measured_qubits = qvm.api.run_and_measure(request)
+        return np.asarray(measured_qubits)
 
     @staticmethod
     def augment_program_with_memory_values(

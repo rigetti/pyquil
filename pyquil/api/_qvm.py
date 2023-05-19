@@ -41,7 +41,7 @@ def check_qvm_version(version: str) -> None:
 
     :param version: The version of the QVM
     """
-    major, minor, _ = map(int, version.split("."))
+    major, minor = map(int, version.split(".")[:2])
     if major == 1 and minor < 8:
         raise QVMVersionMismatch(
             "Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you " f"have QVM {version} and pyquil {pyquil_version}"
@@ -125,15 +125,8 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         if not isinstance(executable, Program):
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
-        result_memory: dict = {}
-
-        for region in executable.declarations.keys():
-            result_memory[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
-
         classical_addresses = get_classical_addresses_from_program(executable)
-        classical_addresses = {
-            address: qvm.api.AddressRequest(indices) for address, indices in classical_addresses.items()
-        }
+        classical_addresses = {address: qvm.api.AddressRequest(True) for address in classical_addresses.keys()}
 
         if self.noise_model is not None:
             executable = apply_noise_model(executable, self.noise_model)
@@ -142,7 +135,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             executable.out(),
             executable.num_shots,
             classical_addresses,
-            result_memory,
+            {},
             self.measurement_noise,
             self.gate_noise,
             self.random_seed,
