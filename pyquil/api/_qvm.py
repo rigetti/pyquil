@@ -119,7 +119,9 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise QVMNotRunning(f"No QVM server running at {self._client.qvm_url}") from ConnectionError
 
     def execute(
-        self, executable: QuantumExecutable, memory_map: Optional[Dict[str, Union[List[int], List[float]]]] = None
+        self,
+        executable: QuantumExecutable,
+        memory_map: Optional[Dict[str, Union[Sequence[int], Sequence[float]]]] = None,
     ) -> QVMExecuteResponse:
         """
         Synchronously execute the input program to completion.
@@ -127,13 +129,8 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         if not isinstance(executable, Program):
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
-        classical_addresses = get_classical_addresses_from_program(executable)
-        classical_addresses = {
-            address: qvm.api.AddressRequest(indices) for address, indices in classical_addresses.items()
-        }
-        classical_addresses.update(
-            {address: qvm.api.AddressRequest(True) for address in executable.declarations.keys()}
-        )
+        # Request all memory back from the QVM.
+        addresses = {address: qvm.api.AddressRequest(True) for address in executable.declarations.keys()}
 
         trials = executable.num_shots
         if self.noise_model is not None:
@@ -142,7 +139,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         result = qvm.run(
             executable.out(),
             trials,
-            classical_addresses,
+            addresses,
             memory_map or {},
             self.measurement_noise,
             self.gate_noise,
