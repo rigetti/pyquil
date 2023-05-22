@@ -172,6 +172,12 @@ You can run end-to-end tests with:
 make e2e TEST_QUANTUM_PROCESSOR=<quantum processor ID>
 ```
 
+You can run documentation tests with:
+
+```bash
+make doctest
+```
+
 Or you may run all tests (unit/integration/e2e) with:
 
 ```bash
