@@ -361,6 +361,7 @@ and specify which edges exist. Here is an example, using the topology of our 16Q
 
 ..
     Will this need to be updated for Ankaa?
+    GitHub issue: https://github.com/rigetti/pyquil/issues/1580
 
 .. testcode:: provide-topology
 
