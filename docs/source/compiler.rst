@@ -204,8 +204,8 @@ For example, to inspect the ``qpu_runtime_estimation`` you might do the followin
 
     # The program will now have only native gates
     print(native_p)
-    # And also a dictionary, with the above keys
-    # print(native_p.native_quil_metadata["qpu_runtime_estimation"])
+    # And also metadata, with the above properties
+    print(native_p.native_quil_metadata.qpu_runtime_estimation)
 
 .. testoutput:: metadata
     :hide:
