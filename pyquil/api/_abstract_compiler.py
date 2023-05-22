@@ -22,7 +22,6 @@ import json
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import compile_program, TargetDevice, CompilerOpts
 
-from pyquil._memory import Memory
 from pyquil._version import pyquil_version
 from pyquil.api._compiler_client import CompilerClient
 from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
@@ -31,7 +30,7 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Gate
-from rpcq.messages import ParameterAref, ParameterSpec
+from rpcq.messages import ParameterSpec
 
 
 class QuilcVersionMismatch(Exception):
@@ -60,24 +59,11 @@ class EncryptedProgram:
     recalculation_table: List[str]
     """A mapping from memory references to the original gate arithmetic."""
 
-    _memory: Memory
-    """Memory values (parameters) to be sent with the program."""
-
     def copy(self) -> "EncryptedProgram":
         """
         Return a deep copy of this EncryptedProgram.
         """
-        return dataclasses.replace(self, _memory=self._memory.copy())
-
-    def write_memory(
-        self,
-        *,
-        region_name: str,
-        value: Union[int, float, Sequence[int], Sequence[float]],
-        offset: Optional[int] = None,
-    ) -> "EncryptedProgram":
-        self._memory._write_value(parameter=ParameterAref(name=region_name, index=(offset or 0)), value=value)
-        return self
+        return dataclasses.replace(self)
 
 
 QuantumExecutable = Union[EncryptedProgram, Program]
@@ -134,7 +120,6 @@ class AbstractCompiler(ABC):
         native_program.num_shots = program.num_shots
         native_program._calibrations = program._calibrations
         native_program._waveforms = program._waveforms
-        native_program._memory = program._memory.copy()
         native_program.native_quil_metadata = result.native_quil_metadata
 
         return native_program

@@ -192,7 +192,7 @@ class PyQVM(QAM["PyQVM"]):
                 quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
-        self.ram: Dict[str, np.ndarray] = {}
+        self.ram: Dict[str, Union[Sequence[int], Sequence[float]]] = {}
 
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
@@ -221,12 +221,11 @@ class PyQVM(QAM["PyQVM"]):
                 raise NotImplementedError("PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM.")
             self.defined_gates[dg.name] = dg.matrix
 
-    def write_memory(self, *, region_name: str, offset: int = 0, value: int = 0) -> "PyQVM":
-        assert region_name != "ro"
-        self.ram[region_name][offset] = value
-        return self
-
-    def execute(self, executable: QuantumExecutable) -> "PyQVM":
+    def execute(
+        self,
+        executable: QuantumExecutable,
+        memory_map: Optional[Dict[str, Union[Sequence[int], Sequence[float]]]] = None,
+    ) -> "PyQVM":
         """
         Execute a program on the PyQVM. Note that the state of the instance is reset on each
         call to ``execute``.
@@ -239,7 +238,7 @@ class PyQVM(QAM["PyQVM"]):
         self.program = executable
         self._memory_results = {}
 
-        self.ram = {}
+        self.ram = memory_map or {}
         self.wf_simulator.reset()
 
         # grab the gate definitions for future use

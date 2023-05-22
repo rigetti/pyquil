@@ -61,7 +61,7 @@ def test_qvm_run_region_declared_not_measured(client_configuration: QCSClient):
     result = qvm.run(p.wrap_in_numshots_loop(100))
     bitstrings = result.readout_data.get("reg")
     assert bitstrings is not None
-    assert bitstrings.shape == (100, 0)
+    assert bitstrings.shape == (100, 1)
 
 
 def test_qvm_run_region_not_declared_is_measured(client_configuration: QCSClient):

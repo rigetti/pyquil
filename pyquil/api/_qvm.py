@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-from typing import Dict, Mapping, Optional, Sequence, Union, Tuple
+from typing import Dict, Mapping, Optional, Sequence, Union, Tuple, List
 
 import numpy as np
 
@@ -118,7 +118,9 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         except ConnectionError:
             raise QVMNotRunning(f"No QVM server running at {self._client.qvm_url}") from ConnectionError
 
-    def execute(self, executable: QuantumExecutable) -> QVMExecuteResponse:
+    def execute(
+        self, executable: QuantumExecutable, memory_map: Optional[Dict[str, Union[List[int], List[float]]]] = None
+    ) -> QVMExecuteResponse:
         """
         Synchronously execute the input program to completion.
         """
@@ -126,24 +128,29 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
         classical_addresses = get_classical_addresses_from_program(executable)
-        classical_addresses = {address: qvm.api.AddressRequest(True) for address in classical_addresses.keys()}
+        classical_addresses = {
+            address: qvm.api.AddressRequest(indices) for address, indices in classical_addresses.items()
+        }
+        classical_addresses.update(
+            {address: qvm.api.AddressRequest(True) for address in executable.declarations.keys()}
+        )
 
+        trials = executable.num_shots
         if self.noise_model is not None:
             executable = apply_noise_model(executable, self.noise_model)
 
         result = qvm.run(
             executable.out(),
-            executable.num_shots,
+            trials,
             classical_addresses,
-            {},
+            memory_map or {},
             self.measurement_noise,
             self.gate_noise,
             self.random_seed,
             self._client,
         )
 
-        memory = {name: np.array(data.inner()) for name, data in result.memory.items()}
-
+        memory = {name: np.asarray(data.inner()) for name, data in result.memory.items()}
         return QVMExecuteResponse(executable=executable, memory=memory)
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:

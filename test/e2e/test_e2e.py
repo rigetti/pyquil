@@ -54,8 +54,7 @@ def test_parametric_program(qc: QuantumComputer):
 
     all_results = []
     for theta in [0, np.pi, 2 * np.pi]:
-        compiled.write_memory(region_name="theta", value=theta)
-        results = qc.run(compiled).readout_data.get("ro")
+        results = qc.run(compiled, {"theta": [theta]}).readout_data.get("ro")
         all_results.append(np.mean(results))
 
     if isinstance(qc.qam, QPU):
