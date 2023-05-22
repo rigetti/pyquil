@@ -40,6 +40,7 @@ to get started.
    troubleshooting
    exercises
    migration
+   changes
 
 .. toctree::
    :maxdepth: 2
