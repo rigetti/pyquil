@@ -22,7 +22,7 @@ import rpcq
 from dateutil.parser import parse as parsedate
 from dateutil.tz import tzutc
 from qcs_api_client.models import EngagementWithCredentials, EngagementCredentials
-from retry import retry
+from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
 from pyquil.api import EngagementManager
 from pyquil._version import DOCS_URL
@@ -182,7 +182,7 @@ class QPUClient:
             execution_duration_microseconds=result.execution_duration_microseconds,
         )
 
-    @retry(exceptions=TimeoutError, tries=2)
+    @retry(retry=retry_if_exception_type(TimeoutError), stop=stop_after_attempt(2), reraise=True)
     def _rpcq_request(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
         engagement = self._engagement_manager.get_engagement(
             endpoint_id=self._endpoint_id,
