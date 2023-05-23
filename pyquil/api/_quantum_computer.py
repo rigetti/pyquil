@@ -732,8 +732,8 @@ def get_qc(
     You can choose the quantum computer to target through a combination of its name and optional
     flags. There are multiple ways to get the same quantum computer. The following are equivalent::
 
-        >>> qc = get_qc("Aspen-M-3-qvm")
-        >>> qc = get_qc("Aspen-M-3", as_qvm=True)
+        >>> qc = get_qc("Aspen-M-3-qvm")  # doctest: +SKIP
+        >>> qc = get_qc("Aspen-M-3", as_qvm=True)  # doctest: +SKIP
 
     and will construct a simulator of an Aspen-M-3 lattice. We also provide a means for constructing
     generic quantum simulators that are not related to a given piece of Rigetti hardware::
