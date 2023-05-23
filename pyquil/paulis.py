@@ -458,7 +458,7 @@ class PauliTerm(object):
         assert isinstance(op, PauliTerm)
         return op
 
-    def pauli_string(self, qubits: Iterable[int] = None) -> str:
+    def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
         """
         Return a string representation of this PauliTerm without its coefficient and with
         implicit qubit indices.
