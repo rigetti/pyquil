@@ -19,6 +19,7 @@ from typing import Dict, List, Union, Optional, Set, cast, Iterable, Sequence, T
 import numpy as np
 
 from qcs_sdk import QCSClient
+from qcs_sdk.qpu.client import LoadClientError
 
 from pyquil.api._qvm import (
     validate_qubit_list,
@@ -72,7 +73,11 @@ class WavefunctionSimulator:
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
-        client_configuration = client_configuration or QCSClient.load()
+        if client_configuration is None:
+            try:
+                client_configuration = QCSClient.load()
+            except LoadClientError:
+                client_configuration = QCSClient()
         self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
 
     def wavefunction(
