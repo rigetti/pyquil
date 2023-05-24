@@ -96,12 +96,7 @@ See the `QCS API Docs <https://docs.api.qcs.rigetti.com/#tag/endpoints>`_ for mo
 To be able to call these endpoints using pyQuil, enter the ``endpoint_id`` of your desired endpoint in one
 of the sites where ``quantum_processor_id`` is used:
 
-.. testsetup:: endpoints
-
-    from pyquil import get_qc
-    from pyquil.api import QPU
-
-.. testcode:: endpoints
+.. code:: python
 
     # Option 1
     qc = get_qc("Aspen-9", endpoint_id="my_endpoint")
