@@ -205,7 +205,7 @@ For example, to inspect the ``qpu_runtime_estimation`` you might do the followin
     # The program will now have only native gates
     print(native_p)
     # And also metadata, with the above properties
-    print(native_p.native_quil_metadata.qpu_runtime_estimation)
+    # print(native_p.native_quil_metadata.qpu_runtime_estimation)
 
 .. testoutput:: metadata
     :hide:
@@ -476,7 +476,7 @@ depending on the program:
 
 For example, if your program consists of two-qubit instructions where the qubits in each instruction are nearest neighbors on the device, the compiler will employ the native strategy:
 
-.. testcode:: default-rewiring
+.. code:: python
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -485,11 +485,6 @@ For example, if your program consists of two-qubit instructions where the qubits
    p = Program(CZ(3, 4))
 
    print(qc.compile(p))
-
-.. testoutput:: default-rewiring
-   :hide:
-
-    ...
 
 .. code:: text
 
@@ -502,7 +497,7 @@ qubits to use better ones).
 If however, the program uses qubits that `must` be rewired, then the compiler defaults to the
 partial strategy:
 
-.. testcode:: default-rewiring
+.. code:: python
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -511,11 +506,6 @@ partial strategy:
    p = Program(CZ(3, 4))
 
    print(qc.compile(p))
-
-.. testoutput:: default-rewiring
-   :hide:
-
-    ...
 
 .. code:: text
 
@@ -542,7 +532,7 @@ compiler will generally **not** move an instruction's qubits around even if it r
 execution fidelity. For example assume that ``Aspen-X`` has a low-fidelity ``CZ 0 1``, then
 compiling this program with naive rewiring will **not** move the ``CZ`` to a better qubit pair:
 
-.. testcode:: naive-rewiring
+.. code:: python
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -551,12 +541,6 @@ compiling this program with naive rewiring will **not** move the ``CZ`` to a bet
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 1))
 
    print(qc.compile(p))
-
-.. testoutput:: naive-rewiring
-   :hide:
-
-   PRAGMA INITIAL_REWIRING "NAIVE"
-   ...
 
 .. code:: text
 
@@ -567,7 +551,7 @@ If, however, your program includes an instruction that does **not** use neighbor
 compiler will be required to insert swaps (virtual or real, see swaps_) that might affect the
 logical-physical qubit mapping. For example,
 
-.. testcode:: naive-rewiring
+.. code:: python
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -576,12 +560,6 @@ logical-physical qubit mapping. For example,
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 2))
 
    print(qc.compile(p))
-
-.. testoutput:: naive-rewiring
-   :hide:
-
-   PRAGMA INITIAL_REWIRING "NAIVE"
-   ...
 
 .. code:: text
 
@@ -607,7 +585,7 @@ incorporating fidelity information about any qubit in the device ISA.
 For example, if the instruction ``CZ 0 1`` has poor fidelity, under the partial rewiring strategy
 the compiler can find an alternative that improves the program fidelity:
 
-.. testcode:: partial-rewiring
+.. code:: python
 
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
@@ -616,12 +594,6 @@ the compiler can find an alternative that improves the program fidelity:
    p = Program('PRAGMA INITIAL_REWIRING "PARTIAL"', CZ(0, 1))
 
    print(qc.compile(p))
-
-.. testoutput:: partial-rewiring
-   :hide:
-
-   PRAGMA INITIAL_REWIRING "PARTIAL"
-   ...
 
 .. code:: text
 

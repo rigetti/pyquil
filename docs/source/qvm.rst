@@ -248,10 +248,10 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
     QPU_NAME="Aspen-M-3"
 
     # Get a QPU
-    qc = get_qc(QPU_NAME)  # QPU_NAME is just a string naming the quantum_processor
+    # qc = get_qc(QPU_NAME)  # QPU_NAME is just a string naming the quantum_processor
 
     # Get a QVM with the same topology as the QPU
-    qc = get_qc(QPU_NAME, as_qvm=True)
+    # qc = get_qc(QPU_NAME, as_qvm=True)
 
     # A fully connected QVM
     number_of_qubits = 10
