@@ -14,7 +14,6 @@
 #    limitations under the License.
 ##############################################################################
 import itertools
-import logging
 import re
 import socket
 import subprocess
