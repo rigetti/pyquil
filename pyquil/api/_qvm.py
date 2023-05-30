@@ -14,17 +14,16 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-from typing import Dict, Mapping, Optional, Sequence, Union, Tuple, List
+from typing import Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
 from qcs_sdk import QCSClient, qvm
 
 from pyquil._version import pyquil_version
-from pyquil.api import QuantumExecutable
-from pyquil.api._qam import QAM, QAMExecutionResult
+from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
 from pyquil.noise import NoiseModel, apply_noise_model
-from pyquil.quil import Program, get_classical_addresses_from_program
+from pyquil.quil import Program
 
 
 class QVMVersionMismatch(Exception):
@@ -121,7 +120,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
     def execute(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[Dict[str, Union[Sequence[int], Sequence[float]]]] = None,
+        memory_map: Optional[MemoryMap] = None,
     ) -> QVMExecuteResponse:
         """
         Synchronously execute the input program to completion.
@@ -130,7 +129,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
         # Request all memory back from the QVM.
-        addresses = {address: qvm.api.AddressRequest(True) for address in executable.declarations.keys()}
+        addresses = {address: qvm.api.AddressRequest.include_all() for address in executable.declarations.keys()}
 
         trials = executable.num_shots
         if self.noise_model is not None:

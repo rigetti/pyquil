@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Sequence, Type, Union
 import numpy as np
 from numpy.random.mtrand import RandomState
 
-from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult
+from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
 from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
@@ -224,7 +224,7 @@ class PyQVM(QAM["PyQVM"]):
     def execute(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[Dict[str, Union[Sequence[int], Sequence[float]]]] = None,
+        memory_map: Optional[MemoryMap] = None,
     ) -> "PyQVM":
         """
         Execute a program on the PyQVM. Note that the state of the instance is reset on each

@@ -28,6 +28,9 @@ class QAMError(RuntimeError):
 T = TypeVar("T")
 """A generic parameter describing the opaque job handle returned from QAM#execute and subclasses."""
 
+MemoryMap = Mapping[str, Union[Sequence[int], Sequence[float]]]
+"""A mapping of memory regions to a list containing the values to be written into that memory region."""
+
 
 @dataclass
 class QAMExecutionResult:
@@ -51,7 +54,7 @@ class QAM(ABC, Generic[T]):
     def execute(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[Dict[str, Union[Sequence[int], Sequence[float]]]] = None,
+        memory_map: Optional[MemoryMap] = None,
     ) -> T:
         """
         Run an executable on a QAM, returning a handle to be used to retrieve
@@ -73,7 +76,7 @@ class QAM(ABC, Generic[T]):
     def run(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[Dict[str, Union[Sequence[int], Sequence[float]]]] = None,
+        memory_map: Optional[MemoryMap] = None,
     ) -> QAMExecutionResult:
         """
         Run an executable to completion on the QAM.

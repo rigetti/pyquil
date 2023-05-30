@@ -13,13 +13,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import warnings
-from typing import Dict, List, Union, Optional, Set, cast, Iterable, Sequence, Tuple
+from typing import Dict, List, Union, Optional, Set, cast, Tuple
 
 import numpy as np
 
 from qcs_sdk import QCSClient, qvm
 
+from pyquil.api import MemoryMap
 from pyquil.api._qvm import (
     validate_qubit_list,
     validate_noise_probabilities,
@@ -68,9 +68,7 @@ class WavefunctionSimulator:
 
         self._client = client_configuration or QCSClient.load()
 
-    def wavefunction(
-        self, quil_program: Program, memory_map: Optional[Dict[str, List[Union[int, float]]]] = None
-    ) -> Wavefunction:
+    def wavefunction(self, quil_program: Program, memory_map: Optional[MemoryMap] = None) -> Wavefunction:
         """
         Simulate a Quil program and return the wavefunction.
 
@@ -156,7 +154,7 @@ class WavefunctionSimulator:
         quil_program: Program,
         qubits: Optional[List[int]] = None,
         trials: int = 1,
-        memory_map: Optional[Dict[str, List[Union[int, float]]]] = None,
+        memory_map: Optional[MemoryMap] = None,
     ) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.

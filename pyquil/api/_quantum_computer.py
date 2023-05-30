@@ -22,12 +22,9 @@ from contextlib import contextmanager
 from math import pi, log
 from typing import (
     Any,
-    Dict,
     Tuple,
     Iterator,
-    Mapping,
     Optional,
-    Sequence,
     Set,
     Union,
     cast,
@@ -36,7 +33,6 @@ from typing import (
 
 import networkx as nx
 import numpy as np
-from rpcq.messages import ParameterAref
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu import list_quantum_processors
@@ -44,7 +40,7 @@ from qcs_sdk.qpu import list_quantum_processors
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 
-from pyquil.api._qam import QAM, QAMExecutionResult
+from pyquil.api._qam import QAM, QAMExecutionResult, MemoryMap
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
@@ -132,7 +128,7 @@ class QuantumComputer:
     def run(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[Dict[str, Union[Sequence[int], Sequence[float]]]] = None,
+        memory_map: Optional[MemoryMap] = None,
     ) -> QAMExecutionResult:
         """
         Run a quil executable. All parameters in the executable must have values applied using
@@ -160,7 +156,7 @@ class QuantumComputer:
     def run_experiment(
         self,
         experiment: Experiment,
-        memory_map: Optional[Dict[str, Union[Sequence[int], Sequence[float]]]] = None,
+        memory_map: Optional[MemoryMap] = None,
     ) -> List[ExperimentResult]:
         """
         Run an ``Experiment`` on a QVM or QPU backend. An ``Experiment`` is composed of:
