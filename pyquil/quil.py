@@ -39,12 +39,11 @@ from typing import (
 from copy import deepcopy
 
 import numpy as np
-from rpcq.messages import ParameterAref
 
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
 
 from pyquil._parser.parser import run_parser
-from pyquil.gates import MEASURE, RESET, MOVE
+from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Label,

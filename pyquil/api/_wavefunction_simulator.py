@@ -21,7 +21,6 @@ from qcs_sdk import QCSClient, qvm
 
 from pyquil.api import MemoryMap
 from pyquil.api._qvm import (
-    validate_qubit_list,
     validate_noise_probabilities,
 )
 from pyquil.gates import MOVE
@@ -203,7 +202,7 @@ class WavefunctionSimulator:
     @staticmethod
     def augment_program_with_memory_values(
         quil_program: Program,
-        memory_map: Dict[str, List[Union[int, float]]],
+        memory_map: MemoryMap,
     ) -> Program:
         p = Program()
 

@@ -192,7 +192,7 @@ class PyQVM(QAM["PyQVM"]):
                 quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
-        self.ram: Dict[str, Union[Sequence[int], Sequence[float]]] = {}
+        self.ram: Dict[str, List[Union[float, int]]] = {}
 
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
@@ -238,7 +238,10 @@ class PyQVM(QAM["PyQVM"]):
         self.program = executable
         self._memory_results = {}
 
-        self.ram = memory_map or {}
+        self.ram = {}
+        if memory_map:
+            self.ram.update(*memory_map)
+
         self.wf_simulator.reset()
 
         # grab the gate definitions for future use
@@ -329,8 +332,8 @@ class PyQVM(QAM["PyQVM"]):
             if instruction.shared_region is not None:
                 raise NotImplementedError("SHARING is not (yet) implemented.")
 
-            self.ram[instruction.name] = np.zeros(
-                instruction.memory_size, dtype=QUIL_TO_NUMPY_DTYPE[instruction.memory_type]
+            self.ram[instruction.name] = list(
+                np.zeros(instruction.memory_size, dtype=QUIL_TO_NUMPY_DTYPE[instruction.memory_type])
             )
             self.program_counter += 1
 
