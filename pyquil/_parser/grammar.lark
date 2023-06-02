@@ -46,7 +46,7 @@ quil : (all_instr _NEWLINE?)*
 COMMENT : "#" /[^\n]*/ NEWLINE
 
 def_gate : "DEFGATE" name [ variables ] ":" matrix -> def_gate_matrix
-         | "DEFGATE" name "AS" "MATRIX" [ variables ] ":" matrix -> def_gate_matrix
+         | "DEFGATE" name [ variables ] "AS" "MATRIX" ":" matrix -> def_gate_matrix
          | "DEFGATE" name "AS" "PERMUTATION" ":" _NEWLINE_TAB matrix_row -> def_gate_as_permutation
          | "DEFGATE" name [ variables ] qubit_variables "AS" "PAULI-SUM" ":" pauli_terms -> def_pauli_gate
 
@@ -186,7 +186,7 @@ waveform : waveform_name ( "(" named_param ( "," named_param )* ")" )?
 waveform_name : name ( "/" name )?
 frame : qubit_designators "\"" name "\""
 
-!function            : "SIN" | "COS" | "SQRT" | "EXP" | "CIS"
+!function            : "SIN"i |  "COS"i | "SQRT"i | "EXP"i | "CIS"i
 // Numbers
 ?number             : (int_n|float_n) "i" -> imag
                     | int_n
