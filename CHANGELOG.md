@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.5.4
+
+### Fixes
+
+- Loosen `networkx` requirements (#1584)
+
 ## 3.5.3
 
 ### Fixes
