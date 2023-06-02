@@ -178,6 +178,20 @@ def test_def_gate_as_matrix():
     assert not isinstance(parsed[0], DefPermutationGate)
 
 
+def test_def_gate_as_matrix_parameterized():
+    matrix_gate_str = """DEFGATE RZZ(%phi) AS MATRIX:
+    COS(%phi/2), 0, 0, -1.0i*SIN(%phi/2)
+    0, COS(%phi/2), -1.0i*SIN(%phi/2), 0
+    0, -1.0i*SIN(%phi/2), COS(%phi/2), 0
+    -1.0i*SIN(%phi/2), 0, 0, COS(%phi/2)
+    """.strip()
+    parsed = parse(matrix_gate_str)
+
+    assert len(parsed) == 1
+    assert isinstance(parsed[0], DefGate)
+    assert not isinstance(parsed[0], DefPermutationGate)
+
+
 def test_def_permutation_gate():
     perm_gate = DefPermutationGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
 
@@ -261,10 +275,15 @@ def test_expressions():
 
     # Functions
     _expr("SIN(0)", 0.0)
+    _expr("sin(0)", 0.0)
     _expr("COS(0)", 1.0)
+    _expr("cos(0)", 1.0)
     _expr("SQRT(4)", 2.0)
+    _expr("sqrt(4)", 2.0)
     _expr("EXP(0)", 1.0)
+    _expr("exp(0)", 1.0)
     _expr("CIS(0)", complex(1, 0))
+    _expr("cis(0)", complex(1, 0))
 
     # Unary precedence
     # https://github.com/rigetti/pyquil/issues/246
@@ -387,9 +406,7 @@ DEFCIRCUIT parameterized(%theta, %phi) a:
 """.strip()
     gate_param = "parameterized(0.0, 1.0) 0"
 
-    parse_equals(
-        defcircuit + "\n" + gate, RawInstr(defcircuit), Gate("bell", [], [Qubit(0), Qubit(1)])
-    )
+    parse_equals(defcircuit + "\n" + gate, RawInstr(defcircuit), Gate("bell", [], [Qubit(0), Qubit(1)]))
     parse_equals(
         defcircuit_no_qubits + "\n" + gate_no_qubits,
         RawInstr(defcircuit_no_qubits),
@@ -601,10 +618,10 @@ def test_parsing_defframe():
     )
     parse_equals(
         'DEFFRAME 0 "rf":\n'
-        '    SAMPLE-RATE: 2.0\n'
-        '    INITIAL-FREQUENCY: 10\n'
+        "    SAMPLE-RATE: 2.0\n"
+        "    INITIAL-FREQUENCY: 10\n"
         '    ENABLE-RAW-CAPTURE: "true"\n'
-        '    CHANNEL-DELAY: 20e-9',
+        "    CHANNEL-DELAY: 20e-9",
         DefFrame(
             Frame([Qubit(0)], "rf"),
             sample_rate=2.0,
@@ -617,11 +634,7 @@ def test_parsing_defframe():
         Frame([Qubit(0)], "rf"),
         enable_raw_capture="true",
         channel_delay=12e-9,
-    ).out() == (
-        'DEFFRAME 0 "rf":\n'
-        '    ENABLE-RAW-CAPTURE: "true"\n'
-        '    CHANNEL-DELAY: 1.2e-08\n'
-    )
+    ).out() == ('DEFFRAME 0 "rf":\n' '    ENABLE-RAW-CAPTURE: "true"\n' "    CHANNEL-DELAY: 1.2e-08\n")
 
     with pytest.raises(UnexpectedToken) as excp:
         parse('DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n")
@@ -699,7 +712,7 @@ def test_parse_defcal_error_on_mref():
 
 
 def test_parse_defgate_as_pauli():
-    """ Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now). """
+    """Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now)."""
     assert parse("DEFGATE RY(%theta) q AS PAULI-SUM:\n    Y(-%theta/2) q")
     with pytest.raises(UnexpectedToken) as excp:
         parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) q")
@@ -735,11 +748,17 @@ def test_parse_comments(program):
 
 
 def test_parse_strings_with_spaces():
-    Program(str(Program("""
+    Program(
+        str(
+            Program(
+                """
 DEFFRAME 0 "readout_tx":
     DIRECTION: "tx"
     INITIAL-FREQUENCY: 7220000000.0
     CENTER-FREQUENCY: 7125000000
     HARDWARE-OBJECT: "A_string_with_one space"
     SAMPLE-RATE: 1000000000.0
-""")))
+"""
+            )
+        )
+    )

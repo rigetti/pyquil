@@ -144,7 +144,7 @@ class QuilTransformer(Transformer):  # type: ignore
         }
         options = {}
 
-        for (spec_name, spec_value) in specs:
+        for spec_name, spec_value in specs:
             name = names.get(spec_name, None)
             if name:
                 options[name] = json.loads(str(spec_value))
@@ -525,15 +525,15 @@ class QuilTransformer(Transformer):  # type: ignore
 
     @v_args(inline=True)
     def apply_fun(self, fun, arg):
-        if fun == "SIN":
+        if fun.upper() == "SIN":
             return quil_sin(arg) if isinstance(arg, Expression) else np.sin(arg)
-        if fun == "COS":
+        if fun.upper() == "COS":
             return quil_cos(arg) if isinstance(arg, Expression) else np.cos(arg)
-        if fun == "SQRT":
+        if fun.upper() == "SQRT":
             return quil_sqrt(arg) if isinstance(arg, Expression) else np.sqrt(arg)
-        if fun == "EXP":
+        if fun.upper() == "EXP":
             return quil_exp(arg) if isinstance(arg, Expression) else np.exp(arg)
-        if fun == "CIS":
+        if fun.upper() == "CIS":
             return quil_cis(arg) if isinstance(arg, Expression) else np.cos(arg) + 1j * np.sin(arg)
 
     add = v_args(inline=True)(operator.add)

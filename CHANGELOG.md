@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.5.3
+
+### Fixes
+
+- Correctly parse matrix gate definitions and support lower case function call expressions (#1588)
+
 ## 3.5.2
 
 ## 3.5.1
