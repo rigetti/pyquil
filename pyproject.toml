@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "4.0.0-rc.14"
+version = "4.0.0-rc.16"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = ["Rigetti Computing <softapps@rigetti.com>"]
 readme = "README.md"
@@ -27,7 +27,7 @@ rpcq = "^3.10.0"
 pydantic = "^1.10.7"
 networkx = "^2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
-qcs-sdk-python = "0.7.0"
+qcs-sdk-python = "0.8.1"
 retry = "^0.9.2"
 types-python-dateutil = "^2.8.19"
 types-retry = "^0.9.9"
@@ -40,7 +40,7 @@ Sphinx = { version = "^6.2.1", optional = true }
 sphinx-rtd-theme = { version = "<=2.0.0", optional = true }
 nbsphinx = { version = "^0.9.1", optional = true }
 recommonmark = { version = "^0.7.1", optional = true }
-pandoc = {version = "2.4b0", optional = true}
+pandoc = { version = "2.4b0", optional = true }
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
