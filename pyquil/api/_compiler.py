@@ -17,7 +17,16 @@ from typing import Dict, Optional
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
-from qcs_sdk.qpu.translation import get_quilt_calibrations, translate
+from qcs_sdk.qpu.translation import (
+    get_quilt_calibrations,
+    translate,
+)
+from qcs_sdk.grpc.models.translation import (
+    TranslationOptions,
+    TranslationBackend,
+    BackendV1Options,
+    BackendV2Options,
+) # noqa
 from rpcq.messages import ParameterSpec
 
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
@@ -63,6 +72,8 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
+    api_options: Optional[TranslationOptions]
+
     def __init__(
         self,
         *,
@@ -70,6 +81,7 @@ class QPUCompiler(AbstractCompiler):
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
         client_configuration: Optional[QCSClient] = None,
+        api_options: Optional[TranslationOptions] = None,
     ) -> None:
         """
         Instantiate a new QPU compiler client.
@@ -85,12 +97,17 @@ class QPUCompiler(AbstractCompiler):
             client_configuration=client_configuration,
         )
 
+        self.api_options = api_options
         self.quantum_processor_id = quantum_processor_id
         self._calibration_program: Optional[Program] = None
 
-    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
+    def native_quil_to_executable(
+        self, nq_program: Program, *, api_options: Optional[TranslationOptions] = None
+    ) -> QuantumExecutable:
         """
         Convert a native Quil program into an executable binary which can be executed by a QPU.
+
+        If `api_options` is provided, it overrides the options set on `self`.
         """
         rewrite_response = rewrite_arithmetic(nq_program.out())
 
@@ -98,6 +115,7 @@ class QPUCompiler(AbstractCompiler):
             native_quil=rewrite_response.program,
             num_shots=nq_program.num_shots,
             quantum_processor_id=self.quantum_processor_id,
+            translation_options=api_options or self.api_options,
         )
 
         ro_sources = translated_program.ro_sources or {}
