@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+from qcs_sdk.qvm import QVMError
+
 from pyquil import Program
 from pyquil.api import QVM
-from pyquil.api._errors import QVMError
-from pyquil.api._qvm import validate_noise_probabilities, validate_qubit_list, prepare_register_list
+from pyquil.api._qvm import validate_noise_probabilities, validate_qubit_list
 from pyquil.api import QCSClient
 from pyquil.gates import MEASURE, X
 from pyquil.quilbase import Declare, MemoryReference
@@ -59,7 +60,8 @@ def test_qvm_run_region_declared_not_measured(client_configuration: QCSClient):
     p = Program(Declare("reg", "BIT"), X(0))
     result = qvm.run(p.wrap_in_numshots_loop(100))
     bitstrings = result.readout_data.get("reg")
-    assert bitstrings.shape == (100, 0)
+    assert bitstrings is not None
+    assert bitstrings.shape == (100, 1)
 
 
 def test_qvm_run_region_not_declared_is_measured(client_configuration: QCSClient):
@@ -113,8 +115,3 @@ def test_validate_qubit_list():
         validate_qubit_list([-1, 1])
     with pytest.raises(TypeError):
         validate_qubit_list(["a", 0], 1)
-
-
-def test_prepare_register_list():
-    with pytest.raises(TypeError):
-        prepare_register_list({"ro": [-1, 1]})

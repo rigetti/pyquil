@@ -39,13 +39,11 @@ from typing import (
 from copy import deepcopy
 
 import numpy as np
-from rpcq.messages import ParameterAref
 
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
 
 from pyquil._parser.parser import run_parser
-from pyquil._memory import Memory
-from pyquil.gates import MEASURE, RESET, MOVE
+from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Label,
@@ -126,9 +124,6 @@ class Program:
     >>> p += CNOT(0, 1)
     """
 
-    _memory: Memory
-    """Contents of memory to be used as program parameters during execution"""
-
     def __init__(self, *instructions: InstructionDesignator):
         self._defined_gates: List[DefGate] = []
 
@@ -156,8 +151,6 @@ class Program:
 
         # default number of shots to loop through
         self.num_shots = 1
-
-        self._memory = Memory()
 
         # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
@@ -197,7 +190,6 @@ class Program:
         if self.native_quil_metadata is not None:
             new_prog.native_quil_metadata = deepcopy(self.native_quil_metadata)
         new_prog.num_shots = self.num_shots
-        new_prog._memory = self._memory.copy()
         return new_prog
 
     def copy(self) -> "Program":
@@ -532,29 +524,6 @@ class Program:
         else:
             for qubit_index, classical_reg in qubit_reg_pairs:
                 self.inst(MEASURE(qubit_index, classical_reg))
-        return self
-
-    def _set_parameter_values_at_runtime(self) -> "Program":
-        """
-        Store all parameter values directly within the Program using ``MOVE`` instructions. Mutates the receiver.
-        """
-        move_instructions = [
-            MOVE(MemoryReference(name=k.name, offset=k.index), v) for k, v in self._memory.values.items()
-        ]
-
-        self.prepend_instructions(move_instructions)
-        self._sort_declares_to_program_start()
-
-        return self
-
-    def write_memory(
-        self,
-        *,
-        region_name: str,
-        value: Union[int, float, Sequence[int], Sequence[float]],
-        offset: Optional[int] = None,
-    ) -> "Program":
-        self._memory._write_value(parameter=ParameterAref(name=region_name, index=offset or 0), value=value)
         return self
 
     def prepend_instructions(self, instructions: Iterable[AbstractInstruction]) -> "Program":
@@ -935,12 +904,10 @@ class Program:
         p._calibrations = self.calibrations.copy()
         p._waveforms = self.waveforms.copy()
         p._frames = self.frames.copy()
-        p._memory = self._memory.copy()
         if isinstance(other, Program):
             p.calibrations.extend(other.calibrations)
             p.waveforms.update(other.waveforms)
             p.frames.update(other.frames)
-            p._memory.values.update(other._memory.values)
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
@@ -955,7 +922,6 @@ class Program:
             self.calibrations.extend(other.calibrations)
             self.waveforms.update(other.waveforms)
             self.frames.update(other.frames)
-            self._memory.values.update(other._memory.copy().values)
         return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:

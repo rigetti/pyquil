@@ -711,7 +711,7 @@ def test_bell_state():
 
 def test_occupation_basis():
     prog = Program().inst([X(0), X(1), I(2), I(3)])
-    state = np.zeros(2 ** 4)
+    state = np.zeros(2**4)
     state[3] = 1.0
 
     qam = PyQVM(n_qubits=4, quantum_simulator_type=ReferenceWavefunctionSimulator)
