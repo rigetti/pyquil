@@ -131,7 +131,8 @@ class AbstractCompiler(ABC):
             raise QuilcNotRunning(
                 f"Request to quilc at {self._compiler_client.base_url} timed out. "
                 "This could mean that quilc is not running, is not reachable, or is "
-                "responding slowly."
+                "responding slowly. See the Troubleshooting Guide: "
+                "{DOCS_URL}/troubleshooting.html"
             )
 
     @abstractmethod

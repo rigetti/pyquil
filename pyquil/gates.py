@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from deprecated import deprecated
+from deprecated.sphinx import versionadded
 from numbers import Real
 from typing import Callable, Mapping, Optional, Tuple, Union, Iterable, no_type_check
 
@@ -65,7 +67,7 @@ from pyquil.quilbase import (
     ShiftFrequency,
     SetPhase,
     ShiftPhase,
-    SwapPhase,
+    SwapPhases,
     SetScale,
     Capture,
     RawCapture,
@@ -1056,15 +1058,24 @@ def SHIFT_PHASE(frame: Frame, phase: ParameterDesignator) -> ShiftPhase:
     return ShiftPhase(frame, phase)
 
 
-def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhase:
+@versionadded(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+def SWAP_PHASES(frameA: Frame, frameB: Frame) -> SwapPhases:
     """
-    Produce a SWAP-PHASE instruction.
+    Produce a SWAP-PHASES instruction.
 
     :param frameA: A frame.
     :param frameB: A frame.
-    :returns: A SwapPhase instance.
+    :returns: A SwapPhases instance.
     """
-    return SwapPhase(frameA, frameB)
+    return SwapPhases(frameA, frameB)
+
+
+@deprecated(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhases:
+    """
+    Alias of :func:`SWAP_PHASES`.
+    """
+    return SWAP_PHASES(frameA, frameB)
 
 
 def SET_SCALE(frame: Frame, scale: ParameterDesignator) -> SetScale:
@@ -1210,7 +1221,8 @@ QUILT_INSTRUCTIONS: Mapping[str, Callable[..., AbstractInstruction]] = {
     "SHIFT-FREQUENCY": SHIFT_FREQUENCY,
     "SET-PHASE": SET_PHASE,
     "SHIFT-PHASE": SHIFT_PHASE,
-    "SWAP-PHASE": SWAP_PHASE,
+    "SWAP-PHASE": SWAP_PHASES,
+    "SWAP-PHASES": SWAP_PHASES,
     "SET-SCALE": SET_SCALE,
     "CAPTURE": CAPTURE,
     "RAW-CAPTURE": RAW_CAPTURE,
