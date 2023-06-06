@@ -34,7 +34,7 @@ from pyquil.quilbase import (
     SetScale,
     ShiftFrequency,
     ShiftPhase,
-    SwapPhase,
+    SwapPhases,
 )
 
 
@@ -101,7 +101,7 @@ def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parame
                 ShiftFrequency: ["frame", "freq"],
                 SetPhase: ["frame", "phase"],
                 ShiftPhase: ["frame", "phase"],
-                SwapPhase: ["frameA", "frameB"],
+                SwapPhases: ["frameA", "frameB"],
                 SetScale: ["frame", "scale"],
                 Capture: ["frame", "kernel", "memory_region"],
                 RawCapture: ["frame", "duration", "memory_region"],

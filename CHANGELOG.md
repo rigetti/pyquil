@@ -318,6 +318,32 @@
     - Better error messages when a request fails
 - The improved Rust backend allows on-demand access to a QPU.
 
+## 3.5.4
+
+### Fixes
+
+- Loosen `networkx` requirements (#1584)
+
+## 3.5.3
+
+### Fixes
+
+- Correctly parse matrix gate definitions and support lower case function call expressions (#1588)
+
+## 3.5.2
+
+## 3.5.1
+
+## 3.5.0
+
+### Features
+
+- Add CHANNEL-DELAY attribute to DefFrame (#1564)
+
+### Fixes
+
+- improve messaging on QPU and compiler timeout (#1397)
+
 ## 3.5.0-rc.0
 
 ### Features
