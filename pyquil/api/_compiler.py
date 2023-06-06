@@ -119,8 +119,7 @@ class QPUCompiler(AbstractCompiler):
             program=translated_program.program,
             memory_descriptors=_collect_memory_descriptors(nq_program),
             ro_sources={parse_mref(mref): source for mref, source in ro_sources.items() or []},
-            recalculation_table=rewrite_response.recalculation_table,
-            _memory=nq_program._memory.copy(),
+            recalculation_table=list(rewrite_response.recalculation_table),
         )
 
     def _fetch_calibration_program(self) -> Program:

@@ -24,6 +24,7 @@ __all__ = [
     "get_qc",
     "list_quantum_computers",
     "local_forest_runtime",
+    "MemoryMap",
     "QAM",
     "QAMExecutionResult",
     "QCSClient",
@@ -49,7 +50,7 @@ from pyquil.api._compiler import (
     AbstractCompiler,
     QPUCompilerAPIOptions,
 )
-from pyquil.api._qam import QAM, QAMExecutionResult
+from pyquil.api._qam import QAM, QAMExecutionResult, MemoryMap
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
     QuantumComputer,

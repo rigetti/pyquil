@@ -3,6 +3,8 @@ import pkgutil
 import operator
 from typing import List
 
+from deprecated import deprecated
+from deprecated.sphinx import versionadded
 from lark import Lark, Transformer, v_args
 
 import numpy as np
@@ -72,7 +74,7 @@ from pyquil.gates import (
     DELAY,
     SHIFT_PHASE,
     SET_PHASE,
-    SWAP_PHASE,
+    SWAP_PHASES,
     SET_SCALE,
     SET_FREQUENCY,
     SHIFT_FREQUENCY,
@@ -142,7 +144,7 @@ class QuilTransformer(Transformer):  # type: ignore
         }
         options = {}
 
-        for (spec_name, spec_value) in specs:
+        for spec_name, spec_value in specs:
             name = names.get(spec_name, None)
             if name:
                 options[name] = json.loads(str(spec_value))
@@ -314,9 +316,15 @@ class QuilTransformer(Transformer):  # type: ignore
     def shift_frequency(self, frame, expression):
         return SHIFT_FREQUENCY(frame, expression)
 
+    @deprecated(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
     @v_args(inline=True)
     def swap_phase(self, framea, frameb):
-        return SWAP_PHASE(framea, frameb)
+        return SWAP_PHASES(framea, frameb)
+
+    @versionadded(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
+    @v_args(inline=True)
+    def swap_phases(self, framea, frameb):
+        return SWAP_PHASES(framea, frameb)
 
     @v_args(inline=True)
     def pragma(self, name, *pragma_names_and_string):
@@ -517,15 +525,15 @@ class QuilTransformer(Transformer):  # type: ignore
 
     @v_args(inline=True)
     def apply_fun(self, fun, arg):
-        if fun == "SIN":
+        if fun.upper() == "SIN":
             return quil_sin(arg) if isinstance(arg, Expression) else np.sin(arg)
-        if fun == "COS":
+        if fun.upper() == "COS":
             return quil_cos(arg) if isinstance(arg, Expression) else np.cos(arg)
-        if fun == "SQRT":
+        if fun.upper() == "SQRT":
             return quil_sqrt(arg) if isinstance(arg, Expression) else np.sqrt(arg)
-        if fun == "EXP":
+        if fun.upper() == "EXP":
             return quil_exp(arg) if isinstance(arg, Expression) else np.exp(arg)
-        if fun == "CIS":
+        if fun.upper() == "CIS":
             return quil_cis(arg) if isinstance(arg, Expression) else np.cos(arg) + 1j * np.sin(arg)
 
     add = v_args(inline=True)(operator.add)

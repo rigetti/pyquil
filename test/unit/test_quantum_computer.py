@@ -294,7 +294,7 @@ def test_run_symmetrized_readout_error(client_configuration: QCSClient):
     # Locally this test was run on all 8 qubits, but it was slow.
     qc = get_qc("8q-qvm", client_configuration=client_configuration)
     sym_type_vec = [-1, 0, 1, 2, 3]
-    prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(0, 4)]
+    prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(1, 4)]
     trials_vec = list(range(0, 5))
     for prog, trials, sym_type in itertools.product(prog_vec, trials_vec, sym_type_vec):
         print(qc.run_symmetrized_readout(prog, trials, sym_type))
@@ -419,15 +419,13 @@ def test_qc(client_configuration: QCSClient):
 
 def test_qc_run(client_configuration: QCSClient):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
-    bs = qc.run(
-        qc.compile(
-            Program(
-                Declare("ro", "BIT", 1),
-                X(0),
-                MEASURE(0, ("ro", 0)),
-            ).wrap_in_numshots_loop(3)
-        )
-    ).readout_data.get("ro")
+    program = Program(
+        Declare("ro", "BIT", 1),
+        X(0),
+        MEASURE(0, ("ro", 0)),
+    ).wrap_in_numshots_loop(3)
+    compiled_program = qc.compile(program)
+    bs = qc.run(compiled_program).readout_data.get("ro")
     assert bs.shape == (3, 1)
 
 
@@ -461,8 +459,8 @@ def test_qc_error(client_configuration: QCSClient):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-@pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
-def test_run_with_parameters(client_configuration: QCSClient, param):
+@pytest.mark.parametrize("params", [[np.pi], np.array([np.pi])])
+def test_run_with_parameters(client_configuration: QCSClient, params):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -476,8 +474,7 @@ def test_run_with_parameters(client_configuration: QCSClient, param):
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
 
-    executable.write_memory(region_name="theta", value=param)
-    bitstrings = qc.run(executable).readout_data.get("ro")
+    bitstrings = qc.run(executable, {"theta": params}).readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 1)
     assert all([bit == 1 for bit in bitstrings])
@@ -498,8 +495,8 @@ def test_run_with_bad_parameters(client_configuration: QCSClient, param):
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
 
-    with pytest.raises(TypeError, match=r"Parameter must be"):
-        executable.write_memory(region_name="theta", value=param)
+    with pytest.raises(TypeError):
+        qc.run(executable, {"theta": [param]})
 
 
 def test_reset(client_configuration: QCSClient):
@@ -515,11 +512,8 @@ def test_reset(client_configuration: QCSClient):
         RX(MemoryReference("theta"), 0),
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(10)
-    p.write_memory(region_name="theta", value=np.pi)
-    result = qc.qam.run(p)
+    result = qc.qam.run(p, {"theta": [np.pi]})
 
-    aref = ParameterAref(name="theta", index=0)
-    assert p._memory.values[aref] == np.pi
     assert result.readout_data["ro"].shape == (10, 1)
     assert all([bit == 1 for bit in result.readout_data["ro"]])
 
