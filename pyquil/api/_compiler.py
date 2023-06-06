@@ -20,13 +20,8 @@ from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
 from qcs_sdk.qpu.translation import (
     get_quilt_calibrations,
     translate,
+    TranslationOptions as QPUCompilerAPIOptions,
 )
-from qcs_sdk.grpc.models.translation import (
-    TranslationOptions,
-    TranslationBackend,
-    BackendV1Options,
-    BackendV2Options,
-) # noqa
 from rpcq.messages import ParameterSpec
 
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
@@ -72,7 +67,7 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
-    api_options: Optional[TranslationOptions]
+    api_options: Optional[QPUCompilerAPIOptions]
 
     def __init__(
         self,
@@ -81,7 +76,7 @@ class QPUCompiler(AbstractCompiler):
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
         client_configuration: Optional[QCSClient] = None,
-        api_options: Optional[TranslationOptions] = None,
+        api_options: Optional[QPUCompilerAPIOptions] = None,
     ) -> None:
         """
         Instantiate a new QPU compiler client.
@@ -102,7 +97,7 @@ class QPUCompiler(AbstractCompiler):
         self._calibration_program: Optional[Program] = None
 
     def native_quil_to_executable(
-        self, nq_program: Program, *, api_options: Optional[TranslationOptions] = None
+        self, nq_program: Program, *, api_options: Optional[QPUCompilerAPIOptions] = None
     ) -> QuantumExecutable:
         """
         Convert a native Quil program into an executable binary which can be executed by a QPU.

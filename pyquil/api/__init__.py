@@ -30,6 +30,7 @@ __all__ = [
     "QCSQuantumProcessor",
     "QPU",
     "QPUCompiler",
+    "QPUCompilerAPIOptions",
     "QuantumComputer",
     "QuantumExecutable",
     "QVM",
@@ -40,7 +41,7 @@ __all__ = [
 from qcs_sdk import QCSClient
 
 from pyquil.api._benchmark import BenchmarkConnection
-from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram, AbstractCompiler
+from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram, AbstractCompiler, QPUCompilerAPIOptions
 from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
