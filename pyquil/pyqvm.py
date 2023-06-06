@@ -354,7 +354,7 @@ class PyQVM(QAM["PyQVM"]):
             jump_reg: Optional[MemoryReference] = instruction.condition
             assert jump_reg is not None
             cond = self.ram[jump_reg.name][jump_reg.offset]
-            if not isinstance(cond, (bool, np.bool_, np.int8)):
+            if not isinstance(cond, (bool, np.bool_, np.int8, int)):
                 raise ValueError("{} requires a data type of BIT; not {}".format(instruction.op, type(cond)))
             dest_index = self.find_label(instruction.target)
             if isinstance(instruction, JumpWhen):
