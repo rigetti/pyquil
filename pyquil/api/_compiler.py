@@ -85,6 +85,7 @@ class QPUCompiler(AbstractCompiler):
         :param quantum_processor: Quantum processor to use as compilation target.
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
+        :param api_options: Options to pass to the QPU compiler API. See ``qcs-sdk-python`` for details.
         """
         super().__init__(
             quantum_processor=quantum_processor,
