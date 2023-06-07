@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
@@ -97,7 +97,7 @@ class QPUCompiler(AbstractCompiler):
         self._calibration_program: Optional[Program] = None
 
     def native_quil_to_executable(
-        self, nq_program: Program, *, api_options: Optional[QPUCompilerAPIOptions] = None
+        self, nq_program: Program, *, api_options: Optional[QPUCompilerAPIOptions] = None, **kwargs: Any
     ) -> QuantumExecutable:
         """
         Convert a native Quil program into an executable binary which can be executed by a QPU.
@@ -185,5 +185,5 @@ class QVMCompiler(AbstractCompiler):
             client_configuration=client_configuration,
         )
 
-    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
+    def native_quil_to_executable(self, nq_program: Program, **kwargs: Any) -> QuantumExecutable:
         return nq_program
