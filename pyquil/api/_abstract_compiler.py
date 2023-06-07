@@ -136,7 +136,7 @@ class AbstractCompiler(ABC):
             )
 
     @abstractmethod
-    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
+    def native_quil_to_executable(self, nq_program: Program, **kwargs: Any) -> QuantumExecutable:
         """
         Compile a native quil program to a binary executable.
 
