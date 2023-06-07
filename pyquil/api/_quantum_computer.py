@@ -13,7 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import asyncio
 import itertools
 import re
 import socket
@@ -32,21 +31,19 @@ from typing import (
     Union,
     cast,
     List,
-    TYPE_CHECKING,
 )
 
 import networkx as nx
 import numpy as np
-from qcs_api_client.client import QCSClientConfiguration
-from qcs_api_client.models import ListQuantumProcessorsResponse
-from qcs_api_client.operations.sync import list_quantum_processors
 from rpcq.messages import ParameterAref
+
+from qcs_sdk import QCSClient
+from qcs_sdk.qpu import list_quantum_processors
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 
 from pyquil.api._qam import QAM, QAMExecutionResult
-from pyquil.api._qcs_client import qcs_client
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
@@ -65,9 +62,6 @@ from pyquil.quantum_processor import (
     get_qcs_quantum_processor,
 )
 from pyquil.quil import Program
-
-if TYPE_CHECKING:
-    import httpx
 
 
 class QuantumComputer:
@@ -243,7 +237,7 @@ class QuantumComputer:
                     bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
                     bitstrings = np.bitwise_xor(bitstrings, bitmask)
                 all_bitstrings.append(bitstrings)
-            symmetrized_bitstrings = np.concatenate(all_bitstrings)  # type: ignore
+            symmetrized_bitstrings = np.concatenate(all_bitstrings)
 
             joint_expectations = [experiment.get_meas_registers(qubits)]
             if setting.additional_expectations:
@@ -357,7 +351,8 @@ class QuantumComputer:
                 f"The number of trials was modified from {trials} to "
                 f"{num_shots_per_prog * len(sym_programs)}. To be consistent with the "
                 f"number of trials required by the type of readout symmetrization "
-                f"chosen."
+                f"chosen.",
+                stacklevel=2,
             )
 
         results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
@@ -416,7 +411,7 @@ def list_quantum_computers(
     qpus: bool = True,
     qvms: bool = True,
     timeout: float = 10.0,
-    client_configuration: Optional[QCSClientConfiguration] = None,
+    client_configuration: Optional[QCSClient] = None,
 ) -> List[str]:
     """
     List the names of available quantum computers
@@ -426,15 +421,10 @@ def list_quantum_computers(
     :param timeout: Time limit for request, in seconds.
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
     """
-    client_configuration = client_configuration or QCSClientConfiguration.load()
+    client_configuration = client_configuration or QCSClient.load()
     qc_names: List[str] = []
     if qpus:
-        with qcs_client(
-            client_configuration=client_configuration, request_timeout=timeout
-        ) as client:  # type: httpx.Client
-            qcs: ListQuantumProcessorsResponse = list_quantum_processors(client=client, page_size=100).parsed
-
-        qc_names += [qc.id for qc in qcs.quantum_processors]
+        qc_names += list_quantum_processors(client=client_configuration, timeout=timeout)
 
     if qvms:
         qc_names += ["9q-square-qvm", "9q-square-noisy-qvm"]
@@ -510,7 +500,7 @@ def _canonicalize_name(prefix: str, qvm_type: Optional[str], noisy: bool) -> str
 
 def _get_qvm_or_pyqvm(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: QCSClient,
     qvm_type: str,
     noise_model: Optional[NoiseModel],
     quantum_processor: Optional[AbstractQuantumProcessor],
@@ -527,14 +517,13 @@ def _get_qvm_or_pyqvm(
 
 def _get_qvm_qc(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: QCSClient,
     name: str,
     qvm_type: str,
     quantum_processor: AbstractQuantumProcessor,
     compiler_timeout: float,
     execution_timeout: float,
     noise_model: Optional[NoiseModel],
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
 
@@ -563,21 +552,19 @@ def _get_qvm_qc(
             quantum_processor=quantum_processor,
             timeout=compiler_timeout,
             client_configuration=client_configuration,
-            event_loop=event_loop,
         ),
     )
 
 
 def _get_qvm_with_topology(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: QCSClient,
     name: str,
     topology: nx.Graph,
     noisy: bool,
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
 
@@ -609,19 +596,17 @@ def _get_qvm_with_topology(
         noise_model=noise_model,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
-        event_loop=event_loop,
     )
 
 
 def _get_9q_square_qvm(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: QCSClient,
     name: str,
     noisy: bool,
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -646,20 +631,18 @@ def _get_9q_square_qvm(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
-        event_loop=event_loop,
     )
 
 
 def _get_unrestricted_qvm(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: QCSClient,
     name: str,
     noisy: bool,
     n_qubits: int,
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
@@ -684,20 +667,18 @@ def _get_unrestricted_qvm(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
-        event_loop=event_loop,
     )
 
 
 def _get_qvm_based_on_real_quantum_processor(
     *,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: QCSClient,
     name: str,
     quantum_processor: QCSQuantumProcessor,
     noisy: bool,
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A qvm with a based on a real quantum_processor.
@@ -726,7 +707,6 @@ def _get_qvm_based_on_real_quantum_processor(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
-        event_loop=event_loop,
     )
 
 
@@ -737,9 +717,8 @@ def get_qc(
     noisy: Optional[bool] = None,
     compiler_timeout: float = 30.0,
     execution_timeout: float = 30.0,
-    client_configuration: Optional[QCSClientConfiguration] = None,
+    client_configuration: Optional[QCSClient] = None,
     endpoint_id: Optional[str] = None,
-    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     Get a quantum computer.
@@ -816,11 +795,7 @@ def get_qc(
 
     .. _QCS API Docs: https://docs.api.qcs.rigetti.com/#tag/endpoints
     """
-
-    client_configuration = client_configuration or QCSClientConfiguration.load()
-
-    if event_loop is None:
-        event_loop = asyncio.get_event_loop()
+    client_configuration = QCSClient.load()
 
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
@@ -841,7 +816,6 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
-            event_loop=event_loop,
         )
 
     # 3. Check for "9q-square" qvm
@@ -855,7 +829,6 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
-            event_loop=event_loop,
         )
 
     if noisy:
@@ -878,7 +851,6 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
-            event_loop=event_loop,
         )
     else:
         qpu = QPU(
@@ -886,14 +858,12 @@ def get_qc(
             timeout=execution_timeout,
             client_configuration=client_configuration,
             endpoint_id=endpoint_id,
-            event_loop=event_loop,
         )
         compiler = QPUCompiler(
             quantum_processor_id=prefix,
             quantum_processor=quantum_processor,
             timeout=compiler_timeout,
             client_configuration=client_configuration,
-            event_loop=event_loop,
         )
 
         return QuantumComputer(name=name, qam=qpu, compiler=compiler)
@@ -974,14 +944,14 @@ def local_forest_runtime(
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):
         warning_msg = ("Unable to start qvm server, since the specified port {} is in use.").format(qvm_port)
-        warnings.warn(RuntimeWarning(warning_msg))
+        warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         qvm_cmd = ["qvm", "-S", "--host", host, "-p", str(qvm_port)]
         qvm = subprocess.Popen(qvm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):
         warning_msg = ("Unable to start quilc server, since the specified port {} is in use.").format(quilc_port)
-        warnings.warn(RuntimeWarning(warning_msg))
+        warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         quilc_cmd = ["quilc", "--host", host, "-p", str(quilc_port), "-R"]
 
@@ -1066,7 +1036,7 @@ def _symmetrization(
     elif symm_type == -1:
         # exhaustive = all possible binary strings
         flip_matrix = np.asarray(list(itertools.product([0, 1], repeat=len(meas_qubits))))
-    elif symm_type >= 0:
+    else:
         flip_matrix = _construct_orthogonal_array(len(meas_qubits), symm_type)
 
     # The next part is not rigorous in the sense that we simply truncate to the desired
@@ -1164,10 +1134,10 @@ def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarra
         # `construct_strength_two_orthogonal_array` docstrings, for more details.
         zero_array = np.zeros((1, num_qubits))
         one_array = np.ones((1, num_qubits))
-        flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)  # type: ignore
+        flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)
     elif strength == 2:
         flip_matrix = _construct_strength_two_orthogonal_array(num_qubits)
-    elif strength == 3:
+    else:  # strength == 3
         flip_matrix = _construct_strength_three_orthogonal_array(num_qubits)
 
     return flip_matrix
@@ -1253,7 +1223,7 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     """
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
-    Hfold = np.concatenate((H, -H), axis=0)  # type: ignore
+    Hfold = np.concatenate((H, -H), axis=0)
     orthogonal_array: np.ndarray = ((Hfold + 1) / 2).astype(int)
     return orthogonal_array
 
@@ -1321,5 +1291,5 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
 
     if trials < min_num_trials:
         trials = min_num_trials
-        warnings.warn(f"Number of trials was too low, it is now {trials}.")
+        warnings.warn(f"Number of trials was too low, it is now {trials}.", stacklevel=2)
     return trials

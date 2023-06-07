@@ -13,25 +13,19 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from contextlib import contextmanager
-from typing import Dict, Optional, Iterator
-import asyncio
+from typing import Dict, Optional
 
-import httpx
-from pyquil.parser import parse_program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare
-import qcs_sdk
-from qcs_api_client.client import QCSClientConfiguration
-from qcs_api_client.operations.sync import (
-    get_quilt_calibrations,
-)
+from qcs_sdk import QCSClient
+from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
+from qcs_sdk.qpu.translation import get_quilt_calibrations, translate
 from rpcq.messages import ParameterSpec
 
-from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
-from pyquil.api._qcs_client import qcs_client
+from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
+from pyquil.parser import parse_program
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
+from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare
 
 
 class QPUCompilerNotRunning(Exception):
@@ -75,8 +69,7 @@ class QPUCompiler(AbstractCompiler):
         quantum_processor_id: str,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClientConfiguration] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        client_configuration: Optional[QCSClient] = None,
     ) -> None:
         """
         Instantiate a new QPU compiler client.
@@ -90,7 +83,6 @@ class QPUCompiler(AbstractCompiler):
             quantum_processor=quantum_processor,
             timeout=timeout,
             client_configuration=client_configuration,
-            event_loop=event_loop,
         )
 
         self.quantum_processor_id = quantum_processor_id
@@ -100,25 +92,28 @@ class QPUCompiler(AbstractCompiler):
         """
         Convert a native Quil program into an executable binary which can be executed by a QPU.
         """
-        rewrite_response = qcs_sdk.rewrite_arithmetic(nq_program.out())
+        rewrite_response = rewrite_arithmetic(nq_program.out())
 
-        translated_program = qcs_sdk.translate(
-            rewrite_response["program"],
-            nq_program.num_shots,
-            self.quantum_processor_id,
+        translated_program = translate(
+            native_quil=rewrite_response.program,
+            num_shots=nq_program.num_shots,
+            quantum_processor_id=self.quantum_processor_id,
         )
 
+        ro_sources = translated_program.ro_sources or {}
+
         return EncryptedProgram(
-            program=translated_program["program"],
+            program=translated_program.program,
             memory_descriptors=_collect_memory_descriptors(nq_program),
-            ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"].items() or []},
-            recalculation_table=rewrite_response["recalculation_table"],
+            ro_sources={parse_mref(mref): source for mref, source in ro_sources.items() or []},
+            recalculation_table=rewrite_response.recalculation_table,
             _memory=nq_program._memory.copy(),
         )
 
     def _fetch_calibration_program(self) -> Program:
-        with self._qcs_client() as qcs_client:  # type: httpx.Client
-            response = get_quilt_calibrations(client=qcs_client, quantum_processor_id=self.quantum_processor_id).parsed
+        response = get_quilt_calibrations(
+            quantum_processor_id=self.quantum_processor_id,
+        )
         return parse_program(response.quilt)
 
     def get_calibration_program(self, force_refresh: bool = False) -> Program:
@@ -152,13 +147,6 @@ class QPUCompiler(AbstractCompiler):
         super().reset()
         self._calibration_program = None
 
-    @contextmanager
-    def _qcs_client(self) -> Iterator[httpx.Client]:
-        with qcs_client(
-            client_configuration=self._client_configuration, request_timeout=self._timeout
-        ) as client:  # type: httpx.Client
-            yield client
-
 
 class QVMCompiler(AbstractCompiler):
     """
@@ -170,8 +158,7 @@ class QVMCompiler(AbstractCompiler):
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClientConfiguration] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        client_configuration: Optional[QCSClient] = None,
     ) -> None:
         """
         Client to communicate with compiler.
@@ -184,7 +171,6 @@ class QVMCompiler(AbstractCompiler):
             quantum_processor=quantum_processor,
             timeout=timeout,
             client_configuration=client_configuration,
-            event_loop=event_loop,
         )
 
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:

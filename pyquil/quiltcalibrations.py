@@ -12,7 +12,7 @@ from pyquil.quilatom import (
     Qubit,
     TemplateWaveform,
     WaveformReference,
-    _convert_to_py_parameter,
+    _convert_to_py_expression,
 )
 from pyquil.quilbase import (
     AbstractInstruction,
@@ -160,7 +160,7 @@ def _convert_to_calibration_match(
     }
     settings.update(
         {
-            _convert_to_py_parameter(param): _convert_to_py_parameter(value)
+            _convert_to_py_expression(param): _convert_to_py_expression(value)
             for param, value in zip(parameter_values, target_values)
             if isinstance(param, MemoryReference) or param.is_variable()
         }

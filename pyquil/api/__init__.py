@@ -26,7 +26,7 @@ __all__ = [
     "local_forest_runtime",
     "QAM",
     "QAMExecutionResult",
-    "QCSClientConfiguration",
+    "QCSClient",
     "QCSQuantumProcessor",
     "QPU",
     "QPUCompiler",
@@ -37,7 +37,7 @@ __all__ = [
     "WavefunctionSimulator",
 ]
 
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_sdk import QCSClient
 
 from pyquil.api._benchmark import BenchmarkConnection
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram, AbstractCompiler

@@ -33,8 +33,8 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
-from qcs_api_client.client import QCSAccountType, QCSClientConfiguration
-from qcs_api_client.models.instruction_set_architecture import InstructionSetArchitecture
+from qcs_sdk import QCSClient
+from qcs_sdk.qpu.isa import InstructionSetArchitecture
 from rpcq.messages import ParameterAref
 
 
@@ -143,8 +143,7 @@ def test_construct_strength_two_orthogonal_array():
     assert np.allclose(_construct_strength_two_orthogonal_array(3), answer)
 
 
-# TODO: Review PyQVM
-def test_measure_bitstrings(client_configuration: QCSClientConfiguration):
+def test_measure_bitstrings(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(2))
     dummy_compiler = DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration)
     qc_pyqvm = QuantumComputer(name="testy!", qam=PyQVM(n_qubits=2), compiler=dummy_compiler)
@@ -191,7 +190,7 @@ def test_check_min_num_trials_for_symmetrized_readout():
 # bound could be relaxed.
 # TODO: get_classical_adresses implementation
 @pytest.mark.flaky(reruns=1)
-def test_run(client_configuration: QCSClientConfiguration):
+def test_run(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -215,8 +214,7 @@ def test_run(client_configuration: QCSClientConfiguration):
     assert 0 < np.mean(parity) < 0.15
 
 
-# TODO: isintance compatibility
-def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
+def test_run_pyqvm_noiseless(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -236,7 +234,7 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
 
 
 # TODO: Review PyQVM
-def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
+def test_run_pyqvm_noisy(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -256,7 +254,7 @@ def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
 
 
 # TODO: Noisy gates
-def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
+def test_readout_symmetrization(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())
     qc = QuantumComputer(
@@ -293,7 +291,7 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
 
 
 @pytest.mark.slow
-def test_run_symmetrized_readout_error(client_configuration: QCSClientConfiguration):
+def test_run_symmetrized_readout_error(client_configuration: QCSClient):
     # This test checks if the function runs for any possible input on a small number of qubits.
     # Locally this test was run on all 8 qubits, but it was slow.
     qc = get_qc("8q-qvm", client_configuration=client_configuration)
@@ -411,7 +409,7 @@ def test_parse_qc_pyqvm():
     assert not noisy
 
 
-def test_qc(client_configuration: QCSClientConfiguration):
+def test_qc(client_configuration: QCSClient):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
     assert isinstance(qc, QuantumComputer)
     assert qc.qam.noise_model is not None
@@ -421,8 +419,7 @@ def test_qc(client_configuration: QCSClientConfiguration):
     assert str(qc) == "9q-square-noisy-qvm"
 
 
-# TODO: Noisy gates
-def test_qc_run(client_configuration: QCSClientConfiguration):
+def test_qc_run(client_configuration: QCSClient):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
     bs = qc.run(
         qc.compile(
@@ -436,7 +433,7 @@ def test_qc_run(client_configuration: QCSClientConfiguration):
     assert bs.shape == (3, 1)
 
 
-def test_nq_qvm_qc(client_configuration: QCSClientConfiguration):
+def test_nq_qvm_qc(client_configuration: QCSClient):
     for n_qubits in [2, 4, 7, 19]:
         qc = get_qc(f"{n_qubits}q-qvm", client_configuration=client_configuration)
         for q1, q2 in itertools.permutations(range(n_qubits), r=2):
@@ -444,12 +441,12 @@ def test_nq_qvm_qc(client_configuration: QCSClientConfiguration):
         assert qc.name == f"{n_qubits}q-qvm"
 
 
-def test_qc_noisy(client_configuration: QCSClientConfiguration):
+def test_qc_noisy(client_configuration: QCSClient):
     qc = get_qc("5q", as_qvm=True, noisy=True, client_configuration=client_configuration)
     assert isinstance(qc, QuantumComputer)
 
 
-def test_qc_compile(dummy_compiler: DummyCompiler, client_configuration: QCSClientConfiguration):
+def test_qc_compile(dummy_compiler: DummyCompiler, client_configuration: QCSClient):
     qc = get_qc("5q", as_qvm=True, noisy=True, client_configuration=client_configuration)
     qc.compiler = dummy_compiler
     prog = Program()
@@ -457,7 +454,7 @@ def test_qc_compile(dummy_compiler: DummyCompiler, client_configuration: QCSClie
     assert qc.compile(prog) == prog
 
 
-def test_qc_error(client_configuration: QCSClientConfiguration):
+def test_qc_error(client_configuration: QCSClient):
     # QVM is not a QPU
     with pytest.raises(ValueError):
         get_qc("9q-square-noisy-qvm", as_qvm=False, client_configuration=client_configuration)
@@ -468,7 +465,7 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
 
 # TODOV4: Write memory values
 @pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
-def test_run_with_parameters(client_configuration: QCSClientConfiguration, param):
+def test_run_with_parameters(client_configuration: QCSClient, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -490,7 +487,7 @@ def test_run_with_parameters(client_configuration: QCSClientConfiguration, param
 
 
 @pytest.mark.parametrize("param", [1j, "not_a_number", ["not_a_number"]])
-def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, param):
+def test_run_with_bad_parameters(client_configuration: QCSClient, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -508,8 +505,7 @@ def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, p
         executable.write_memory(region_name="theta", value=param)
 
 
-# TODOV4: Write Memory values
-def test_reset(client_configuration: QCSClientConfiguration):
+def test_reset(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -531,7 +527,7 @@ def test_reset(client_configuration: QCSClientConfiguration):
     assert all([bit == 1 for bit in result.readout_data["ro"]])
 
 
-def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
+def test_get_qvm_with_topology(client_configuration: QCSClient):
     topo = nx.from_edgelist([(5, 6), (6, 7), (10, 11)])
     # Note to developers: perhaps make `get_qvm_with_topology` public in the future
     qc = _get_qvm_with_topology(
@@ -548,7 +544,7 @@ def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
 
 
 # TODO: get_classical_adresses implementation
-def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
+def test_get_qvm_with_topology_2(client_configuration: QCSClient):
     topo = nx.from_edgelist([(5, 6), (6, 7)])
     qc = _get_qvm_with_topology(
         name="test-qvm",
@@ -581,7 +577,7 @@ def test_parse_mix_qvm_and_noisy_flag():
 
 
 # TODO: noisy gates
-def test_noisy(client_configuration: QCSClientConfiguration):
+def test_noisy(client_configuration: QCSClient):
     # https://github.com/rigetti/pyquil/issues/764
     p = Program(
         Declare("ro", "BIT", 1),
@@ -617,7 +613,7 @@ def test_orthogonal_array():
 
 
 # TODO: Memory management
-def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+def test_qc_expectation(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
     # bell state program
@@ -653,7 +649,7 @@ def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_comp
 
 
 # TODO: Memory management
-def test_qc_expectation_larger_lattice(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+def test_qc_expectation_larger_lattice(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
     q0 = 2
@@ -698,7 +694,7 @@ def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> N
 
 
 # TODO: Instruction API - RESET
-def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
+def test_qc_calibration_1q(client_configuration: QCSClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0], 0.945, 0.955)
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
@@ -723,7 +719,7 @@ def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
 
 
 # TODO: Instruction API - RESET
-def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
+def test_qc_calibration_2q(client_configuration: QCSClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
@@ -748,7 +744,7 @@ def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
 
 
 # TODO: Instruction API - RESET
-def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+def test_qc_joint_expectation(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
     # |01> state program
@@ -777,7 +773,7 @@ def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dumm
     assert results[0].additional_results[1].total_counts == 40
 
 
-def test_get_qc_noisy_qpu_error(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+def test_get_qc_noisy_qpu_error(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     expected_message = (
         "pyQuil currently does not support initializing a noisy QuantumComputer "
         "based on a QCSQuantumProcessor. Change noisy to False or specify the name of a QVM."
@@ -787,7 +783,7 @@ def test_get_qc_noisy_qpu_error(client_configuration: QCSClientConfiguration, du
 
 
 # TODO: Instruction API - RESET
-def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
+def test_qc_joint_calibration(client_configuration: QCSClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
@@ -819,7 +815,7 @@ def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
 
 
 # TODO: Instruction API - RESET
-def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+def test_qc_expectation_on_qvm(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     # regression test for https://github.com/rigetti/forest-tutorials/issues/2
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
@@ -854,36 +850,20 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dum
     assert results[2][0].total_counts == 20000
 
 
+@pytest.mark.skip  # qcs_sdk client profiles do not support group accounts
 @respx.mock
-def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
+def test_get_qc_with_group_account(client_configuration: QCSClient, qcs_aspen8_isa: InstructionSetArchitecture):
     """
-    Assert that get_qc passes a specified ``endpoint_id`` through to its QPU when constructed
-    for a live quantum processor.
-    """
-    respx.get(
-        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
-    ).respond(json=qcs_aspen8_isa.to_dict())
-
-    qc = get_qc("test", endpoint_id="test-endpoint")
-
-    assert qc.qam._endpoint_id == "test-endpoint"
-
-
-@respx.mock
-def test_get_qc_with_group_account(
-    client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture
-):
-    """
-    Assert that a client may specify a ``QCSClientConfigurationSettingsProfile`` representing a QCS group
+    Assert that a client may specify a ``QCSClientSettingsProfile`` representing a QCS group
     account.
     """
     respx.get(
-        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
-    ).respond(json=qcs_aspen8_isa.to_dict())
+        url=f"{client_configuration.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
+    ).respond(json=qcs_aspen8_isa.json())
 
     group_profile = client_configuration.profile.copy()
     group_profile.account_id = "group0"
-    group_profile.account_type = QCSAccountType.group
+    group_profile.account_type = "group"
     client_configuration.settings.profiles["my-group-profile"] = group_profile
     client_configuration.profile_name = "my-group-profile"
     qc = get_qc("test", endpoint_id="test-endpoint", client_configuration=client_configuration)

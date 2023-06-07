@@ -1,5 +1,5 @@
 from math import pi
-from typing import Any, Callable, List, Optional, Iterable, Tuple, Union, cast
+from typing import Any, List, Optional, Iterable, Tuple, Union
 from numbers import Complex, Number
 
 import numpy as np

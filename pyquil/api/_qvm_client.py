@@ -20,7 +20,8 @@ from json.decoder import JSONDecodeError
 from typing import Iterator, Any, Dict, Union, Tuple, Optional, List, cast
 
 import httpx
-from qcs_api_client.client import QCSClientConfiguration
+
+from qcs_sdk import QCSClient
 
 from pyquil.api._errors import ApiError, UnknownApiError, TooManyQubitsError, error_mapping
 
@@ -159,14 +160,14 @@ class QVMClient:
     Client for making requests to a Quantum Virtual Machine.
     """
 
-    def __init__(self, *, client_configuration: QCSClientConfiguration, request_timeout: float = 10.0) -> None:
+    def __init__(self, *, client_configuration: QCSClient, request_timeout: float = 10.0) -> None:
         """
         Instantiate a new compiler client.
 
         :param client_configuration: Configuration for client.
         :param request_timeout: Timeout for requests, in seconds.
         """
-        self.base_url = client_configuration.profile.applications.pyquil.qvm_url
+        self.base_url = client_configuration.qvm_url
         self.timeout = request_timeout
 
     def get_version(self) -> str:

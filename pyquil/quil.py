@@ -32,12 +32,13 @@ from typing import (
     Tuple,
     Union,
     cast,
-    no_type_check,
 )
 
 from deprecation import deprecated
 import numpy as np
 from rpcq.messages import ParameterAref
+
+from qcs_sdk.compiler.quilc import NativeQuilMetadata
 
 from pyquil._version import pyquil_version
 from pyquil._memory import Memory
@@ -72,6 +73,20 @@ from pyquil.quilbase import (
     JumpWhen,
     Declare,
     ResetQubit,
+    DelayFrames,
+    DelayQubits,
+    Fence,
+    FenceAll,
+    Pulse,
+    Capture,
+    RawCapture,
+    SetFrequency,
+    ShiftFrequency,
+    SetPhase,
+    ShiftPhase,
+    SwapPhases,
+    SetScale,
+    DefPermutationGate,
     DefCalibration,
     DefFrame,
     DefMeasureCalibration,
@@ -121,8 +136,7 @@ class Program:
         # default number of shots to loop through
         self.num_shots = 1
 
-        # Will be moved to rust... later
-        self._memory = Memory()
+        self.native_quil_metadata: Optional[NativeQuilMetadata] = None
 
     @property
     def calibrations(self) -> List[DefCalibration]:
@@ -168,8 +182,9 @@ class Program:
             self.calibrations,
             self.measure_calibrations,
         )
+        if self.native_quil_metadata is not None:
+            new_prog.native_quil_metadata = deepcopy(self.native_quil_metadata)
         new_prog.num_shots = self.num_shots
-        new_prog._memory = self._memory.copy()
         return new_prog
 
     def copy(self) -> "Program":
@@ -236,7 +251,6 @@ class Program:
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
             elif isinstance(instruction, AbstractInstruction):
-                print(instruction.out())
                 self.inst(RSProgram.parse(instruction.out()))
             else:
                 raise ValueError("Invalid instruction: {}".format(instruction))
@@ -764,6 +778,9 @@ class Program:
     def __len__(self) -> int:
         return len(self.instructions)
 
+    def __hash__(self) -> int:
+        return hash(self.out())
+
     def __str__(self) -> str:
         """
         A string representation of the Quil program for inspection.
@@ -828,6 +845,25 @@ def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int
         flattened_addresses[k] = reduced_list
 
     return flattened_addresses
+
+
+def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceholder], Qubit]:
+    """
+    Takes a program which contains qubit placeholders and provides a mapping to the integers
+    0 through N-1.
+
+    The output of this function is suitable for input to :py:func:`address_qubits`.
+
+    :param program: A program containing qubit placeholders
+    :return: A dictionary mapping qubit placeholder to an addressed qubit from 0 through N-1.
+    """
+    fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
+    if real_qubits:
+        warnings.warn("This program contains integer qubits, so getting a mapping doesn't make sense.")
+        # _what_type_of_qubit_does_it_use ensures that if real_qubits is True, then qubits contains
+        # only real Qubits, not QubitPlaceholders. Help mypy figure this out with cast.
+        return {q: cast(Qubit, q) for q in qubits}
+    return {qp: Qubit(i) for i, qp in enumerate(qubits)}
 
 
 def address_qubits(

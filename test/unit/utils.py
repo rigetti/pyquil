@@ -2,7 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from pytest_mock import MockerFixture
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_sdk import QCSClient
 
 from pyquil import Program
 from pyquil.api._abstract_compiler import AbstractCompiler
@@ -45,7 +45,7 @@ def parse_equals(quil_string, *instructions):
 
 
 class DummyCompiler(AbstractCompiler):
-    def __init__(self, quantum_processor: AbstractQuantumProcessor, client_configuration: QCSClientConfiguration):
+    def __init__(self, quantum_processor: AbstractQuantumProcessor, client_configuration: QCSClient):
         super().__init__(quantum_processor=quantum_processor, timeout=10, client_configuration=client_configuration)
 
     def get_version_info(self):

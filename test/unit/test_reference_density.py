@@ -4,7 +4,7 @@ import pytest
 
 import pyquil.simulation.matrices as qmats
 from pyquil import Program
-from pyquil.api import QCSClientConfiguration
+from pyquil.api import QCSClient
 from pyquil.api import QuantumComputer
 from pyquil.experiment import ExperimentSetting, Experiment, zeros_state
 from pyquil.gates import CNOT, H, I, MEASURE, PHASE, RX, RY, RZ, X
@@ -119,7 +119,7 @@ def test_larger_qaoa_density():
         ]
     )
 
-    wf_true = np.reshape(wf_true, (2 ** 4, 1))
+    wf_true = np.reshape(wf_true, (2**4, 1))
     rho_true = np.dot(wf_true, np.conj(wf_true).T)
     np.testing.assert_allclose(rho_true, rho_test, atol=1e-8)
 
@@ -317,7 +317,7 @@ def test_multiqubit_decay_bellstate():
 
 
 @pytest.mark.slow
-def test_for_negative_probabilities(client_configuration: QCSClientConfiguration):
+def test_for_negative_probabilities(client_configuration: QCSClient):
     # trivial program to do state tomography on
     prog = Program(I(0)).wrap_in_numshots_loop(3000)
 
@@ -353,7 +353,7 @@ def test_for_negative_probabilities(client_configuration: QCSClientConfiguration
         assert str(e) != "probabilities are not non-negative"
 
 
-def test_set_initial_state(client_configuration: QCSClientConfiguration):
+def test_set_initial_state(client_configuration: QCSClient):
     # That is test the assigned state matrix in ReferenceDensitySimulator is persistent between
     # rounds of run.
     rho1 = np.array([[0.0, 0.0], [0.0, 1.0]])
@@ -373,7 +373,7 @@ def test_set_initial_state(client_configuration: QCSClientConfiguration):
 
     qc_density.qam.wf_simulator.set_initial_state(rho1).reset()
 
-    out = [qc_density.run(prog).readout_data['ro'] for _ in range(0, 4)]
+    out = [qc_density.run(prog).readout_data["ro"] for _ in range(0, 4)]
     ans = [np.array([[1]]), np.array([[1]]), np.array([[1]]), np.array([[1]])]
     assert all([np.allclose(x, y) for x, y in zip(out, ans)])
 
@@ -382,7 +382,7 @@ def test_set_initial_state(client_configuration: QCSClientConfiguration):
 
     results = qc_density.run(qc_density.compile(progRAM))
     ans = {0: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
-    assert np.allclose(results.readout_data['ro'][0], ans[0])
+    assert np.allclose(results.readout_data["ro"][0], ans[0])
 
     # test reverting ReferenceDensitySimulator to the default state
     rho0 = np.array([[1.0, 0.0], [0.0, 0.0]])

@@ -1,5 +1,5 @@
 import networkx as nx
-from qcs_api_client.models import InstructionSetArchitecture
+from qcs_sdk.qpu.isa import InstructionSetArchitecture
 
 
 def qcs_isa_to_graph(isa: InstructionSetArchitecture) -> nx.Graph:

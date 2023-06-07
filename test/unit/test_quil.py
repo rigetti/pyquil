@@ -128,6 +128,59 @@ def test_defgate_param(snapshot):
     tg = test(Qubit(1))
     assert tg.out() == snapshot
 
+def test_defgate_redefintion():
+    """Test that adding a defgate with the same name updates the definition."""
+    program = Program()
+    mat = np.array([[1.0, 0.0], [0.0, 1.0]])
+    dgp = DefGate("TEST", mat)
+    program += dgp
+
+    assert program.defined_gates[0].name == "TEST"
+    assert np.all(program.defined_gates[0].matrix == mat)
+
+    new_mat = np.array([[0.0, -1.0j], [1.0j, 0.0]])
+    dgp = DefGate("TEST", new_mat)
+    program += dgp
+
+    assert program.defined_gates[0].name == "TEST"
+    assert np.all(program.defined_gates[0].matrix == new_mat)
+    assert len(program.defined_gates) == 1
+
+def test_decal_redefinition():
+    """Test that adding a defcalibration with the same name updates the definition."""
+    program = Program()
+    defcal = DefCalibration(
+        "TEST",
+        [],
+        [Qubit(1)],
+        instrs=[
+            RX(np.pi, 1)
+        ]
+    )
+    program += defcal
+
+    assert len(program.calibrations) == 1
+    assert program.calibrations[0].instrs[0].out() == "RX(pi) 1"
+
+
+    program += defcal
+
+    assert len(program.calibrations) == 1
+
+    new_defcal = DefCalibration(
+        "TEST",
+        [],
+        [Qubit(1)],
+        instrs=[
+            RX(np.pi/2, 1)
+        ]
+    )
+
+    program += new_defcal
+    assert len(program.calibrations) == 1
+    assert program.calibrations[0].instrs[0].out() == "RX(pi/2) 1"
+
+
 
 def test_inst_gates(snapshot):
     p = Program()

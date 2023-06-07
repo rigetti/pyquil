@@ -1,10 +1,10 @@
 from typing import Optional
 
 import pytest
-
 import numpy as np
 
 from pyquil.quil import Program
+from pyquil.gates import RX
 from pyquil.quilatom import (
     MemoryReference,
     Parameter,
@@ -34,6 +34,7 @@ from pyquil.quilbase import (
     DelayQubits,
     Qubit,
 )
+from test.unit.conftest import TEST_DATA_DIR
 
 
 def test_waveform_samples():
@@ -199,8 +200,8 @@ def test_apply_match_delay_qubits():
 
 
 def test_program_match_last():
-    first = DefCalibration("X", [], [Qubit(0)], ["foo"])
-    second = DefCalibration("X", [], [Qubit(0)], ["bar"])
+    first = DefCalibration("X", [], [Qubit(0)], [RX(np.pi / 2, 0)])
+    second = DefCalibration("X", [], [Qubit(0)], [RX(-np.pi / 2, 0)])
     prog = Program(first, second)
     match = prog.match_calibrations(Gate("X", [], [Qubit(0)]))
     assert match == CalibrationMatch(cal=second, settings={})
@@ -384,3 +385,14 @@ DEFWAVEFORM foo:
     prog_2 = Program()
     prog_2 += prog_1
     assert len(prog_2.waveforms) == 1
+
+
+@pytest.mark.parametrize("calibration_program_suffix", ["rx", "cz", "cz_cphase", "xy", "measure"])
+def test_round_trip_calibration_program(calibration_program_suffix):
+    """Test we round-trip a multi-part Quil-T calibration program; tests calibration overlap elimination."""
+    with open(os.path.join(TEST_DATA_DIR, f"calibration_program_{calibration_program_suffix}.quil")) as file:
+        calibration_program_text = file.read()
+
+    calibration_program = Program(calibration_program_text)
+    calibration_program_text_out = calibration_program.out()
+    assert calibration_program_text_out == calibration_program_text

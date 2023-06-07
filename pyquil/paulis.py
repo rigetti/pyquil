@@ -711,8 +711,10 @@ class PauliSum(object):
             other_sum = PauliSum([other])
         elif isinstance(other, (Expression, Number, complex)):
             other_sum = PauliSum([other * ID()])
-        else:
+        elif isinstance(other, PauliSum):
             other_sum = other
+        else:
+            raise TypeError(f"{type(other)} is not a valid PauliDesignator or ExpressionDesignator")
         new_terms = [term.copy() for term in self.terms]
         new_terms.extend(other_sum.terms)
         new_sum = PauliSum(new_terms)

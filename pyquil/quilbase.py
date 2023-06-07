@@ -34,8 +34,8 @@ from typing import (
 )
 from typing_extensions import Self
 
-from deprecation import deprecated
 import numpy as np
+from deprecation import deprecated
 
 from pyquil._version import pyquil_version
 from pyquil.quilatom import (
@@ -58,8 +58,7 @@ from pyquil.quilatom import (
     _convert_to_rs_qubit,
     _convert_to_rs_qubits,
     _convert_to_py_expression,
-    _convert_to_py_parameter,
-    _convert_to_py_parameters,
+    _convert_to_py_expressions,
     _convert_to_py_waveform,
     unpack_qubit,
 )
@@ -175,7 +174,12 @@ def _convert_to_rs_instructions(instrs: Sequence[AbstractInstruction]) -> List[q
 
 def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     if isinstance(instr, quil_rs.Instruction):
-        # TODOV4: Will have to handle unit variants since they don't have inner data
+        if instr.is_nop():
+            return Nop()
+        if instr.is_halt():
+            return Halt()
+        if instr.is_wait():
+            return Wait()
         return _convert_to_py_instruction(instr.inner())
     if isinstance(instr, quil_rs.Capture):
         return Capture._from_rs_capture(instr)
@@ -298,7 +302,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
 
     @property
     def params(self) -> List[ParameterDesignator]:
-        return _convert_to_py_parameters(super().parameters)
+        return _convert_to_py_expressions(super().parameters)
 
     @params.setter
     def params(self, params: Sequence[ParameterDesignator]) -> None:
@@ -1491,7 +1495,7 @@ class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
 
     @property
     def freq(self) -> ParameterDesignator:
-        return _convert_to_py_parameter(super().frequency)
+        return _convert_to_py_expression(super().frequency)
 
     @freq.setter
     def freq(self, freq: ParameterDesignator) -> None:
@@ -1533,7 +1537,7 @@ class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
 
     @property
     def freq(self) -> ParameterDesignator:
-        return _convert_to_py_parameter(super().frequency)
+        return _convert_to_py_expression(super().frequency)
 
     @freq.setter
     def freq(self, freq: ParameterDesignator) -> None:
@@ -1575,7 +1579,7 @@ class SetPhase(quil_rs.SetPhase, AbstractInstruction):
 
     @property  # type: ignore[override]
     def phase(self) -> ParameterDesignator:
-        return _convert_to_py_parameter(super().phase)
+        return _convert_to_py_expression(super().phase)
 
     @phase.setter
     def phase(self, phase: ParameterDesignator) -> None:
@@ -1617,7 +1621,7 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
 
     @property  # type: ignore[override]
     def phase(self) -> ParameterDesignator:
-        return _convert_to_py_parameter(super().phase)
+        return _convert_to_py_expression(super().phase)
 
     @phase.setter
     def phase(self, phase: ParameterDesignator) -> None:
@@ -1701,7 +1705,7 @@ class SetScale(quil_rs.SetScale, AbstractInstruction):
 
     @property  # type: ignore[override]
     def scale(self) -> ParameterDesignator:
-        return _convert_to_py_parameter(super().scale)
+        return _convert_to_py_expression(super().scale)
 
     @scale.setter
     def scale(self, scale: ParameterDesignator) -> None:
@@ -1992,7 +1996,7 @@ class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
 
     @property
     def entries(self) -> List[ParameterDesignator]:
-        return _convert_to_py_parameters(super().definition.matrix)
+        return _convert_to_py_expressions(super().definition.matrix)
 
     @entries.setter
     def entries(self, entries: List[Union[complex, Expression]]) -> None:
@@ -2086,7 +2090,7 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
 
     @property  # type: ignore[override]
     def parameters(self) -> List[ParameterDesignator]:
-        return _convert_to_py_parameters(super().parameters)
+        return _convert_to_py_expressions(super().parameters)
 
     @parameters.setter
     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:

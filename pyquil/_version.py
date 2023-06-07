@@ -13,11 +13,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import sys
+from importlib.metadata import version
+from packaging.version import parse
 
-if sys.version_info < (3, 8):
-    from importlib_metadata import version
-else:
-    from importlib.metadata import version
+pyquil_version = version(__package__)
+pyquil_docs_version = parse(pyquil_version).base_version or "stable"
 
-pyquil_version = version(__package__)  # type: ignore
+DOCS_URL = f"https://pyquil-docs.rigetti.com/en/{pyquil_docs_version}"
+"""
+The URL of the hosted docs for this package version.
+"""

@@ -178,6 +178,20 @@ def test_def_gate_as_matrix():
     assert not isinstance(parsed[0], DefPermutationGate)
 
 
+def test_def_gate_as_matrix_parameterized():
+    matrix_gate_str = """DEFGATE RZZ(%phi) AS MATRIX:
+    COS(%phi/2), 0, 0, -1.0i*SIN(%phi/2)
+    0, COS(%phi/2), -1.0i*SIN(%phi/2), 0
+    0, -1.0i*SIN(%phi/2), COS(%phi/2), 0
+    -1.0i*SIN(%phi/2), 0, 0, COS(%phi/2)
+    """.strip()
+    parsed = parse(matrix_gate_str)
+
+    assert len(parsed) == 1
+    assert isinstance(parsed[0], DefGate)
+    assert not isinstance(parsed[0], DefPermutationGate)
+
+
 def test_def_permutation_gate():
     perm_gate = DefPermutationGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
 
@@ -261,10 +275,15 @@ def test_expressions():
 
     # Functions
     _expr("SIN(0)", 0.0)
+    _expr("sin(0)", 0.0)
     _expr("COS(0)", 1.0)
+    _expr("cos(0)", 1.0)
     _expr("SQRT(4)", 2.0)
+    _expr("sqrt(4)", 2.0)
     _expr("EXP(0)", 1.0)
+    _expr("exp(0)", 1.0)
     _expr("CIS(0)", complex(1, 0))
+    _expr("cis(0)", complex(1, 0))
 
     # Unary precedence
     # https://github.com/rigetti/pyquil/issues/246
@@ -541,12 +560,13 @@ def test_parsing_frame_mutations():
                 parse_equals(f"{op_str} {frame_str} {val_str}", op(frame, val))
 
 
-def test_parsing_swap_phase():
-    parse_equals('SWAP-PHASE 0 "rf" 1 "rf"', SwapPhases(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf")))
-    parse_equals(
-        'SWAP-PHASE 0 1 "ff" 1 0 "ff"',
-        SwapPhases(Frame([Qubit(0), Qubit(1)], "ff"), Frame([Qubit(1), Qubit(0)], "ff")),
-    )
+def test_parsing_swap_phases():
+    for command in ["SWAP-PHASE", "SWAP-PHASES"]:
+        parse_equals(f'{command} 0 "rf" 1 "rf"', SwapPhases(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf")))
+        parse_equals(
+            f'{command} 0 1 "ff" 1 0 "ff"',
+            SwapPhases(Frame([Qubit(0), Qubit(1)], "ff"), Frame([Qubit(1), Qubit(0)], "ff")),
+        )
 
 
 def test_parsing_delay():
@@ -596,6 +616,26 @@ def test_parsing_defframe():
         "    INITIAL-FREQUENCY: 10\n",  # TODO: should this parse as a float?
         DefFrame(Frame([Qubit(0)], "rf"), sample_rate=2.0, initial_frequency=10),
     )
+    parse_equals(
+        'DEFFRAME 0 "rf":\n'
+        "    SAMPLE-RATE: 2.0\n"
+        "    INITIAL-FREQUENCY: 10\n"
+        '    ENABLE-RAW-CAPTURE: "true"\n'
+        "    CHANNEL-DELAY: 20e-9",
+        DefFrame(
+            Frame([Qubit(0)], "rf"),
+            sample_rate=2.0,
+            initial_frequency=10,
+            enable_raw_capture="true",
+            channel_delay=20e-9,
+        ),
+    )
+    assert DefFrame(
+        Frame([Qubit(0)], "rf"),
+        enable_raw_capture="true",
+        channel_delay=12e-9,
+    ).out() == ('DEFFRAME 0 "rf":\n' '    ENABLE-RAW-CAPTURE: "true"\n' "    CHANNEL-DELAY: 1.2e-08\n")
+
     with pytest.raises(UnexpectedToken) as excp:
         parse('DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n")
 

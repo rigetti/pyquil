@@ -333,35 +333,6 @@ def _convert_to_rs_expressions(
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
-def _convert_to_py_parameter(
-    parameter: Union[ParameterDesignator, quil_rs.MemoryReference, quil_rs_expr.Expression]
-) -> ParameterDesignator:
-    if isinstance(parameter, quil_rs_expr.Expression):
-        if parameter.is_address():
-            return MemoryReference._from_rs_memory_reference(parameter.to_address())
-        if parameter.is_function_call():
-            return Function._from_rs_function_call(parameter.to_function_call())
-        if parameter.is_infix():
-            return BinaryExp._from_rs_infix_expression(parameter.to_infix())
-        if parameter.is_prefix():
-            raise NotImplementedError("prefix conversion not implemented")
-        if parameter.is_number():
-            return parameter.to_number()
-        if parameter.is_pi():
-            return np.pi
-        if parameter.is_variable():
-            return Parameter(parameter.to_variable())
-    elif isinstance(parameter, (Expression, MemoryReference, Number, complex)):
-        return parameter
-    raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
-
-
-def _convert_to_py_parameters(
-    parameters: Sequence[Union[ParameterDesignator, quil_rs.MemoryReference, quil_rs_expr.Expression]]
-) -> List[ParameterDesignator]:
-    return [_convert_to_py_parameter(parameter) for parameter in parameters]
-
-
 @deprecated(
     deprecated_in="4.0",
     removed_in="5.0",
@@ -414,7 +385,9 @@ ExpressionValueDesignator = Union[int, float, complex]
 ExpressionDesignator = Union["Expression", ExpressionValueDesignator]
 
 
-def _convert_to_py_expression(expression: Union[ExpressionDesignator, quil_rs_expr.Expression]) -> ExpressionDesignator:
+def _convert_to_py_expression(
+    expression: Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
+) -> ExpressionDesignator:
     if isinstance(expression, (Expression, Number)):
         return expression
     if isinstance(expression, quil_rs_expr.Expression):
@@ -436,6 +409,14 @@ def _convert_to_py_expression(expression: Union[ExpressionDesignator, quil_rs_ex
             elif isinstance(py_expression, (int, float, complex, Expression)):
                 return -py_expression
     raise TypeError(f"{type(expression)} is not a valid ExpressionDesignator")
+
+
+def _convert_to_py_expressions(
+    expressions: Sequence[
+        Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
+    ]
+) -> List[ExpressionDesignator]:
+    return [_convert_to_py_expression(expression) for expression in expressions]
 
 
 class Expression(object):
@@ -630,19 +611,21 @@ class BinaryExp(Expression):
         self.op2 = op2
 
     @classmethod
-    def _from_rs_infix_expression(cls, infix_expression: quil_rs_expr.InfixExpression) -> "BinaryExp":
+    def _from_rs_infix_expression(
+        cls, infix_expression: quil_rs_expr.InfixExpression
+    ) -> Union["BinaryExp", ExpressionValueDesignator]:
         left = _convert_to_py_expression(infix_expression.left)
         right = _convert_to_py_expression(infix_expression.right)
         if infix_expression.operator == quil_rs_expr.InfixOperator.Plus:
-            return Add(left, right)
+            return Add.fn(left, right)
         if infix_expression.operator == quil_rs_expr.InfixOperator.Minus:
-            return Sub(left, right)
+            return Sub.fn(left, right)
         if infix_expression.operator == quil_rs_expr.InfixOperator.Slash:
-            return Div(left, right)
+            return Div.fn(left, right)
         if infix_expression.operator == quil_rs_expr.InfixOperator.Star:
-            return Mul(left, right)
+            return Mul.fn(left, right)
         if infix_expression.operator == quil_rs_expr.InfixOperator.Caret:
-            return Pow(left, right)
+            return Pow.fn(left, right)
         raise ValueError(f"{type(infix_expression)} is not a valid InfixExpression")
 
     def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
@@ -930,7 +913,7 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
 
     @property  # type: ignore[override]
     def parameters(self) -> Dict[str, ParameterDesignator]:
-        return {key: _convert_to_py_parameter(value) for key, value in super().parameters.items()}
+        return {key: _convert_to_py_expression(value) for key, value in super().parameters.items()}
 
     @parameters.setter
     def parameters(self, parameters: Dict[str, ParameterDesignator]) -> None:
@@ -994,7 +977,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         parameter = super().parameters.get(name, None)
         if parameter is None:
             return None
-        return _convert_to_py_parameter(parameter)
+        return _convert_to_py_expression(parameter)
 
     def set_parameter(self, name: str, value: Optional[ParameterDesignator]) -> None:
         parameters = super().parameters

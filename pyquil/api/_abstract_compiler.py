@@ -17,11 +17,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import dataclasses
 from typing import Any, Dict, List, Optional, Sequence, Union
-import asyncio
 import json
 
-from qcs_sdk.compiler.quilc import compile_program, CompilerOpts, TargetDevice
+from qcs_sdk import QCSClient
 from qcs_sdk.qpu.isa import InstructionSetArchitecture
+from qcs_sdk.compiler.quilc import compile_program, CompilerOpts, TargetDevice
 
 from pyquil._memory import Memory
 from pyquil._version import pyquil_version
@@ -32,7 +32,6 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Gate
-from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import ParameterAref, ParameterSpec
 
 
@@ -88,27 +87,21 @@ QuantumExecutable = Union[EncryptedProgram, Program]
 class AbstractCompiler(ABC):
     """The abstract interface for a compiler."""
 
-    _event_loop: asyncio.AbstractEventLoop
-
     def __init__(
         self,
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
-        client_configuration: Optional[QCSClientConfiguration] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        client_configuration: Optional[QCSClient] = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
 
-        self._client_configuration = client_configuration or QCSClientConfiguration.load()
-
-        if event_loop is None:
-            event_loop = asyncio.get_event_loop()
-        self._event_loop = event_loop
+        self._client_configuration = client_configuration or QCSClient.load()
 
         self._compiler_client = CompilerClient(
-            client_configuration=self._client_configuration, request_timeout=timeout, event_loop=self._event_loop
+            client_configuration=self._client_configuration,
+            request_timeout=timeout,
         )
 
         self._connect()
@@ -125,20 +118,22 @@ class AbstractCompiler(ABC):
         """
         Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
-        # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
-        # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
-        # This will have to be addressed as part of this issue: https://github.com/rigetti/pyquil/issues/1496
-        target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
 
-        native_quil = compile_program(
-            program.out(calibrations=False),
-            TargetDevice.from_json(json.dumps(target_device.asdict())),
-            options=CompilerOpts(timeout=self._compiler_client.timeout, protoquil=protoquil),
+        # convert the pyquil ``TargetDevice`` to the qcs_sdk ``TargetDevice``
+        compiler_isa = self.quantum_processor.to_compiler_isa()
+        target_device_json = json.dumps(compiler_isa_to_target_quantum_processor(compiler_isa).asdict())  # type: ignore
+        target_device = TargetDevice.from_json(target_device_json)
+
+        result = compile_program(
+            quil=program.out(calibrations=False),
+            target=target_device,
+            client=self._client_configuration,
+            options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout),
         )
 
-        native_program = Program(native_quil)
+        native_program = Program(result.program)
         native_program.num_shots = program.num_shots
-        native_program._memory = program._memory.copy()
+        native_program.native_quil_metadata = result.native_quil_metadata
 
         return native_program
 
@@ -149,7 +144,8 @@ class AbstractCompiler(ABC):
             raise QuilcNotRunning(
                 f"Request to quilc at {self._compiler_client.base_url} timed out. "
                 "This could mean that quilc is not running, is not reachable, or is "
-                "responding slowly."
+                "responding slowly. See the Troubleshooting Guide: "
+                "{DOCS_URL}/troubleshooting.html"
             )
 
     @abstractmethod
