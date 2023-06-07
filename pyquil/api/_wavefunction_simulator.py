@@ -91,7 +91,7 @@ class WavefunctionSimulator:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
         request = qvm.api.WavefunctionRequest(
-            quil_program.out(),
+            quil_program.out(calibrations=False),
             self.measurement_noise,
             self.gate_noise,
             self.random_seed,
