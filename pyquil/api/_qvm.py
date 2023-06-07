@@ -136,7 +136,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             executable = apply_noise_model(executable, self.noise_model)
 
         result = qvm.run(
-            executable.out(),
+            executable.out(calibrations=False),
             trials,
             addresses,
             memory_map or {},
