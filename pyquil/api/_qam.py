@@ -15,7 +15,7 @@
 ##############################################################################
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Generic, Mapping, Optional, TypeVar
+from typing import Generic, Mapping, Optional, TypeVar, Sequence, Union
 
 import numpy as np
 from pyquil.api._abstract_compiler import QuantumExecutable
@@ -27,6 +27,9 @@ class QAMError(RuntimeError):
 
 T = TypeVar("T")
 """A generic parameter describing the opaque job handle returned from QAM#execute and subclasses."""
+
+MemoryMap = Mapping[str, Union[Sequence[int], Sequence[float]]]
+"""A mapping of memory regions to a list containing the values to be written into that memory region."""
 
 
 @dataclass
@@ -48,12 +51,18 @@ class QAM(ABC, Generic[T]):
     """
 
     @abstractmethod
-    def execute(self, executable: QuantumExecutable) -> T:
+    def execute(
+        self,
+        executable: QuantumExecutable,
+        memory_map: Optional[MemoryMap] = None,
+    ) -> T:
         """
         Run an executable on a QAM, returning a handle to be used to retrieve
         results.
 
         :param executable: The executable program to be executed by the QAM.
+        :param memory_map: A mapping of memory regions to a list containing the values to be written into that memory
+            region for the run.
         """
 
     @abstractmethod
@@ -64,8 +73,12 @@ class QAM(ABC, Generic[T]):
         :param execute_response: The return value from a call to ``execute``.
         """
 
-    def run(self, executable: QuantumExecutable) -> QAMExecutionResult:
+    def run(
+        self,
+        executable: QuantumExecutable,
+        memory_map: Optional[MemoryMap] = None,
+    ) -> QAMExecutionResult:
         """
         Run an executable to completion on the QAM.
         """
-        return self.get_result(self.execute(executable))
+        return self.get_result(self.execute(executable, memory_map))

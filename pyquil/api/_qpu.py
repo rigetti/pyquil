@@ -23,7 +23,7 @@ from rpcq.messages import ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram
 
-from pyquil.api._qam import QAM, QAMExecutionResult
+from pyquil.api._qam import MemoryMap, QAM, QAMExecutionResult
 from pyquil.quilatom import (
     MemoryReference,
 )
@@ -143,7 +143,7 @@ class QPU(QAM[QPUExecuteResponse]):
         """ID of quantum processor targeted."""
         return self._quantum_processor_id
 
-    def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
+    def execute(self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
         job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
@@ -159,13 +159,7 @@ class QPU(QAM[QPUExecuteResponse]):
             executable.ro_sources is not None
         ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
 
-        # executable._memory.values is a dict of ParameterARef -> numbers,
-        # where ParameterARef is data class w/ name and index
-        # ParameterARef == Parameter on the Rust side
-        mem_values = defaultdict(list)
-        for k, v in executable._memory.values.items():
-            mem_values[k.name].append(v)
-        patch_values = build_patch_values(executable.recalculation_table, mem_values)
+        patch_values = build_patch_values(executable.recalculation_table, memory_map or {})
 
         job_id = submit(
             program=executable.program,

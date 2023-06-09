@@ -114,8 +114,8 @@ class TestGate:
         assert gate.qubits == [Qubit(123)]
 
     def test_get_qubits(self, gate: Gate, qubits: List[Qubit]):
-        assert gate.get_qubit_indices() == {q.index for q in qubits}
-        assert gate.get_qubits(indices=False) == set(qubits)
+        assert gate.get_qubit_indices() == [q.index for q in qubits]
+        assert gate.get_qubits(indices=False) == qubits
 
     def test_controlled_modifier(self, gate: Gate, snapshot: SnapshotAssertion):
         assert str(gate.controlled([Qubit(5)])) == snapshot

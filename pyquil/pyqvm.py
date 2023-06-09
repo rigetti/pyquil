@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Sequence, Type, Union
 import numpy as np
 from numpy.random.mtrand import RandomState
 
-from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult
+from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
 from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
@@ -192,7 +192,7 @@ class PyQVM(QAM["PyQVM"]):
                 quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
-        self.ram: Dict[str, np.ndarray] = {}
+        self.ram: Dict[str, List[Union[float, int]]] = {}
 
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
@@ -221,12 +221,11 @@ class PyQVM(QAM["PyQVM"]):
                 raise NotImplementedError("PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM.")
             self.defined_gates[dg.name] = dg.matrix
 
-    def write_memory(self, *, region_name: str, offset: int = 0, value: int = 0) -> "PyQVM":
-        assert region_name != "ro"
-        self.ram[region_name][offset] = value
-        return self
-
-    def execute(self, executable: QuantumExecutable) -> "PyQVM":
+    def execute(
+        self,
+        executable: QuantumExecutable,
+        memory_map: Optional[MemoryMap] = None,
+    ) -> "PyQVM":
         """
         Execute a program on the PyQVM. Note that the state of the instance is reset on each
         call to ``execute``.
@@ -240,6 +239,9 @@ class PyQVM(QAM["PyQVM"]):
         self._memory_results = {}
 
         self.ram = {}
+        if memory_map:
+            self.ram.update(*memory_map)
+
         self.wf_simulator.reset()
 
         # grab the gate definitions for future use
@@ -330,8 +332,8 @@ class PyQVM(QAM["PyQVM"]):
             if instruction.shared_region is not None:
                 raise NotImplementedError("SHARING is not (yet) implemented.")
 
-            self.ram[instruction.name] = np.zeros(
-                instruction.memory_size, dtype=QUIL_TO_NUMPY_DTYPE[instruction.memory_type]
+            self.ram[instruction.name] = list(
+                np.zeros(instruction.memory_size, dtype=QUIL_TO_NUMPY_DTYPE[instruction.memory_type])
             )
             self.program_counter += 1
 
@@ -352,7 +354,7 @@ class PyQVM(QAM["PyQVM"]):
             jump_reg: Optional[MemoryReference] = instruction.condition
             assert jump_reg is not None
             cond = self.ram[jump_reg.name][jump_reg.offset]
-            if not isinstance(cond, (bool, np.bool_, np.int8)):
+            if not isinstance(cond, (bool, np.bool_, np.int8, int)):
                 raise ValueError("{} requires a data type of BIT; not {}".format(instruction.op, type(cond)))
             dest_index = self.find_label(instruction.target)
             if isinstance(instruction, JumpWhen):

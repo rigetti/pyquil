@@ -5,7 +5,7 @@
   'NONBLOCKING CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
 # ---
 # name: TestCapture.test_out[TemplateWaveform]
-  'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2i) ro[0]'
+  'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2.0i) ro[0]'
 # ---
 # name: TestClassicalComparison.test_out[EQ-target0-left0-right0]
   'EQ t[0] y[0] z[0]'
@@ -172,14 +172,14 @@
   '''
 # ---
 # name: TestDefFrame.test_out[Frame-Only]
-  'DEFFRAME 0 "frame":'
+  'DEFFRAME  0 "frame":'
 # ---
 # name: TestDefFrame.test_out[Frame-Only].1
   set({
   })
 # ---
 # name: TestDefFrame.test_out[With-Optionals]
-  'DEFFRAME 1 "frame":'
+  'DEFFRAME  1 "frame":'
 # ---
 # name: TestDefFrame.test_out[With-Optionals].1
   set({
@@ -191,14 +191,14 @@
   })
 # ---
 # name: TestDefFrame.test_str[Frame-Only]
-  'DEFFRAME 0 "frame":'
+  'DEFFRAME  0 "frame":'
 # ---
 # name: TestDefFrame.test_str[Frame-Only].1
   set({
   })
 # ---
 # name: TestDefFrame.test_str[With-Optionals]
-  'DEFFRAME 1 "frame":'
+  'DEFFRAME  1 "frame":'
 # ---
 # name: TestDefFrame.test_str[With-Optionals].1
   set({
@@ -284,7 +284,7 @@
 # name: TestDefGateByPaulis.test_out[WithSumAndParams]
   '''
   DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
-  	Z((1*%theta)) p
+  	Z(1*%theta) p
   	Y(2) p
   	X(3) q
   	(3)
@@ -315,7 +315,7 @@
 # name: TestDefGateByPaulis.test_str[WithSumAndParams]
   '''
   DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
-  	Z((1*%theta)) p
+  	Z(1*%theta) p
   	Y(2) p
   	X(3) q
   	(3)
@@ -367,8 +367,8 @@
 # ---
 # name: TestDefWaveform.test_out[With-Params-Complex]
   '''
-  DEFWAVEFORM Wavey(%x,%y):
-  	1+2i, %x, (3*%y)
+  DEFWAVEFORM Wavey(%x, %y):
+  	1+2.0i, %x, 3*%y
   '''
 # ---
 # name: TestDelayFrames.test_out[frames0-5.0]
@@ -420,7 +420,7 @@
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---
 # name: TestGate.test_controlled_modifier[RZ-MemoryReference-Expression]
-  'CONTROLLED RZ((alpha[0]-beta[0])) 5 0'
+  'CONTROLLED RZ(alpha[0]-beta[0]) 5 0'
 # ---
 # name: TestGate.test_controlled_modifier[RZ-MemoryReference]
   'CONTROLLED RZ(theta[0]) 5 0'
@@ -432,7 +432,7 @@
   'DAGGER CPHASE(1.5707963267948966) 0 1'
 # ---
 # name: TestGate.test_dagger_modifier[RZ-MemoryReference-Expression]
-  'DAGGER RZ((alpha[0]-beta[0])) 0'
+  'DAGGER RZ(alpha[0]-beta[0]) 0'
 # ---
 # name: TestGate.test_dagger_modifier[RZ-MemoryReference]
   'DAGGER RZ(theta[0]) 0'
@@ -441,13 +441,13 @@
   'DAGGER X 0'
 # ---
 # name: TestGate.test_forked_modifier[CPHASE-Expression]
-  'FORKED CPHASE(1.57079632679489660) 5 0 1'
+  'FORKED CPHASE(1.5707963267948966, 0) 5 0 1'
 # ---
 # name: TestGate.test_forked_modifier[RZ-MemoryReference-Expression]
-  'FORKED RZ((alpha[0]-beta[0])0) 5 0'
+  'FORKED RZ(alpha[0]-beta[0], 0) 5 0'
 # ---
 # name: TestGate.test_forked_modifier[RZ-MemoryReference]
-  'FORKED RZ(theta[0]0) 5 0'
+  'FORKED RZ(theta[0], 0) 5 0'
 # ---
 # name: TestGate.test_forked_modifier[X-Gate]
   'FORKED X 5 0'
@@ -468,7 +468,7 @@
   'CPHASE(1.5707963267948966) 0 1'
 # ---
 # name: TestGate.test_str[RZ-MemoryReference-Expression]
-  'RZ((alpha[0]-beta[0])) 0'
+  'RZ(alpha[0]-beta[0]) 0'
 # ---
 # name: TestGate.test_str[RZ-MemoryReference]
   'RZ(theta[0]) 0'
@@ -516,7 +516,7 @@
   'PULSE 123 q "FRAMEX" WAVEFORMY'
 # ---
 # name: TestPulse.test_out[FlatWaveform]
-  'NONBLOCKING PULSE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2i)'
+  'NONBLOCKING PULSE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2.0i)'
 # ---
 # name: TestPulse.test_out[NonBlocking]
   'NONBLOCKING PULSE 123 q "FRAMEX" WAVEFORMY'
@@ -549,7 +549,7 @@
   'RESET 0'
 # ---
 # name: TestSwapPhases.test_out[frame_a0-frame_b0]
-  'SWAP-PHASES 1 "FRAMEX" 2 "FRAMEX"'
+  'SWAP-PHASES 1 "FRAMEX"  2 "FRAMEX"'
 # ---
 # name: TestUnaryClassicalInstruction.test_out[NEG-target0]
   'NEG a[0]'

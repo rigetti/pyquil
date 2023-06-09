@@ -36,12 +36,11 @@ from typing import (
 
 from deprecation import deprecated
 import numpy as np
-from rpcq.messages import ParameterAref
 
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
 
 from pyquil._version import pyquil_version
-from pyquil._memory import Memory
+from pyquil._parser.parser import run_parser
 from pyquil.gates import MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
@@ -125,9 +124,6 @@ class Program:
     >>> p += H(0)
     >>> p += CNOT(0, 1)
     """
-
-    _memory: Memory
-    """Contents of memory to be used as program parameters during execution"""
 
     def __init__(self, *instructions: InstructionDesignator):
         self._program = RSProgram()
@@ -420,28 +416,6 @@ class Program:
         else:
             for qubit_index, classical_reg in qubit_reg_pairs:
                 self.inst(MEASURE(qubit_index, classical_reg))
-        return self
-
-    def _set_parameter_values_at_runtime(self) -> "Program":
-        """
-        Store all parameter values directly within the Program using ``MOVE`` instructions. Mutates the receiver.
-        """
-        move_instructions = [
-            MOVE(MemoryReference(name=k.name, offset=k.index), v) for k, v in self._memory.values.items()
-        ]
-
-        self.prepend_instructions(move_instructions)
-
-        return self
-
-    def write_memory(
-        self,
-        *,
-        region_name: str,
-        value: Union[int, float, Sequence[int], Sequence[float]],
-        offset: Optional[int] = None,
-    ) -> "Program":
-        self._memory._write_value(parameter=ParameterAref(name=region_name, index=offset or 0), value=value)
         return self
 
     def prepend_instructions(self, instructions: Iterable[AbstractInstruction]) -> "Program":
