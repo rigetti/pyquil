@@ -891,7 +891,7 @@ class Calibrations:
 			return
 
 		if qc is None:
-			return  # user can set his own values
+			return  # user can set their own values
 
 		else:
 			qc_name = get_qc_name(qc)
