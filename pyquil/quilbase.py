@@ -1251,6 +1251,8 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
         for arg in args:
             if isinstance(arg, Qubit):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg.index))
+            elif isinstance(arg, int):
+                pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg))
             elif isinstance(arg, (str, FormalArgument)):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_identifier(str(arg)))
             else:
