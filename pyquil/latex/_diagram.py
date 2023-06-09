@@ -303,7 +303,7 @@ def split_on_terminal_measures(
         else:
             remaining.insert(0, instr)
             if isinstance(instr, (Gate, ResetQubit)):
-                seen_qubits |= instr.get_qubits()
+                seen_qubits |= set(instr.get_qubits())
             elif isinstance(instr, Pragma):
                 if instr.command == PRAGMA_END_GROUP:
                     warn("Alignment of terminal MEASURE operations may" "conflict with gate group declaration.")
@@ -495,7 +495,6 @@ class DiagramBuilder:
 
         assert self.diagram is not None
         self.diagram.extend_lines_to_common_edge(qubits)
-
         control_qubits = qubits[:controls]
         # sort the target qubit list because the first qubit indicates wire placement on the diagram
         target_qubits = sorted(qubits[controls:])

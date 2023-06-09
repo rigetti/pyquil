@@ -121,7 +121,7 @@ def test_two_param_twoq_gate(two_param_twoq_gate):
     print(g.name)
     print(g.params)
     print(g.qubits)
-    assert g.out() == "{}(0.2,0.4) 234 567".format(g.name)
+    assert g.out() == "{}(0.2, 0.4) 234 567".format(g.name)
 
     func_name = two_param_twoq_gate.__name__
     assert g.name == func_name
@@ -129,7 +129,7 @@ def test_two_param_twoq_gate(two_param_twoq_gate):
 
 def test_five_param_twoq_gate(five_param_twoq_gate):
     g = five_param_twoq_gate(0.2, 0.4, 0.1, 0.3, 0.5, 234, 567)
-    assert g.out() == "{}(0.2,0.4,0.1,0.3,0.5) 234 567".format(g.name)
+    assert g.out() == "{}(0.2, 0.4, 0.1, 0.3, 0.5) 234 567".format(g.name)
 
     func_name = five_param_twoq_gate.__name__
     assert g.name == func_name
@@ -170,9 +170,9 @@ def test_dagger_gate():
 
 def test_forked_gate():
     g = RX(0.0, 0).forked(1, [1.0])
-    assert g.out() == "FORKED RX(0,1.0) 1 0"
+    assert g.out() == "FORKED RX(0, 1) 1 0"
     g = RX(0.0, 0).forked(1, [1.0]).forked(2, [2.0, 3.0])
-    assert g.out() == "FORKED FORKED RX(0,1.0,2.0,3.0) 2 1 0"
+    assert g.out() == "FORKED FORKED RX(0, 1, 2, 3) 2 1 0"
 
 
 def test_dagger_controlled_gate():
@@ -186,7 +186,7 @@ def test_dagger_controlled_gate():
 
 def test_mixed_gate_modifiers():
     g = RX(0.1, 3).forked(2, [0.2]).controlled(1).dagger().forked(0, [0.3, 0.4])
-    assert g.out() == "FORKED DAGGER CONTROLLED FORKED RX(0.1,0.2,0.3,0.4) 0 1 2 3"
+    assert g.out() == "FORKED DAGGER CONTROLLED FORKED RX(0.1, 0.2, 0.3, 0.4) 0 1 2 3"
 
 
 def test_strip_gate_modifiers():

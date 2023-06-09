@@ -286,15 +286,15 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         current_version=pyquil_version,
         details="The indices flag will be removed, use get_qubit_indices() instead.",
     )
-    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+    def get_qubits(self, indices: bool = True) -> Union[List[QubitDesignator], List[int]]:
         if indices:
             return self.get_qubit_indices()
         else:
-            return set(_convert_to_py_qubits(super().qubits))
+            return _convert_to_py_qubits(super().qubits)
 
     @property  # type: ignore[override]
     def qubits(self) -> List[QubitDesignator]:
-        return list(self.get_qubits(indices=False))
+        return self.get_qubits(indices=False) # type: ignore
 
     @qubits.setter
     def qubits(self, qubits: Sequence[Union[Qubit, QubitPlaceholder, FormalArgument]]) -> None:
@@ -316,7 +316,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
     def modifiers(self, modifiers: Union[List[str], List[quil_rs.GateModifier]]) -> None:
         modifiers = [
             self._to_rs_gate_modifier(modifier) if isinstance(modifier, str) else modifier
-            for modifier in super().modifiers
+            for modifier in modifiers
         ]
         quil_rs.Gate.modifiers.__set__(self, modifiers)  # type: ignore[attr-defined]
 
@@ -330,8 +330,8 @@ class Gate(quil_rs.Gate, AbstractInstruction):
             return quil_rs.GateModifier.Forked
         raise ValueError(f"{modifier} is not a valid Gate modifier.")
 
-    def get_qubit_indices(self) -> Set[int]:
-        return {qubit.to_fixed() for qubit in super().qubits}
+    def get_qubit_indices(self) -> List[int]:
+        return [qubit.to_fixed() for qubit in super().qubits]
 
     def controlled(
         self, control_qubit: Union[quil_rs.Qubit, QubitDesignator, Sequence[Union[QubitDesignator, quil_rs.Qubit]]]
@@ -340,11 +340,17 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
         qubits.
         """
+        print("current gate qubits", self.qubits)
         if isinstance(control_qubit, Sequence):
             for qubit in control_qubit:
                 self = self._from_rs_gate(super().controlled(_convert_to_rs_qubit(qubit)))
         else:
-            self = self._from_rs_gate(super().controlled(_convert_to_rs_qubit(control_qubit)))
+            print("adding control qubit", control_qubit)
+            print(super().controlled(_convert_to_rs_qubit(3)).qubits)
+            print(Gate._from_rs_gate(super().controlled(_convert_to_rs_qubit(3))).qubits)
+            self = Gate._from_rs_gate(super().controlled(_convert_to_rs_qubit(control_qubit)))
+
+        print("new qubits", self.qubits)
 
         return self
 

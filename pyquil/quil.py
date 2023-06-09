@@ -253,7 +253,7 @@ class Program:
             elif isinstance(instruction, AbstractInstruction):
                 self.inst(RSProgram.parse(instruction.out()))
             else:
-                raise ValueError("Invalid instruction: {}".format(instruction))
+                raise ValueError("Invalid instruction: {}, type: {}".format(instruction, type(instruction)))
 
         return self
 

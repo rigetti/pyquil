@@ -127,6 +127,11 @@ class TestGate:
         alt_params: List[ParameterDesignator] = [n for n in range(len(params))]
         assert str(gate.forked(Qubit(5), alt_params)) == snapshot
 
+    def test_modifiers(self, gate: Gate):
+        assert gate.modifiers == []
+        gate.modifiers = ["CONTROLLED"]
+        assert gate.modifiers == ["CONTROLLED"]
+
     def test_repr(self, gate: Gate, snapshot: SnapshotAssertion):
         assert repr(gate) == snapshot
 
