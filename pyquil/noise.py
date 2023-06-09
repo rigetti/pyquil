@@ -867,7 +867,7 @@ class Calibrations:
 		readout
 
     args: qc (QuantumComputer, optional): a Quantum Computer (Aspen-M-2 or Aspen-M-3).
-    Defaults to None, where the user can define his own calibration data.
+    Defaults to None, where the user can define their own calibration data.
 
 	Notice: this class heavily relies on the specific way on which the lattices are written.
 	this may change in time, and require changes in the class.
