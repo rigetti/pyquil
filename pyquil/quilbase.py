@@ -233,6 +233,8 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         return SwapPhases._from_rs_swap_phases(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
+    elif isinstance(instr, AbstractInstruction):
+        return instr
     raise ValueError(f"{type(instr)} is not a valid Instruction type")
 
 

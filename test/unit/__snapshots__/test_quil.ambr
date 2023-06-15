@@ -68,21 +68,56 @@
   
   '''
 # ---
+# name: test_copy
+  '''
+  H 0
+  CNOT 0 1
+  
+  '''
+# ---
+# name: test_copy.1
+  '''
+  DECLARE ro BIT[2]
+  H 0
+  CNOT 0 1
+  MEASURE 0 ro[0]
+  MEASURE 1 ro[1]
+  
+  '''
+# ---
+# name: test_decal_redefinition
+  'RX(3.141592653589793) 1'
+# ---
 # name: test_def_gate
   '''
   DEFGATE SQRT-X AS MATRIX:
-  	(0.5+0.5i), (0.5-0.5i)
-  	(0.5-0.5i), (0.5+0.5i)
+  	0.5+0.5i, 0.5-0.5i
+  	0.5-0.5i, 0.5+0.5i
   
   SQRT-X 0
   
   '''
 # ---
+# name: test_def_gate_with_parameters
+  '''
+  DEFGATE MY_RX(%theta) AS MATRIX:
+  	cos(%theta/2), -1.0i*sin(%theta/2)
+  	-1.0i*sin(%theta/2), cos(%theta/2)
+  
+  
+  '''
+# ---
+# name: test_def_gate_with_parameters.1
+  '''
+  MY_RX(3.141592653589793) 0
+  
+  '''
+# ---
 # name: test_defgate
   '''
-  DEFGATE TEST:
-      1.0, 0
-      0, 1.0
+  DEFGATE TEST AS MATRIX:
+  	1, 0
+  	0, 1
   
   '''
 # ---
@@ -94,9 +129,9 @@
 # ---
 # name: test_defgate_param
   '''
-  DEFGATE TEST:
-      1.0, 0
-      0, 1.0
+  DEFGATE TEST AS MATRIX:
+  	1, 0
+  	0, 1
   
   '''
 # ---
@@ -207,19 +242,36 @@
   PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
   PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 -0.0)"
   X 0
+  pauli_noise 0
   Z 0
+  pauli_noise 0
   
   '''
 # ---
 # name: test_multiqubit_gate
   '''
   DEFGATE X-SQRT-X AS MATRIX:
-  	0, (0.5+0.5i), 0, (0.5-0.5i)
-  	(0.5+0.5i), 0, (0.5-0.5i), 0
-  	0, (0.5-0.5i), 0, (0.5+0.5i)
-  	(0.5-0.5i), 0, (0.5+0.5i), 0
+  	0, 0.5+0.5i, 0, 0.5-0.5i
+  	0.5+0.5i, 0, 0.5-0.5i, 0
+  	0, 0.5-0.5i, 0, 0.5+0.5i
+  	0.5-0.5i, 0, 0.5+0.5i, 0
   
   X-SQRT-X 0 1
+  
+  '''
+# ---
+# name: test_pauli_gate
+  '''
+  DEFGATE U(%beta) p q AS PAULI-SUM:
+  	ZZ((-1*%beta)/4) p q
+  	Z(%beta/4) p
+  	Z(%beta/4) q
+  
+  DEFGATE V AS MATRIX:
+  	1, 0
+  	0, 1
+  
+  U(2) 1 0
   
   '''
 # ---
@@ -233,10 +285,69 @@
   
   '''
 # ---
+# name: test_plus_operator
+  '''
+  H 0
+  X 0
+  Y 0
+  Z 0
+  
+  '''
+# ---
 # name: test_prog_init
   '''
   DECLARE ro BIT[1]
   X 0
+  MEASURE 0 ro[0]
+  
+  '''
+# ---
+# name: test_prog_merge
+  '''
+  X 0
+  DEFGATE test AS MATRIX:
+  	1, 0
+  	0, 1
+  
+  test 0
+  Y 0
+  DEFGATE test AS MATRIX:
+  	1, 0
+  	0, 1
+  
+  test 0
+  
+  '''
+# ---
+# name: test_prog_merge.1
+  '''
+  X 0
+  DEFGATE test AS MATRIX:
+  	1, 0
+  	0, 1
+  
+  test 0
+  DEFGATE PERM AS PERMUTATION:
+  	0, 1, 3, 2
+  
+  PERM 0 1
+  Y 0
+  DEFGATE test AS MATRIX:
+  	1, 0
+  	0, 1
+  
+  test 0
+  DEFGATE PERM AS PERMUTATION:
+  	0, 1, 3, 2
+  
+  PERM 1 0
+  
+  '''
+# ---
+# name: test_prog_merge.2
+  '''
+  DECLARE ro BIT[1]
+  H 0
   MEASURE 0 ro[0]
   
   '''

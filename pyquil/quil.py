@@ -71,21 +71,6 @@ from pyquil.quilbase import (
     JumpUnless,
     JumpWhen,
     Declare,
-    ResetQubit,
-    DelayFrames,
-    DelayQubits,
-    Fence,
-    FenceAll,
-    Pulse,
-    Capture,
-    RawCapture,
-    SetFrequency,
-    ShiftFrequency,
-    SetPhase,
-    ShiftPhase,
-    SwapPhases,
-    SetScale,
-    DefPermutationGate,
     DefCalibration,
     DefFrame,
     DefMeasureCalibration,
@@ -94,6 +79,7 @@ from pyquil.quilbase import (
     _convert_to_rs_instructions,
     _convert_to_py_instruction,
     _convert_to_py_instructions,
+    _convert_to_py_qubits,
 )
 from pyquil.quiltcalibrations import (
     CalibrationMatch,
@@ -249,7 +235,11 @@ class Program:
             elif isinstance(instruction, AbstractInstruction):
                 self.inst(RSProgram.parse(instruction.out()))
             else:
-                raise ValueError("Invalid instruction: {}, type: {}".format(instruction, type(instruction)))
+                try:
+                    instruction = quil_rs.Instruction(instruction)
+                    self.inst(instruction)
+                except ValueError:
+                    raise ValueError("Invalid instruction: {}, type: {}".format(instruction, type(instruction)))
 
         return self
 
@@ -593,7 +583,7 @@ class Program:
         """
         if indices:
             return self.get_qubit_indices()
-        return self._program.get_used_qubits()
+        return _convert_to_py_qubits(self._program.get_used_qubits())
 
     def get_qubit_indices(self) -> Set[int]:
         """
