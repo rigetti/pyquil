@@ -107,8 +107,8 @@ def test_damping_after_dephasing():
 def test_noise_helpers():
     gates = RX(np.pi / 2, 0), RX(-np.pi / 2, 1), I(1), CZ(0, 1)
     prog = Program(*gates)
-    inferred_gates = _get_program_gates(prog)
-    assert set(inferred_gates) == set(gates)
+    inferred_gates = [g.out() for g in _get_program_gates(prog)]
+    assert set(inferred_gates) == set([g.out() for g in gates])
 
 
 # TODO: Instruction API - Hashing
@@ -318,7 +318,7 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
     for call in mock_compiler.native_quil_to_executable.call_args_list:
         args, kwargs = call
         prog = args[0]
-        assert prog.instructions[0] == povm_pragma
+        assert prog.instructions[1] == povm_pragma
 
     assert np.allclose(ap, ap_target)
 
