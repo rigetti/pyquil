@@ -89,7 +89,7 @@ class _InstructionMeta(abc.ABCMeta):
             return True
 
         # __instance is not an Instruction or AbstractInstruction, return False
-        if not self.__name == "AbstractInstruction" and not self.__is_abstract_instruction:
+        if not self.__name in ["AbstractInstruction", "DefGate"] and not self.__is_abstract_instruction:
             return False
 
         # __instance is a subclass of AbstractInstruction, do the normal check
@@ -139,10 +139,14 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_gate(instr)
     if isinstance(instr, quil_rs.GateDefinition):
         return quil_rs.Instruction.from_gate_definition(instr)
+    if isinstance(instr, Halt):
+        return quil_rs.Instruction.new_halt()
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
         return quil_rs.Instruction.from_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return quil_rs.Instruction.from_measurement(instr)
+    if isinstance(instr, Nop):
+        return quil_rs.Instruction.new_nop()
     if isinstance(instr, quil_rs.Pragma):
         return quil_rs.Instruction.from_pragma(instr)
     if isinstance(instr, quil_rs.Pulse):
@@ -163,6 +167,8 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_shift_phase(instr)
     if isinstance(instr, quil_rs.SwapPhases):
         return quil_rs.Instruction.from_swap_phases(instr)
+    if isinstance(instr, Wait):
+        return quil_rs.Instruction.new_wait()
     if isinstance(instr, quil_rs.WaveformDefinition):
         return quil_rs.Instruction.from_waveform_definition(instr)
     raise ValueError(f"{type(instr)} is not an Instruction")
@@ -819,38 +825,70 @@ class ClassicalNot(UnaryClassicalInstruction):
     op = quil_rs.UnaryOperator.Not
 
 
-class LogicalBinaryOp(AbstractInstruction):
+class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
     """
     The abstract class for binary logical classical instructions.
     """
 
-    op: ClassVar[str]
+    op: ClassVar[quil_rs.BinaryOperator]
 
-    def __init__(self, left: MemoryReference, right: Union[MemoryReference, int]):
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference) and not isinstance(right, int):
-            raise TypeError("right operand should be an MemoryReference or an Int")
-        self.left = left
-        self.right = right
+    def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int]) -> Self:
+        operands = cls._to_rs_binary_operands(left, right)
+        return super().__new__(
+                cls,
+                cls.op,
+                operands
+            )
+
+    @staticmethod
+    def _to_rs_binary_operand(operand: Union[MemoryReference, int]) -> quil_rs.BinaryOperand:
+        if isinstance(operand, MemoryReference):
+            return quil_rs.BinaryOperand.from_memory_reference(operand._to_rs_memory_reference())
+        return quil_rs.BinaryOperand.from_literal_integer(operand)
+        
+    @staticmethod
+    def _to_rs_binary_operands(left: MemoryReference, right: Union[MemoryReference, int]) -> quil_rs.BinaryOperands:
+        left_operand = left._to_rs_memory_reference()
+        right_operand = LogicalBinaryOp._to_rs_binary_operand(right)
+        return quil_rs.BinaryOperands(left_operand, right_operand)
+
+    @staticmethod
+    def _to_py_binary_operand(operand: quil_rs.BinaryOperand) -> Union[MemoryReference, int]:
+        if operand.is_literal_integer():
+            return operand.to_literal_integer()
+        return MemoryReference._from_rs_memory_reference(operand.to_memory_reference())
+
+
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().operands.memory_reference)
+
+    @left.setter
+    def left(self, left: MemoryReference):
+        operands = super().operands
+        operands.memory_reference = left._to_rs_memory_reference()
+        quil_rs.BinaryLogic.operands.__set__(self, operands)
+
+    @property
+    def right(self) -> Union[MemoryReference, int]:
+        return self._to_py_binary_operand(super().operands.operand)
+
+    @right.setter
+    def right(self, right: Union[MemoryReference, int]):
+        operands = super().operands
+        operands.operand = self._to_rs_binary_operand(right)
+        quil_rs.BinaryLogic.operands.__set__(self, operands)
 
     def out(self) -> str:
-        return "%s %s %s" % (self.op, self.left, self.right)
+        return str(self)
 
 
 class ClassicalAnd(LogicalBinaryOp):
     """
-    WARNING: The operand order for ClassicalAnd has changed.  In pyQuil versions <= 1.9, AND had
-    signature
-
-        AND %source %target
-
-    Now, AND has signature
-
-        AND %target %source
+    The AND instruction.
     """
 
-    op = "AND"
+    op = quil_rs.BinaryOperator.And
 
 
 class ClassicalInclusiveOr(LogicalBinaryOp):
@@ -858,7 +896,7 @@ class ClassicalInclusiveOr(LogicalBinaryOp):
     The IOR instruction.
     """
 
-    op = "IOR"
+    op = quil_rs.BinaryOperator.Ior
 
 
 class ClassicalExclusiveOr(LogicalBinaryOp):
@@ -866,26 +904,39 @@ class ClassicalExclusiveOr(LogicalBinaryOp):
     The XOR instruction.
     """
 
-    op = "XOR"
+    op = quil_rs.BinaryOperator.Xor
 
 
-class ArithmeticBinaryOp(AbstractInstruction):
+class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
     """
     The abstract class for binary arithmetic classical instructions.
     """
 
-    op: ClassVar[str]
+    op: ClassVar[quil_rs.ArithmeticOperator]
 
-    def __init__(self, left: MemoryReference, right: Union[MemoryReference, int, float]):
-        if not isinstance(left, MemoryReference):
-            raise TypeError("left operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
-            raise TypeError("right operand should be an MemoryReference or a numeric literal")
-        self.left = left
-        self.right = right
+    def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]):
+        left_operand = quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference())
+        right_operand = _to_rs_arithmetic_operand(right)
+        return super().__new__(cls, cls.op, left_operand, right_operand)
+
+    @property
+    def left(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().destination.to_memory_reference())
+
+    @left.setter
+    def left(self, left: MemoryReference):
+        quil_rs.Arithmetic.destination.__set__(self, quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference()))
+
+    @property
+    def right(self) -> Union[MemoryReference, int, float]:
+        return _to_py_arithmetic_operand(super().source)
+
+    @right.setter
+    def right(self, right: Union[MemoryReference, int, float]):
+        return quil_rs.Arithmetic.source.__set__(self, _to_rs_arithmetic_operand(right))
 
     def out(self) -> str:
-        return "%s %s %s" % (self.op, self.left, self.right)
+        return str(self)
 
 
 class ClassicalAdd(ArithmeticBinaryOp):
@@ -893,7 +944,7 @@ class ClassicalAdd(ArithmeticBinaryOp):
     The ADD instruction.
     """
 
-    op = "ADD"
+    op = quil_rs.ArithmeticOperator.Add
 
 
 class ClassicalSub(ArithmeticBinaryOp):
@@ -901,7 +952,7 @@ class ClassicalSub(ArithmeticBinaryOp):
     The SUB instruction.
     """
 
-    op = "SUB"
+    op = quil_rs.ArithmeticOperator.Subtract
 
 
 class ClassicalMul(ArithmeticBinaryOp):
@@ -909,7 +960,7 @@ class ClassicalMul(ArithmeticBinaryOp):
     The MUL instruction.
     """
 
-    op = "MUL"
+    op = quil_rs.ArithmeticOperator.Multiply
 
 
 class ClassicalDiv(ArithmeticBinaryOp):
@@ -917,16 +968,12 @@ class ClassicalDiv(ArithmeticBinaryOp):
     The DIV instruction.
     """
 
-    op = "DIV"
+    op = quil_rs.ArithmeticOperator.Divide
 
 
 class ClassicalMove(quil_rs.Move, AbstractInstruction):
     """
     The MOVE instruction.
-
-    WARNING: In pyQuil 2.0, the order of operands is as MOVE <target> <source>.
-             In pyQuil 1.9, the order of operands was MOVE <source> <target>.
-             These have reversed.
     """
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalMove":

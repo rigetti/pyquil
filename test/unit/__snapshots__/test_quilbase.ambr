@@ -1,3 +1,15 @@
+# name: TestArithmeticBinaryOp.test_out[ADD-left0-right0]
+  'ADD a[0] b[0]'
+# ---
+# name: TestArithmeticBinaryOp.test_out[DIV-left3-4.2]
+  'DIV c[2] 4.2'
+# ---
+# name: TestArithmeticBinaryOp.test_out[MUL-left2-1.0]
+  'MUL c[2] 1'
+# ---
+# name: TestArithmeticBinaryOp.test_out[SUB-left1-1]
+  'SUB b[1] 1'
+# ---
 # name: TestCapture.test_out[Blocking]
   'CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
 # ---
@@ -172,14 +184,14 @@
   '''
 # ---
 # name: TestDefFrame.test_out[Frame-Only]
-  'DEFFRAME  0 "frame":'
+  'DEFFRAME 0 "frame":'
 # ---
 # name: TestDefFrame.test_out[Frame-Only].1
   set({
   })
 # ---
 # name: TestDefFrame.test_out[With-Optionals]
-  'DEFFRAME  1 "frame":'
+  'DEFFRAME 1 "frame":'
 # ---
 # name: TestDefFrame.test_out[With-Optionals].1
   set({
@@ -191,14 +203,14 @@
   })
 # ---
 # name: TestDefFrame.test_str[Frame-Only]
-  'DEFFRAME  0 "frame":'
+  'DEFFRAME 0 "frame":'
 # ---
 # name: TestDefFrame.test_str[Frame-Only].1
   set({
   })
 # ---
 # name: TestDefFrame.test_str[With-Optionals]
-  'DEFFRAME  1 "frame":'
+  'DEFFRAME 1 "frame":'
 # ---
 # name: TestDefFrame.test_str[With-Optionals].1
   set({
@@ -476,6 +488,15 @@
 # name: TestGate.test_str[X-Gate]
   'X 0'
 # ---
+# name: TestLogicalBinaryOp.test_out[AND-left0-right0]
+  'AND a[0] b[0]'
+# ---
+# name: TestLogicalBinaryOp.test_out[IOR-left1-1]
+  'IOR b[1] 1'
+# ---
+# name: TestLogicalBinaryOp.test_out[XOR-left2-2]
+  'XOR c[2] 2'
+# ---
 # name: TestMeasurement.test_out[MemoryReference]
   'MEASURE 1 theta[0]'
 # ---
@@ -549,7 +570,7 @@
   'RESET 0'
 # ---
 # name: TestSwapPhases.test_out[frame_a0-frame_b0]
-  'SWAP-PHASES 1 "FRAMEX"  2 "FRAMEX"'
+  'SWAP-PHASES 1 "FRAMEX" 2 "FRAMEX"'
 # ---
 # name: TestUnaryClassicalInstruction.test_out[NEG-target0]
   'NEG a[0]'

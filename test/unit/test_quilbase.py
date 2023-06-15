@@ -10,7 +10,15 @@ from pyquil.gates import X
 from pyquil.quil import Program
 from pyquil.quilbase import (
     AbstractInstruction,
+    ArithmeticBinaryOp,
     Capture,
+    ClassicalAdd,
+    ClassicalAnd,
+    ClassicalExclusiveOr,
+    ClassicalInclusiveOr,
+    ClassicalSub,
+    ClassicalMul,
+    ClassicalDiv,
     ClassicalComparison,
     ClassicalConvert,
     ClassicalExchange,
@@ -40,6 +48,7 @@ from pyquil.quilbase import (
     FormalArgument,
     Gate,
     Include,
+    LogicalBinaryOp,
     Measurement,
     MemoryReference,
     ParameterDesignator,
@@ -1228,6 +1237,73 @@ class TestUnaryClassicalInstruction:
         assert unary.target == target
         unary.target = MemoryReference("new-memory-reference")
         assert unary.target == MemoryReference("new-memory-reference")
+
+
+@pytest.mark.parametrize(
+    ("op", "left", "right"),
+    [
+        ("ADD", MemoryReference("a"), MemoryReference("b")),
+        ("SUB", MemoryReference("b", 1), 1),
+        ("MUL", MemoryReference("c", 2, 4), 1.0),
+        ("DIV", MemoryReference("c", 2, 4), 4.2),
+    ],
+)
+class TestArithmeticBinaryOp:
+    @pytest.fixture
+    def arithmetic(
+        self, op: str, left: MemoryReference, right: Union[MemoryReference, int, float]
+    ) -> ArithmeticBinaryOp:
+        if op == "ADD":
+            return ClassicalAdd(left, right)
+        if op == "SUB":
+            return ClassicalSub(left, right)
+        if op == "MUL":
+            return ClassicalMul(left, right)
+        return ClassicalDiv(left, right)
+
+    def test_out(self, arithmetic: ArithmeticBinaryOp, snapshot: SnapshotAssertion):
+        assert arithmetic.out() == snapshot
+
+    def test_left(self, arithmetic: ArithmeticBinaryOp, left: MemoryReference):
+        assert arithmetic.left == left
+        arithmetic.left = MemoryReference("new-memory-reference")
+        assert arithmetic.left == MemoryReference("new-memory-reference")
+
+    def test_right(self, arithmetic: ArithmeticBinaryOp, right: Union[MemoryReference, float, int]):
+        assert arithmetic.right == right
+        arithmetic.right = 3.14
+        assert arithmetic.right == 3.14
+
+
+@pytest.mark.parametrize(
+    ("op", "left", "right"),
+    [
+        ("AND", MemoryReference("a"), MemoryReference("b")),
+        ("IOR", MemoryReference("b", 1), 1),
+        ("XOR", MemoryReference("c", 2, 4), 2),
+    ],
+)
+class TestLogicalBinaryOp:
+    @pytest.fixture
+    def logical(self, op: str, left: MemoryReference, right: Union[MemoryReference, int]) -> LogicalBinaryOp:
+        if op == "AND":
+            return ClassicalAnd(left, right)
+        if op == "IOR":
+            return ClassicalInclusiveOr(left, right)
+        return ClassicalExclusiveOr(left, right)
+
+    def test_out(self, logical: LogicalBinaryOp, snapshot: SnapshotAssertion):
+        assert logical.out() == snapshot
+
+    def test_left(self, logical: LogicalBinaryOp, left: MemoryReference):
+        assert logical.left == left
+        logical.left = MemoryReference("new-memory-reference")
+        assert logical.left == MemoryReference("new-memory-reference")
+
+    def test_right(self, logical: LogicalBinaryOp, right: Union[MemoryReference, float, int]):
+        assert logical.right == right
+        logical.right = 3
+        assert logical.right == 3
 
 
 def test_include():
