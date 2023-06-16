@@ -29,6 +29,7 @@ from typing import (
     Set,
     Sequence,
     Tuple,
+    Type,
     Union,
     cast,
 )
@@ -939,15 +940,38 @@ class WaveformReference(WaveformInvocation):
         return super().__new__(cls, name, {})
 
 
-def _template_waveform_property(name: str, doc: Optional[str] = None) -> property:
+def _template_waveform_property(
+    name: str, *, dtype: Optional[Union[Type[int], Type[float]]] = None, doc: Optional[str] = None
+) -> property:
     """
     Helper method for initializing getters, setters, and deleters for
     parameters on a ``TemplateWaveform``. Should only be used inside of
     ``TemplateWaveform`` or one its base classes.
+
+    Parameters:
+        name - The name of the property
+        dtype - `dtype` is an optional parameter that takes the int or float type, and attempts
+            to convert the underlying complex value by casting the real part to `dtype`. If set, this
+            function will raise an error if the complex number has a non-zero imaginary part.
+        doc - Docstring for the property.
+
     """
 
     def fget(self: "TemplateWaveform") -> Optional[ParameterDesignator]:
-        return self.get_parameter(name)
+        parameter = self.get_parameter(name)
+        if parameter is None or dtype is None:
+            return parameter
+
+        if dtype is int or dtype is float:
+            if not isinstance(parameter, complex):
+                raise TypeError(
+                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found instead"
+                )
+            if parameter.imag != 0.0:
+                raise ValueError(
+                    f"Requested float for parameter {name}, but a complex number with a non-zero imaginary part was found"
+                )
+            return dtype(parameter.real)
 
     def fset(self: "TemplateWaveform", value: ParameterDesignator) -> None:
         self.set_parameter(name, value)
@@ -987,7 +1011,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
             parameters[name] = _convert_to_rs_expression(value)
         quil_rs.WaveformInvocation.parameters.__set__(self, parameters)  # type: ignore[attr-defined]
 
-    duration = _template_waveform_property("duration")
+    duration = _template_waveform_property("duration", dtype=float)
 
     def num_samples(self, rate: float) -> int:
         """The number of samples in the reference implementation of the waveform.
@@ -999,7 +1023,10 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         :return: The number of samples.
 
         """
-        return int(np.ceil(self.duration * rate))
+        duration = self.duration.real
+        if self.duration.imag != 0.0:
+            raise ValueError("Can't calculate number of samples with a complex duration")
+        return int(np.ceil(duration * rate))
 
     def samples(self, rate: float) -> np.ndarray:
         """A reference implementation of waveform sample generation.

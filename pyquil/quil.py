@@ -615,9 +615,7 @@ class Program:
         instruction = _convert_to_rs_instruction(instr)
         if instruction.is_gate():
             gate = instruction.to_gate()
-            match = self._program.calibrations.get_match_for_gate(
-                gate.modifiers, gate.name, gate.parameters, gate.qubits
-            )
+            match = self._program.calibrations.get_match_for_gate(gate)
             return _convert_to_calibration_match(gate, match)
 
         if instruction.is_measurement():

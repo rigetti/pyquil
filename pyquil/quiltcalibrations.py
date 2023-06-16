@@ -185,9 +185,7 @@ def match_calibration(
         instruction = _convert_to_rs_instruction(instr)
         gate = instruction.to_gate()
         calibration_set = CalibrationSet([calibration.to_calibration_definition()], [])
-        matched_calibration = calibration_set.get_match_for_gate(
-            gate.modifiers, gate.name, gate.parameters, gate.qubits
-        )
+        matched_calibration = calibration_set.get_match_for_gate(gate)
         return _convert_to_calibration_match(gate, matched_calibration)
 
     if calibration.is_measure_calibration_definition() and instruction.is_measurement():

@@ -41,12 +41,15 @@ class FlatWaveform(TemplateWaveform):
     ):
         return super().__new__(cls, "flat", duration=duration, iq=iq, scale=scale, phase=phase, detuning=detuning)
 
-    iq = _template_waveform_property("iq", "A raw IQ value.")
-    scale = _template_waveform_property("scale", "An optional global scaling factor.")
-    phase = _template_waveform_property("phase", "An optional phase shift factor.")
-    detuning = _template_waveform_property("detuning", "An optional frequency detuning factor.")
+    iq = _template_waveform_property("iq", doc="A raw IQ value.")
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
+        print("iq", self.iq, type(self.iq))
+        print("rate", rate, type(rate))
+        print("num_samples(rate)", rate, type(rate))
         iqs = np.full(self.num_samples(rate), self.iq, dtype=np.complex128)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
@@ -73,15 +76,15 @@ class GaussianWaveform(TemplateWaveform):
             cls, "gaussian", duration=duration, fwhm=fwhm, t0=t0, scale=scale, phase=phase, detuning=detuning
         )
 
-    fwhm = _template_waveform_property("fwhm", "The Full-Width-Half-Max of the Gaussian (seconds).")
+    fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the Gaussian (seconds).", dtype=float)
 
-    t0 = _template_waveform_property("t0", "The center time coordinate of the Gaussian (seconds).")
+    t0 = _template_waveform_property("t0", doc="The center time coordinate of the Gaussian (seconds).", dtype=float)
 
-    scale = _template_waveform_property("scale", "An optional global scaling factor.")
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
 
-    phase = _template_waveform_property("phase", "An optional phase shift factor.")
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
 
-    detuning = _template_waveform_property("detuning", "An optional frequency detuning factor.")
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
@@ -123,19 +126,19 @@ class DragGaussianWaveform(TemplateWaveform):
             detuning=detuning,
         )
 
-    fwhm = _template_waveform_property("fwhm", "The Full-Width-Half-Max of the gaussian (seconds).")
+    fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the gaussian (seconds).", dtype=float)
 
-    t0 = _template_waveform_property("t0", "The center time coordinate of the Gaussian (seconds).")
+    t0 = _template_waveform_property("t0", doc="The center time coordinate of the Gaussian (seconds).", dtype=float)
 
-    anh = _template_waveform_property("anh", "The anharmonicity of the qubit, f01-f12 (Hertz).")
+    anh = _template_waveform_property("anh", doc="The anharmonicity of the qubit, f01-f12 (Hertz).", dtype=float)
 
-    alpha = _template_waveform_property("alpha", "Dimensionles DRAG parameter.")
+    alpha = _template_waveform_property("alpha", doc="Dimensionles DRAG parameter.", dtype=float)
 
-    scale = _template_waveform_property("scale", "An optional global scaling factor.")
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
 
-    phase = _template_waveform_property("phase", "An optional phase shift factor.")
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
 
-    detuning = _template_waveform_property("detuning", "An optional frequency detuning factor.")
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
@@ -186,23 +189,23 @@ class HrmGaussianWaveform(TemplateWaveform):
             detuning=detuning,
         )
 
-    fwhm = _template_waveform_property("fwhm", "The Full-Width-Half-Max of the Gaussian (seconds).")
+    fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the Gaussian (seconds).", dtype=float)
 
-    t0 = _template_waveform_property("t0", "The center time coordinate of the Gaussian (seconds).")
+    t0 = _template_waveform_property("t0", doc="The center time coordinate of the Gaussian (seconds).", dtype=float)
 
-    anh = _template_waveform_property("anh", "The anharmonicity of the qubit, f01-f12 (Hertz).")
+    anh = _template_waveform_property("anh", doc="The anharmonicity of the qubit, f01-f12 (Hertz).", dtype=float)
 
-    alpha = _template_waveform_property("alpha", "Dimensionles DRAG parameter.")
+    alpha = _template_waveform_property("alpha", doc="Dimensionles DRAG parameter.", dtype=float)
 
     second_order_hrm_coeff = _template_waveform_property(
-        "second_order_hrm_coeff", "Second order coefficient (see Warren 1984)."
+        "second_order_hrm_coeff", doc="Second order coefficient (see Warren 1984).", dtype=float
     )
 
-    scale = _template_waveform_property("scale", "An optional global scaling factor.")
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
 
-    phase = _template_waveform_property("phase", "An optional phase shift factor.")
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
 
-    detuning = _template_waveform_property("detuning", "An optional frequency detuning factor.")
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
@@ -254,22 +257,22 @@ class ErfSquareWaveform(TemplateWaveform):
         )
 
     risetime = _template_waveform_property(
-        "risetime", "The width of each of the rise and fall sections of the pulse (seconds)."
+        "risetime", doc="The width of each of the rise and fall sections of the pulse (seconds).", dtype=float
     )
 
     pad_left = _template_waveform_property(
-        "pad_left", "Amount of zero-padding to add to the left of the pulse (seconds)"
+        "pad_left", doc="Amount of zero-padding to add to the left of the pulse (seconds)", dtype=float
     )
 
     pad_right = _template_waveform_property(
-        "pad_right", "Amount of zero-padding to add to the right of the pulse (seconds)."
+        "pad_right", doc="Amount of zero-padding to add to the right of the pulse (seconds).", dtype=float
     )
 
-    scale = _template_waveform_property("scale", "An optional global scaling factor.")
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
 
-    phase = _template_waveform_property("phase", "An optional phase shift factor.")
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
 
-    detuning = _template_waveform_property("detuning", "An optional frequency detuning factor.")
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
@@ -300,11 +303,11 @@ class BoxcarAveragerKernel(TemplateWaveform):
     ):
         return super().__new__(cls, "boxcar_kernel", duration=duration, scale=scale, phase=phase, detuning=detuning)
 
-    scale = _template_waveform_property("scale", "An optional global scaling factor.")
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
 
-    phase = _template_waveform_property("phase", "An optional phase shift factor.")
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
 
-    detuning = _template_waveform_property("detuning", "An optional frequency detuning factor.")
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         n = self.num_samples(rate)
