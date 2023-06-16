@@ -54,7 +54,7 @@ def test_rewrite_arithmetic_mixed():
         "beta": ParameterSpec(length=1, type="REAL"),
     }
     assert response.recalculation_table == {
-        ParameterAref(index=0, name="__P2"): "3*theta[0]/(2*pi)",
+        ParameterAref(index=0, name="__P2"): "3.0*theta[0]/(2*pi)",
         ParameterAref(index=1, name="__P2"): "(beta[0] + theta[0])/(2*pi)",
     }
     assert (
@@ -77,6 +77,8 @@ def test_rewrite_arithmetic_set_scale():
     )
 
     response = rewrite_arithmetic(prog)
+
+    print(response)
 
     assert response == RewriteArithmeticResponse(
         original_memory_descriptors={"theta": ParameterSpec(length=1, type="REAL")},
@@ -111,22 +113,25 @@ def test_rewrite_arithmetic_frequency():
 
     response = rewrite_arithmetic(prog)
 
-    assert response == RewriteArithmeticResponse(
-        original_memory_descriptors={"theta": ParameterSpec(length=1, type="REAL")},
-        recalculation_table={
-            ParameterAref(index=0, name="__P1"): "(theta[0] - 10.0)/20.0",
-            ParameterAref(index=1, name="__P1"): "theta[0]/20.0",
-        },
-        quil=Program(
-            fdefn0,
-            fdefn1,
-            "DECLARE __P1 REAL[2]",
-            "DECLARE theta REAL[1]",
-            'SET-FREQUENCY 0 "rf" __P1[0]',
-            'SHIFT-FREQUENCY 0 "rf" __P1[0]',
-            'SET-FREQUENCY 1 "rf" __P1[1]',
-        ).out(),
-    )
+    assert response.original_memory_descriptors == {"theta": ParameterSpec(length=1, type="REAL")}
+    assert response.recalculation_table == {
+        ParameterAref(index=0, name="__P1"): "(theta[0] - 10.0)/20.0",
+        ParameterAref(index=1, name="__P1"): "theta[0]/20.0",
+    }
+
+    # Ordering of attributes on frame definitions aren't guaranteed when
+    # exported to quil, so we break the assertions and use the more reliable
+    # method of checking equality via the instruction types.
+    response_program = Program(response.quil)
+    assert response_program[0].out() == "DECLARE __P1 REAL[2]"
+    assert response_program[1].out() == "DECLARE theta REAL[1]"
+    assert response_program[2] == fdefn0
+    assert response_program[3] == fdefn1
+    assert [inst.out() for inst in response_program[4:]] == [
+        'SET-FREQUENCY 0 "rf" __P1[0]',
+        'SHIFT-FREQUENCY 0 "rf" __P1[0]',
+        'SET-FREQUENCY 1 "rf" __P1[1]',
+    ]
 
 
 def test_rewrite_arithmetic_mixed_mutations():
@@ -144,20 +149,19 @@ def test_rewrite_arithmetic_mixed_mutations():
     )
 
     response = rewrite_arithmetic(prog)
+    assert response.original_memory_descriptors == {"theta": ParameterSpec(length=1, type="REAL")}
+    assert response.recalculation_table == {
+        ParameterAref(index=0, name="__P1"): "(theta[0] - 10.0)/20.0",
+        ParameterAref(index=1, name="__P1"): "theta[0]/(2*pi)",
+        ParameterAref(index=2, name="__P1"): "theta[0]/8",
+    }
 
-    assert response == RewriteArithmeticResponse(
-        original_memory_descriptors={"theta": ParameterSpec(length=1, type="REAL")},
-        recalculation_table={
-            ParameterAref(index=0, name="__P1"): "(theta[0] - 10.0)/20.0",
-            ParameterAref(index=1, name="__P1"): "theta[0]/(2*pi)",
-            ParameterAref(index=2, name="__P1"): "theta[0]/8",
-        },
-        quil=Program(
-            fdefn,
-            "DECLARE __P1 REAL[3]",
-            "DECLARE theta REAL[1]",
-            'SET-FREQUENCY 0 "rf" __P1[0]',
-            'SET-PHASE 0 "rf" __P1[1]',
-            'SET-SCALE 0 "rf" __P1[2]',
-        ).out(),
-    )
+    response_program = Program(response.quil)
+    assert response_program[0].out() == "DECLARE __P1 REAL[3]"
+    assert response_program[1].out() == "DECLARE theta REAL[1]"
+    assert response_program[2] == fdefn
+    assert [inst.out() for inst in response_program[3:]] == [
+        'SET-FREQUENCY 0 "rf" __P1[0]',
+        'SET-PHASE 0 "rf" __P1[1]',
+        'SET-SCALE 0 "rf" __P1[2]',
+    ]

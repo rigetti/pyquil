@@ -130,7 +130,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
                 expr = str(Div(inst.phase, 2 * np.pi))
                 updated.inst(inst.__class__(inst.frame, expr_mref(expr)))
         elif isinstance(inst, SetScale):
-            if isinstance(inst.scale, Real):
+            if isinstance(inst.scale, complex) and inst.scale.imag == 0.0:
                 updated.inst(inst)
             else:
                 # scale is in [-4,4)
@@ -142,7 +142,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
             updated.inst(inst)
 
     if mref_idx > 0:
-        updated._instructions.insert(0, Declare(mref_name, "REAL", mref_idx))
+        updated = Program(Declare(mref_name, "REAL", mref_idx)) + updated
 
     return RewriteArithmeticResponse(
         quil=updated.out(),
