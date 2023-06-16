@@ -7,6 +7,7 @@ import networkx as nx
 import numpy as np
 import pytest
 import respx
+from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program, list_quantum_computers
 from pyquil.api._quantum_computer import (
@@ -38,23 +39,16 @@ from qcs_sdk.qpu.isa import InstructionSetArchitecture
 from rpcq.messages import ParameterAref
 
 
-def test_flip_array_to_prog():
+def test_flip_array_to_prog(snapshot: SnapshotAssertion):
     # no flips
     flip_prog = _flip_array_to_prog((0, 0, 0, 0, 0, 0), [0, 1, 2, 3, 4, 5])
     assert flip_prog.out().splitlines() == []
     # mixed flips
     flip_prog = _flip_array_to_prog((1, 0, 1, 0, 1, 1), [0, 1, 2, 3, 4, 5])
-    assert flip_prog.out().splitlines() == ["RX(pi) 0", "RX(pi) 2", "RX(pi) 4", "RX(pi) 5"]
+    assert flip_prog.out() == snapshot
     # flip all
     flip_prog = _flip_array_to_prog((1, 1, 1, 1, 1, 1), [0, 1, 2, 3, 4, 5])
-    assert flip_prog.out().splitlines() == [
-        "RX(pi) 0",
-        "RX(pi) 1",
-        "RX(pi) 2",
-        "RX(pi) 3",
-        "RX(pi) 4",
-        "RX(pi) 5",
-    ]
+    assert flip_prog.out() == snapshot
 
 
 def test_symmetrization():
@@ -68,9 +62,9 @@ def test_symmetrization():
     # exhaustive symm
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=-1)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
-    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
+    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([0, 1]), np.array([1, 0]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 0 i.e. no symm
@@ -81,23 +75,23 @@ def test_symmetrization():
     # strength 1
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=1)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 2
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=2)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
-    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
+    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([1, 0]), np.array([0, 1]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 3
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=3)
-    assert sym_progs[0].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
+    assert sym_progs[0].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
     assert sym_progs[2].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
     right = [np.array([1, 1]), np.array([1, 0]), np.array([0, 0]), np.array([0, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
 
