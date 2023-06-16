@@ -328,7 +328,7 @@ class QuilTransformer(Transformer):  # type: ignore
 
     @v_args(inline=True)
     def pragma(self, name, *pragma_names_and_string):
-        args = list(map(str, pragma_names_and_string))
+        args = list(map(lambda x: str(x) if not x.isdigit() else int(x), pragma_names_and_string))
         p = Pragma(str(name), args=args)
         return p
 

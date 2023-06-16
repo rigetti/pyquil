@@ -17,6 +17,7 @@
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import abc
+import json
 
 from typing import (
     Any,
@@ -348,17 +349,11 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
         qubits.
         """
-        print("current gate qubits", self.qubits)
         if isinstance(control_qubit, Sequence):
             for qubit in control_qubit:
-                self = self._from_rs_gate(super().controlled(_convert_to_rs_qubit(qubit)))
+                self._update_super(super().controlled(_convert_to_rs_qubit(qubit)))
         else:
-            print("adding control qubit", control_qubit)
-            print(super().controlled(_convert_to_rs_qubit(3)).qubits)
-            print(Gate._from_rs_gate(super().controlled(_convert_to_rs_qubit(3))).qubits)
-            self = Gate._from_rs_gate(super().controlled(_convert_to_rs_qubit(control_qubit)))
-
-        print("new qubits", self.qubits)
+            self._update_super(super().controlled(_convert_to_rs_qubit(control_qubit)))
 
         return self
 
@@ -372,18 +367,29 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         parameters.
         """
         forked = super().forked(_convert_to_rs_qubit(fork_qubit), _convert_to_rs_expressions(alt_params))
-        self = self._from_rs_gate(forked)
+        self._update_super(forked)
         return self
 
     def dagger(self) -> "Gate":
         """
         Add the DAGGER modifier to the gate.
         """
-        self = self._from_rs_gate(super().dagger())
+        self._update_super(super().dagger())
         return self
 
     def out(self) -> str:
         return str(self)
+
+    def _update_super(self, gate: quil_rs.Gate):
+        """
+        Updates the state of the super class using a new gate.
+        The super class does not mutate the value of a gate when adding
+        modifiers with methods like `dagger()`, but pyQuil does.
+        """
+        quil_rs.Gate.name.__set__(self, gate.name)
+        quil_rs.Gate.parameters.__set__(self, gate.parameters)
+        quil_rs.Gate.modifiers.__set__(self, gate.modifiers)
+        quil_rs.Gate.qubits.__set__(self, gate.qubits)
 
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
@@ -661,7 +667,7 @@ class DefGateByPaulis(DefGate):
         gate_name: str,
         parameters: List[Parameter],
         arguments: List[QubitDesignator],
-        body: "PauliSum",
+        body: Union["PauliSum", Sequence[str]],
     ) -> Self:
         specification = DefGateByPaulis._convert_to_pauli_specification(body, arguments)
         rs_parameters = [param.name for param in parameters]
@@ -670,8 +676,12 @@ class DefGateByPaulis(DefGate):
 
     @staticmethod
     def _convert_to_pauli_specification(
-        body: "PauliSum", arguments: List[QubitDesignator]
+        body: Union["PauliSum", Sequence[str]], arguments: List[QubitDesignator]
     ) -> quil_rs.GateSpecification:
+        print(body, type(body))
+        if isinstance(body, Sequence):
+            from pyquil.paulis import PauliSum
+            body = PauliSum(body)
         return quil_rs.GateSpecification.from_pauli_sum(body._to_rs_pauli_sum(arguments))
 
     @property
@@ -1275,7 +1285,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
     """
     A PRAGMA instruction.
 
-    This is printed in QUIL as::
+    This is printed in QUIL as:
 
         PRAGMA <command> <arg1> <arg2> ... <argn> "<freeform_string>"
 
@@ -1297,6 +1307,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
     @staticmethod
     def _to_pragma_arguments(args: Sequence[Union[QubitDesignator, str]]) -> List[quil_rs.PragmaArgument]:
         pragma_arguments = []
+        print("processing pragma args", args, [type(arg for arg in args)])
         for arg in args:
             if isinstance(arg, Qubit):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg.index))
@@ -2235,12 +2246,22 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         hardware_object: Optional[str] = None,
         sample_rate: Optional[float] = None,
         center_frequency: Optional[float] = None,
+        enable_raw_capture: Optional[str] = None,
+        channel_delay: Optional[float] = None
     ) -> Self:
+        # The quil spec doesn't outline anything for JSON support
+        # but it can be used for the hardware_object field.
+        # This generates a properly escaped json string
+        # then peels off the outer quotation marks, since they
+        # are already added to string values on output.
+        if hardware_object is not None:
+            hardware_object = json.dumps(hardware_object)
+            hardware_object = hardware_object[1:-1]
         attributes = {
             key: DefFrame._to_attribute_value(value)
             for key, value in zip(
-                ["DIRECTION", "INITIAL-FREQUENCY", "HARDWARE-OBJECT", "SAMPLE-RATE", "CENTER-FREQUENCY"],
-                [direction, initial_frequency, hardware_object, sample_rate, center_frequency],
+                ["DIRECTION", "INITIAL-FREQUENCY", "HARDWARE-OBJECT", "SAMPLE-RATE", "CENTER-FREQUENCY", "ENABLE-RAW-CAPTURE", "CHANNEL-DELAY"],
+                [direction, initial_frequency, hardware_object, sample_rate, center_frequency, enable_raw_capture, channel_delay],
             )
             if value is not None
         }
@@ -2260,7 +2281,7 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
     def _to_attribute_value(value: Union[str, float]) -> quil_rs.AttributeValue:
         if isinstance(value, str):
             return quil_rs.AttributeValue.from_string(value)
-        if isinstance(value, float):
+        if isinstance(value, (int, float, complex)):
             return quil_rs.AttributeValue.from_expression(quil_rs_expr.Expression.from_number(complex(value)))
         raise ValueError(f"{type(value)} is not a valid AttributeValue")
 

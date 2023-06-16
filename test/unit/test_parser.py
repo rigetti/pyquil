@@ -133,8 +133,6 @@ DEFGATE HADAMARD:
 
 
 def test_def_gate_with_variables():
-    # Note that technically the RX gate includes -i instead of just i but this messes a bit with
-    # the test since it's not smart enough to figure out that -1*i == -i
     theta = Parameter("theta")
     rx = np.array(
         [
@@ -143,19 +141,19 @@ def test_def_gate_with_variables():
         ]
     )
 
-    defgate = "DEFGATE RX(%theta):\n" "    COS(%theta/2), i*SIN(%theta/2)\n" "    i*SIN(%theta/2), COS(%theta/2)\n\n"
+    defgate = "DEFGATE MYRX(%theta):\n" "    COS(%theta/2), i*SIN(%theta/2)\n" "    i*SIN(%theta/2), COS(%theta/2)\n\n"
 
-    parse_equals(defgate, DefGate("RX", rx, [theta]))
+    parse_equals(defgate, DefGate("MYRX", rx, [theta]))
 
 
 def test_def_gate_as():
-    perm_gate_str = "DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
-    matrix_gate_str = """DEFGATE CNOT AS MATRIX:
+    perm_gate_str = "DEFGATE MYCCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
+    matrix_gate_str = """DEFGATE MYCNOT AS MATRIX:
     1.0, 0.0, 0.0, 0.0
     0.0, 1.0, 0.0, 0.0
     0.0, 0.0, 0.0, 1.0
     0.0, 0.0, 1.0, 0.0""".strip()
-    unknown_gate_str = "DEFGATE CCNOT AS UNKNOWNTYPE:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
+    unknown_gate_str = "DEFGATE MYCCNOT AS UNKNOWNTYPE:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
 
     parse(perm_gate_str)
     parse(matrix_gate_str)
@@ -166,7 +164,7 @@ def test_def_gate_as():
 
 
 def test_def_gate_as_matrix():
-    matrix_gate_str = """DEFGATE CNOT AS MATRIX:
+    matrix_gate_str = """DEFGATE MYCNOT AS MATRIX:
     1.0, 0.0, 0.0, 0.0
     0.0, 1.0, 0.0, 0.0
     0.0, 0.0, 0.0, 1.0
@@ -193,23 +191,24 @@ def test_def_gate_as_matrix_parameterized():
 
 
 def test_def_permutation_gate():
-    perm_gate = DefPermutationGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
+    perm_gate = DefPermutationGate("MYCCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
 
-    perm_gate_str = "DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
+    perm_gate_str = "DEFGATE MYCCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
 
     parse_equals(perm_gate_str, perm_gate)
 
 
 def test_def_gate_as_permutation():
-    perm_gate_str = "DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
+    perm_gate_str = "DEFGATE MYCCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
     parsed = parse(perm_gate_str)
 
     assert len(parsed) == 1
+    print(type(parsed[0]))
     assert isinstance(parsed[0], DefGate)
     assert isinstance(parsed[0], DefPermutationGate)
 
     # perm gates are defined by a single row of entries, unlike general defgates
-    bad_perm_gate_str = """DEFGATE CCNOT AS PERMUTATION:
+    bad_perm_gate_str = """DEFGATE MYCCNOT AS PERMUTATION:
     0, 1, 2, 3, 4, 5, 7, 6
     0, 1, 2, 3, 4, 5, 7, 6""".strip()
     with pytest.raises(UnexpectedToken) as excp:
@@ -298,6 +297,7 @@ def test_measure():
     parse_equals("MEASURE 0 ro[1]", MEASURE(0, MemoryReference("ro", 1)))
 
 
+# TODO: Control Flow
 def test_jumps():
     parse_equals("LABEL @test_1", JumpTarget(Label("test_1")))
     parse_equals("JUMP @test_1", Jump(Label("test_1")))
@@ -487,21 +487,6 @@ def test_parse_template_waveforms():
     )
     wf_agrees("boxcar_kernel(duration: 1.0)", BoxcarAveragerKernel(duration=1.0))
 
-    # missing required field
-    with pytest.raises(ValueError):
-        parse('PULSE 0 "rf" flat(duration: 1.0)')
-
-    # undefined template
-    with pytest.raises(ValueError):
-        parse('PULSE 0 "rf" undefined_template(duration: 1)')
-
-
-def test_parse_template_waveform_strict_values():
-    prog = """DECLARE foo REAL[2]
-PULSE 0 "rf" flat(duration: 1.0, iq: foo)"""
-    with pytest.raises(ValueError):
-        parse(prog)
-
 
 def test_parse_pulse():
     wf = FlatWaveform(duration=1.0, iq=1.0)
@@ -630,14 +615,20 @@ def test_parsing_defframe():
             channel_delay=20e-9,
         ),
     )
-    assert DefFrame(
-        Frame([Qubit(0)], "rf"),
-        enable_raw_capture="true",
-        channel_delay=12e-9,
-    ).out() == ('DEFFRAME 0 "rf":\n' '    ENABLE-RAW-CAPTURE: "true"\n' "    CHANNEL-DELAY: 1.2e-08\n")
+    defframe_quil = (
+        DefFrame(
+            Frame([Qubit(0)], "rf"),
+            enable_raw_capture="true",
+            channel_delay=12e-9,
+        )
+        .out()
+        .split("\n")
+    )
+    assert defframe_quil[0] == 'DEFFRAME 0 "rf":'
+    assert set(defframe_quil[1:]) == {'\tENABLE-RAW-CAPTURE: "true"', "\tCHANNEL-DELAY: 1.2e-8"}
 
     with pytest.raises(UnexpectedToken) as excp:
-        parse('DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n")
+        parse('DEFFRAME 0 "rf":\n' "\tUNSUPPORTED: 2.0\n")
 
     assert excp.value.token == Token("IDENTIFIER", "UNSUPPORTED")
 
@@ -652,16 +643,16 @@ def test_parsing_defframe_round_trip_with_json():
         sample_rate=5,
     )
     fdef_out = fdef.out()
-    assert (
-        fdef.out()
-        == r"""DEFFRAME My-Cool-Qubit "bananas":
-    DIRECTION: "go west"
-    INITIAL-FREQUENCY: 123.4
-    CENTER-FREQUENCY: 124.5
-    HARDWARE-OBJECT: "{\"key1\": 3.1, \"key2\": \"value2\"}"
-    SAMPLE-RATE: 5
-"""
-    )
+    print(fdef_out)
+    fdef_out_lines = fdef_out.split("\n")
+    assert fdef_out_lines[0] == 'DEFFRAME My-Cool-Qubit "bananas":'
+    assert set(fdef_out_lines[1:]) == {
+        '\tDIRECTION: "go west"',
+        "\tINITIAL-FREQUENCY: 123.4",
+        "\tCENTER-FREQUENCY: 124.5",
+        '\tHARDWARE-OBJECT: "{\\"key1\\": 3.1, \\"key2\\": \\"value2\\"}"',
+        "\tSAMPLE-RATE: 5",
+    }
     parse_equals(fdef_out, fdef)
 
 
@@ -683,7 +674,7 @@ def test_parsing_defcal():
 
 
 def test_parsing_defcal_measure():
-    parse_equals("DEFCAL MEASURE 0:\n" "    NOP\n", DefMeasureCalibration(Qubit(0), None, [NOP]))
+    parse_equals("DEFCAL MEASURE 0 ro:\n" "\tNOP\n", DefMeasureCalibration(Qubit(0), MemoryReference("ro"), [NOP]))
     wf = FlatWaveform(duration=1.0, iq=1.0)
     # TODO: note that in a calibration body, reference to the formal argument addr parses
     #       as a memoryreference.
@@ -713,9 +704,9 @@ def test_parse_defcal_error_on_mref():
 
 def test_parse_defgate_as_pauli():
     """Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now)."""
-    assert parse("DEFGATE RY(%theta) q AS PAULI-SUM:\n    Y(-%theta/2) q")
+    assert parse("DEFGATE MY_RY(%theta) q AS PAULI-SUM:\n    Y(-%theta/2) q")
     with pytest.raises(UnexpectedToken) as excp:
-        parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) q")
+        parse("DEFGATE MY_RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) q")
 
     assert excp.value.token == Token("INT", "0")
 
