@@ -18,6 +18,7 @@ from typing import Dict, List, Union, Optional, Set, cast, Tuple
 import numpy as np
 
 from qcs_sdk import QCSClient, qvm
+from qcs_sdk.qvm import QVMOptions
 
 from pyquil.api import MemoryMap
 from pyquil.api._qvm import (
@@ -37,7 +38,7 @@ class WavefunctionSimulator:
         gate_noise: Optional[Tuple[float, float, float]] = None,
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
-        timeout: float = 10.0,
+        timeout: float = 30.0,
         client_configuration: Optional[QCSClient] = None,
     ) -> None:
         """
@@ -65,6 +66,7 @@ class WavefunctionSimulator:
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
+        self.timeout = timeout
         self._client = client_configuration or QCSClient.load()
 
     def wavefunction(self, quil_program: Program, memory_map: Optional[MemoryMap] = None) -> Wavefunction:
@@ -96,7 +98,9 @@ class WavefunctionSimulator:
             self.gate_noise,
             self.random_seed,
         )
-        wavefunction = bytes(qvm.api.get_wavefunction(request, self._client))
+        wavefunction = bytes(
+            qvm.api.get_wavefunction(request, self._client, options=QVMOptions(timeout_seconds=self.timeout))
+        )
         return Wavefunction.from_bit_packed_string(wavefunction)
 
     def expectation(
@@ -141,7 +145,9 @@ class WavefunctionSimulator:
             prep_prog = self.augment_program_with_memory_values(prep_prog, memory_map)
 
         request = qvm.api.ExpectationRequest(prep_prog.out(), [prog.out() for prog in progs])
-        expectations = qvm.api.measure_expectation(request, self._client)
+        expectations = qvm.api.measure_expectation(
+            request, self._client, options=QVMOptions(timeout_seconds=self.timeout)
+        )
         bare_results = np.asarray(expectations)
         results = coeffs * bare_results
         if is_pauli_sum:
@@ -196,7 +202,9 @@ class WavefunctionSimulator:
             trials,
             qubits,
         )
-        measured_qubits = qvm.api.run_and_measure(request)
+        measured_qubits = qvm.api.run_and_measure(
+            request, self._client, options=QVMOptions(timeout_seconds=self.timeout)
+        )
         return np.asarray(measured_qubits)
 
     @staticmethod
