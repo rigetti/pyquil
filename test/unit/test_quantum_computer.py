@@ -832,6 +832,26 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClient, dummy_compiler: 
     assert results[2][0].total_counts == 20000
 
 
+def test_undeclared_memory_region(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
+    """
+    Fix for https://github.com/rigetti/pyquil/issues/1596
+    """
+    program = Program(
+        """
+DECLARE beta REAL[1]
+RZ(0.5) 0
+CPHASE(pi) 0 1
+DECLARE ro BIT[2]
+MEASURE 0 ro[0]
+MEASURE 1 ro[1]
+"""
+    )
+    program = program.copy_everything_except_instructions()
+    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
+    executable = qc.compiler.native_quil_to_executable(program)
+    qc.run(executable)
+
+
 @pytest.mark.skip  # qcs_sdk client profiles do not support group accounts
 @respx.mock
 def test_get_qc_with_group_account(client_configuration: QCSClient, qcs_aspen8_isa: InstructionSetArchitecture):
