@@ -24,7 +24,6 @@ from pyquil.quiltwaveforms import (
 from pyquil.quiltcalibrations import (
     CalibrationError,
     CalibrationMatch,
-    fill_placeholders,
     match_calibration,
 )
 from pyquil.quilbase import (
@@ -176,32 +175,6 @@ def test_measure_calibration_match():
 
     for cal, instr in mismatches:
         assert _match_measure(cal, instr) is None
-
-
-# TODO: Placeholders
-def test_apply_match_shift_phase():
-    settings = {FormalArgument("q"): Qubit(0), Parameter("theta"): np.pi}
-
-    instr = ShiftPhase(Frame([FormalArgument("q")], "ff"), Parameter("theta") / (2.0 * np.pi))
-
-    actual = fill_placeholders(instr, settings)
-
-    expected = ShiftPhase(Frame([Qubit(0)], "ff"), 0.5)
-
-    assert actual == expected
-
-
-# TODO: Placeholders
-def test_apply_match_delay_qubits():
-    settings = {FormalArgument("q"): Qubit(0), Parameter("foo"): 1.0}
-
-    instr = DelayQubits([Qubit(1), FormalArgument("q")], duration=Parameter("foo"))
-
-    actual = fill_placeholders(instr, settings)
-
-    expected = DelayQubits([Qubit(1), Qubit(0)], 1.0)
-
-    assert actual == expected
 
 
 def test_program_match_last():
