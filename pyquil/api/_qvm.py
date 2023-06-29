@@ -19,6 +19,7 @@ from typing import Mapping, Optional, Sequence, Tuple
 import numpy as np
 
 from qcs_sdk import QCSClient, qvm
+from qcs_sdk.qvm import QVMOptions
 
 from pyquil._version import pyquil_version
 from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
@@ -107,12 +108,13 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
+        self.timeout = timeout
         self._client = client_configuration or QCSClient.load()
         self.connect()
 
     def connect(self) -> None:
         try:
-            version = qvm.api.get_version_info(client=self._client)
+            version = self.get_version_info()
             check_qvm_version(version)
         except ConnectionError:
             raise QVMNotRunning(f"No QVM server running at {self._client.qvm_url}") from ConnectionError
@@ -144,6 +146,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             self.gate_noise,
             self.random_seed,
             self._client,
+            options=QVMOptions(timeout_seconds=self.timeout),
         )
 
         memory = {name: np.asarray(data.inner()) for name, data in result.memory.items()}
@@ -163,7 +166,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         :return: String with version information
         """
-        return qvm.api.get_version_info(self._client)
+        return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))
 
 
 def validate_noise_probabilities(noise_parameter: Optional[Tuple[float, float, float]]) -> None:
