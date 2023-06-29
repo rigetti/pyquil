@@ -445,3 +445,9 @@ def scale_out_phase(unitary1: np.ndarray, unitary2: np.ndarray) -> np.ndarray:
             rescale_value = unitary2[j, 0] / unitary1[j, 0]
 
     return rescale_value * unitary1
+
+def unitary_equal(A: np.ndarray, B: np.ndarray) -> np.bool_:
+    """Check if two matrices are unitarily equal."""
+    assert A.shape == B.shape
+    dim = A.shape[0]
+    return np.isclose(np.abs(np.trace(A.T.conjugate() @ B) / dim), 1.0)
