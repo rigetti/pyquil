@@ -295,7 +295,7 @@ class PauliTerm(object):
                 new_term = new_term._multiply_factor(op, index)
 
             return term_with_coeff(new_term, new_term.coefficient * new_coeff)
-        return term_with_coeff(self, self.coefficient * complex(term))
+        return term_with_coeff(self, self.coefficient * term)
 
     def __rmul__(self, other: ExpressionDesignator) -> "PauliTerm":
         """Multiplies this PauliTerm with another object, probably a number.
@@ -935,7 +935,7 @@ def exponentiate_commuting_pauli_sum(
 def exponentiate_pauli_sum(
     pauli_sum: PauliSum,
 ) -> np.ndarray:
-    """
+    r"""
     Exponentiates a sequence of PauliTerms, which may or may not commute. The Pauliterms must
     have fixed (non-parametric) coefficients. The coefficients are interpreted in cycles
     rather than radians or degrees.
@@ -972,11 +972,15 @@ def exponentiate_pauli_sum(
         "I": np.array([[1.0, 0.0], [0.0, 1.0]]),
     }
 
-    qubits = sorted(pauli_sum.get_qubits())
+    qubits = pauli_sum.get_qubits()
+    for q in qubits:
+        assert isinstance(q, int)
+    qubits.sort()
 
     matrices = []
     for term in pauli_sum.terms:
         coeff = term.coefficient
+        assert isinstance(coeff, (int, float, complex))
         qubit_paulis = {qubit: pauli for qubit, pauli in term.operations_as_set()}
         paulis = [qubit_paulis[q] if q in qubit_paulis else "I" for q in qubits]
         matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis])
