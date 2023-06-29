@@ -114,7 +114,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
     def connect(self) -> None:
         try:
-            version = qvm.api.get_version_info(client=self._client, options=QVMOptions(timeout_seconds=self.timeout))
+            version = self.get_version_info()
             check_qvm_version(version)
         except ConnectionError:
             raise QVMNotRunning(f"No QVM server running at {self._client.qvm_url}") from ConnectionError
@@ -166,7 +166,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         :return: String with version information
         """
-        return qvm.api.get_version_info(self._client)
+        return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))
 
 
 def validate_noise_probabilities(noise_parameter: Optional[Tuple[float, float, float]]) -> None:
