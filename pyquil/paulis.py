@@ -36,6 +36,7 @@ from typing import (
     Union,
     cast,
 )
+from numpy.typing import NDArray
 from functools import reduce
 from scipy.linalg import expm
 
@@ -933,8 +934,8 @@ def exponentiate_commuting_pauli_sum(
 
 
 def exponentiate_pauli_sum(
-    pauli_sum: PauliSum,
-) -> np.ndarray:
+    pauli_sum: Union[PauliSum, PauliTerm],
+) -> NDArray[np.complex_]:
     r"""
     Exponentiates a sequence of PauliTerms, which may or may not commute. The Pauliterms must
     have fixed (non-parametric) coefficients. The coefficients are interpreted in cycles
@@ -980,13 +981,14 @@ def exponentiate_pauli_sum(
     matrices = []
     for term in pauli_sum.terms:
         coeff = term.coefficient
-        assert isinstance(coeff, (int, float, complex))
+        assert isinstance(coeff, Number)
         qubit_paulis = {qubit: pauli for qubit, pauli in term.operations_as_set()}
         paulis = [qubit_paulis[q] if q in qubit_paulis else "I" for q in qubits]
-        matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis])
+        matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis]) # type: ignore
         matrices.append(matrix)
     generated_unitary = expm(-1j * np.pi * sum(matrices))
-    return np.exp(-1j * np.angle(generated_unitary[0, 0])) * generated_unitary
+    phase = np.exp(-1j*np.angle(generated_unitary[0, 0])) # type: ignore
+    return np.asarray(phase * generated_unitary, dtype=np.complex_)
 
 
 def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
