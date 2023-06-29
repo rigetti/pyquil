@@ -984,10 +984,10 @@ def exponentiate_pauli_sum(
         assert isinstance(coeff, Number)
         qubit_paulis = {qubit: pauli for qubit, pauli in term.operations_as_set()}
         paulis = [qubit_paulis[q] if q in qubit_paulis else "I" for q in qubits]
-        matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis]) # type: ignore
+        matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis])  # type: ignore
         matrices.append(matrix)
     generated_unitary = expm(-1j * np.pi * sum(matrices))
-    phase = np.exp(-1j*np.angle(generated_unitary[0, 0])) # type: ignore
+    phase = np.exp(-1j * np.angle(generated_unitary[0, 0]))  # type: ignore
     return np.asarray(phase * generated_unitary, dtype=np.complex_)
 
 
