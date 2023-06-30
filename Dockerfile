@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.3
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.9
 FROM python:$PYTHON_VERSION AS dev
 
 USER root
