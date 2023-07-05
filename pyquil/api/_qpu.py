@@ -28,7 +28,7 @@ from pyquil.quilatom import (
     MemoryReference,
 )
 from qcs_sdk import QCSClient
-from qcs_sdk.qpu.api import submit, retrieve_results, ExecutionResult, ConnectionStrategy
+from qcs_sdk.qpu.api import submit, retrieve_results, ExecutionResult, ExecutionOptions
 from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
 
 
@@ -102,7 +102,7 @@ def _extract_memory_regions(
 class QPUExecuteResponse:
     job_id: str
     _executable: EncryptedProgram
-    connection_strategy: Optional[ConnectionStrategy]
+    execution_options: Optional[ExecutionOptions]
 
 
 class QPU(QAM[QPUExecuteResponse]):
@@ -145,7 +145,7 @@ class QPU(QAM[QPUExecuteResponse]):
         self,
         executable: QuantumExecutable,
         memory_map: Optional[MemoryMap] = None,
-        connection_strategy: Optional[ConnectionStrategy] = None,
+        execution_options: Optional[ExecutionOptions] = None,
     ) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
@@ -153,9 +153,9 @@ class QPU(QAM[QPUExecuteResponse]):
         results.
 
         :param:
-            connection_strategy: An optional `ConnectionStrategy` enum that can be used
+            execution_options: An optional `ExecutionOptions` enum that can be used
               to configure how the job is submitted and retrieved from the QPU. If unset
-              the public gateway is used.
+              `ExecutionOptions.default()` will be used.
         """
         executable = executable.copy()
 
@@ -175,10 +175,10 @@ class QPU(QAM[QPUExecuteResponse]):
             quantum_processor_id=self.quantum_processor_id,
             endpoint_id=self._endpoint_id,
             client=self._client_configuration,
-            connection_strategy=connection_strategy,
+            execution_options=execution_options,
         )
 
-        return QPUExecuteResponse(_executable=executable, job_id=job_id, connection_strategy=connection_strategy)
+        return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=execution_options)
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
@@ -189,7 +189,7 @@ class QPU(QAM[QPUExecuteResponse]):
             job_id=execute_response.job_id,
             quantum_processor_id=self.quantum_processor_id,
             client=self._client_configuration,
-            connection_strategy=execute_response.connection_strategy,
+            execution_options=execute_response.execution_options,
         )
 
         ro_sources = execute_response._executable.ro_sources
