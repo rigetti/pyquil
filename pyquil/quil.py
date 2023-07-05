@@ -183,6 +183,8 @@ class Program:
         """
         new_prog = Program()
         new_prog._calibrations = self.calibrations.copy()
+        for declaration in self.declarations.values():
+            new_prog.inst(declaration)
         new_prog._declarations = self._declarations.copy()
         new_prog._waveforms = self.waveforms.copy()
         new_prog._defined_gates = self._defined_gates.copy()
