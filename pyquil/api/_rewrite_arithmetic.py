@@ -138,8 +138,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
                 # so we divide by 8...
                 expr = str(Div(inst.scale, 8))
                 updated.inst(SetScale(inst.frame, expr_mref(expr)))
-        # Program.copy_everything_except_instructions persists DECLARE statements
-        elif not isinstance(inst, Declare):
+        else:
             updated.inst(inst)
 
     if mref_idx > 0:
