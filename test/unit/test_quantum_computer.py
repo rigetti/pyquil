@@ -838,6 +838,28 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dum
     assert results[2][0].total_counts == 20000
 
 
+def test_undeclared_memory_region(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+    """
+    Test for https://github.com/rigetti/pyquil/issues/1613
+    """
+    program = Program(
+        """
+DECLARE beta REAL[1]
+RZ(0.5) 0
+CPHASE(pi) 0 1
+DECLARE ro BIT[2]
+MEASURE 0 ro[0]
+MEASURE 1 ro[1]
+"""
+    )
+    program = program.copy_everything_except_instructions()
+    assert len(program.instructions) == 0  # the purpose of copy_everything_except_instructions()
+    assert len(program.declarations) == 0  # this is a view on the instructions member; must be consistent
+    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
+    executable = qc.compiler.native_quil_to_executable(program)
+    qc.run(executable)
+
+
 @respx.mock
 def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
     """
