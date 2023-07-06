@@ -205,8 +205,9 @@ class Program:
 
         :return: a new Program
         """
-        new_prog = self.copy_everything_except_instructions()
+        new_prog = self.copy_everything_except_instructions()  # and declarations, which is a view
         new_prog._instructions = self._instructions.copy()
+        new_prog._declarations = self._declarations.copy()
         return new_prog
 
     @property
