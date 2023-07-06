@@ -834,7 +834,7 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClient, dummy_compiler: 
 
 def test_undeclared_memory_region(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     """
-    Fix for https://github.com/rigetti/pyquil/issues/1596
+    Test for https://github.com/rigetti/pyquil/issues/1596
     """
     program = Program(
         """
@@ -847,6 +847,8 @@ MEASURE 1 ro[1]
 """
     )
     program = program.copy_everything_except_instructions()
+    assert len(program.instructions) == 0  # the purpose of copy_everything_except_instructions()
+    assert len(program.declarations) == 0  # this is a view on the instructions member; must be consistent
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
     executable = qc.compiler.native_quil_to_executable(program)
     qc.run(executable)
