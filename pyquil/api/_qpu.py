@@ -168,8 +168,8 @@ class QPU(QAM[QPUExecuteResponse]):
 
         :param:
             execution_options: An optional `ExecutionOptions` enum that can be used
-              to configure how the job is submitted and retrieved from the QPU. If unset
-              `ExecutionOptions.default()` will be used.
+              to configure how the job is submitted and retrieved from the QPU. If unset,
+              an appropriate default will be used.
         """
         executable = executable.copy()
 
