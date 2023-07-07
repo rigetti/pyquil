@@ -118,7 +118,7 @@ class QPU(QAM[QPUExecuteResponse]):
         *,
         quantum_processor_id: str,
         priority: int = 1,
-        timeout: float = 10.0,
+        timeout: Optional[float] = 30.0,
         client_configuration: Optional[QCSClient] = None,
         endpoint_id: Optional[str] = None,
         execution_options: Optional[ExecutionOptions] = None,
@@ -144,6 +144,7 @@ class QPU(QAM[QPUExecuteResponse]):
         self._quantum_processor_id = quantum_processor_id
         if execution_options is None:
             execution_options_builder = ExecutionOptionsBuilder.default()
+            execution_options_builder.timeout = timeout
             if endpoint_id is not None:
                 execution_options_builder.connection_strategy(ConnectionStrategy.endpoint_id(endpoint_id))
             execution_options = execution_options_builder.build()
