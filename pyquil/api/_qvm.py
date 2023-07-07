@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-from typing import Mapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -123,6 +123,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         self,
         executable: QuantumExecutable,
         memory_map: Optional[MemoryMap] = None,
+        **__: Any,
     ) -> QVMExecuteResponse:
         """
         Synchronously execute the input program to completion.

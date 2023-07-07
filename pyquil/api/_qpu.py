@@ -15,7 +15,7 @@
 ##############################################################################
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -28,7 +28,14 @@ from pyquil.quilatom import (
     MemoryReference,
 )
 from qcs_sdk import QCSClient
-from qcs_sdk.qpu.api import submit, retrieve_results, ExecutionResult, ExecutionOptions
+from qcs_sdk.qpu.api import (
+    submit,
+    retrieve_results,
+    ConnectionStrategy,
+    ExecutionResult,
+    ExecutionOptions,
+    ExecutionOptionsBuilder,
+)
 from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
 
 
@@ -114,6 +121,7 @@ class QPU(QAM[QPUExecuteResponse]):
         timeout: float = 10.0,
         client_configuration: Optional[QCSClient] = None,
         endpoint_id: Optional[str] = None,
+        execution_options: Optional[ExecutionOptions] = None,
     ) -> None:
         """
         A connection to the QPU.
@@ -134,7 +142,12 @@ class QPU(QAM[QPUExecuteResponse]):
         self._last_results: Dict[str, np.ndarray] = {}
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
-        self._endpoint_id = endpoint_id
+        if execution_options is None:
+            execution_options_builder = ExecutionOptionsBuilder.default()
+            if endpoint_id is not None:
+                execution_options_builder.connection_strategy(ConnectionStrategy.endpoint_id(endpoint_id))
+            execution_options = execution_options_builder.build()
+        self.execution_options = execution_options
 
     @property
     def quantum_processor_id(self) -> str:
@@ -146,6 +159,7 @@ class QPU(QAM[QPUExecuteResponse]):
         executable: QuantumExecutable,
         memory_map: Optional[MemoryMap] = None,
         execution_options: Optional[ExecutionOptions] = None,
+        **__: Any,
     ) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
@@ -173,9 +187,8 @@ class QPU(QAM[QPUExecuteResponse]):
             program=executable.program,
             patch_values=patch_values,
             quantum_processor_id=self.quantum_processor_id,
-            endpoint_id=self._endpoint_id,
             client=self._client_configuration,
-            execution_options=execution_options,
+            execution_options=execution_options or self.execution_options,
         )
 
         return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=execution_options)

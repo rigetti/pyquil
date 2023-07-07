@@ -202,9 +202,7 @@ class WavefunctionSimulator:
             trials,
             qubits,
         )
-        measured_qubits = qvm.api.run_and_measure(
-            request, options=QVMOptions(timeout_seconds=self.timeout)  # type: ignore[call-arg]
-        )
+        measured_qubits = qvm.api.run_and_measure(request, options=QVMOptions(timeout_seconds=self.timeout))
         return np.asarray(measured_qubits)
 
     @staticmethod
