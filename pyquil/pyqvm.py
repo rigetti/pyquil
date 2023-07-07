@@ -15,7 +15,7 @@
 ##############################################################################
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Sequence, Type, Union
+from typing import Dict, List, Optional, Sequence, Type, Union, Any
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -221,11 +221,7 @@ class PyQVM(QAM["PyQVM"]):
                 raise NotImplementedError("PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM.")
             self.defined_gates[dg.name] = dg.matrix
 
-    def execute(
-        self,
-        executable: QuantumExecutable,
-        memory_map: Optional[MemoryMap] = None,
-    ) -> "PyQVM":
+    def execute(self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **__: Any) -> "PyQVM":
         """
         Execute a program on the PyQVM. Note that the state of the instance is reset on each
         call to ``execute``.

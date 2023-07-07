@@ -27,7 +27,7 @@ rpcq = "^3.10.0"
 pydantic = "^1.10.7"
 networkx = ">=2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
-qcs-sdk-python = "0.9.1"
+qcs-sdk-python = "0.10.0"
 quil = "0.1.1"
 tenacity = "^8.2.2"
 types-python-dateutil = "^2.8.19"
