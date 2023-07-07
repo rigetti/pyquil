@@ -183,9 +183,6 @@ class Program:
         """
         new_prog = Program()
         new_prog._calibrations = self.calibrations.copy()
-        for declaration in self.declarations.values():
-            new_prog.inst(declaration)
-        new_prog._declarations = self._declarations.copy()
         new_prog._waveforms = self.waveforms.copy()
         new_prog._defined_gates = self._defined_gates.copy()
         new_prog._frames = self.frames.copy()
@@ -203,8 +200,9 @@ class Program:
 
         :return: a new Program
         """
-        new_prog = self.copy_everything_except_instructions()
+        new_prog = self.copy_everything_except_instructions()  # and declarations, which is a view
         new_prog._instructions = self._instructions.copy()
+        new_prog._declarations = self._declarations.copy()
         return new_prog
 
     @property
