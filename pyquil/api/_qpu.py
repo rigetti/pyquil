@@ -15,7 +15,7 @@
 ##############################################################################
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -28,7 +28,14 @@ from pyquil.quilatom import (
     MemoryReference,
 )
 from qcs_sdk import QCSClient
-from qcs_sdk.qpu.api import submit, retrieve_results, ExecutionResult
+from qcs_sdk.qpu.api import (
+    submit,
+    retrieve_results,
+    ConnectionStrategy,
+    ExecutionResult,
+    ExecutionOptions,
+    ExecutionOptionsBuilder,
+)
 from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
 
 
@@ -102,6 +109,7 @@ def _extract_memory_regions(
 class QPUExecuteResponse:
     job_id: str
     _executable: EncryptedProgram
+    execution_options: Optional[ExecutionOptions]
 
 
 class QPU(QAM[QPUExecuteResponse]):
@@ -113,7 +121,7 @@ class QPU(QAM[QPUExecuteResponse]):
         timeout: float = 10.0,
         client_configuration: Optional[QCSClient] = None,
         endpoint_id: Optional[str] = None,
-        use_gateway: bool = True,
+        execution_options: Optional[ExecutionOptions] = None,
     ) -> None:
         """
         A connection to the QPU.
@@ -134,20 +142,35 @@ class QPU(QAM[QPUExecuteResponse]):
         self._last_results: Dict[str, np.ndarray] = {}
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
-        self._endpoint_id = endpoint_id
-
-        self._use_gateway = use_gateway
+        if execution_options is None:
+            execution_options_builder = ExecutionOptionsBuilder()
+            execution_options_builder.connection_strategy = ConnectionStrategy.default()
+            if endpoint_id is not None:
+                execution_options_builder.connection_strategy(ConnectionStrategy.endpoint_id(endpoint_id))
+            execution_options = execution_options_builder.build()
+        self.execution_options = execution_options
 
     @property
     def quantum_processor_id(self) -> str:
         """ID of quantum processor targeted."""
         return self._quantum_processor_id
 
-    def execute(self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None) -> QPUExecuteResponse:
+    def execute(
+        self,
+        executable: QuantumExecutable,
+        memory_map: Optional[MemoryMap] = None,
+        execution_options: Optional[ExecutionOptions] = None,
+        **__: Any,
+    ) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
         job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
         results.
+
+        :param:
+            execution_options: An optional `ExecutionOptions` enum that can be used
+              to configure how the job is submitted and retrieved from the QPU. If unset,
+              an appropriate default will be used.
         """
         executable = executable.copy()
 
@@ -165,11 +188,11 @@ class QPU(QAM[QPUExecuteResponse]):
             program=executable.program,
             patch_values=patch_values,
             quantum_processor_id=self.quantum_processor_id,
-            endpoint_id=self._endpoint_id,
             client=self._client_configuration,
+            execution_options=execution_options or self.execution_options,
         )
 
-        return QPUExecuteResponse(_executable=executable, job_id=job_id)
+        return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=execution_options)
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
@@ -180,6 +203,7 @@ class QPU(QAM[QPUExecuteResponse]):
             job_id=execute_response.job_id,
             quantum_processor_id=self.quantum_processor_id,
             client=self._client_configuration,
+            execution_options=execute_response.execution_options,
         )
 
         ro_sources = execute_response._executable.ro_sources

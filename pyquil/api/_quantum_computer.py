@@ -126,9 +126,7 @@ class QuantumComputer:
         return self.compiler.quantum_processor.to_compiler_isa()
 
     def run(
-        self,
-        executable: QuantumExecutable,
-        memory_map: Optional[MemoryMap] = None,
+        self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **kwargs: Any
     ) -> QAMExecutionResult:
         """
         Run a quil executable. All parameters in the executable must have values applied using
@@ -139,7 +137,7 @@ class QuantumComputer:
             region for the run.
         :return: execution result including readout data.
         """
-        return self.qam.run(executable, memory_map)
+        return self.qam.run(executable, memory_map, **kwargs)
 
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
@@ -794,7 +792,7 @@ def get_qc(
 
     .. _QCS API Docs: https://docs.api.qcs.rigetti.com/#tag/endpoints
     """
-    client_configuration = QCSClient.load()
+    client_configuration = client_configuration or QCSClient.load()
 
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
