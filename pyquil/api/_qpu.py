@@ -143,7 +143,8 @@ class QPU(QAM[QPUExecuteResponse]):
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
         if execution_options is None:
-            execution_options_builder = ExecutionOptionsBuilder.default()
+            execution_options_builder = ExecutionOptionsBuilder()
+            execution_options_builder.connection_strategy = ConnectionStrategy.default()
             if endpoint_id is not None:
                 execution_options_builder.connection_strategy(ConnectionStrategy.endpoint_id(endpoint_id))
             execution_options = execution_options_builder.build()
