@@ -152,7 +152,7 @@ def test_defgate_redefintion():
 
 
 # TODO: Automatically re-define existing definitions quil-rs#224
-def test_decal_redefinition(snapshot: SnapshotAssertion):
+def test_defcal_redefinition(snapshot: SnapshotAssertion):
     """Test that adding a defcalibration with the same name updates the definition."""
     program = Program()
     defcal = DefCalibration("TEST", [], [Qubit(1)], instrs=[RX(np.pi, 1)])
@@ -963,7 +963,7 @@ def test_inline_placeholder():
 # https://github.com/rigetti/pyquil/issues/138
 def test_defgate_integer_input():
     dg = DefGate("TEST", np.array([[1, 0], [0, 1]]))
-    assert dg.out() == "DEFGATE TEST:\n    1, 0\n    0, 1\n"
+    assert dg.out() == "DEFGATE TEST AS MATRIX:\n\t1, 0\n\t0, 1\n"
 
 
 # TODO: Placeholders quil-rs#147

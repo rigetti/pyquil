@@ -432,7 +432,7 @@
   'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
 # ---
 # name: TestGate.test_controlled_modifier[RZ-MemoryReference-Expression]
-  'CONTROLLED RZ(alpha[0]-beta[0]) 5 0'
+  'CONTROLLED RZ(alpha[0] - beta[0]) 5 0'
 # ---
 # name: TestGate.test_controlled_modifier[RZ-MemoryReference]
   'CONTROLLED RZ(theta[0]) 5 0'
@@ -444,7 +444,7 @@
   'DAGGER CPHASE(1.5707963267948966) 0 1'
 # ---
 # name: TestGate.test_dagger_modifier[RZ-MemoryReference-Expression]
-  'DAGGER RZ(alpha[0]-beta[0]) 0'
+  'DAGGER RZ(alpha[0] - beta[0]) 0'
 # ---
 # name: TestGate.test_dagger_modifier[RZ-MemoryReference]
   'DAGGER RZ(theta[0]) 0'
@@ -456,7 +456,7 @@
   'FORKED CPHASE(1.5707963267948966, 0) 5 0 1'
 # ---
 # name: TestGate.test_forked_modifier[RZ-MemoryReference-Expression]
-  'FORKED RZ(alpha[0]-beta[0], 0) 5 0'
+  'FORKED RZ(alpha[0] - beta[0], 0) 5 0'
 # ---
 # name: TestGate.test_forked_modifier[RZ-MemoryReference]
   'FORKED RZ(theta[0], 0) 5 0'
@@ -480,7 +480,7 @@
   'CPHASE(1.5707963267948966) 0 1'
 # ---
 # name: TestGate.test_str[RZ-MemoryReference-Expression]
-  'RZ(alpha[0]-beta[0]) 0'
+  'RZ(alpha[0] - beta[0]) 0'
 # ---
 # name: TestGate.test_str[RZ-MemoryReference]
   'RZ(theta[0]) 0'
