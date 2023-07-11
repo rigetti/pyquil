@@ -56,7 +56,6 @@ RB_ENCODED_REPLY = [[0, 0], [1, 1]]
 RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
 
 
-# TODO: quil-rs needs to implement program_unitary
 def test_quil_to_native_quil(compiler):
     response = compiler.quil_to_native_quil(BELL_STATE)
     p_unitary = program_unitary(response, n_qubits=2)
