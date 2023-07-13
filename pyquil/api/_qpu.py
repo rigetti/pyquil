@@ -88,8 +88,8 @@ def _extract_memory_regions(
         if buf.ndim == 1:
             buf = buf.reshape((num_shots, 1))
 
-        if np.iscomplexobj(buf):  # type: ignore
-            buf = np.column_stack((buf.real, buf.imag))  # type: ignore
+        if np.iscomplexobj(buf):
+            buf = np.column_stack((buf.real, buf.imag))
         _, width = buf.shape
 
         end = mref.offset + width
@@ -146,7 +146,7 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options_builder = ExecutionOptionsBuilder()
             execution_options_builder.connection_strategy = ConnectionStrategy.default()
             if endpoint_id is not None:
-                execution_options_builder.connection_strategy(ConnectionStrategy.endpoint_id(endpoint_id))
+                execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id(endpoint_id)
             execution_options = execution_options_builder.build()
         self.execution_options = execution_options
 

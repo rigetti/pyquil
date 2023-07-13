@@ -191,7 +191,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
-        super().__init__(n_qubits=n_qubits, rs=rs)  # type: ignore
+        super().__init__(n_qubits=n_qubits, rs=rs)
 
         self.n_qubits = n_qubits
         self.rs = rs

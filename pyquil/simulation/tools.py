@@ -248,7 +248,7 @@ def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: Sequence[int], n_qubits: 
     else:
         # Python can't deal with `arr[:-0]`
         check = final_map[-gate_size - start_i :]
-    np.testing.assert_allclose(check, qubit_inds)  # type: ignore
+    np.testing.assert_allclose(check, qubit_inds)
 
     v_matrix = qubit_adjacent_lifted_gate(start_i, matrix, n_qubits)
     return np.dot(np.conj(pi_permutation_matrix.T), np.dot(v_matrix, pi_permutation_matrix))  # type: ignore
@@ -379,7 +379,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np
     for term in pauli_sum.terms:
         term_hilbert = np.array([1])
         for qubit in qubits:
-            term_hilbert = np.kron(QUANTUM_GATES[term[qubit]], term_hilbert)  # type: ignore
+            term_hilbert = np.kron(QUANTUM_GATES[term[qubit]], term_hilbert)
 
         result_hilbert += term_hilbert * cast(complex, term.coefficient)
 
@@ -419,7 +419,7 @@ def lifted_state_operator(state: TensorProductState, qubits: List[int]) -> np.nd
         assert oneq_state.qubit == qubit
         state_vector = STATES[oneq_state.label][oneq_state.index][:, np.newaxis]
         state_matrix = state_vector @ state_vector.conj().T
-        mat = np.kron(state_matrix, mat)  # type: ignore
+        mat = np.kron(state_matrix, mat)
     return mat
 
 
