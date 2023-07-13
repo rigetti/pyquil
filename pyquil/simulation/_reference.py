@@ -60,7 +60,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
     trace_one = np.isclose(np.trace(state_matrix), 1, rtol, atol)
     if not trace_one:
         raise ValueError("The state matrix is not trace one.")
-    evals = np.linalg.eigvals(state_matrix)
+    evals = np.linalg.eigvals(state_matrix)  # type: ignore
     non_neg_eigs = all([False if val < -atol else True for val in evals])
     if not non_neg_eigs:
         raise ValueError("The state matrix has negative Eigenvalues of order -" + str(atol) + ".")
@@ -84,7 +84,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
-        super().__init__(n_qubits=n_qubits, rs=rs)
+        super().__init__(n_qubits=n_qubits, rs=rs)  # type: ignore
 
         self.n_qubits = n_qubits
         self.rs = rs
@@ -220,7 +220,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     """
 
     def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
-        super().__init__(n_qubits=n_qubits, rs=rs)
+        super().__init__(n_qubits=n_qubits, rs=rs)  # type: ignore
 
         self.n_qubits = n_qubits
         self.rs = rs
