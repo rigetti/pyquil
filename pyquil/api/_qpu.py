@@ -146,7 +146,7 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options_builder = ExecutionOptionsBuilder()
             execution_options_builder.connection_strategy = ConnectionStrategy.default()
             if endpoint_id is not None:
-                execution_options_builder.connection_strategy(ConnectionStrategy.endpoint_id(endpoint_id))
+                execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id(endpoint_id)
             execution_options = execution_options_builder.build()
         self.execution_options = execution_options
 
