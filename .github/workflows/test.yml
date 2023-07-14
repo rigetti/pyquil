@@ -130,7 +130,8 @@ jobs:
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
           poetry run make test
       - name: Report Coverage
-        uses: orgoro/coverage@3.1
+        if: matrix.python-version == '3.11'
+        uses: orgoro/coverage@v3.1
         with:
           coverageFile: coverage.xml
           thresholdAll: 0.8
