@@ -1164,3 +1164,20 @@ class TestProgram:
             (isinstance(frame, Frame) and isinstance(def_frame, DefFrame) for frame, def_frame in frames.items())
         )
         assert frames == snapshot
+
+
+def test_copy_everything_except_instructions():
+    """Test for https://github.com/rigetti/pyquil/issues/1613"""
+    program = Program(
+        """
+DECLARE beta REAL[1]
+RZ(0.5) 0
+CPHASE(pi) 0 1
+DECLARE ro BIT[2]
+MEASURE 0 ro[0]
+MEASURE 1 ro[1]
+"""
+    )
+    program = program.copy_everything_except_instructions()
+    assert len(program.instructions) == 0  # the purpose of copy_everything_except_instructions()
+    assert len(program.declarations) == 0  # this is a view on the instructions member; must be consistent
