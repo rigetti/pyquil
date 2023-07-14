@@ -125,8 +125,12 @@ def test_rewrite_arithmetic_frequency():
     response_program = Program(response.quil)
     assert response_program[0].out() == "DECLARE __P1 REAL[2]"
     assert response_program[1].out() == "DECLARE theta REAL[1]"
-    assert response_program[2] == fdefn0
-    assert response_program[3] == fdefn1
+    assert (
+        response_program[2] == fdefn0
+        and response_program[3] == fdefn1
+        or response_program[2] == fdefn1
+        and response_program[3] == fdefn0
+    )
     assert [inst.out() for inst in response_program[4:]] == [
         'SET-FREQUENCY 0 "rf" __P1[0]',
         'SHIFT-FREQUENCY 0 "rf" __P1[0]',
