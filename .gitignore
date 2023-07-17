@@ -1,6 +1,7 @@
 README.rst
 docs/source/changes.rst
 docs/source/apidocs/
+coverage.xml
 
 # Created by https://www.gitignore.io/api/python,osx,pycharm
 
