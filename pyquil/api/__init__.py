@@ -41,7 +41,7 @@ __all__ = [
 ]
 
 from qcs_sdk import QCSClient
-from qcs_sdk.qpu.api import ExecutionOptions
+from qcs_sdk.qpu.api import ExecutionOptions, ExecutionOptionsBuilder, ConnectionStrategy
 
 from pyquil.api._benchmark import BenchmarkConnection
 from pyquil.api._compiler import (

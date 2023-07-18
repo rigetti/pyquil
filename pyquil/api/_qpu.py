@@ -145,8 +145,9 @@ class QPU(QAM[QPUExecuteResponse]):
         if execution_options is None:
             execution_options_builder = ExecutionOptionsBuilder.default()
             execution_options_builder.timeout_seconds = int(timeout)
+            execution_options_builder.connection_strategy = ConnectionStrategy.default()
             if endpoint_id is not None:
-                execution_options_builder.connection_strategy(ConnectionStrategy.endpoint_id(endpoint_id))
+                execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id(endpoint_id)
             execution_options = execution_options_builder.build()
         self.execution_options = execution_options
 
