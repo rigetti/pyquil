@@ -40,7 +40,6 @@ import numpy as np
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
 
 from pyquil._version import pyquil_version
-from pyquil._parser.parser import run_parser
 from pyquil.gates import MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
