@@ -132,7 +132,8 @@ class QPU(QAM[QPUExecuteResponse]):
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         :param endpoint_id: Optional endpoint ID to be used for execution.
-        :param use_gateway: Disable to skip the Gateway server and perform direct execution.
+        :param execution_options: The ``ExecutionOptions`` to use when executing a program. If provided, the options take
+            precedence over the `timeout` and `endpoint_id` parameters.
         """
         super().__init__()
 
