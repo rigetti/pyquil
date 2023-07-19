@@ -16,7 +16,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 ### Features
 
 - pyQuil now uses `qcs-sdk-python` (bindings to the [QCS Rust SDK](https://github.com/rigetti/qcs-sdk-rust/)) for compiling and executing programs.
-- With the exception of requests to a `quilc` server, RPCQ has been removed in favor of OpenAPI and GRPC calls. This enables:
+- With the exception of requests to a `quilc` server, RPCQ has been removed in favor of OpenAPI and gRPC calls. This enables:
 	- Better performance
 	- Better error messages when a request fails
 - The improved Rust backend allows on-demand access to a QPU.
