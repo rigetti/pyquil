@@ -1,7 +1,7 @@
 [package]
 versioned_files = ["pyproject.toml"]
 # This should be changed back to CHANGELOG.md once v4.0.0 is released.
-# https://github.com/rigetti/qcs-sdk-rust/issues/330
+# https://github.com/rigetti/pyquil/issues/1621
 changelog = "V4_PRERELEASE_CHANGELOG.md"
 
 [[workflows]]
