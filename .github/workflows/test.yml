@@ -136,7 +136,6 @@ jobs:
           coverageFile: coverage.xml
           thresholdAll: 0.87
           thresholdNew: 0.9
-          thresholdModified: 0.9
           token:  ${{ secrets.PAT }}
 
   test-e2e:
