@@ -20,7 +20,7 @@ to get started.
 
 .. note::
 
-   If you've used pyQuil before, be sure to check out :ref:`migration` for help with moving to the newest pyQuil release.
+   If you've used pyQuil before, be sure to check out :ref:`introducing_v4` to help get oriented on the key changes in v4.
 
 .. note::
 
@@ -38,8 +38,8 @@ to get started.
    noise
    advanced_usage
    troubleshooting
+   introducing_v4
    exercises
-   migration
    changes
 
 .. toctree::
