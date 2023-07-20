@@ -14,7 +14,7 @@ As a first step, read through the :doc:`changes` to get an overview of what's ne
 Parameters & Memory
 -------------------
 
-In order to provide more flexibility when executing parameterized Programs, the execution methods on ``QAM``, ``QVM``, ``QPU`` and the like now accept an optional memory_map keyword parameter. This parameter is defined as a mapping of a memory region's name to a sequence of values that will be used to initialize that memory region before executing the program. This replaces the ability to use the write_memory method on a Program.
+In order to provide more flexibility when executing parameterized Programs, the execution methods on ``QAM``, ``QVM``, ``QPU`` and the like now accept an optional ``memory_map`` keyword parameter. This parameter is defined as a mapping of a memory region's name to a sequence of values that will be used to initialize that memory region before executing the program. This replaces the ability to use the write_memory method on a Program.
 Here is an example of how you might use a memory map in practice:
 
 .. code:: python
@@ -40,7 +40,9 @@ The ``MemoryMap`` type is defined as ``Mapping[str, Union[Sequence[int], Sequenc
 QCS Gateway and Execution Options
 ---------------------------------
 
-The QCS Gateway is a new service that provides on-demand access to a QPU. See the [QCS documentation]() for more information on what it is and why you might find it useful.
+The QCS Gateway is a new service that provides on-demand access to a QPU. See the `QCS documentation`_ for more information on what it is and why you might find it useful.
+
+.. _QCS documentation: https://docs.rigetti.com/qcs/guides/qcs-gateway
 
 In pyQuil v4, Gateway is enabled by default and it is generally recommended to keep it on. However, if you have a use case for sending your job to the QPU directly, you can use the new ``ExecutionOptions`` and ``ConnectionStrategy`` classes to configure your request:
 
