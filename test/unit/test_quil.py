@@ -131,7 +131,6 @@ def test_defgate_param(snapshot):
     assert tg.out() == snapshot
 
 
-# TODO: Automatically re-define existing definitions quil-rs#224
 def test_defgate_redefintion():
     """Test that adding a defgate with the same name updates the definition."""
     program = Program()
@@ -151,7 +150,6 @@ def test_defgate_redefintion():
     assert np.all(program.defined_gates[0].matrix == new_mat)
 
 
-# TODO: Automatically re-define existing definitions quil-rs#224
 def test_defcal_redefinition(snapshot: SnapshotAssertion):
     """Test that adding a defcalibration with the same name updates the definition."""
     program = Program()
@@ -172,7 +170,6 @@ def test_defcal_redefinition(snapshot: SnapshotAssertion):
     assert program.calibrations[0].instrs[0].out() == snapshot
 
 
-# TODO: Automatically re-define existing definitions quil-rs#224
 def test_defcalmeasure_redefinition(snapshot: SnapshotAssertion):
     """Test that adding a defcalibration with the same name updates the definition."""
     program = Program()

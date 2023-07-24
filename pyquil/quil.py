@@ -197,7 +197,7 @@ class Program:
         new_program.inst(instructions)
         self._program = new_program._program
 
-    def inst(self, *instructions: InstructionDesignator) -> "Program":
+    def inst(self, *instructions: Union[InstructionDesignator, RSProgram]) -> "Program":
         """
         Mutates the Program object by appending new instructions.
 
@@ -231,15 +231,15 @@ class Program:
                 else:
                     self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
-                self.inst(RSProgram.parse(instruction.strip()))
+                self.inst(RSProgram.parse(instruction.strip()).instructions)
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
             elif isinstance(instruction, quil_rs.Instruction):
-                self._program.add_instruction(instruction)
+                self._add_instruction(instruction)
+            elif isinstance(instruction, AbstractInstruction):
+                self._add_instruction(_convert_to_rs_instruction(instruction))
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
-            elif isinstance(instruction, AbstractInstruction):
-                self._add_instruction(instruction)
             else:
                 try:
                     instruction = quil_rs.Instruction(instruction)
@@ -249,64 +249,71 @@ class Program:
 
         return self
 
-    def _add_instruction(self, instruction: AbstractInstruction):
-        if isinstance(instruction, DefGate):
+    def _add_instruction(self, instruction: quil_rs.Instruction):
+        if instruction.is_gate_definition():
+            defgate = instruction.to_gate_definition()
             # If the gate definition differs from the current one, print a warning and replace it.
             idx, existing_defgate = next(
                 (
                     (i, gate)
-                    for i, gate in enumerate(self.instructions)
-                    if isinstance(gate, DefGate) and gate.name == instruction.name
+                    for i, gate in enumerate(map(lambda inst: inst.as_gate_definition(), self._program.instructions))
+                    if gate and gate.name == defgate.name
                 ),
                 (0, None),
             )
 
             if existing_defgate is None:
-                self.inst(RSProgram.parse(instruction.out()))
+                self._program.add_instruction(instruction)
             elif (
-                instruction.matrix.dtype in [np.float_, np.complex_]
-                and np.allclose(existing_defgate.matrix, instruction.matrix)
-            ) or not np.all(existing_defgate.matrix == instruction.matrix):
-                warnings.warn("Redefining gate {}".format(instruction.name))
-                new_instructions = self.instructions[:idx] + [instruction] + self.instructions[idx + 1 :]
-                self.instructions = new_instructions
-        elif isinstance(instruction, DefCalibration):
+                existing_defgate.specification != defgate.specification
+                or existing_defgate.specification.inner() != existing_defgate.specification.inner()
+            ):
+                warnings.warn("Redefining gate {}".format(defgate.name))
+                new_instructions = (
+                    self._program.instructions[:idx] + [instruction] + self._program.instructions[idx + 1 :]
+                )
+                self._program = self._program.clone_without_body_instructions()
+                self._program.add_instructions(new_instructions)
+        elif instruction.is_calibration_definition():
+            defcal = instruction.to_calibration_definition()
             idx, existing_calibration = next(
                 (
-                    (i, calibration)
-                    for i, calibration in enumerate(self.calibrations)
-                    if calibration.name == instruction.name
-                    and calibration.parameters == instruction.parameters
-                    and calibration.qubits == instruction.qubits
+                    (i, existing_calibration)
+                    for i, existing_calibration in enumerate(self._program.calibrations.calibrations)
+                    if defcal.name == existing_calibration.name
+                    and defcal.parameters == existing_calibration.parameters
+                    and defcal.qubits == existing_calibration.qubits
                 ),
                 (0, None),
             )
             if existing_calibration is None:
-                self._program.add_instruction(_convert_to_rs_instruction(instruction))
+                self._program.add_instruction(instruction)
 
-            elif existing_calibration.out() != instruction.out():
-                warnings.warn("Redefining calibration {}".format(instruction.name))
+            elif (
+                existing_calibration.instructions != defcal.instructions
+                or existing_calibration.modifiers != defcal.modifiers
+            ):
+                warnings.warn("Redefining calibration {}".format(defcal.name))
                 current_calibrations = self._program.calibrations
                 new_calibrations = CalibrationSet(
-                    current_calibrations.calibrations[:idx]
-                    + [instruction]
-                    + current_calibrations.calibrations[idx + 1 :],
+                    current_calibrations.calibrations[:idx] + [defcal] + current_calibrations.calibrations[idx + 1 :],
                     current_calibrations.measure_calibrations,
                 )
-
                 self._program.calibrations = new_calibrations
-        elif isinstance(instruction, DefMeasureCalibration):
+
+        elif instruction.is_measure_calibration_definition():
+            defmeasure = instruction.to_measure_calibration_definition()
             idx, existing_measure_calibration = next(
                 (
-                    (i, measurement)
-                    for i, measurement in enumerate(self.measure_calibrations)
-                    if (measurement.memory_reference == instruction.memory_reference)
-                    and (measurement.qubit == instruction.qubit)
+                    (i, existing_measure_calibration)
+                    for i, existing_measure_calibration in enumerate(self._program.calibrations.measure_calibrations)
+                    if existing_measure_calibration.parameter == defmeasure.parameter
+                    and existing_measure_calibration.qubit == defmeasure.qubit
                 ),
                 (0, None),
             )
             if existing_measure_calibration is None:
-                self._program.add_instruction(_convert_to_rs_instruction(instruction))
+                self._program.add_instruction(instruction)
 
             else:
                 warnings.warn("Redefining DefMeasureCalibration {}".format(instruction))
@@ -314,7 +321,7 @@ class Program:
                 new_calibrations = CalibrationSet(
                     current_calibrations.calibrations,
                     current_calibrations.measure_calibrations[:idx]
-                    + [instruction]
+                    + [defmeasure]
                     + current_calibrations.measure_calibrations[idx + 1 :],
                 )
 
