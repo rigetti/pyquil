@@ -112,7 +112,7 @@ class Program:
     """
 
     def __init__(self, *instructions: InstructionDesignator):
-        self._program = RSProgram()
+        self._program: RSProgram = RSProgram()
         self.inst(*instructions)
 
         # default number of shots to loop through
@@ -242,7 +242,7 @@ class Program:
                 self._program += instruction
             else:
                 try:
-                    instruction = quil_rs.Instruction(instruction)
+                    instruction = quil_rs.Instruction(instruction)  # type: ignore
                     self.inst(instruction)
                 except ValueError:
                     raise ValueError("Invalid instruction: {}, type: {}".format(instruction, type(instruction)))
@@ -328,7 +328,7 @@ class Program:
                 self._program.calibrations = new_calibrations
 
         else:
-            self.inst(RSProgram.parse(instruction.out()))
+            self._program.add_instruction(instruction)
 
     def gate(
         self,
