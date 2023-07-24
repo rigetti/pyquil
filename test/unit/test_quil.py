@@ -147,8 +147,8 @@ def test_defgate_redefintion():
     program += dgp
 
     assert program.defined_gates[0].name == "TEST"
-    assert np.all(program.defined_gates[0].matrix == new_mat)
     assert len(program.defined_gates) == 1
+    assert np.all(program.defined_gates[0].matrix == new_mat)
 
 
 # TODO: Automatically re-define existing definitions quil-rs#224
@@ -169,7 +169,28 @@ def test_defcal_redefinition(snapshot: SnapshotAssertion):
 
     program += new_defcal
     assert len(program.calibrations) == 1
-    assert program.calibrations[0].instrs[0].out() == "RX(pi/2) 1"
+    assert program.calibrations[0].instrs[0].out() == snapshot
+
+
+# TODO: Automatically re-define existing definitions quil-rs#224
+def test_defcalmeasure_redefinition(snapshot: SnapshotAssertion):
+    """Test that adding a defcalibration with the same name updates the definition."""
+    program = Program()
+    defmeasure = DefMeasureCalibration(Qubit(1), MemoryReference("ro"), [RX(np.pi, 1)])
+    program += defmeasure
+
+    assert len(program.measure_calibrations) == 1
+    assert program.measure_calibrations[0].instrs[0].out() == snapshot
+
+    program += defmeasure
+
+    assert len(program.measure_calibrations) == 1
+
+    new_defmeasure = DefMeasureCalibration(Qubit(1), MemoryReference("ro"), [RX(np.pi / 2, 1)])
+
+    program += new_defmeasure
+    assert len(program.measure_calibrations) == 1
+    assert program.measure_calibrations[0].instrs[0].out() == snapshot
 
 
 def test_inst_gates(snapshot):
