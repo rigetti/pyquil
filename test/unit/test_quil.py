@@ -151,7 +151,7 @@ def test_defgate_redefintion():
 
 
 def test_defcal_redefinition(snapshot: SnapshotAssertion):
-    """Test that adding a defcalibration with the same name updates the definition."""
+    """Test that adding a DefCalibration with the same name updates the definition."""
     program = Program()
     defcal = DefCalibration("TEST", [], [Qubit(1)], instrs=[RX(np.pi, 1)])
     program += defcal
@@ -171,7 +171,7 @@ def test_defcal_redefinition(snapshot: SnapshotAssertion):
 
 
 def test_defcalmeasure_redefinition(snapshot: SnapshotAssertion):
-    """Test that adding a defcalibration with the same name updates the definition."""
+    """Test that adding a DefMeasureCalibration with the same name updates the definition."""
     program = Program()
     defmeasure = DefMeasureCalibration(Qubit(1), MemoryReference("ro"), [RX(np.pi, 1)])
     program += defmeasure

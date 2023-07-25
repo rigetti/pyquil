@@ -250,6 +250,11 @@ class Program:
         return self
 
     def _add_instruction(self, instruction: quil_rs.Instruction):
+        """
+        A helper method that adds an instruction to the Program after normalizing to a `quil_rs.Instruction`. For backwards compatibility,
+        it also prevents duplicate calibration, measurement, and gate definitions from being added. Users of ``Program`` should use
+        ``inst`` or ``Program`` addition instead.
+        """
         if instruction.is_gate_definition():
             defgate = instruction.to_gate_definition()
             # If the gate definition differs from the current one, print a warning and replace it.
@@ -300,7 +305,6 @@ class Program:
                     current_calibrations.measure_calibrations,
                 )
                 self._program.calibrations = new_calibrations
-
         elif instruction.is_measure_calibration_definition():
             defmeasure = instruction.to_measure_calibration_definition()
             idx, existing_measure_calibration = next(
@@ -326,7 +330,6 @@ class Program:
                 )
 
                 self._program.calibrations = new_calibrations
-
         else:
             self._program.add_instruction(instruction)
 
