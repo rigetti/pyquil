@@ -66,11 +66,6 @@ class WavefunctionSimulator:
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
-        if client_configuration is None:
-            try:
-                client_configuration = QCSClient.load()
-            except LoadClientError:
-                client_configuration = QCSClient()
         self.timeout = timeout
         self._client = client_configuration or QCSClient.load()
 
