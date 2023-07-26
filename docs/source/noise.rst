@@ -1056,9 +1056,9 @@ probability matrix directly from a QPU.
     header1 = Program().define_noisy_readout(1, .8, .9)
     header2 = Program().define_noisy_readout(2, .9, .85)
 
-    ap0 = estimate_assignment_probs(0, 100000, qc, header0)
-    ap1 = estimate_assignment_probs(1, 100000, qc, header1)
-    ap2 = estimate_assignment_probs(2, 100000, qc, header2)
+    ap0 = estimate_assignment_probs(0, 10000, qc, header0)
+    ap1 = estimate_assignment_probs(1, 10000, qc, header1)
+    ap2 = estimate_assignment_probs(2, 10000, qc, header2)
 
 .. testcode:: readout-noise
 

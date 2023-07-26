@@ -1,120 +1,52 @@
 # Changelog
 
-## 4.0.0-rc.12
+## 4.0.0
+
+The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest generation of Rust SDKs. With this comes access to new features, improved performance, stronger type safety, and better error messages. While this is a significant change for the internals of pyQuil, we've attempted to keep breaking changes to a minimum. Unless necessary, we've chosen to only remove redunant or lesser used features that aren't likely to bother most users.
 
 ### Breaking Changes
 
-- use qcs-sdk-python implementation of conjugate_pauli_by_clifford and generate_randomized_benchmarking_sequence (#1557)
-- remove qcs-api-client dependency (#1550)
-- Removes the compatilbility.v2 subpackage
-
-### Features
-
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
-
-### Fixes
-
-- bump qcs-sdk-python to fix waveforms (#1507)
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0.0-rc.11
-
-### Breaking Changes
-
-- use qcs-sdk-python implementation of conjugate_pauli_by_clifford and generate_randomized_benchmarking_sequence (#1557)
-- remove qcs-api-client dependency (#1550)
-- Removes the compatilbility.v2 subpackage
-
-### Features
-
-- remove v2 compatibility layer (#1475)
-- gracefully handle error when QPU unavailable for engagement (#1457)
-
-### Fixes
-
-- bump qcs-sdk-python to fix waveforms (#1507)
-- Remove pyi type annotations causing runtime errors (#1506)
-- use highest priority Gateway (#1504)
-- use properly packaged qcs-sdk types
-- Docs Theme
-- Docker qvm/quilc in `rigetti/forest` image. (#1437)
-- DefFrame to/from Quil with JSON values (#1419)
-- DefFrame to/from Quil with JSON values (#1419)
-- Correctly apply the phase in quilwaveforms (#1408)
-- allow spaces in DEFFRAME specs
-- Correctly apply the phase in quilwaveforms (#1408)
-- Changed pad_left to pad_right
-- allow spaces in DEFFRAME specs
-- Changed pad_left to pad_right
-- update Quil-T docs to use `get_calibration_program()` name (#1389)
-- allow np.ndarray in write_memory and disallow non-int and non-fl… (#1365)
-- document error on noisy qcs qpu request
-- Fix bug in QPU workflow
-- Fix execution of parametric programs (#1353)
-- sphinx>=3.0.0,<4.0.0
-- support instructions with no qubits or parameters
-- remove extraneous debug prints
-- Remove test RPCQ server to improve CI consistency. (#1350)
-- lock port test fixture
-- provide default client configuration on get qcs qpu (#1333)
-- raise error on noisy qcs qpu (#1332)
-- ignore node modules and commit npm lock
-- Fix contiguous engagement handling (#1325)
-- Re-add `QPUCompiler.refresh_calibration_program()` (#1323)
-- add git commit messge check (#1318)
-- include dead attributes when no gates present (#1317)
-- Fix RC publising to PyPI
-- GitHub checks for PRs to rc branch
-
-## 4.0.0-rc.10
-
-### Breaking Changes
-
-- Use qcs-sdk-python implementation of conjugate_pauli_by_clifford and generate_randomized_benchmarking_sequence (#1557)
-- Replace `qcs-api-client` with `qcs-sdk-python` (#1550)
-- Removed the `compatilbility.v2` subpackage (#1475)
+- Replaced the `qcs-api-client` dependency with `qcs-sdk-python`. Consequentially, the former's `QCSClientConfiguration` has been replaced by the latter’s `QCSClient`. The `QCSClient` class can be imported from the `api` module.
+- Removed the `compatibility.v2` sub-package.
 - Removed the `EngagementManager` class as RPCQ is no longer used.
 - Python 3.7 is no longer supported.
+- The environment variable overrides for `quilc` and `QVM` URLs have been renamed to `QCS_APPLICATIONS_QUILC_URL` and `QCS_APPLICATIONS_QVM_URL`, respectively.
+- The `QuantumComputer`'s `run` method now takes an optional `memory_map` parameter. This mapping takes memory region names to a list of values to use for a run. This replaces the ability to use `write_memory` on `Program`s.
 
 ### Features
 
-- pyQuil now uses `qcs-sdk-python` (bindings to the QCS Rust SDK) for compiling and executing programs.
-- RPCQ has been removed in favor of OpenAPI and GRPC calls. This enables:
-    - Better performance
-    - Better error messages when a request fails
+- pyQuil now uses `qcs-sdk-python` (bindings to the [QCS Rust SDK](https://github.com/rigetti/qcs-sdk-rust/)) for compiling and executing programs.
+- With the exception of requests to a `quilc` server, RPCQ has been removed in favor of OpenAPI and gRPC calls. This enables:
+	- Better performance
+	- Better error messages when a request fails
 - The improved Rust backend allows on-demand access to a QPU.
+- The new `QPUCompilerAPIOptions` class provides can now be used to customize how a program is compiled against a QPU.
+
+## 3.5.4
+
+### Fixes
+
+- Loosen `networkx` requirements (#1584)
+
+## 3.5.3
+
+### Fixes
+
+- Correctly parse matrix gate definitions and support lower case function call expressions (#1588)
+
+## 3.5.2
+
+## 3.5.1
+
+## 3.5.0
+
+### Features
+
+- Add CHANNEL-DELAY attribute to DefFrame (#1564)
+
+### Fixes
+
+- improve messaging on QPU and compiler timeout (#1397)
 
 ## 3.5.0-rc.0
 

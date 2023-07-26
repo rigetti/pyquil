@@ -154,6 +154,14 @@ jobs:
           docker run --rm -itd -p 5555:5555 rigetti/quilc -R
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
           poetry run make test
+      - name: Report Coverage
+        if: matrix.python-version == '3.11'
+        uses: orgoro/coverage@v3.1
+        with:
+          coverageFile: coverage.xml
+          thresholdAll: 0.87
+          thresholdNew: 0.9
+          token:  ${{ secrets.PAT }}
 
   test-e2e:
     name: Test e2e QVM

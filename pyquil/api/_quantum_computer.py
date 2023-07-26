@@ -14,7 +14,6 @@
 #    limitations under the License.
 ##############################################################################
 import itertools
-import logging
 import re
 import socket
 import subprocess
@@ -25,9 +24,7 @@ from typing import (
     Any,
     Tuple,
     Iterator,
-    Mapping,
     Optional,
-    Sequence,
     Set,
     Union,
     cast,
@@ -36,16 +33,14 @@ from typing import (
 
 import networkx as nx
 import numpy as np
-from rpcq.messages import ParameterAref
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu import list_quantum_processors
-from qcs_sdk.qpu.client import LoadClientError
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 
-from pyquil.api._qam import QAM, QAMExecutionResult
+from pyquil.api._qam import QAM, QAMExecutionResult, MemoryMap
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
@@ -131,17 +126,18 @@ class QuantumComputer:
         return self.compiler.quantum_processor.to_compiler_isa()
 
     def run(
-        self,
-        executable: QuantumExecutable,
+        self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **kwargs: Any
     ) -> QAMExecutionResult:
         """
         Run a quil executable. All parameters in the executable must have values applied using
         ``Program#write_memory``.
 
         :param executable: The program to run, previously compiled as needed for its target QAM.
+        :param memory_map: A mapping of memory regions to a list containing the values to be written into that memory
+            region for the run.
         :return: execution result including readout data.
         """
-        return self.qam.run(executable)
+        return self.qam.run(executable, memory_map, **kwargs)
 
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
@@ -158,7 +154,7 @@ class QuantumComputer:
     def run_experiment(
         self,
         experiment: Experiment,
-        memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
+        memory_map: Optional[MemoryMap] = None,
     ) -> List[ExperimentResult]:
         """
         Run an ``Experiment`` on a QVM or QPU backend. An ``Experiment`` is composed of:
@@ -230,9 +226,7 @@ class QuantumComputer:
             for merged_memory_map in merged_memory_maps:
                 final_memory_map = {**memory_map, **merged_memory_map}
                 executable_copy = executable.copy()
-                final_memory_map = cast(Mapping[Union[str, ParameterAref], Union[int, float]], final_memory_map)
-                executable_copy._memory.write(final_memory_map)
-                bitstrings = self.run(executable_copy).readout_data.get("ro")
+                bitstrings = self.run(executable_copy, memory_map=final_memory_map).readout_data.get("ro")
                 assert bitstrings is not None
 
                 if "symmetrization" in final_memory_map:
@@ -244,6 +238,7 @@ class QuantumComputer:
             joint_expectations = [experiment.get_meas_registers(qubits)]
             if setting.additional_expectations:
                 joint_expectations += setting.additional_expectations
+
             expectations = bitstrings_to_expectations(symmetrized_bitstrings, joint_expectations=joint_expectations)
 
             means = np.mean(expectations, axis=0)
@@ -798,13 +793,7 @@ def get_qc(
 
     .. _QCS API Docs: https://docs.api.qcs.rigetti.com/#tag/endpoints
     """
-
-    if client_configuration is None:
-        try:
-            client_configuration = QCSClient.load()
-        except LoadClientError:
-            logging.getLogger().info("No QCS client configuration found, only generic QVMs will be accessible.")
-            client_configuration = QCSClient()
+    client_configuration = client_configuration or QCSClient.load()
 
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)

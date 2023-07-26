@@ -69,7 +69,7 @@ install:
 .PHONY: test
 test:
 	poetry install --extras latex
-	pytest -v --runslow --cov=pyquil test/unit
+	pytest -v --runslow --cov=pyquil --cov-report xml:coverage.xml test/unit
 
 .PHONY: test-fast
 test-fast:

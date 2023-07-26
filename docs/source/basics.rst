@@ -306,10 +306,10 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
 
     for theta in np.linspace(0, 2 * np.pi, 200):
         # Set the desired parameter value in executable memory
-        executable.write_memory(region_name='theta', value=theta)
+        memory_map = {"theta": [theta]}
 
         # Get the results of the run with the value we want to execute with
-        bitstrings = qc.run(executable).readout_data.get("ro")
+        bitstrings = qc.run(executable, memory_map=memory_map).readout_data.get("ro")
 
         # Store our results
         parametric_measurements.append(bitstrings)
