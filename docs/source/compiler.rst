@@ -200,7 +200,7 @@ For example, to inspect the ``qpu_runtime_estimation`` you might do the followin
     # Likely you will have a more complex program:
     p = Program("RX(pi) 0")
 
-    native_p = qc.compiler.quil_to_native_quil(p)
+    native_p = qc.compiler.quil_to_native_quil(p, protoquil=True)
 
     # The program will now have only native gates
     print(native_p)
