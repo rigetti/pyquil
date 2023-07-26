@@ -64,9 +64,6 @@ The Forest 3.0 Downloadable SDK Preview currently contains:
 The QVM and the compiler are packed as program binaries that are accessed through the command line. Both of them provide
 support for direct command-line interaction, as well as a server mode. The :ref:`server mode <server>` is required for use with pyQuil.
 
-..
-    TODO: add docs for docker usage
-
 `Download the Forest SDK here <https://qcs.rigetti.com/sdk-downloads>`__, where you can find links
 for Windows, macOS, Linux (.deb), Linux (.rpm), and Linux (bare-bones).
 
