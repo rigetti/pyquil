@@ -45,7 +45,7 @@ including:
     programs with many qubits.
 
 The QVM is part of the Forest SDK, and it's available for you to use on your local machine.
-After :ref:`downloading and installing the SDK <sdkinstall>`, you can initialize a local
+After :ref:`downloading and installing the SDK <prerequisites>`, you can initialize a local
 QVM server by typing ``qvm -S`` into your terminal. You should see the following message.
 
 .. code:: text
