@@ -39,10 +39,15 @@ Collect Debug Information
 1. Ensure that your pyQuil version is up to date. If you're using ``pip``, you can do this with
    ``pip freeze``. Within your script, you can use ``__version__``:
 
-   .. code:: python
+   .. testcode:: version
 
     import pyquil
     print(pyquil.__version__)
+
+   .. testoutput:: version
+      :hide:
+
+      ...
 
    You can update pyQuil with ``pip`` using ``pip install pyquil --upgrade``. You can find
    the latest version available at
@@ -59,9 +64,7 @@ Collect Debug Information
 
     LOG_LEVEL=DEBUG pyquil my_script.py
 
-   or
-
-   .. code:: python
+   .. testcode:: python
 
     import logging
     from pyquil.api._logger import logger

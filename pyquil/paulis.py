@@ -376,9 +376,9 @@ class PauliTerm(object):
 
         >>> term = 2.0 * sX(1)* sZ(2)
         >>> str(term)
-        >>> '2.0*X1*X2'
+        '(2+0j)*X1*Z2'
         >>> term.compact_str()
-        >>> '2.0*X1X2'
+        '(2+0j)*X1Z2'
         """
         return f"{self.coefficient}*{self.id(sort_ops=False)}"
 
@@ -458,7 +458,7 @@ class PauliTerm(object):
         assert isinstance(op, PauliTerm)
         return op
 
-    def pauli_string(self, qubits: Iterable[int]) -> str:
+    def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
         """
         Return a string representation of this PauliTerm without its coefficient and with
         implicit qubit indices.
@@ -468,16 +468,18 @@ class PauliTerm(object):
 
         >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
         >>> p.pauli_string()
-        "XY"
+        'XY'
         >>> p.pauli_string(qubits=[0])
-        "X"
+        'X'
         >>> p.pauli_string(qubits=[0, 2])
-        "XI"
+        'XI'
 
         :param iterable of qubits: The iterable of qubits to represent, given as ints.
         :return: The string representation of this PauliTerm, sans coefficient
         """
 
+        if qubits is None:
+            return "".join(self._ops.values())
         return "".join(self[q] for q in qubits)
 
 
@@ -750,9 +752,9 @@ class PauliSum(object):
 
         >>> pauli_sum = 2.0 * sX(1)* sZ(2) + 1.5 * sY(2)
         >>> str(pauli_sum)
-        >>> '2.0*X1*X2 + 1.5*Y2'
+        '(2+0j)*X1*Z2 + (1.5+0j)*Y2'
         >>> pauli_sum.compact_str()
-        >>> '2.0*X1X2+1.5*Y2'
+        '(2+0j)*X1Z2+(1.5+0j)*Y2'
         """
         return "+".join([term.compact_str() for term in self.terms])
 
