@@ -52,9 +52,6 @@ concurrent context.
 
 Below is an example that demonstrates how to use pyQuil in a multithreading scenario:
 
-..
-    TODO: This should be covered by doctests but hangs locally.
-
 .. code:: python
 
     from multiprocessing.pool import ThreadPool
@@ -62,8 +59,7 @@ Below is an example that demonstrates how to use pyQuil in a multithreading scen
     from pyquil import get_qc, Program
     from pyquil.api import QCSClient
 
-    configuration = QCSClient.load()
-    qc = get_qc("Aspen-M-3", client_configuration=configuration)
+    qc = get_qc("Aspen-M-3")
 
 
     def run(program: Program):
