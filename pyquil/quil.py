@@ -33,6 +33,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 from deprecation import deprecated
 import numpy as np
@@ -85,7 +86,7 @@ from pyquil.quiltcalibrations import (
     _convert_to_calibration_match,
 )
 
-from quil.program import Program as RSProgram
+from quil.program import CalibrationSet, Program as RSProgram
 import quil.instructions as quil_rs
 
 InstructionDesignator = Union[
@@ -111,7 +112,7 @@ class Program:
     """
 
     def __init__(self, *instructions: InstructionDesignator):
-        self._program = RSProgram()
+        self._program: RSProgram = RSProgram()
         self.inst(*instructions)
 
         # default number of shots to loop through
@@ -190,7 +191,13 @@ class Program:
         """
         return _convert_to_py_instructions(self._program.to_instructions())
 
-    def inst(self, *instructions: InstructionDesignator) -> "Program":
+    @instructions.setter
+    def instructions(self, instructions: List[AbstractInstruction]):
+        new_program = self.copy_everything_except_instructions()
+        new_program.inst(instructions)
+        self._program = new_program._program
+
+    def inst(self, *instructions: Union[InstructionDesignator, RSProgram]) -> "Program":
         """
         Mutates the Program object by appending new instructions.
 
@@ -224,23 +231,107 @@ class Program:
                 else:
                     self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
-                self.inst(RSProgram.parse(instruction.strip()))
+                self.inst(RSProgram.parse(instruction.strip()).instructions)
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
             elif isinstance(instruction, quil_rs.Instruction):
-                self._program.add_instruction(instruction)
+                self._add_instruction(instruction)
+            elif isinstance(instruction, AbstractInstruction):
+                self._add_instruction(_convert_to_rs_instruction(instruction))
             elif isinstance(instruction, RSProgram):
                 self._program += instruction
-            elif isinstance(instruction, AbstractInstruction):
-                self.inst(RSProgram.parse(instruction.out()))
             else:
                 try:
-                    instruction = quil_rs.Instruction(instruction)
+                    instruction = quil_rs.Instruction(instruction)  # type: ignore
                     self.inst(instruction)
                 except ValueError:
                     raise ValueError("Invalid instruction: {}, type: {}".format(instruction, type(instruction)))
 
         return self
+
+    def _add_instruction(self, instruction: quil_rs.Instruction):
+        """
+        A helper method that adds an instruction to the Program after normalizing to a `quil_rs.Instruction`. For backwards compatibility,
+        it also prevents duplicate calibration, measurement, and gate definitions from being added. Users of ``Program`` should use
+        ``inst`` or ``Program`` addition instead.
+        """
+        if instruction.is_gate_definition():
+            defgate = instruction.to_gate_definition()
+            # If the gate definition differs from the current one, print a warning and replace it.
+            idx, existing_defgate = next(
+                (
+                    (i, gate)
+                    for i, gate in enumerate(map(lambda inst: inst.as_gate_definition(), self._program.instructions))
+                    if gate and gate.name == defgate.name
+                ),
+                (0, None),
+            )
+
+            if existing_defgate is None:
+                self._program.add_instruction(instruction)
+            elif (
+                existing_defgate.specification != defgate.specification
+                or existing_defgate.specification.inner() != existing_defgate.specification.inner()
+            ):
+                warnings.warn("Redefining gate {}".format(defgate.name))
+                new_instructions = (
+                    self._program.instructions[:idx] + [instruction] + self._program.instructions[idx + 1 :]
+                )
+                self._program = self._program.clone_without_body_instructions()
+                self._program.add_instructions(new_instructions)
+        elif instruction.is_calibration_definition():
+            defcal = instruction.to_calibration_definition()
+            idx, existing_calibration = next(
+                (
+                    (i, existing_calibration)
+                    for i, existing_calibration in enumerate(self._program.calibrations.calibrations)
+                    if defcal.name == existing_calibration.name
+                    and defcal.parameters == existing_calibration.parameters
+                    and defcal.qubits == existing_calibration.qubits
+                ),
+                (0, None),
+            )
+            if existing_calibration is None:
+                self._program.add_instruction(instruction)
+
+            elif (
+                existing_calibration.instructions != defcal.instructions
+                or existing_calibration.modifiers != defcal.modifiers
+            ):
+                warnings.warn("Redefining calibration {}".format(defcal.name))
+                current_calibrations = self._program.calibrations
+                new_calibrations = CalibrationSet(
+                    current_calibrations.calibrations[:idx] + [defcal] + current_calibrations.calibrations[idx + 1 :],
+                    current_calibrations.measure_calibrations,
+                )
+                self._program.calibrations = new_calibrations
+        elif instruction.is_measure_calibration_definition():
+            defmeasure = instruction.to_measure_calibration_definition()
+            idx, existing_measure_calibration = next(
+                (
+                    (i, existing_measure_calibration)
+                    for i, existing_measure_calibration in enumerate(self._program.calibrations.measure_calibrations)
+                    if existing_measure_calibration.parameter == defmeasure.parameter
+                    and existing_measure_calibration.qubit == defmeasure.qubit
+                ),
+                (0, None),
+            )
+            if existing_measure_calibration is None:
+                self._program.add_instruction(instruction)
+
+            else:
+                warnings.warn("Redefining DefMeasureCalibration {}".format(instruction))
+                current_calibrations = self._program.calibrations
+                new_calibrations = CalibrationSet(
+                    current_calibrations.calibrations,
+                    current_calibrations.measure_calibrations[:idx]
+                    + [defmeasure]
+                    + current_calibrations.measure_calibrations[idx + 1 :],
+                )
+
+                self._program.calibrations = new_calibrations
+        else:
+            self._program.add_instruction(instruction)
 
     def gate(
         self,

@@ -113,6 +113,18 @@
   
   '''
 # ---
+# name: test_defcal_redefinition
+  'RX(3.141592653589793) 1'
+# ---
+# name: test_defcal_redefinition.1
+  'RX(1.5707963267948966) 1'
+# ---
+# name: test_defcalmeasure_redefinition
+  'RX(3.141592653589793) 1'
+# ---
+# name: test_defcalmeasure_redefinition.1
+  'RX(1.5707963267948966) 1'
+# ---
 # name: test_defgate
   '''
   DEFGATE TEST AS MATRIX:
@@ -150,6 +162,9 @@
   SWAP 0 2
   
   '''
+# ---
+# name: test_defmeasurecal_redefinition
+  'RX(3.141592653589793) 1'
 # ---
 # name: test_gate
   'TEST 1 2'
