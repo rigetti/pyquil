@@ -64,7 +64,7 @@ Collect debug information
     from pyquil.diagnostics import get_report
     print(get_report())
 
-   .. testcode:: version
+   .. testoutput:: version
       :hide:
   
       ...
