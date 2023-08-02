@@ -2,7 +2,7 @@
 
 ## 4.0.0
 
-The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest generation of Rust SDKs. With this comes access to new features, improved performance, stronger type safety, and better error messages. While this is a significant change for the internals of pyQuil, we've attempted to keep breaking changes to a minimum. Unless necessary, we've chosen to only remove redunant or lesser used features that aren't likely to bother most users.
+The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest generation of Rust SDKs. With this comes access to new features, improved performance, stronger type safety, and better error messages. While this is a significant change for the internals of pyQuil, we've attempted to keep breaking changes to a minimum. Unless necessary, we've chosen to only remove redundant or lesser used features that aren't likely to bother most users.
 
 ### Breaking Changes
 
@@ -21,6 +21,8 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 	- Better error messages when a request fails
 - The improved Rust backend allows on-demand access to a QPU.
 - The new `QPUCompilerAPIOptions` class provides can now be used to customize how a program is compiled against a QPU.
+- The `diagnostics` module has been introduced with a `get_report` function that will gather information on the currently running pyQuil
+installation, perform diagnostics checks, and return a summary.
 
 ## 3.5.4
 
