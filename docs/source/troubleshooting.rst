@@ -7,7 +7,7 @@ If you're having any trouble running your pyQuil programs locally or on the QPU,
 following things before sending a support request. It will save you time and make it easier for us
 to help!
 
-Timeout in Compilation
+Timeout in compilation
 ----------------------
 
 This may occur due to the size of your program, problems with your local ``quilc`` service, or problems
@@ -18,26 +18,26 @@ with the remote QCS API.
 3. If you have a larger program and expect it to take a long time to compile, set a higher ``compiler_timeout``
    value per the instructions here: :ref:`compiler`.
 
-Timeout in Execution
+Timeout in execution
 --------------------
 
 This may occur due to one of several different problems. Often, it's because you don't have network access
 to the execution endpoint.
 
-If you're running against the QVM, ensure that it is properly running: :ref:`server`. If you're using docker,
+If you're running against the QVM, ensure that it's running: :ref:`server`. If you're using docker,
 you can check this using ``docker ps``.
 
 If you're running against the QPU, ensure that you are running your program from a supported environment.
 Live Rigetti QPUs are **only accessible from Rigetti-provided environments**, such as
 `JupyterHub <https://jupyterhub.qcs.rigetti.com>`_. If you are running from anywhere else, such as a
 script on your local computer or a public cloud virtual machine,
-**your program will not be able to reach a QPU and will time out**.
+**your program won't be able to reach a QPU and will time out**.
 
-Collect Debug Information
-----------------------------
+Collect debug information
+-------------------------
 
 1. Ensure that your pyQuil version is up to date. If you're using ``pip``, you can do this with
-   ``pip freeze``. Within your script, you can use ``__version__``:
+   ``pip show pyquil``. Within your script, you can use ``__version__``:
 
    .. testcode:: version
 
@@ -51,28 +51,41 @@ Collect Debug Information
 
    You can update pyQuil with ``pip`` using ``pip install pyquil --upgrade``. You can find
    the latest version available at
-   `our releases page <https://github.com/rigetti/pyquil/releases>`_ or
+   `the releases page <https://github.com/rigetti/pyquil/releases>`_ or
    `on PyPi <https://pypi.org/project/pyquil/>`_.
 
-2. If the error appears to be authentication-related, refer to the `QCS CLI documentation
-<https://docs.rigetti.com>`_.
 
-3. Run your script with debug logging enabled. If you're running a script, you can enable that
-   using an environment variable:
+2. pyQuil exposes a diagnostics report that prints helpful debugging information, including
+   whether you have connectivity to ``quilc``, ``QVM`` and access to QCS services. You can
+   use it by importing a function from the ``diagnostics`` module:
 
-   .. code::
+   .. testcode:: version
 
-    LOG_LEVEL=DEBUG pyquil my_script.py
+    from pyquil.diagnostics import get_report
+    print(get_report())
+
+   .. testoutput:: version
+      :hide:
+  
+      ...
+
+   Use this report to confirm you have connectivity to the services you need and that your
+   environment matches what you expect.
+
+
+3. Run your script with debug logging enabled by adding the following to the top of your script:
 
    .. testcode:: python
 
     import logging
-    from pyquil.api._logger import logger
+    logging.basicConfig(level=logging.DEBUG)
 
-    logger.setLevel(logging.DEBUG)
+   .. note:: For information on how to filter the logs, see the `qcs-sdk-python logging documentation <https://github.com/rigetti/qcs-sdk-rust/tree/main/crates/python#enabling-debug-logging>`_
 
 If the problem still isn't clear, then we can help! Please file an issue
 on the `GitHub repo <https://github.com/rigetti/pyquil>`_ if it's an issue with pyQuil itself,
-or contact us at our `support page <https://rigetti.zendesk.com>`_ for problems with QCS.
+or contact us at our `support page <https://rigetti.zendesk.com>`_ for problems with QCS. If applicable,
+be sure to include the diagnostics report and debug logs from above as they will help us better
+diagnose the problem.
 
 Thanks for using pyQuil!
