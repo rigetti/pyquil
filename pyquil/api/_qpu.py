@@ -72,7 +72,8 @@ def _extract_memory_regions(
 
     regions: Dict[str, np.ndarray] = {}
 
-    # filter out the ro_sources and initialize regions
+    # filter out the ro_sources to only get the ones that are used and group
+    # mrefs by their name
     sources = {mem_desc: defaultdict(list) for mem_desc in memory_descriptors}
     for mref, key in ro_sources.items():
         # Translation sometimes introduces ro_sources that the user didn't
