@@ -224,5 +224,6 @@ class QPU(QAM[QPUExecuteResponse]):
         return QAMExecutionResult(
             executable=execute_response._executable,
             readout_data=result_memory,
+            raw_readout_data=decoded_buffers,
             execution_duration_microseconds=results.execution_duration_microseconds,
         )

@@ -159,7 +159,10 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         Because QVM execution is synchronous, this is a no-op which returns its input.
         """
-        return QAMExecutionResult(executable=execute_response.executable, readout_data=execute_response.memory)
+        readout_data = execute_response.memory
+        return QAMExecutionResult(
+            executable=execute_response.executable, readout_data=execute_response.memory, raw_readout_data=readout_data
+        )
 
     def get_version_info(self) -> str:
         """
