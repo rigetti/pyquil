@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "4.0.0-rc.39"
+version = "4.0.0-rc.40"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = ["Rigetti Computing <softapps@rigetti.com>"]
 readme = "README.md"
@@ -28,8 +28,7 @@ rpcq = "^3.10.0"
 pydantic = "^1.10.7"
 networkx = ">=2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
-qcs-sdk-python = "0.10.3-rc.1"
-quil = "0.1.1"
+qcs-sdk-python = "0.10.8"
 tenacity = "^8.2.2"
 types-python-dateutil = "^2.8.19"
 types-retry = "^0.9.9"
