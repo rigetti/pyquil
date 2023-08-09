@@ -19,6 +19,8 @@ from typing import Dict, List, Optional, Sequence, Type, Union, Any
 
 import numpy as np
 from numpy.random.mtrand import RandomState
+from qcs_sdk import ResultData, ExecutionData
+from qcs_sdk.qvm import QVMResultData
 
 from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
 from pyquil.paulis import PauliTerm, PauliSum
@@ -264,9 +266,12 @@ class PyQVM(QAM["PyQVM"]):
         unused because the PyQVM, unlike other QAM's, is itself stateful.
         """
         assert self.program is not None
-        readout_data = {k: v for k, v in self._memory_results.items()}
+        result_data = QVMResultData(self._memory_results)
+        result_data = ResultData(result_data)
+        data = ExecutionData(result_data=result_data, duration=None)
         return QAMExecutionResult(
-            executable=self.program.copy(), readout_data=readout_data, raw_readout_data=readout_data
+            executable=self.program.copy(),
+            data=data,
         )
 
     def read_memory(self, *, region_name: str) -> np.ndarray:

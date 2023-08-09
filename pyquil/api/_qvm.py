@@ -18,8 +18,8 @@ from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
-from qcs_sdk import QCSClient, qvm
-from qcs_sdk.qvm import QVMOptions
+from qcs_sdk import QCSClient, qvm, ResultData, ExecutionData
+from qcs_sdk.qvm import QVMOptions, QVMResultData
 
 from pyquil._version import pyquil_version
 from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
@@ -51,7 +51,10 @@ def check_qvm_version(version: str) -> None:
 @dataclass
 class QVMExecuteResponse:
     executable: Program
-    memory: Mapping[str, np.ndarray]
+    data: QVMResultData
+
+    def mapping(self) -> Mapping[str, np.ndarray]:
+        return {key: value.as_ndarray() for key, value in self.data.memory.items()}
 
 
 class QVM(QAM[QVMExecuteResponse]):
@@ -150,8 +153,11 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             options=QVMOptions(timeout_seconds=self.timeout),
         )
 
-        memory = {name: np.asarray(data.inner()) for name, data in result.memory.items()}
-        return QVMExecuteResponse(executable=executable, memory=memory)
+        # result_data = ResultData(result)
+        # data = ExecutionData(result_data=result_data, duration=None)
+
+        # memory = {name: np.asarray(data.inner()) for name, data in result.memory.items()}
+        return QVMExecuteResponse(executable=executable, data=result)  # memory=memory)
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
@@ -159,10 +165,10 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         Because QVM execution is synchronous, this is a no-op which returns its input.
         """
-        readout_data = execute_response.memory
-        return QAMExecutionResult(
-            executable=execute_response.executable, readout_data=execute_response.memory, raw_readout_data=readout_data
-        )
+
+        result_data = ResultData(execute_response.data)
+        data = ExecutionData(result_data=result_data, duration=None)
+        return QAMExecutionResult(executable=execute_response.executable, data=data)
 
     def get_version_info(self) -> str:
         """

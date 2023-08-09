@@ -15,10 +15,12 @@
 ##############################################################################
 from dataclasses import dataclass
 from collections import defaultdict
+from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
+from qcs_sdk.qpu import ReadoutValues, QPUResultData
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram
@@ -27,7 +29,7 @@ from pyquil.api._qam import MemoryMap, QAM, QAMExecutionResult
 from pyquil.quilatom import (
     MemoryReference,
 )
-from qcs_sdk import QCSClient
+from qcs_sdk import QCSClient, ResultData, ExecutionData
 from qcs_sdk.qpu.api import (
     submit,
     retrieve_results,
@@ -110,6 +112,7 @@ class QPUExecuteResponse:
     job_id: str
     _executable: EncryptedProgram
     execution_options: Optional[ExecutionOptions]
+    _memory_map: MemoryMap
 
 
 class QPU(QAM[QPUExecuteResponse]):
@@ -184,7 +187,8 @@ class QPU(QAM[QPUExecuteResponse]):
             executable.ro_sources is not None
         ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
 
-        patch_values = build_patch_values(executable.recalculation_table, memory_map or {})
+        memory_map = memory_map or {}
+        patch_values = build_patch_values(executable.recalculation_table, memory_map)
 
         job_id = submit(
             program=executable.program,
@@ -194,7 +198,9 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options=execution_options or self.execution_options,
         )
 
-        return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=execution_options)
+        return QPUExecuteResponse(
+            _executable=executable, job_id=job_id, execution_options=execution_options, _memory_map=memory_map
+        )
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
@@ -208,22 +214,35 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options=execute_response.execution_options,
         )
 
-        ro_sources = execute_response._executable.ro_sources
-        decoded_buffers = {k: decode_buffer(v) for k, v in results.buffers.items()}
-
-        result_memory = {}
-        if len(decoded_buffers) != 0:
-            extracted = _extract_memory_regions(
-                execute_response._executable.memory_descriptors, ro_sources, decoded_buffers
-            )
-            for name, array in extracted.items():
-                result_memory[name] = array
-        elif not ro_sources:
-            result_memory["ro"] = np.zeros((0, 0), dtype=np.int64)
-
-        return QAMExecutionResult(
-            executable=execute_response._executable,
-            readout_data=result_memory,
-            raw_readout_data=decoded_buffers,
-            execution_duration_microseconds=results.execution_duration_microseconds,
+        readout_values = {key: ReadoutValues(value) for key, value in results.buffers.items()}
+        mappings = {
+            key: value.n
+            for key, value in execute_response._executable.ro_sources
+            if key in execute_response._executable.memory_descriptors
+        }
+        result_data = QPUResultData(mappings=mappings, readout_values=readout_values)
+        result_data = ResultData(result_data)
+        data = ExecutionData(
+            result_data=result_data, duration=timedelta(microseconds=results.execution_duration_microseconds)
         )
+
+        return QAMExecutionResult(executable=execute_response._executable, data=data)
+
+        # ro_sources = execute_response._executable.ro_sources
+        # decoded_buffers = {k: decode_buffer(v) for k, v in results.buffers.items()}
+
+        # result_memory = {}
+        # if len(decoded_buffers) != 0:
+        #    extracted = _extract_memory_regions(
+        #        execute_response._executable.memory_descriptors, ro_sources, decoded_buffers
+        #    )
+        #    for name, array in extracted.items():
+        #        result_memory[name] = array
+        # elif not ro_sources:
+        #    result_memory["ro"] = np.zeros((0, 0), dtype=np.int64)
+
+        # return QAMExecutionResult(
+        #    executable=execute_response._executable,
+        #    readout_data=result_memory,
+        #    execution_duration_microseconds=results.execution_duration_microseconds,
+        # )

@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from typing import Any, Generic, Mapping, Optional, TypeVar, Sequence, Union
 
 import numpy as np
+from qcs_sdk import ExecutionData
+
 from pyquil.api._abstract_compiler import QuantumExecutable
 
 
@@ -37,14 +39,26 @@ class QAMExecutionResult:
     executable: QuantumExecutable
     """The executable corresponding to this result."""
 
-    readout_data: Mapping[str, Optional[np.ndarray]] = field(default_factory=dict)
-    """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
+    data: ExecutionData
+    """"""
 
-    raw_readout_data: Any = field(default_factory=dict)
-    """Raw readout data returned from the QAM without any modification or normalization."""
+    @property
+    def readout_data(self) -> Mapping[str, Optional[np.ndarray]]:
+        """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
+        # TODO: this is not correct. What _is_ the correct way to handle this?
+        # return self.data.result_data.to_register_map()
 
-    execution_duration_microseconds: Optional[int] = field(default=None)
-    """Duration job held exclusive hardware access. Defaults to ``None`` when information is not available."""
+        # TODO: is this correct for backwards-compatibility?
+        if self.data.result_data.is_qpu():
+            return {key: value.as_ndarray() for key, value in self.data.result_data.to_qpu().readout_values.items()}
+        elif self.data.result_data.is_qvm():
+            return {key: value.as_ndarray() for key, value in self.data.result_data.to_qvm().memory.items()}
+        raise ValueError("ResultData is neither QPU data nor QVM data")
+
+    @property
+    def execution_duration_microseconds(self) -> Optional[int]:
+        """Duration job held exclusive hardware access. Defaults to ``None`` when information is not available."""
+        return self.data.duration.microseconds
 
 
 class QAM(ABC, Generic[T]):
