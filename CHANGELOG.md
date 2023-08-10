@@ -24,6 +24,11 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - The new `QPUCompilerAPIOptions` class provides can now be used to customize how a program is compiled against a QPU.
 - The `diagnostics` module has been introduced with a `get_report` function that will gather information on the currently running pyQuil
 installation, perform diagnostics checks, and return a summary.
+- `QAMExecutionResult` now has a `raw_readout_data` property that can be used to get the raw form of readout data returned from the executor.
+
+### Deprecations
+
+- The `QAMExecutionResult` `readout_data` property has been deprecated to avoid confusion with the new `raw_readout_data` property. Use the `register_map` property instead.
 
 ## 3.5.4
 
