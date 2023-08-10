@@ -53,11 +53,13 @@ class QAMExecutionResult:
     def raw_readout_data(self) -> Union[QVMResultData, QPUResultData]:
         """
         Get the raw result data. This will either be a ``QVMResultData`` or ``QPUResultData``
-        depending on where you ran the job.
+        depending on where the job was run.
 
-        This property is best used when running programs that use advanced features like
-        mid-circuit measurement and dynamic control flow on a QPU since they can produce
-        irregular result shapes that don't necessarily fit in a rectangular matrix.
+        This property should be used when running programs that use features like
+        mid-circuit measurement and dynamic control flow on a QPU, since they can
+        produce irregular result shapes that don't necessarily fit in a
+        rectangular matrix. If the program was run on a QVM, or doesn't use those
+        features, consdier using the ``register_map`` property instead.
         """
         return self.data.result_data.inner()
 
@@ -80,11 +82,11 @@ class QAMExecutionResult:
         register_map = self.data.result_data.to_register_map()
         return {key: matrix.to_ndarray() for key, matrix in register_map.items()}
 
+    @property
     @deprecated(
         version="4.0.0",
         reason="This property is ambiguous now that the `raw_readout_data` property exists and will be removed in future versions. Use `register_map` property instead",
     )
-    @property
     def readout_data(self) -> Mapping[str, Optional[np.ndarray]]:
         """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
         return self.register_map

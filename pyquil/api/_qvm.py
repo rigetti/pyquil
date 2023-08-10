@@ -53,8 +53,10 @@ class QVMExecuteResponse:
     executable: Program
     data: QVMResultData
 
-    def mapping(self) -> Mapping[str, np.ndarray]:
-        return {key: value.as_ndarray() for key, value in self.data.memory.items()}
+    @property
+    def memory(self):
+        register_map = self.data.to_register_map()
+        return {key: matrix.to_ndarray() for key, matrix in register_map.items()}
 
 
 class QVM(QAM[QVMExecuteResponse]):
@@ -153,11 +155,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             options=QVMOptions(timeout_seconds=self.timeout),
         )
 
-        # result_data = ResultData(result)
-        # data = ExecutionData(result_data=result_data, duration=None)
-
-        # memory = {name: np.asarray(data.inner()) for name, data in result.memory.items()}
-        return QVMExecuteResponse(executable=executable, data=result)  # memory=memory)
+        return QVMExecuteResponse(executable=executable, data=result)
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
