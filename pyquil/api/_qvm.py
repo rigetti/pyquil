@@ -14,8 +14,9 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence, Tuple, Dict
 
+import numpy as np
 from qcs_sdk import QCSClient, qvm, ResultData, ExecutionData
 from qcs_sdk.qvm import QVMOptions, QVMResultData
 
@@ -52,7 +53,7 @@ class QVMExecuteResponse:
     data: QVMResultData
 
     @property
-    def memory(self):
+    def memory(self) -> Dict[str, np.ndarray]:
         register_map = self.data.to_register_map()
         return {key: matrix.to_ndarray() for key, matrix in register_map.items()}
 
@@ -158,8 +159,6 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
         Return the results of execution on the QVM.
-
-        Because QVM execution is synchronous, this is a no-op which returns its input.
         """
 
         result_data = ResultData(execute_response.data)

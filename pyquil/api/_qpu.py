@@ -112,7 +112,6 @@ class QPUExecuteResponse:
     job_id: str
     _executable: EncryptedProgram
     execution_options: Optional[ExecutionOptions]
-    _memory_map: MemoryMap
 
 
 class QPU(QAM[QPUExecuteResponse]):
@@ -198,9 +197,7 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options=execution_options or self.execution_options,
         )
 
-        return QPUExecuteResponse(
-            _executable=executable, job_id=job_id, execution_options=execution_options, _memory_map=memory_map
-        )
+        return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=execution_options)
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
