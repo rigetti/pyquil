@@ -14,11 +14,14 @@
 #    limitations under the License.
 ##############################################################################
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Generic, Mapping, Optional, TypeVar, Sequence, Union
 
+from deprecated import deprecated
 import numpy as np
 from qcs_sdk import ExecutionData
+from qcs_sdk.qpu import QPUResultData
+from qcs_sdk.qvm import QVMResultData
 
 from pyquil.api._abstract_compiler import QuantumExecutable
 
@@ -40,20 +43,51 @@ class QAMExecutionResult:
     """The executable corresponding to this result."""
 
     data: ExecutionData
-    """"""
+    """
+    The ``ExecutionData`` returned from the job. Consider using 
+    ``QAMExecutionResult#register_map`` or ``QAMExecutionResult#raw_readout_data``
+    to get at the data in a more convenient format.
+    """
 
+    @property
+    def raw_readout_data(self) -> Union[QVMResultData, QPUResultData]:
+        """
+        Get the raw result data. This will either be a ``QVMResultData`` or ``QPUResultData``
+        depending on where you ran the job.
+
+        This property is best used when running programs that use advanced features like
+        mid-circuit measurement and dynamic control flow on a QPU since they can produce
+        irregular result shapes that don't necessarily fit in a rectangular matrix.
+        """
+        return self.data.result_data.inner()
+
+    @property
+    def register_map(self) -> Mapping[str, Optional[np.ndarray]]:
+        """
+        A mapping of a register name (ie. "ro") to a ``np.ndarray`` containing the values for the
+        register.
+
+        Raises a ``RegisterMatrixConversionError`` if the inner execution data for any of the
+        registers would result in a jagged matrix. QPU result data is captured per measure,
+        meaning a value is returned for every measure to a memory reference, not just once per shot.
+        This is often the case in programs that use mid-circuit measurement or dynamic control flow,
+        where measurements to the same memory reference might occur multiple times in a shot, or be
+        skipped conditionally. In these cases, building a rectangular ``np.ndarray`` would
+        necessitate making assumptions about the data that could skew the data in undesirable ways.
+        Instead, it's recommended to manually build a matrix from the ``QPUResultData`` available
+        on the ``raw_readout_data`` property.
+        """
+        register_map = self.data.result_data.to_register_map()
+        return {key: matrix.to_ndarray() for key, matrix in register_map.items()}
+
+    @deprecated(
+        version="4.0.0",
+        reason="This property is ambiguous now that the `raw_readout_data` property exists and will be removed in future versions. Use `register_map` property instead",
+    )
     @property
     def readout_data(self) -> Mapping[str, Optional[np.ndarray]]:
         """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
-        # TODO: this is not correct. What _is_ the correct way to handle this?
-        # return self.data.result_data.to_register_map()
-
-        # TODO: is this correct for backwards-compatibility?
-        if self.data.result_data.is_qpu():
-            return {key: value.as_ndarray() for key, value in self.data.result_data.to_qpu().readout_values.items()}
-        elif self.data.result_data.is_qvm():
-            return {key: value.as_ndarray() for key, value in self.data.result_data.to_qvm().memory.items()}
-        raise ValueError("ResultData is neither QPU data nor QVM data")
+        return self.register_map
 
     @property
     def execution_duration_microseconds(self) -> Optional[int]:

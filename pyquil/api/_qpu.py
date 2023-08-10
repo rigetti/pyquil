@@ -216,33 +216,14 @@ class QPU(QAM[QPUExecuteResponse]):
 
         readout_values = {key: ReadoutValues(value) for key, value in results.buffers.items()}
         mappings = {
-            key: value.n
+            key: value.name
             for key, value in execute_response._executable.ro_sources
             if key in execute_response._executable.memory_descriptors
         }
         result_data = QPUResultData(mappings=mappings, readout_values=readout_values)
         result_data = ResultData(result_data)
         data = ExecutionData(
-            result_data=result_data, duration=timedelta(microseconds=results.execution_duration_microseconds)
+            result_data=result_data, duration=timedelta(microseconds=results.execution_duration_microseconds or 0)
         )
 
         return QAMExecutionResult(executable=execute_response._executable, data=data)
-
-        # ro_sources = execute_response._executable.ro_sources
-        # decoded_buffers = {k: decode_buffer(v) for k, v in results.buffers.items()}
-
-        # result_memory = {}
-        # if len(decoded_buffers) != 0:
-        #    extracted = _extract_memory_regions(
-        #        execute_response._executable.memory_descriptors, ro_sources, decoded_buffers
-        #    )
-        #    for name, array in extracted.items():
-        #        result_memory[name] = array
-        # elif not ro_sources:
-        #    result_memory["ro"] = np.zeros((0, 0), dtype=np.int64)
-
-        # return QAMExecutionResult(
-        #    executable=execute_response._executable,
-        #    readout_data=result_memory,
-        #    execution_duration_microseconds=results.execution_duration_microseconds,
-        # )

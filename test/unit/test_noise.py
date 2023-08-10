@@ -3,7 +3,8 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 from pytest_mock import MockerFixture
-from qcs_sdk import ResultData, ExecutionData
+from qcs_sdk import ResultData, ExecutionData, RegisterData
+from qcs_sdk.qvm import QVMResultData
 
 from pyquil.api._qam import QAMExecutionResult
 from pyquil.gates import RZ, RX, I, CZ
@@ -296,10 +297,16 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
             executable=None,
             data=ExecutionData(
                 result_data=ResultData(
-                    {
-                        "ro": np.array([[0]]) * int(round(p00 * trials))
-                        + np.array([[1]]) * int(round((1 - p00) * trials))
-                    }
+                    QVMResultData.from_memory_map(
+                        {
+                            "ro": RegisterData.from_i16(
+                                (
+                                    np.array([[0]]) * int(round(p00 * trials))
+                                    + np.array([[1]]) * int(round((1 - p00) * trials))
+                                ).tolist()
+                            )
+                        }
+                    )
                 )
             ),
         ),  # I gate results
@@ -307,10 +314,16 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
             executable=None,
             data=ExecutionData(
                 result_data=ResultData(
-                    {
-                        "ro": np.array([[1]]) * int(round(p11 * trials))
-                        + np.array([[0]]) * int(round((1 - p11) * trials))
-                    }
+                    QVMResultData.from_memory_map(
+                        {
+                            "ro": RegisterData.from_i16(
+                                (
+                                    np.array([[1]]) * int(round(p11 * trials))
+                                    + np.array([[0]]) * int(round((1 - p11) * trials))
+                                ).tolist()
+                            )
+                        }
+                    )
                 )
             ),
         ),  # X gate results
