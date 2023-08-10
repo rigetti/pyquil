@@ -14,9 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence, Tuple
-
-import numpy as np
+from typing import Any, Optional, Sequence, Tuple
 
 from qcs_sdk import QCSClient, qvm, ResultData, ExecutionData
 from qcs_sdk.qvm import QVMOptions, QVMResultData

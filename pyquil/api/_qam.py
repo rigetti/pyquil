@@ -44,7 +44,7 @@ class QAMExecutionResult:
 
     data: ExecutionData
     """
-    The ``ExecutionData`` returned from the job. Consider using 
+    The ``ExecutionData`` returned from the job. Consider using
     ``QAMExecutionResult#register_map`` or ``QAMExecutionResult#raw_readout_data``
     to get at the data in a more convenient format.
     """
@@ -85,7 +85,10 @@ class QAMExecutionResult:
     @property
     @deprecated(
         version="4.0.0",
-        reason="This property is ambiguous now that the `raw_readout_data` property exists and will be removed in future versions. Use `register_map` property instead",
+        reason=(
+            "This property is ambiguous now that the `raw_readout_data` property exists"
+            "and will be removed in future versions. Use `register_map` property instead"
+        ),
     )
     def readout_data(self) -> Mapping[str, Optional[np.ndarray]]:
         """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
