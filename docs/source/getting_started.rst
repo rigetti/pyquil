@@ -42,12 +42,6 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 
     pyQuil requires Python 3.8 or later.
 
-.. note::
-
-   Some of pyQuil's core dependencies are powered by Rust. These dependencies have been pre-built for the most common platforms so that
-   building from source isn't required. However, if you are on a less common platform, or choose to build pyQuil from source, you will need
-   to `install Rust <https://www.rust-lang.org/tools/install>`_.
-
 .. testcode:: verify-min-version
     :hide:
 
@@ -63,10 +57,16 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 
     ^3.8...
 
+.. note::
+
+   Some of pyQuil's core dependencies are powered by Rust. These dependencies have been pre-built for the most common platforms so that
+   building from source isn't required. However, if you are on a less common platform, or choose to build pyQuil from source, you will need
+   to `install Rust <https://www.rust-lang.org/tools/install>`_.
+
 .. _server:
 
 Setting up requisite servers for pyQuil
-=================================
+=======================================
 To get started with pyQuil, ``quilc`` and ``qvm`` should both be running in server mode. If you have them installed locally
 you can run them in their own terminal windows. First launch ``quilc``:
 
@@ -153,9 +153,9 @@ to shot.
 the results to us.
 
 The calls to ``compile`` and ``run`` will make a request to the two servers we started up in the previous section:
-first, to the ``quilc`` server instance to compile the Quil program into native Quil, and then to the ``qvm`` server
-instance to simulate and return measurement results of the program 10 times. If you open up the terminal windows where
-your servers are running, you should see output printed to the console regarding the requests you just made.
+first, to the ``quilc`` server instance to compile the Quil program into native Quil optimized for the target device, and 
+then to the ``qvm`` server instance to simulate and return measurement results of the program 10 times. If you open up
+the terminal windows where your servers are running, you should see output printed to the console regarding the requests you just made.
 
 .. note::
 
