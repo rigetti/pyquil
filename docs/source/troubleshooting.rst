@@ -7,6 +7,8 @@ If you're having any trouble running your pyQuil programs locally or on the QPU,
 following things before sending a support request. It will save you time and make it easier for us
 to help!
 
+.. _timeouts:
+
 Timeout in compilation
 ----------------------
 
