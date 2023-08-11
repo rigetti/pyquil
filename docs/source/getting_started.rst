@@ -65,7 +65,7 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 
 .. _server:
 
-Setting up server mode for pyQuil
+Setting up requisite servers for pyQuil
 =================================
 To get started with pyQuil, ``quilc`` and ``qvm`` should both be running in server mode. If you have them installed locally
 you can run them in their own terminal windows. First launch ``quilc``:
