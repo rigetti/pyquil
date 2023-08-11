@@ -211,11 +211,11 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options=execute_response.execution_options,
         )
 
-        readout_values = {key: ReadoutValues(value) for key, value in results.buffers.items()}
+        readout_values = {key: ReadoutValues(value.data.inner()) for key, value in results.buffers.items()}
         mappings = {
-            key: value.name
-            for key, value in execute_response._executable.ro_sources
-            if key in execute_response._executable.memory_descriptors
+            mref.out(): readout_name
+            for mref, readout_name in execute_response._executable.ro_sources.items()
+            if mref.name in execute_response._executable.memory_descriptors
         }
         result_data = QPUResultData(mappings=mappings, readout_values=readout_values)
         result_data = ResultData(result_data)

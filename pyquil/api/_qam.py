@@ -61,7 +61,15 @@ class QAMExecutionResult:
         rectangular matrix. If the program was run on a QVM, or doesn't use those
         features, consdier using the ``register_map`` property instead.
         """
-        return self.data.result_data.inner()
+        if self.data.result_data.is_qpu():
+            return {
+                "mappings": self.data.result_data.inner().mappings,
+                "readout_values": {
+                    readout: values.inner() for readout, values in self.data.result_data.inner().readout_values.items()
+                },
+            }
+        else:
+            return self.register_map
 
     @property
     def register_map(self) -> Mapping[str, Optional[np.ndarray]]:
