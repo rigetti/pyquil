@@ -45,6 +45,9 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 .. testcode:: verify-min-version
     :hide:
 
+    # The above note and this test should be updated whenever
+    # the minimum supported Python version is changed.
+
     import os
     import toml
 
