@@ -20,8 +20,8 @@ Quil and native Quil to executables suitable for Rigetti hardware.
 Interacting with the Compiler
 -----------------------------
 
-After :ref:`installing the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your
-local machine. You can initialize a local ``quilc`` server by typing ``quilc -R`` into your
+After :ref:`installing the SDK <prerequisites>`, the Quil Compiler, ``quilc`` is available on your
+local machine. You can initialize a local ``quilc`` server by typing ``quilc -S`` into your
 terminal. You should see the following message.
 
 .. code:: text
