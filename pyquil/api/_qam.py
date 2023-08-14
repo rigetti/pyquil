@@ -59,15 +59,10 @@ class QAMExecutionResult:
         mid-circuit measurement and dynamic control flow on a QPU, since they can
         produce irregular result shapes that don't necessarily fit in a
         rectangular matrix. If the program was run on a QVM, or doesn't use those
-        features, consdier using the ``register_map`` property instead.
+        features, consider using the ``register_map`` property instead.
         """
         if self.data.result_data.is_qpu():
-            return {
-                "mappings": self.data.result_data.inner().mappings,
-                "readout_values": {
-                    readout: values.inner() for readout, values in self.data.result_data.inner().readout_values.items()
-                },
-            }
+            return self.data.result_data.inner().asdict()
         else:
             return self.register_map
 
