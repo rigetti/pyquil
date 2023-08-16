@@ -2,7 +2,7 @@ from typing import Sequence, Union
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quilatom import FormalArgument, Frame, Qubit, Label, LabelPlaceholder
+from pyquil.quilatom import FormalArgument, Frame, Qubit, Label, LabelPlaceholder, QubitPlaceholder
 
 
 @pytest.mark.parametrize(
@@ -55,6 +55,17 @@ def test_label():
 def test_label_placeholder():
     prefix = "my-prefix"
     placeholder = LabelPlaceholder(prefix)
+    with pytest.raises:
+        placeholder.out()
     assert placeholder.prefix == prefix
     assert placeholder != LabelPlaceholder(prefix)
     assert hash(placeholder) != hash(LabelPlaceholder(prefix))
+
+
+def test_qubit_placeholder():
+    register = QubitPlaceholder.register(2)
+    assert len(register) == 2
+    with pytest.raises(RuntimeError):
+        register[0].out()
+
+    assert register[0] != register[1]

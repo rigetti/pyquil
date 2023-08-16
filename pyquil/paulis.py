@@ -46,6 +46,7 @@ from pyquil.quilatom import (
     MemoryReference,
     _convert_to_py_expression,
     _convert_to_rs_expression,
+    _convert_to_py_qubits,
 )
 
 import quil.instructions as quil_rs
@@ -760,7 +761,7 @@ class PauliSum(object):
         all_qubits = []
         for term in self.terms:
             all_qubits.extend(term.get_qubits())
-        return list(set(all_qubits))
+        return _convert_to_py_qubits(list(set(all_qubits)))
 
     def simplify(self) -> "PauliSum":
         """

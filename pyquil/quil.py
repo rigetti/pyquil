@@ -248,6 +248,23 @@ class Program:
 
         return self
 
+    def resolve_qubit_placeholders(self):
+        """
+        Resolve all qubit and label placeholders in the program.
+        """
+        self._program.resolve_placeholders_with_custom_resolvers(label_resolver=lambda _: None)
+
+    def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, Union[Qubit, int]]):
+        def qubit_resolver(placeholder: QubitPlaceholder):
+            return qubit_mapping.get(placeholder, None)
+
+        def label_resolver(*args):
+            return None
+
+        self._program.resolve_placeholders_with_custom_resolvers(
+            qubit_resolver=qubit_resolver, label_resolver=label_resolver
+        )
+
     def _add_instruction(self, instruction: quil_rs.Instruction):
         """
         A helper method that adds an instruction to the Program after normalizing to a `quil_rs.Instruction`. For backwards compatibility,
@@ -810,7 +827,11 @@ class Program:
         :param index: The action at the specified index.
         :return:
         """
-        return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
+        return (
+            Program(self._program.to_instructions()[index])
+            if isinstance(index, slice)
+            else _convert_to_py_instruction(self._program.to_instructions()[index])
+        )
 
     def __iter__(self) -> Iterator[AbstractInstruction]:
         """
@@ -898,6 +919,69 @@ def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int
     return flattened_addresses
 
 
+def _what_type_of_qubit_does_it_use(
+    program: Program,
+) -> Tuple[bool, bool, List[Union[Qubit, QubitPlaceholder]]]:
+    """Helper function to peruse through a program's qubits.
+
+    This function will also enforce the condition that a Program uses either all placeholders
+    or all instantiated qubits to avoid accidentally mixing the two. This function will warn
+    if your program doesn't use any qubits.
+
+    :return: tuple of (whether the program uses placeholder qubits, whether the program uses
+        real qubits, a list of qubits ordered by their first appearance in the program)
+    """
+    has_placeholders = False
+    has_real_qubits = False
+
+    # We probably want to index qubits in the order they are encountered in the program
+    # so an ordered set would be nice. Python doesn't *have* an ordered set. Use the keys
+    # of an ordered dictionary instead
+    qubits = {}
+
+    for instr in program:
+        if isinstance(instr, Gate):
+            for q in instr.qubits:
+                qubits[q] = 1
+                if isinstance(q, QubitPlaceholder):
+                    has_placeholders = True
+                elif isinstance(q, Qubit):
+                    has_real_qubits = True
+                else:
+                    raise ValueError("Unknown qubit type {}".format(q))
+        elif isinstance(instr, Measurement):
+            qubits[instr.qubit] = 1
+            if isinstance(instr.qubit, QubitPlaceholder):
+                has_placeholders = True
+            elif isinstance(instr.qubit, Qubit):
+                has_real_qubits = True
+            else:
+                raise ValueError("Unknown qubit type {}".format(instr.qubit))
+        elif isinstance(instr, Pragma):
+            for arg in instr.args:
+                if isinstance(arg, QubitPlaceholder):
+                    qubits[arg] = 1
+                    has_placeholders = True
+                elif isinstance(arg, Qubit):
+                    qubits[arg] = 1
+                    has_real_qubits = True
+    if not (has_placeholders or has_real_qubits):
+        warnings.warn("Your program doesn't use any qubits")
+
+    if has_placeholders and has_real_qubits:
+        raise ValueError("Your program mixes instantiated qubits with placeholders")
+
+    # The isinstance checks above make sure that if any qubit is a
+    # FormalArgument (which is permitted by Gate.qubits), then an
+    # error should be raised. Unfortunately this doesn't help mypy
+    # narrow down the return type, so gotta cast.
+    return (
+        has_placeholders,
+        has_real_qubits,
+        cast(List[Union[Qubit, QubitPlaceholder]], list(qubits.keys())),
+    )
+
+
 def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceholder], Qubit]:
     """
     Takes a program which contains qubit placeholders and provides a mapping to the integers
@@ -931,6 +1015,10 @@ def address_qubits(
         to :py:class:`Qubit` or ``int`` (but not both).
     :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
     """
+    if qubit_mapping:
+        program.resolve_qubit_placeholders_with_mapping(qubit_mapping)
+    else:
+        program.resolve_qubit_placeholders()
     return program
 
 
@@ -1033,4 +1121,5 @@ def validate_supported_quil(program: Program) -> None:
     """
     This function has been deprecated. It is now a no-op.
     """
+    pass
     pass

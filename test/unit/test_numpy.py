@@ -107,6 +107,7 @@ def test_einsum_simulator_10q():
 # TODO: Review PyQVM
 def test_measure():
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
+    print(Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
     qam.execute(Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
     measured_bit = qam.ram["ro"][-1]
     should_be = np.zeros((2, 2, 2))

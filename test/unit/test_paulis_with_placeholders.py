@@ -54,6 +54,7 @@ def test_simplify_terms():
     assert term.coefficient == -1.0
 
     term = PauliTerm("Z", q[0]) + PauliTerm("Z", q[0], 1.0)
+    print(str(term))
     assert str(term).startswith("(2+0j)*Zq")
 
 
@@ -64,7 +65,7 @@ def test_get_qubits():
 
     q10 = QubitPlaceholder()
     sum_term = PauliTerm("X", q[0], 0.5) + 0.5j * PauliTerm("Y", q10) * PauliTerm("Y", q[0], 0.5j)
-    assert sum_term.get_qubits() == [q[0], q10]
+    assert set(sum_term.get_qubits()) == {q[0], q10}
 
 
 def test_simplify_term_single():
@@ -163,9 +164,8 @@ def test_ids():
     term_1 = PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0) * PauliTerm("X", q[5], 5)
     term_2 = PauliTerm("X", q[5], 5) * PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0)
     # Not sortable
-    with pytest.raises(TypeError):
-        with pytest.warns(FutureWarning):
-            term_1.id() == term_2.id()
+    with pytest.warns(FutureWarning):
+        term_1.id() == term_2.id()
 
 
 def test_ids_no_sort():
@@ -396,13 +396,13 @@ def test_exponentiate_identity():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(q[0]), PHASE(-1.0, q[0]), X(q[0]), PHASE(-1.0, q[0])])
-    assert address_qubits(prog) == address_qubits(result_prog)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
     generator = PauliTerm("I", q[10], 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(q[0]), PHASE(-0.08, q[0]), X(q[0]), PHASE(-0.08, q[0])])
-    assert address_qubits(prog) == address_qubits(result_prog)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
 
 # TODO: Placeholders quil-rs#147
@@ -680,7 +680,7 @@ def test_ordered():
     mapping = {x: i for i, x in enumerate(q)}
     term = sZ(q[3]) * sZ(q[2]) * sZ(q[1])
     prog = address_qubits(exponential_map(term)(0.5), mapping)
-    assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1.0) 1\nCNOT 2 1\nCNOT 3 2\n"
+    assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1) 1\nCNOT 2 1\nCNOT 3 2\n"
 
 
 # TODO: Placeholders quil-rs#147
