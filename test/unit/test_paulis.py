@@ -300,7 +300,7 @@ def test_exponentiate_2():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst(CNOT(0, 1)).inst(RZ(2.0, 1)).inst(CNOT(0, 1))
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_exponentiate_bp0_ZX():
@@ -309,7 +309,7 @@ def test_exponentiate_bp0_ZX():
     param_prog = exponential_map(generator)
     prog = param_prog(1)
     result_prog = Program().inst([H(0), CNOT(0, 1), RZ(2.0, 1), CNOT(0, 1), H(0)])
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_exponentiate_bp1_XZ():
@@ -318,7 +318,7 @@ def test_exponentiate_bp1_XZ():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([H(1), CNOT(0, 1), RZ(2.0, 1), CNOT(0, 1), H(1)])
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_exponentiate_bp0_ZY():
@@ -357,7 +357,7 @@ def test_exponentiate_3cob():
             H(2),
         ]
     )
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_exponentiate_3ns():
@@ -380,21 +380,21 @@ def test_exponentiate_3ns():
             RX(-math.pi / 2.0, 3),
         ]
     )
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_exponentiate_commuting_pauli_sum():
     pauli_sum = PauliSum([PauliTerm("Z", 0, 0.5), PauliTerm("Z", 1, 0.5)])
     prog = Program().inst(RZ(1.0, 0)).inst(RZ(1.0, 1))
     result_prog = exponentiate_commuting_pauli_sum(pauli_sum)(1.0)
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_exponentiate_prog():
     ham = PauliTerm("Z", 0)
     result_prog = Program(RZ(2.0, 0))
     prog = exponentiate(ham)
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_exponentiate_identity():
@@ -402,19 +402,19 @@ def test_exponentiate_identity():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program()
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
     generator = PauliTerm("I", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(0), PHASE(-1.0, 0), X(0), PHASE(-1.0, 0)])
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
     generator = PauliTerm("I", 10, 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(0), PHASE(-0.08, 0), X(0), PHASE(-0.08, 0)])
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_trotterize():
@@ -428,22 +428,22 @@ def test_trotterize():
 
     prog = trotterize(term_one, term_one)
     result_prog = Program().inst([H(0), RZ(2.0, 0), H(0), H(0), RZ(2.0, 0), H(0)])
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
     # trotter_order 1 steps 1
     prog = trotterize(term_one, term_two, trotter_steps=1)
     result_prog = Program().inst([H(0), RZ(2.0, 0), H(0), RZ(2.0, 0)])
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
     # trotter_order 1 steps 2
     prog = trotterize(term_one, term_two, trotter_steps=2)
     result_prog = Program().inst([H(0), RZ(1.0, 0), H(0), RZ(1.0, 0), H(0), RZ(1.0, 0), H(0), RZ(1.0, 0)])
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
     # trotter_order 2 steps 1
     prog = trotterize(term_one, term_two, trotter_order=2)
     result_prog = Program().inst([H(0), RZ(1.0, 0), H(0), RZ(2.0, 0), H(0), RZ(1.0, 0), H(0)])
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
     # trotter_order 2 steps 2
     prog = trotterize(term_one, term_two, trotter_order=2, trotter_steps=2)
@@ -465,7 +465,7 @@ def test_trotterize():
             H(0),
         ]
     )
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
     # trotter_order 3 steps 1
     prog = trotterize(term_one, term_two, trotter_order=3, trotter_steps=1)
@@ -485,7 +485,7 @@ def test_trotterize():
             RZ(2.0, 0),
         ]
     )
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 # TODO: program_unitary rewrite

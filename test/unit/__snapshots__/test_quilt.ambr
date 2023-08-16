@@ -62,7 +62,7 @@
   	NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
   	SHIFT-PHASE 110 111 "cphase" -1.2+(0.5*%theta)
   	NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
-  	SHIFT-PHASE 110 111 "cphase" -1*(-1.2+0.5*%theta)
+  	SHIFT-PHASE 110 111 "cphase" -1*(-1.2+(0.5*%theta))
   	DELAY 110 "rf" 3.2e-7
   	SHIFT-PHASE 110 "rf" 2.2
   	DELAY 111 "rf" 3.2e-7
@@ -78,7 +78,7 @@
   	NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
   	SHIFT-PHASE 110 111 "cphase" -1.2+(0.5*%theta)
   	NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
-  	SHIFT-PHASE 110 111 "cphase" -1*(-1.2+0.5*%theta)
+  	SHIFT-PHASE 110 111 "cphase" -1*(-1.2+(0.5*%theta))
   	DELAY 110 "rf" 3.2e-7
   	SHIFT-PHASE 110 "rf" 2.2
   	DELAY 111 "rf" 3.2e-7
@@ -182,7 +182,7 @@
   	SHIFT-PHASE 110 111 "xy" -0.4
   	SHIFT-PHASE 110 111 "xy" 1.8+(-0.5*%theta)
   	NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
-  	SHIFT-PHASE 110 111 "xy" -1*(1.8+-0.5*%theta)
+  	SHIFT-PHASE 110 111 "xy" -1*(1.8+(-0.5*%theta))
   	DELAY 110 "rf" 1.2e-7
   	SHIFT-PHASE 110 "rf" 0.8
   	DELAY 111 "rf" 1.2e-7
@@ -207,7 +207,7 @@
   	SHIFT-PHASE 110 111 "xy" -0.4
   	SHIFT-PHASE 110 111 "xy" 1.8+(-0.5*%theta)
   	NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
-  	SHIFT-PHASE 110 111 "xy" -1*(1.8+-0.5*%theta)
+  	SHIFT-PHASE 110 111 "xy" -1*(1.8+(-0.5*%theta))
   	DELAY 110 "rf" 1.2e-7
   	SHIFT-PHASE 110 "rf" 0.8
   	DELAY 111 "rf" 1.2e-7

@@ -71,7 +71,7 @@ def test_tomo_experiment_pre_grouped():
 def test_tomo_experiment_empty():
     suite = Experiment([], program=Program(X(0)))
     assert len(suite) == 0
-    assert str(suite.program) == "X 0\n"
+    assert suite.program.out() == "X 0\n"
 
 
 def test_experiment_deser(tmpdir):

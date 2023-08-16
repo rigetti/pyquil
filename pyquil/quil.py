@@ -840,7 +840,7 @@ class Program:
         This may not be suitable for submission to a QPU or QVM for example if
         your program contains unaddressed QubitPlaceholders
         """
-        return str(self._program)
+        return self._program.to_quil_or_debug()
 
 
 def merge_with_pauli_noise(

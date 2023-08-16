@@ -904,6 +904,9 @@ class Frame(quil_rs.FrameIdentifier):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
     def __new__(cls, name: str, parameters: Optional[Dict[str, ParameterDesignator]] = None) -> Self:
@@ -923,6 +926,9 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
 
     def out(self) -> str:
         return self.to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 @deprecated(
@@ -1045,6 +1051,9 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
     @classmethod
     def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
         return super().__new__(cls, waveform.name, waveform.parameters)
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 def _update_envelope(
