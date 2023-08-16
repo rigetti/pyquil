@@ -302,24 +302,23 @@ class Label(QuilAtom):
         return hash(self._label)
 
 
-class LabelPlaceholder(QuilAtom):
-    def __init__(self, prefix: str = "L"):
-        self.prefix = prefix
+class LabelPlaceholder(quil_rs.LabelPlaceholder, QuilAtom):
+    def __new__(cls, prefix: str = "L") -> Self:
+        return super().__new__(cls, prefix)
+
+    @property
+    def prefix(self) -> str:
+        return super().base_label
+
+    @prefix.setter
+    def prefix(self, prefix: str):
+        quil_rs.LabelPlaceholder.__set__(self, prefix)
 
     def out(self) -> str:
         raise RuntimeError("Label has not been assigned a name")
 
     def __str__(self) -> str:
-        return repr(self)
-
-    def __repr__(self) -> str:
-        return "<LabelPlaceholder {} {}>".format(self.prefix, id(self))
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, LabelPlaceholder) and id(other) == id(self)
-
-    def __hash__(self) -> int:
-        return hash(id(self))
+        return super().to_quil_or_debug()
 
 
 ParameterDesignator = Union["Expression", "MemoryReference", int, float, complex, np.number]

@@ -1,8 +1,8 @@
-from typing import Sequence, Union, Optional
+from typing import Sequence, Union
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quilatom import FormalArgument, Frame, MemoryReference, Qubit, Label
+from pyquil.quilatom import FormalArgument, Frame, Qubit, Label, LabelPlaceholder
 
 
 @pytest.mark.parametrize(
@@ -50,3 +50,11 @@ def test_label():
     assert hash(label) == hash(Label(name))
     label.name = "new-label"
     assert label.name == "new-label"
+
+
+def test_label_placeholder():
+    prefix = "my-prefix"
+    placeholder = LabelPlaceholder(prefix)
+    assert placeholder.prefix == prefix
+    assert placeholder != LabelPlaceholder(prefix)
+    assert hash(placeholder) != hash(LabelPlaceholder(prefix))
