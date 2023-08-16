@@ -318,7 +318,7 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
     for call in mock_compiler.native_quil_to_executable.call_args_list:
         args, kwargs = call
         prog = args[0]
-        assert prog.instructions[1] == povm_pragma
+        assert prog.instructions[0] == povm_pragma
 
     assert np.allclose(ap, ap_target)
 
