@@ -391,6 +391,10 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         quil_rs.Gate.modifiers.__set__(self, gate.modifiers)
         quil_rs.Gate.qubits.__set__(self, gate.qubits)
 
+    def __str__(self):
+        return super().to_quil_or_debug()
+
+
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
     """
@@ -496,6 +500,9 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class Reset(quil_rs.Reset, AbstractInstruction):
     """
@@ -545,6 +552,9 @@ class Reset(quil_rs.Reset, AbstractInstruction):
         if qubit is not None:
             rs_qubit = _convert_to_rs_qubit(qubit)
         quil_rs.Reset.qubit.__set__(self, rs_qubit)  # type: ignore[attr-defined]
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ResetQubit(Reset):
@@ -630,6 +640,9 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     def __hash__(self) -> int:
         return hash(self.out())
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class DefPermutationGate(DefGate):
     def __new__(cls, name: str, permutation: Union[List[int], np.ndarray]) -> Self:
@@ -655,6 +668,9 @@ class DefPermutationGate(DefGate):
         :return: The number of qubit arguments the gate takes.
         """
         return int(np.log2(len(self.permutation)))
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class DefGateByPaulis(DefGate):
@@ -707,6 +723,9 @@ class DefGateByPaulis(DefGate):
 
     def num_args(self) -> int:
         return len(self.arguments)
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class JumpTarget(AbstractInstruction):
@@ -769,7 +788,7 @@ class SimpleInstruction(AbstractInstruction):
     instruction: ClassVar[quil_rs.Instruction]
 
     def out(self) -> str:
-        return str(self.instruction)
+        return self.instruction.to_quil()
 
     def __str__(self) -> str:
         return self.out()
@@ -819,6 +838,9 @@ class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalNeg(UnaryClassicalInstruction):
@@ -894,6 +916,9 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class ClassicalAnd(LogicalBinaryOp):
     """
@@ -949,6 +974,9 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalAdd(ArithmeticBinaryOp):
@@ -1010,6 +1038,9 @@ class ClassicalMove(quil_rs.Move, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
     """
@@ -1042,6 +1073,9 @@ class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
     """
@@ -1069,6 +1103,9 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+    
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalLoad(quil_rs.Load, AbstractInstruction):
@@ -1104,6 +1141,9 @@ class ClassicalLoad(quil_rs.Load, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 def _to_rs_arithmetic_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ArithmeticOperand:
     if isinstance(operand, MemoryReference):
@@ -1156,6 +1196,9 @@ class ClassicalStore(quil_rs.Store, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
@@ -1225,6 +1268,9 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
         
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalEqual(ClassicalComparison):
@@ -1330,6 +1376,9 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property
     def command(self) -> str:
@@ -1445,7 +1494,7 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
         sharing = super().sharing
         if sharing is None:
             return []
-        return [(offset.offset, str(offset.data_type)) for offset in sharing.offsets]
+        return [(offset.offset, str(offset.data_type).upper()) for offset in sharing.offsets]
 
     @offsets.setter
     def offsets(self, offsets: Optional[List[Tuple[int, str]]]) -> None:
@@ -1466,11 +1515,17 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+    
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class Include(quil_rs.Include, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class RawInstr(AbstractInstruction):
@@ -1500,6 +1555,9 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @deprecated(
         deprecated_in="4.0",
@@ -1552,6 +1610,9 @@ class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
     @property  # type: ignore[override]
     def frame(self) -> Frame:
         return Frame._from_rs_frame_identifier(super().frame)
@@ -1593,6 +1654,9 @@ class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def frame(self) -> Frame:
@@ -1636,6 +1700,9 @@ class SetPhase(quil_rs.SetPhase, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
     @property  # type: ignore[override]
     def frame(self) -> Frame:
         return Frame._from_rs_frame_identifier(super().frame)
@@ -1677,6 +1744,9 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def frame(self) -> Frame:
@@ -1736,6 +1806,9 @@ class SwapPhases(quil_rs.SwapPhases, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
     @deprecated(
         deprecated_in="4.0",
         removed_in="5.0",
@@ -1761,6 +1834,9 @@ class SetScale(quil_rs.SetScale, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def frame(self) -> Frame:
@@ -1844,6 +1920,9 @@ class Capture(quil_rs.Capture, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
     @deprecated(
         deprecated_in="4.0",
         removed_in="5.0",
@@ -1922,6 +2001,9 @@ class RawCapture(quil_rs.RawCapture, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
     @deprecated(
         deprecated_in="4.0",
         removed_in="5.0",
@@ -1960,6 +2042,9 @@ class Delay(quil_rs.Delay, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def qubits(self) -> List[QubitDesignator]:
@@ -2011,6 +2096,9 @@ class Fence(quil_rs.Fence, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
     @property  # type: ignore[override]
     def qubits(self) -> List[QubitDesignator]:
         return _convert_to_py_qubits(super().qubits)
@@ -2050,6 +2138,9 @@ class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property
     def parameters(self) -> List[Parameter]:
@@ -2097,6 +2188,9 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def parameters(self) -> List[Parameter]:
@@ -2183,6 +2277,9 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstruction):
     def __new__(
@@ -2235,6 +2332,9 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
     def out(self) -> str:
         return super().to_quil()
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
     def __new__(
@@ -2286,6 +2386,9 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property
     def frame(self) -> Frame:
