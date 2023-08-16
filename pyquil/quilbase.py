@@ -1307,7 +1307,6 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
     @staticmethod
     def _to_pragma_arguments(args: Sequence[Union[QubitDesignator, str]]) -> List[quil_rs.PragmaArgument]:
         pragma_arguments = []
-        print("processing pragma args", args, [type(arg for arg in args)])
         for arg in args:
             if isinstance(arg, Qubit):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg.index))

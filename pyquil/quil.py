@@ -231,7 +231,7 @@ class Program:
                 else:
                     self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
-                self.inst(RSProgram.parse(instruction.strip()).instructions)
+                self.inst(RSProgram.parse(instruction.strip()))
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
             elif isinstance(instruction, quil_rs.Instruction):
