@@ -902,7 +902,7 @@ class Frame(quil_rs.FrameIdentifier):
         quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
 
 
 class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
@@ -922,7 +922,7 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
         quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return self.to_quil()
 
 
 @deprecated(

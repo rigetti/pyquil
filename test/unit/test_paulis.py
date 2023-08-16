@@ -567,7 +567,6 @@ def test_check_commutation_rigorous():
     commuting_pairs = []
     for x in range(len(pauli_ops_pq)):
         for y in range(x, len(pauli_ops_pq)):
-
             tmp_op = _commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
             if is_zero(tmp_op.terms[0]):
@@ -609,10 +608,10 @@ def test_term_powers():
     for qubit_id in range(2):
         pauli_terms = [sI(qubit_id), sX(qubit_id), sY(qubit_id), sZ(qubit_id)]
         for pauli_term in pauli_terms:
-            assert pauli_term ** 0 == sI(qubit_id)
-            assert pauli_term ** 1 == pauli_term
-            assert pauli_term ** 2 == sI(qubit_id)
-            assert pauli_term ** 3 == pauli_term
+            assert pauli_term**0 == sI(qubit_id)
+            assert pauli_term**1 == pauli_term
+            assert pauli_term**2 == sI(qubit_id)
+            assert pauli_term**3 == pauli_term
     with pytest.raises(ValueError):
         pauli_terms[0] ** -1
     # Test to make sure large powers can be computed
@@ -621,13 +620,13 @@ def test_term_powers():
 
 def test_sum_power():
     pauli_sum = (sY(0) - sX(0)) * (1.0 / np.sqrt(2))
-    assert pauli_sum ** 2 == PauliSum([sI(0)])
+    assert pauli_sum**2 == PauliSum([sI(0)])
     with pytest.raises(ValueError):
-        _ = pauli_sum ** -1
+        _ = pauli_sum**-1
     pauli_sum = sI(0) + sI(1)
-    assert pauli_sum ** 0 == sI(0)
+    assert pauli_sum**0 == sI(0)
     # Test to make sure large powers can be computed
-    pauli_sum ** 400
+    pauli_sum**400
 
 
 def test_term_equality():
@@ -685,7 +684,7 @@ def test_from_list():
 def test_ordered(snapshot):
     term = sZ(3) * sZ(2) * sZ(1)
     prog = exponential_map(term)(0.5)
-    assert str(prog) == snapshot
+    assert prog.out() == snapshot
 
 
 def test_numpy_integer_types():

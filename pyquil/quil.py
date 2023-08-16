@@ -643,9 +643,9 @@ class Program:
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
         if calibrations:
-            return str(self._program)
+            return self._program.to_quil()
         else:
-            return str(self._program.into_simplified())
+            return self._program.into_simplified().to_quil()
 
     @deprecated(
         deprecated_in="4.0",
