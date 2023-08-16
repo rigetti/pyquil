@@ -303,7 +303,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
 
     @property  # type: ignore[override]
     def qubits(self) -> List[QubitDesignator]:
-        return self.get_qubits(indices=False) # type: ignore
+        return self.get_qubits(indices=False)  # type: ignore
 
     @qubits.setter
     def qubits(self, qubits: Sequence[Union[Qubit, QubitPlaceholder, FormalArgument]]) -> None:
@@ -324,8 +324,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
     @modifiers.setter
     def modifiers(self, modifiers: Union[List[str], List[quil_rs.GateModifier]]) -> None:
         modifiers = [
-            self._to_rs_gate_modifier(modifier) if isinstance(modifier, str) else modifier
-            for modifier in modifiers
+            self._to_rs_gate_modifier(modifier) if isinstance(modifier, str) else modifier for modifier in modifiers
         ]
         quil_rs.Gate.modifiers.__set__(self, modifiers)  # type: ignore[attr-defined]
 
@@ -393,7 +392,6 @@ class Gate(quil_rs.Gate, AbstractInstruction):
 
     def __str__(self):
         return super().to_quil_or_debug()
-
 
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
@@ -697,6 +695,7 @@ class DefGateByPaulis(DefGate):
         print(body, type(body))
         if isinstance(body, Sequence):
             from pyquil.paulis import PauliSum
+
             body = PauliSum(body)
         return quil_rs.GateSpecification.from_pauli_sum(body._to_rs_pauli_sum(arguments))
 
@@ -868,18 +867,14 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int]) -> Self:
         operands = cls._to_rs_binary_operands(left, right)
-        return super().__new__(
-                cls,
-                cls.op,
-                operands
-            )
+        return super().__new__(cls, cls.op, operands)
 
     @staticmethod
     def _to_rs_binary_operand(operand: Union[MemoryReference, int]) -> quil_rs.BinaryOperand:
         if isinstance(operand, MemoryReference):
             return quil_rs.BinaryOperand.from_memory_reference(operand._to_rs_memory_reference())
         return quil_rs.BinaryOperand.from_literal_integer(operand)
-        
+
     @staticmethod
     def _to_rs_binary_operands(left: MemoryReference, right: Union[MemoryReference, int]) -> quil_rs.BinaryOperands:
         left_operand = left._to_rs_memory_reference()
@@ -891,7 +886,6 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
         if operand.is_literal_integer():
             return operand.to_literal_integer()
         return MemoryReference._from_rs_memory_reference(operand.to_memory_reference())
-
 
     @property
     def left(self) -> MemoryReference:
@@ -962,7 +956,9 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
 
     @left.setter
     def left(self, left: MemoryReference):
-        quil_rs.Arithmetic.destination.__set__(self, quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference()))
+        quil_rs.Arithmetic.destination.__set__(
+            self, quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference())
+        )
 
     @property
     def right(self) -> Union[MemoryReference, int, float]:
@@ -1103,7 +1099,7 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
-    
+
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
@@ -1112,6 +1108,7 @@ class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     """
     The LOAD instruction.
     """
+
     def __new__(cls, target: MemoryReference, left: str, right: MemoryReference) -> "ClassicalLoad":
         return super().__new__(cls, target._to_rs_memory_reference(), left, right._to_rs_memory_reference())
 
@@ -1145,6 +1142,7 @@ class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+
 def _to_rs_arithmetic_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ArithmeticOperand:
     if isinstance(operand, MemoryReference):
         return quil_rs.ArithmeticOperand.from_memory_reference(operand._to_rs_memory_reference())
@@ -1154,6 +1152,7 @@ def _to_rs_arithmetic_operand(operand: Union[MemoryReference, int, float]) -> qu
         return quil_rs.ArithmeticOperand.from_literal_real(operand)
     raise TypeError(f"{type(operand)} is not a valid ArithmeticOperand")
 
+
 def _to_py_arithmetic_operand(operand: quil_rs.ArithmeticOperand) -> Union[MemoryReference, int, float]:
     if not isinstance(operand, quil_rs.ArithmeticOperand):
         raise TypeError(f"{type(operand)} is not an ArithmeticOperand")
@@ -1162,10 +1161,12 @@ def _to_py_arithmetic_operand(operand: quil_rs.ArithmeticOperand) -> Union[Memor
         return MemoryReference._from_rs_memory_reference(inner)
     return inner
 
+
 class ClassicalStore(quil_rs.Store, AbstractInstruction):
     """
     The STORE instruction.
     """
+
     def __new__(cls, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalStore":
         rs_right = _to_rs_arithmetic_operand(right)
         return super().__new__(cls, target, left._to_rs_memory_reference(), rs_right)
@@ -1265,7 +1266,7 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
         operands = list(super().operands)
         operands[2] = self._to_comparison_operand(right)
         quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
-        
+
     def out(self) -> str:
         return super().to_quil()
 
@@ -1515,7 +1516,7 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
 
     def out(self) -> str:
         return super().to_quil()
-    
+
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
@@ -1952,16 +1953,9 @@ class RawCapture(quil_rs.RawCapture, AbstractInstruction):
         return super().__new__(cls, not nonblocking, frame, rs_duration, rs_memory_reference)
 
     @classmethod
-    def _from_rs_raw_capture(
-        cls,
-        raw_capture: quil_rs.RawCapture
-        ) -> "RawCapture":
+    def _from_rs_raw_capture(cls, raw_capture: quil_rs.RawCapture) -> "RawCapture":
         return super().__new__(
-            cls,
-            raw_capture.blocking,
-            raw_capture.frame,
-            raw_capture.duration,
-            raw_capture.memory_reference
+            cls, raw_capture.blocking, raw_capture.frame, raw_capture.duration, raw_capture.memory_reference
         )
 
     @property  # type: ignore[override]
@@ -2255,7 +2249,7 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
 
     @parameters.setter
     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
-        
+
         quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined]
 
     @property  # type: ignore[override]
@@ -2346,7 +2340,7 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         sample_rate: Optional[float] = None,
         center_frequency: Optional[float] = None,
         enable_raw_capture: Optional[str] = None,
-        channel_delay: Optional[float] = None
+        channel_delay: Optional[float] = None,
     ) -> Self:
         # The quil spec doesn't outline anything for JSON support
         # but it can be used for the hardware_object field.
@@ -2359,8 +2353,24 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         attributes = {
             key: DefFrame._to_attribute_value(value)
             for key, value in zip(
-                ["DIRECTION", "INITIAL-FREQUENCY", "HARDWARE-OBJECT", "SAMPLE-RATE", "CENTER-FREQUENCY", "ENABLE-RAW-CAPTURE", "CHANNEL-DELAY"],
-                [direction, initial_frequency, hardware_object, sample_rate, center_frequency, enable_raw_capture, channel_delay],
+                [
+                    "DIRECTION",
+                    "INITIAL-FREQUENCY",
+                    "HARDWARE-OBJECT",
+                    "SAMPLE-RATE",
+                    "CENTER-FREQUENCY",
+                    "ENABLE-RAW-CAPTURE",
+                    "CHANNEL-DELAY",
+                ],
+                [
+                    direction,
+                    initial_frequency,
+                    hardware_object,
+                    sample_rate,
+                    center_frequency,
+                    enable_raw_capture,
+                    channel_delay,
+                ],
             )
             if value is not None
         }

@@ -158,7 +158,6 @@ class Program:
         :return: a new Program
         """
         new_prog = Program(
-            list(self.declarations.values()),
             list(self.frames.values()),
             list(self.waveforms.values()),
             self.calibrations,
@@ -189,7 +188,7 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        return _convert_to_py_instructions(self._program.to_instructions())
+        return _convert_to_py_instructions(self._program.instructions) + list(self.declarations.values())
 
     @instructions.setter
     def instructions(self, instructions: List[AbstractInstruction]):
