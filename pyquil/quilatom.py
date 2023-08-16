@@ -275,22 +275,31 @@ class Label(QuilAtom):
     """
 
     def __init__(self, label_name: str):
+        self._label = quil_rs.Label.from_fixed(label_name)
         self.name = label_name
 
     def out(self) -> str:
-        return "@{name}".format(name=self.name)
+        return self._label.to_quil()
+
+    @property
+    def name(self) -> str:
+        return self._label.to_fixed()
+
+    @name.setter
+    def name(self, label_name: str) -> str:
+        self._label = quil_rs.Label.from_fixed(label_name)
 
     def __str__(self) -> str:
-        return "@{name}".format(name=self.name)
+        return self._label.to_quil_or_debug()
 
     def __repr__(self) -> str:
-        return "<Label {0}>".format(repr(self.name))
+        return self._label.__repr__()
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Label) and other.name == self.name
+        return isinstance(other, Label) and other._label == self._label
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        return hash(self._label)
 
 
 class LabelPlaceholder(QuilAtom):

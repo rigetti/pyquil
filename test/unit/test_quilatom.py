@@ -2,7 +2,7 @@ from typing import Sequence, Union, Optional
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quilatom import FormalArgument, Frame, MemoryReference, Qubit
+from pyquil.quilatom import FormalArgument, Frame, MemoryReference, Qubit, Label
 
 
 @pytest.mark.parametrize(
@@ -39,3 +39,14 @@ class TestFrame:
     def test_eq(self, frame: Frame):
         assert frame == frame
         assert frame != Frame([], "definitely-not-eq")
+
+
+def test_label():
+    name = "my-label"
+    label = Label(name)
+    assert label.name == name
+    assert label.out() == str(label) == f"@{name}"
+    assert label == Label(name)
+    assert hash(label) == hash(Label(name))
+    label.name = "new-label"
+    assert label.name == "new-label"
