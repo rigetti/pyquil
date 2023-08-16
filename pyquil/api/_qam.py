@@ -15,7 +15,7 @@
 ##############################################################################
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Generic, Mapping, Optional, TypeVar, Sequence, Union
+from typing import Any, Generic, Mapping, Optional, TypeVar, Sequence, Union, Dict
 
 from deprecated import deprecated
 import numpy as np
@@ -50,10 +50,11 @@ class QAMExecutionResult:
     """
 
     @property
-    def raw_readout_data(self) -> Union[QVMResultData, QPUResultData]:
+    def raw_readout_data(self) -> dict:
         """
-        Get the raw result data. This will either be a ``QVMResultData`` or ``QPUResultData``
-        depending on where the job was run.
+        Get the raw result data. This will be a flattened dictionary derived
+        from :class:`qcs_sdk.qvm.QVMResultData` or :class:`qcs_sdk.qpu.QPUResultData` depending on where the
+        job was run. See the respective
 
         This property should be used when running programs that use features like
         mid-circuit measurement and dynamic control flow on a QPU, since they can
@@ -62,12 +63,12 @@ class QAMExecutionResult:
         features, consider using the ``register_map`` property instead.
         """
         if self.data.result_data.is_qpu():
-            return self.data.result_data.inner().asdict()
+            return self.data.result_data.to_qpu().asdict()
         else:
             return self.register_map
 
     @property
-    def register_map(self) -> Mapping[str, Optional[np.ndarray]]:
+    def register_map(self) -> Dict[str, Optional[np.ndarray]]:
         """
         A mapping of a register name (ie. "ro") to a ``np.ndarray`` containing the values for the
         register.
