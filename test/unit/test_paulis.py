@@ -291,7 +291,7 @@ def test_exponentiate_1():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst(RZ(2.0, 0))
-    assert str(prog) == str(result_prog)
+    assert prog.out() == result_prog.out()
 
 
 def test_exponentiate_2():

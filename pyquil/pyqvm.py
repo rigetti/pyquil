@@ -30,7 +30,6 @@ from pyquil.quilbase import (
     ResetQubit,
     DefGate,
     JumpTarget,
-    JumpConditional,
     JumpWhen,
     JumpUnless,
     Halt,
@@ -345,8 +344,8 @@ class PyQVM(QAM["PyQVM"]):
             # Label; pass straight over
             self.program_counter += 1
 
-        elif isinstance(instruction, JumpConditional):
-            # JumpConditional; check classical reg
+        elif isinstance(instruction, (JumpWhen, JumpUnless)):
+            # JumpWhen/Unless; check classical reg
             jump_reg: Optional[MemoryReference] = instruction.condition
             assert jump_reg is not None
             cond = self.ram[jump_reg.name][jump_reg.offset]
@@ -358,13 +357,13 @@ class PyQVM(QAM["PyQVM"]):
             elif isinstance(instruction, JumpUnless):
                 jump_if_cond = False
             else:
-                raise TypeError("Invalid JumpConditional")
+                raise TypeError(f"Invalid {type(instruction)}")
 
             if not (cond ^ jump_if_cond):
                 # jumping: set prog counter to JumpTarget
                 self.program_counter = dest_index
             else:
-                # not jumping: hop over this JumpConditional
+                # not jumping: hop over this instrucion
                 self.program_counter += 1
 
         elif isinstance(instruction, UnaryClassicalInstruction):

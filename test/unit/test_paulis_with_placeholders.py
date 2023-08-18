@@ -252,7 +252,7 @@ def test_exponentiate_2():
     result_prog = Program().inst(CNOT(q[0], q[1])).inst(RZ(2.0, q[1])).inst(CNOT(q[0], q[1]))
 
     mapping = get_default_qubit_mapping(prog)
-    assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
 
 # TODO: Placeholders quil-rs#147
@@ -679,7 +679,9 @@ def test_ordered():
     q = QubitPlaceholder.register(8)
     mapping = {x: i for i, x in enumerate(q)}
     term = sZ(q[3]) * sZ(q[2]) * sZ(q[1])
-    prog = address_qubits(exponential_map(term)(0.5), mapping)
+    prog = exponential_map(term)(0.5)
+    print(prog)
+    prog = address_qubits(prog, mapping)
     assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1) 1\nCNOT 2 1\nCNOT 3 2\n"
 
 

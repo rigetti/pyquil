@@ -55,7 +55,7 @@ def test_label():
 def test_label_placeholder():
     prefix = "my-prefix"
     placeholder = LabelPlaceholder(prefix)
-    with pytest.raises:
+    with pytest.raises(RuntimeError):
         placeholder.out()
     assert placeholder.prefix == prefix
     assert placeholder != LabelPlaceholder(prefix)

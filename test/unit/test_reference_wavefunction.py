@@ -635,6 +635,7 @@ def test_if_then_2():
     prog.if_then(creg, branch_a, branch_b)
     prog += MEASURE(0, creg)
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
+    print(prog)
     qam.execute(prog)
     assert qam.ram["creg"][0] == 1
 

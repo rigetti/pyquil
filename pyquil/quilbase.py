@@ -128,10 +128,14 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_circuit_definition(instr)
     if isinstance(instr, quil_rs.Calibration):
         return quil_rs.Instruction.from_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Convert):
+        return quil_rs.Instruction.from_convert(instr)
     if isinstance(instr, quil_rs.Declaration):
         return quil_rs.Instruction.from_declaration(instr)
     if isinstance(instr, quil_rs.Delay):
         return quil_rs.Instruction.from_delay(instr)
+    if isinstance(instr, quil_rs.Exchange):
+        return quil_rs.Instruction.from_exchange(instr)
     if isinstance(instr, quil_rs.Fence):
         return quil_rs.Instruction.from_fence(instr)
     if isinstance(instr, quil_rs.FrameDefinition):
@@ -142,6 +146,8 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_gate_definition(instr)
     if isinstance(instr, Halt):
         return quil_rs.Instruction.new_halt()
+    if isinstance(instr, quil_rs.Load):
+        return quil_rs.Instruction.from_load(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
         return quil_rs.Instruction.from_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
@@ -168,10 +174,24 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_shift_phase(instr)
     if isinstance(instr, quil_rs.SwapPhases):
         return quil_rs.Instruction.from_swap_phases(instr)
+    if isinstance(instr, quil_rs.Store):
+        return quil_rs.Instruction.from_store(instr)
     if isinstance(instr, Wait):
         return quil_rs.Instruction.new_wait()
     if isinstance(instr, quil_rs.WaveformDefinition):
         return quil_rs.Instruction.from_waveform_definition(instr)
+    if isinstance(instr, quil_rs.Label):
+        return quil_rs.Instruction.from_label(instr)
+    if isinstance(instr, quil_rs.Move):
+        return quil_rs.Instruction.from_move(instr)
+    if isinstance(instr, quil_rs.Jump):
+        return quil_rs.Instruction.from_jump(instr)
+    if isinstance(instr, quil_rs.JumpWhen):
+        return quil_rs.Instruction.from_jump_when(instr)
+    if isinstance(instr, quil_rs.JumpUnless):
+        return quil_rs.Instruction.from_jump_unless(instr)
+    if isinstance(instr, quil_rs.UnaryLogic):
+        return quil_rs.Instruction.from_unary_logic(instr)
     raise ValueError(f"{type(instr)} is not an Instruction")
 
 
@@ -232,6 +252,16 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         return ShiftPhase._from_rs_shift_phase(instr)
     if isinstance(instr, quil_rs.SwapPhases):
         return SwapPhases._from_rs_swap_phases(instr)
+    if isinstance(instr, quil_rs.Label):
+        return JumpTarget._from_rs_label(instr)
+    if isinstance(instr, quil_rs.Move):
+        return ClassicalMove._from_rs_move(instr)
+    if isinstance(instr, quil_rs.Jump):
+        return Jump._from_rs_jump(instr)
+    if isinstance(instr, quil_rs.JumpWhen):
+        return JumpWhen._from_rs_jump_when(instr)
+    if isinstance(instr, quil_rs.JumpUnless):
+        return JumpUnless._from_rs_jump_unless(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     elif isinstance(instr, AbstractInstruction):
@@ -727,56 +757,103 @@ class DefGateByPaulis(DefGate):
         return super().to_quil_or_debug()
 
 
-class JumpTarget(AbstractInstruction):
+class JumpTarget(quil_rs.Label, AbstractInstruction):
     """
     Representation of a target that can be jumped to.
     """
 
-    def __init__(self, label: Union[Label, LabelPlaceholder]):
-        if not isinstance(label, (Label, LabelPlaceholder)):
-            raise TypeError("label must be a Label")
-        self.label = label
+    def __new__(cls, label: Union[Label, LabelPlaceholder]):
+        return super().__new__(cls, label.target)
+
+    @classmethod
+    def _from_rs_label(cls, label: quil_rs.Label) -> "JumpTarget":
+        return super().__new__(cls, label.target)
+
+    @property
+    def label(self) -> Union[Label, LabelPlaceholder]:
+        if super().target.is_placeholder():
+            return LabelPlaceholder._from_rs_target(super().target)
+        return Label._from_rs_target(super().target)
 
     def __repr__(self) -> str:
         return "<JumpTarget {0}>".format(str(self.label))
 
     def out(self) -> str:
-        return "LABEL {0}".format(str(self.label))
+        return super().to_quil()
 
 
-class JumpConditional(AbstractInstruction):
-    """
-    Abstract representation of an conditional jump instruction.
-    """
-
-    op: ClassVar[str]
-
-    def __init__(self, target: Union[Label, LabelPlaceholder], condition: MemoryReference):
-        if not isinstance(target, (Label, LabelPlaceholder)):
-            raise TypeError("target should be a Label")
-        if not isinstance(condition, MemoryReference):
-            raise TypeError("condition should be an MemoryReference")
-        self.target = target
-        self.condition = condition
-
-    def out(self) -> str:
-        return "%s %s %s" % (self.op, self.target, self.condition)
-
-
-class JumpWhen(JumpConditional):
+class JumpWhen(quil_rs.JumpWhen, AbstractInstruction):
     """
     The JUMP-WHEN instruction.
     """
 
-    op = "JUMP-WHEN"
+    def __new__(cls, target: Union[Label, LabelPlaceholder], condition: MemoryReference) -> Self:
+        return super().__new__(cls, target.target, condition._to_rs_memory_reference())
+
+    @classmethod
+    def _from_rs_jump_when(cls, jump_when: quil_rs.JumpWhen) -> Self:
+        return super().__new__(cls, jump_when.target, jump_when.condition)
+
+    def out(self) -> str:
+        return super().to_quil()
+
+    @property
+    def condition(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().condition)
+
+    @condition.setter
+    def condition(self, condition: MemoryReference):
+        quil_rs.JumpWhen.condition.__set__(self, condition._to_rs_memory_reference())
+
+    @property
+    def target(self) -> Union[Label, LabelPlaceholder]:
+        if super().target.is_placeholder():
+            return LabelPlaceholder._from_rs_target(super().target)
+        return Label._from_rs_target(super().target)
+
+    @target.setter
+    def target(self, target: Union[Label, LabelPlaceholder]):
+        quil_rs.JumpWhen.target.__set__(self, target)
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
-class JumpUnless(JumpConditional):
+class JumpUnless(quil_rs.JumpUnless, AbstractInstruction):
     """
     The JUMP-UNLESS instruction.
     """
 
-    op = "JUMP-UNLESS"
+    def __new__(cls, target: Union[Label, LabelPlaceholder], condition: MemoryReference):
+        return super().__new__(cls, target.target, condition._to_rs_memory_reference())
+
+    @classmethod
+    def _from_rs_jump_unless(cls, jump_unless: quil_rs.JumpUnless) -> Self:
+        return super().__new__(cls, jump_unless.target, jump_unless.condition)
+
+    def out(self) -> str:
+        return super().to_quil()
+
+    @property
+    def condition(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().condition)
+
+    @condition.setter
+    def condition(self, condition: MemoryReference):
+        quil_rs.JumpUnless.condition.__set__(self, condition._to_rs_memory_reference())
+
+    @property
+    def target(self) -> Union[Label, LabelPlaceholder]:
+        if super().target.is_placeholder():
+            return LabelPlaceholder._from_rs_target(super().target)
+        return Label._from_rs_target(super().target)
+
+    @target.setter
+    def target(self, target: Union[Label, LabelPlaceholder]):
+        quil_rs.JumpUnless.target.__set__(self, target)
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class SimpleInstruction(AbstractInstruction):
@@ -1014,6 +1091,10 @@ class ClassicalMove(quil_rs.Move, AbstractInstruction):
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalMove":
         return super().__new__(cls, left._to_rs_memory_reference(), _to_rs_arithmetic_operand(right))
+
+    @classmethod
+    def _from_rs_move(cls, move: quil_rs.Move) -> Self:
+        return super().__new__(cls, move.destination, move.source)
 
     @property
     def left(self) -> MemoryReference:
@@ -1314,18 +1395,29 @@ class ClassicalGreaterEqual(ClassicalComparison):
     op = quil_rs.ComparisonOperator.GreaterThanOrEqual
 
 
-class Jump(AbstractInstruction):
+class Jump(quil_rs.Jump, AbstractInstruction):
     """
     Representation of an unconditional jump instruction (JUMP).
     """
 
-    def __init__(self, target: Union[Label, LabelPlaceholder]):
-        if not isinstance(target, (Label, LabelPlaceholder)):
-            raise TypeError("target should be a Label: {target}")
-        self.target = target
+    def __new__(cls, target: Union[Label, LabelPlaceholder]) -> Self:
+        return super().__new__(cls, target.target)
+
+    @classmethod
+    def _from_rs_jump(cls, jump: quil_rs.Jump) -> Self:
+        return super().__new__(cls, jump.target)
+
+    @property
+    def target(self) -> Union[Label, LabelPlaceholder]:
+        if super().target.is_placeholder():
+            return LabelPlaceholder._from_rs_target(super().target)
+        return Label._from_rs_target(super().target)
 
     def out(self) -> str:
-        return "JUMP %s" % self.target
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class Pragma(quil_rs.Pragma, AbstractInstruction):
@@ -2459,4 +2551,5 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
 
     @center_frequency.setter
     def center_frequency(self, center_frequency: float) -> None:
+        self._set_attribute("CENTER-FREQUENCY", center_frequency)
         self._set_attribute("CENTER-FREQUENCY", center_frequency)

@@ -25,7 +25,6 @@ from pyquil.quilbase import (
     AbstractInstruction,
     Wait,
     ResetQubit,
-    JumpConditional,
     JumpWhen,
     JumpUnless,
     Jump,
@@ -97,7 +96,6 @@ PRAGMA_END_GROUP = "END_LATEX_GATE_GROUP"
 
 UNSUPPORTED_INSTRUCTION_CLASSES = (
     Wait,
-    JumpConditional,
     JumpWhen,
     JumpUnless,
     Jump,

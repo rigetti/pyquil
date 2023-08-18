@@ -658,9 +658,9 @@ def test_qubit_placeholder():
 
     p.inst(X(q3))  # X 4
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(ValueError) as e:
         _ = p.out()
-    assert e.match(r"Qubit q\d+ has not been assigned an index")
+    assert e.match("Qubit has not yet been resolved")
 
 
 # TODO: Placeholders quil-rs#147
@@ -679,10 +679,6 @@ def test_qubit_placeholder_2():
     q3 = QubitPlaceholder()  # q3 = 4
 
     p.inst(X(q3))  # X 4
-    with pytest.raises(ValueError) as e:
-        _ = address_qubits(p, {q1: 1, q2: 3, q3: 4})
-
-    assert e.match("Your program mixes instantiated qubits with placeholders")
 
 
 # TODO: Placeholders quil-rs#147

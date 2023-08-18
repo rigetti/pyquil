@@ -164,6 +164,9 @@ class QubitPlaceholder(quil_rs.QubitPlaceholder, QuilAtom):
     def __str__(self) -> str:
         return f"q{id(self)}"
 
+    def __repr__(self) -> str:
+        return f"q{id(self)}"
+
 
 QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
@@ -277,47 +280,68 @@ class Label(QuilAtom):
     :param label_name: The label name.
     """
 
-    def __init__(self, label_name: str):
-        self._label = quil_rs.Label.from_fixed(label_name)
-        self.name = label_name
+    def __init__(self, label_name: str) -> Self:
+        self.target = quil_rs.Target.from_fixed(label_name)
+
+    @staticmethod
+    def _from_rs_target(target: quil_rs.Target) -> Self:
+        return Label(target.to_fixed())
 
     def out(self) -> str:
-        return self._label.to_quil()
+        return self.target.to_quil()
 
     @property
     def name(self) -> str:
-        return self._label.to_fixed()
+        return self.target.to_fixed()
 
     @name.setter
     def name(self, label_name: str) -> str:
-        self._label = quil_rs.Label.from_fixed(label_name)
+        self.target = quil_rs.Target.from_fixed(label_name)
 
     def __str__(self) -> str:
-        return self._label.to_quil_or_debug()
+        return self.target.to_quil_or_debug()
 
     def __repr__(self) -> str:
-        return self._label.__repr__()
+        return repr(self.target)
 
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, Label) and other._label == self._label
+    def __eq__(self, other: "Label") -> bool:
+        return self.target == other.target
 
     def __hash__(self) -> int:
-        return hash(self._label)
+        return hash(self.target)
 
 
-class LabelPlaceholder(quil_rs.LabelPlaceholder, QuilAtom):
-    def __new__(cls, prefix: str = "L") -> Self:
-        return super().__new__(cls, prefix)
+class LabelPlaceholder(QuilAtom):
+    def __init__(self, prefix: str = "L", *, placeholder: Optional[quil_rs.TargetPlaceholder] = None):
+        if placeholder:
+            self.target = quil_rs.Target.from_placeholder(placeholder)
+        else:
+            self.target = quil_rs.Target.from_placeholder(quil_rs.TargetPlaceholder(prefix))
+
+    @staticmethod
+    def _from_rs_target(target: quil_rs.Target) -> Self:
+        return LabelPlaceholder(placeholder=target.to_placeholder())
 
     @property
     def prefix(self) -> str:
-        return super().base_label
+        return self.target.to_placeholder().base_label
 
     def out(self) -> str:
         raise RuntimeError("Label has not been assigned a name")
 
     def __str__(self) -> str:
-        return super().to_quil_or_debug()
+        return self.target.to_quil_or_debug()
+
+    def __repr__(self) -> str:
+        return repr(self.target)
+
+    def __eq__(self, other: "LabelPlaceholder") -> bool:
+        print("self", self, type(self), self.target)
+        print("other", other, type(other), other.target)
+        return self.target == other.target
+
+    def __hash__(self) -> int:
+        return hash(self.target)
 
 
 ParameterDesignator = Union["Expression", "MemoryReference", int, float, complex, np.number]

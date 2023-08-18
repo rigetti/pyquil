@@ -66,7 +66,6 @@ from pyquil.quilbase import (
     Pragma,
     AbstractInstruction,
     Jump,
-    JumpConditional,
     JumpTarget,
     JumpUnless,
     JumpWhen,
@@ -188,7 +187,8 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        return _convert_to_py_instructions(self._program.instructions) + list(self.declarations.values())
+        self._program.resolve_placeholders()
+        return list(self.declarations.values()) + _convert_to_py_instructions(self._program.instructions)
 
     @instructions.setter
     def instructions(self, instructions: List[AbstractInstruction]):
@@ -252,7 +252,7 @@ class Program:
         """
         Resolve all qubit and label placeholders in the program.
         """
-        self._program.resolve_placeholders_with_custom_resolvers(label_resolver=lambda _: None)
+        self._program.resolve_placeholders_with_custom_resolvers(target_resolver=lambda _: None)
 
     def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, Union[Qubit, int]]):
         def qubit_resolver(placeholder: QubitPlaceholder):
@@ -262,7 +262,7 @@ class Program:
             return None
 
         self._program.resolve_placeholders_with_custom_resolvers(
-            qubit_resolver=qubit_resolver, label_resolver=label_resolver
+            qubit_resolver=qubit_resolver, target_resolver=label_resolver
         )
 
     def _add_instruction(self, instruction: quil_rs.Instruction):
@@ -827,11 +827,7 @@ class Program:
         :param index: The action at the specified index.
         :return:
         """
-        return (
-            Program(self._program.to_instructions()[index])
-            if isinstance(index, slice)
-            else _convert_to_py_instruction(self._program.to_instructions()[index])
-        )
+        return Program(self._program.to_instructions()[index]) if isinstance(index, slice) else self.instructions[index]
 
     def __iter__(self) -> Iterator[AbstractInstruction]:
         """
@@ -861,6 +857,9 @@ class Program:
         your program contains unaddressed QubitPlaceholders
         """
         return self._program.to_quil_or_debug()
+
+    def __repr__(self) -> str:
+        repr(self._program)
 
 
 def merge_with_pauli_noise(
@@ -1053,7 +1052,7 @@ def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[Abst
         if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
             new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
             result.append(Jump(new_target))
-        elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
+        elif isinstance(instr, (JumpWhen, JumpUnless)) and isinstance(instr.target, LabelPlaceholder):
             new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
             cls = instr.__class__  # Make the correct subclass
             result.append(cls(new_target, instr.condition))
