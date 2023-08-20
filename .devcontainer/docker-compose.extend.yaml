@@ -1,0 +1,5 @@
+version: '3'
+services:
+  lab:
+    # Overrides default command so things don't shut down after the process ends.
+    command: /bin/bash -c "while sleep 1000; do :; done"
