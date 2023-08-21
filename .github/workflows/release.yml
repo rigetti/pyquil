@@ -22,14 +22,17 @@ jobs:
         . scripts/ci_install_deps
         poetry build --no-interaction
     - name: "Publish"
+      id: publish
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
         poetry publish
+        echo "PYQUIL_VERSION=$(poetry version --short)" >> "$GITHUB_ENV"
+    outputs:
+      PYQUIL_VERSION: ${{ steps.publish.outputs.PYQUIL_VERSION } }}
+
   docker-publish:
     runs-on: ubuntu-latest
     needs: build-publish
-    # Only publish docker images for tagged releases, not on workflow dispatch.
-    if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       # Determine the tags to publish based on the release tag
       - name: Docker Metadata
@@ -40,20 +43,22 @@ jobs:
             ${{ env.DOCKER_IMAGE_NAME }}
           tags: |
             # publish by version on all release tags, and `latest` on stable release tags.
-            type=semver,pattern={{version}},latest=${{ !github.event.release.prerelease }}}
+            type=semver,pattern={{version}},latest=${{ !github.event.release.prerelease }},value=${{ needs.build-publish.outputs.PYQUIL_VERSION }}
 
             # Originally, I thought that `type=semver,value=rc` would work,
             # but the `value` is actually used to replace the input value,
             # not the output value, which is not clear from the documentation.
-            type=match,pattern=v(\d+.\d+.\d+-(rc).\d+),group=2,latest=false
+            type=match,pattern=(\d+.\d+.\d+-(rc).\d+),group=2,latest=false,value=${{ needs.build-publish.outputs.PYQUIL_VERSION }}
       # Build and test the image
       - name: Build and Test
         uses: docker/build-push-action@v4
+        env:
+          PYQUIL_VERSION: ${{ needs.build-publish.outputs.PYQUIL_VERSION }}
         with:
           load: true
           tags: ${{ env.DOCKER_TEST_TAG }}
           build-args: |
-            pyquil_version=${{ github.event.release.tag_name }}
+            pyquil_version=$PYQUIL_VERSION
       - name: Test Image
         run: |
           docker run --rm ${{ env.DOCKER_TEST_TAG }} python -c "from pyquil import get_qc"
@@ -61,6 +66,8 @@ jobs:
       # Build and publish the image
       - name: Login to Docker Hub
         uses: docker/login-action@v2
+        env:
+          PYQUIL_VERSION: ${{ needs.build-publish.outputs.PYQUIL_VERSION }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -71,4 +78,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            pyquil_version=${{ github.event.release.tag_name }}
+            pyquil_version=$PYQUIL_VERSION
