@@ -36,6 +36,7 @@ import numpy as np
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu import list_quantum_processors
+from qcs_sdk.compiler.quilc import RPCQClient
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
@@ -521,6 +522,7 @@ def _get_qvm_qc(
     compiler_timeout: float,
     execution_timeout: float,
     noise_model: Optional[NoiseModel],
+    quilc_client: Optional[RPCQClient] = None,
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
 
@@ -549,6 +551,7 @@ def _get_qvm_qc(
             quantum_processor=quantum_processor,
             timeout=compiler_timeout,
             client_configuration=client_configuration,
+            quilc_client=quilc_client,
         ),
     )
 
@@ -562,6 +565,7 @@ def _get_qvm_with_topology(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
+    quilc_client: Optional[RPCQClient] = None,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
 
@@ -593,6 +597,7 @@ def _get_qvm_with_topology(
         noise_model=noise_model,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
+        quilc_client=quilc_client,
     )
 
 
@@ -604,6 +609,7 @@ def _get_9q_square_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
+    quilc_client: Optional[RPCQClient] = None,
 ) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -628,6 +634,7 @@ def _get_9q_square_qvm(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
+        quilc_client=quilc_client,
     )
 
 
@@ -640,6 +647,7 @@ def _get_unrestricted_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
+    quilc_client: Optional[RPCQClient] = None,
 ) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
@@ -664,6 +672,7 @@ def _get_unrestricted_qvm(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
+        quilc_client=quilc_client,
     )
 
 
@@ -676,6 +685,7 @@ def _get_qvm_based_on_real_quantum_processor(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
+    quilc_client: Optional[RPCQClient] = None,
 ) -> QuantumComputer:
     """
     A qvm with a based on a real quantum_processor.
@@ -704,6 +714,7 @@ def _get_qvm_based_on_real_quantum_processor(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
+        quilc_client=quilc_client,
     )
 
 
@@ -716,6 +727,7 @@ def get_qc(
     execution_timeout: float = 30.0,
     client_configuration: Optional[QCSClient] = None,
     endpoint_id: Optional[str] = None,
+    quilc_client: Optional[RPCQClient] = None,
 ) -> QuantumComputer:
     """
     Get a quantum computer.
@@ -814,6 +826,7 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
+            quilc_client=quilc_client,
         )
 
     # 3. Check for "9q-square" qvm
@@ -827,6 +840,7 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
+            quilc_client=quilc_client,
         )
 
     if noisy:
@@ -849,6 +863,7 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
+            quilc_client=quilc_client,
         )
     else:
         qpu = QPU(
@@ -862,6 +877,7 @@ def get_qc(
             quantum_processor=quantum_processor,
             timeout=compiler_timeout,
             client_configuration=client_configuration,
+            quilc_client=quilc_client,
         )
 
         return QuantumComputer(name=name, qam=qpu, compiler=compiler)
