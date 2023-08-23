@@ -269,7 +269,7 @@ class ErfSquareWaveform(TemplateWaveform):
         vals = 0.5 * (erf((ts - t1) / sigma) - erf((ts - t2) / sigma))
         zeros_left = np.zeros(int(np.ceil(self.pad_left * rate)), dtype=np.complex128)
         zeros_right = np.zeros(int(np.ceil(self.pad_right * rate)), dtype=np.complex128)
-        iqs = np.concatenate((zeros_left, vals, zeros_right))  # type: ignore
+        iqs = np.concatenate((zeros_left, vals, zeros_right))
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 

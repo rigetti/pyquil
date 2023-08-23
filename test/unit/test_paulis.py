@@ -488,7 +488,6 @@ def test_trotterize():
     assert prog.out() == result_prog.out()
 
 
-# TODO: program_unitary rewrite
 def test_trotterize_order():
     def expmi(hermitian_matrix):
         """Compute the matrix exponential of -1j * hermitian_matrix."""

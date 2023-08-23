@@ -443,7 +443,7 @@ def _decoherence_noise_model(
         :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
     :return: A NoiseModel with the appropriate Kraus operators defined.
     """
-    all_qubits = set(sum(([t.index for t in g.qubits] for g in gates), []))
+    all_qubits = set(sum((g.get_qubit_indices() for g in gates), []))
     if isinstance(T1, dict):
         all_qubits.update(T1.keys())
     if isinstance(T2, dict):
@@ -468,7 +468,7 @@ def _decoherence_noise_model(
     }
     kraus_maps = []
     for g in gates:
-        targets = tuple(t.index for t in g.qubits)
+        targets = tuple(g.get_qubit_indices())
         if g.name in NO_NOISE:
             continue
         matrix, _ = get_noisy_gate(g.name, g.params)

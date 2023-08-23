@@ -301,7 +301,7 @@ def split_on_terminal_measures(
         else:
             remaining.insert(0, instr)
             if isinstance(instr, (Gate, ResetQubit)):
-                seen_qubits |= set(instr.get_qubits())
+                seen_qubits |= set(instr.get_qubit_indices() or {})
             elif isinstance(instr, Pragma):
                 if instr.command == PRAGMA_END_GROUP:
                     warn("Alignment of terminal MEASURE operations may" "conflict with gate group declaration.")

@@ -99,7 +99,6 @@ DEFGATE XGATE:
 """
 
 
-# TODO: Instruction API - Reset
 def test_remove_reset_from_program(snapshot):
     p = Program(DEFGATE_X)
     p += RESET()
@@ -108,7 +107,6 @@ def test_remove_reset_from_program(snapshot):
     assert new_p.out() == snapshot
 
 
-# TODO: Instruction API - RESET
 def test_generate_experiment_program():
     # simplest example
     p = Program()

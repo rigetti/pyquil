@@ -16,7 +16,7 @@
 from deprecated.sphinx import deprecated
 from deprecated.sphinx import versionadded
 from numbers import Real
-from typing import Callable, Mapping, Optional, Tuple, Union, Iterable, no_type_check
+from typing import Callable, Mapping, Optional, Tuple, Union, Sequence, no_type_check
 
 import numpy as np
 
@@ -689,7 +689,7 @@ def DECLARE(
     memory_type: str = "BIT",
     memory_size: int = 1,
     shared_region: Optional[str] = None,
-    offsets: Optional[Iterable[Tuple[int, str]]] = None,
+    offsets: Optional[Sequence[Tuple[int, str]]] = None,
 ) -> Declare:
     return Declare(
         name=name,

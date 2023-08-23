@@ -109,14 +109,12 @@ def test_defgate(snapshot):
     assert tg.out() == snapshot
 
 
-# TODO: DefGate matrix validation quil-rs#178
 def test_defgate_non_square_should_throw_error():
     with pytest.raises(ValueError) as error_info:
         DefGate("TEST", np.array([[0 + 0.5j, 0.5, 1], [0.5, 0 - 0.5j, 1]]))
     assert str(error_info.value) == "Matrix must be square."
 
 
-# TODO: DefGate matrix validation quil-rs#178
 def test_defgate_non_unitary_should_throw_error():
     with pytest.raises(ValueError) as error_info:
         DefGate("TEST", np.array([[0, 1], [2, 3]]))
@@ -228,7 +226,6 @@ def test_len_one():
     assert len(prog) == 1
 
 
-# TODO: if_then, label placeholder method handling
 def test_len_nested():
     p = Program(Declare("ro", "BIT"), H(0)).measure(0, MemoryReference("ro", 0))
     q = Program(H(0), CNOT(0, 1))
@@ -244,7 +241,6 @@ def test_plus_operator(snapshot):
     assert p.out() == snapshot
 
 
-# TODO: if_then, label placeholder method handling
 def test_indexing():
     program = (
         Program(Declare("ro", "BIT"), H(0), Y(1), CNOT(0, 1))
@@ -514,7 +510,6 @@ def test_def_gate(snapshot):
     assert p.out() == snapshot
 
 
-# TODO: Parameterized DEFGATE parsing fix, instruction constructors
 def test_def_gate_with_parameters(snapshot: SnapshotAssertion):
     theta = Parameter("theta")
     rx = np.array(
@@ -568,7 +563,6 @@ def test_define_qft(snapshot):
     assert output == snapshot
 
 
-# TODO: Rework control flow methods
 def test_control_flows():
     outer_loop = Program()
     classical_flag_register = outer_loop.declare("classical_flag_register", "BIT")
@@ -596,7 +590,6 @@ def test_control_flows():
     )
 
 
-# TODO: Rework control flow methods
 def test_control_flows_2():
     # create a program that branches based on the value of a classical register
     x_prog = Program(X(0))
@@ -620,7 +613,6 @@ def test_control_flows_2():
     )
 
 
-# TODO: Rework control flow methods
 def test_if_option():
     p = (
         Program(Declare("ro", "BIT", 1), X(0))
@@ -642,7 +634,6 @@ def test_if_option():
     assert isinstance(p.instructions[3], JumpWhen)
 
 
-# TODO: Placeholders quil-rs#147
 def test_qubit_placeholder():
     p = Program()
 
@@ -664,7 +655,6 @@ def test_qubit_placeholder():
     assert e.match("Qubit has not yet been resolved")
 
 
-# TODO: Placeholders quil-rs#147
 def test_qubit_placeholder_2():
     p = Program()
 
@@ -682,7 +672,6 @@ def test_qubit_placeholder_2():
     p.inst(X(q3))  # X 4
 
 
-# TODO: Placeholders quil-rs#147
 def test_qubit_placeholder_new():
     p = Program()
 
@@ -705,7 +694,6 @@ def test_qubit_placeholder_new():
     assert p.out() == "H 0\nCNOT 1 3\nH 2\nX 4\n"
 
 
-# TODO: Placeholders quil-rs#147
 def test_multiaddress():
     p = Program()
     q0, q1 = [QubitPlaceholder() for _ in range(2)]
@@ -726,7 +714,6 @@ def test_multiaddress():
     assert p2.out() == "CNOT 9 10\nRZ(1) 10\nCNOT 9 10\n"
 
 
-# TODO: Placeholders quil-rs#147
 def test_multiple_instantiate():
     p = Program()
     q = QubitPlaceholder()
@@ -736,7 +723,6 @@ def test_multiple_instantiate():
     assert p.out() == "H 0\n"
 
 
-# TODO: Placeholders quil-rs#147
 def test_reuse_placeholder():
     p = Program()
     q1 = QubitPlaceholder()
@@ -764,7 +750,6 @@ U(2.0) 1 0
     assert p.out() == snapshot
 
 
-# TODO: Deprecate or migrate program merging logic to quil-rs
 def test_prog_merge(snapshot: SnapshotAssertion):
     prog_0 = Program(X(0))
     prog_1 = Program(Y(0))
@@ -794,7 +779,6 @@ def test_merge_with_pauli_noise(snapshot):
     assert merged.out() == snapshot
 
 
-# TODO: Placeholders quil-rs#147
 def test_get_qubits():
     pq = Program(Declare("ro", "BIT"), X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro", 0)))
     assert pq.get_qubits() == {0, 4, 5}
@@ -816,7 +800,6 @@ def test_get_qubits():
     p.inst(("CNOT", q1, q2))
 
 
-# TODO: Placeholders quil-rs#147
 def test_get_qubit_placeholders():
     qs = QubitPlaceholder.register(8)
     pq = Program(Declare("ro", "BIT"), X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 0)))
@@ -830,7 +813,6 @@ def test_get_qubits_not_as_indices():
     assert set(pq.get_qubits(indices=False)) == set(Qubit(i) for i in [0, 4, 5])
 
 
-# TODO: Placeholders quil-rs#147
 def test_eq():
     p1 = Program()
     q1 = QubitPlaceholder()
@@ -921,7 +903,6 @@ PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
         pq.define_noisy_readout(1.0, 0.5, 0.5)
 
 
-# TODO: Control flow methods rework
 # https://github.com/rigetti/pyquil/issues/72
 def test_if_then_inherits_defined_gates():
     p1 = Program()
@@ -941,7 +922,6 @@ def test_if_then_inherits_defined_gates():
     assert p3.defined_gates[0] in p1.defined_gates
 
 
-# TODO: Placeholders quil-rs#147
 # https://github.com/rigetti/pyquil/issues/124
 def test_allocating_qubits_on_multiple_programs():
     p = Program()
@@ -963,7 +943,6 @@ def test_installing_programs_inside_other_programs():
     assert len(p) == 0
 
 
-# TODO: Placeholders quil-rs#147
 # https://github.com/rigetti/pyquil/issues/170
 def test_inline_placeholder():
     p = Program()
@@ -977,7 +956,6 @@ def test_defgate_integer_input():
     assert dg.out() == "DEFGATE TEST AS MATRIX:\n\t1, 0\n\t0, 1\n"
 
 
-# TODO: Placeholders quil-rs#147
 def test_out_vs_str():
     qs = QubitPlaceholder.register(6)
     pq = Program(
@@ -1018,7 +996,6 @@ def test_get_classical_addresses_from_quil_program():
     assert get_classical_addresses_from_program(p) == {"ro": [1]}
 
 
-# TODO: Placeholders quil-rs#147
 def test_pragma_with_placeholders():
     q = QubitPlaceholder()
     q2 = QubitPlaceholder()
@@ -1050,7 +1027,6 @@ def test_declare():
     assert program.out() == ("DECLARE read_out BIT[5]\nMEASURE 0 read_out[4]\n")
 
 
-# TODO: Placeholders quil-rs#147
 def test_reset():
     p = Program()
     p.reset(0)
@@ -1115,7 +1091,6 @@ def test_memory_reference_iteration():
     assert len([i for i in r]) == 10
 
 
-# TODO: Placeholders quil-rs#147
 def test_placeholders_preserves_modifiers():
     cs = QubitPlaceholder.register(3)
     ts = QubitPlaceholder.register(1)

@@ -426,7 +426,13 @@ ExpressionDesignator = Union["Expression", ExpressionValueDesignator]
 
 
 def _convert_to_py_expression(
-    expression: Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
+    expression: Union[
+        ParameterDesignator,
+        ExpressionDesignator,
+        ExpressionValueDesignator,
+        quil_rs_expr.Expression,
+        quil_rs.MemoryReference,
+    ]
 ) -> ExpressionDesignator:
     if isinstance(expression, (Expression, Number)):
         return expression
@@ -455,7 +461,7 @@ def _convert_to_py_expressions(
     expressions: Sequence[
         Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
     ]
-) -> List[ExpressionDesignator]:
+) -> Sequence[ExpressionDesignator]:
     return [_convert_to_py_expression(expression) for expression in expressions]
 
 
@@ -1033,7 +1039,13 @@ def _template_waveform_property(
     reason="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
 )
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
-    def __new__(cls, name: str, *, duration: float, **kwargs: Union[ParameterDesignator, ExpressionDesignator]) -> Self:
+    def __new__(
+        cls,
+        name: str,
+        *,
+        duration: float,
+        **kwargs: Union[Optional[ParameterDesignator], Optional[ExpressionDesignator]],
+    ) -> Self:
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
         rs_parameters["duration"] = _convert_to_rs_expression(duration)
         return super().__new__(cls, name, rs_parameters)

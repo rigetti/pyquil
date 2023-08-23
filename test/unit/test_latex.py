@@ -104,7 +104,6 @@ def test_split_measures():
     assert all(isinstance(instr, Measurement) for instr in meas)
 
 
-# TODO: Control flow
 def test_unsupported_ops():
     target = Label("target")
     base_prog = Program(Declare("reg1", "BIT"), Declare("reg2", "BIT"), H(0), JumpTarget(target), CNOT(0, 1))

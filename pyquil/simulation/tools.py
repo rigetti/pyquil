@@ -319,7 +319,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
 
     matrix = _gate_matrix(gate)
 
-    return lifted_gate_matrix(matrix=matrix, qubit_inds=[q.index for q in gate.qubits], n_qubits=n_qubits)
+    return lifted_gate_matrix(matrix=matrix, qubit_inds=gate.get_qubit_indices(), n_qubits=n_qubits)
 
 
 def program_unitary(program: Program, n_qubits: int) -> np.ndarray:

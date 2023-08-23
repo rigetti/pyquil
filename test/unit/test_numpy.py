@@ -90,7 +90,6 @@ def test_einsum_simulator_CCNOT():
     np.testing.assert_allclose(wf, should_be)
 
 
-# TODO: Review PyQVM
 def test_einsum_simulator_10q():
     prog = Program(H(0))
     for i in range(10 - 1):
@@ -104,7 +103,6 @@ def test_einsum_simulator_10q():
     np.testing.assert_allclose(wf, should_be)
 
 
-# TODO: Review PyQVM
 def test_measure():
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
     qam.execute(Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
@@ -133,7 +131,6 @@ def include_measures(request):
     return request.param
 
 
-# TODO: Instruction API - Prefix Expression
 def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
     if include_measures:
         seed = 52
@@ -189,7 +186,6 @@ def test_expectation():
     assert val == 0.4
 
 
-# TODO: Instruction API - PrefixExpression
 def test_expectation_vs_ref_qvm(n_qubits):
     for _ in range(20):
         prog = _generate_random_program(n_qubits=n_qubits, length=10)
@@ -203,7 +199,6 @@ def test_expectation_vs_ref_qvm(n_qubits):
         np.testing.assert_allclose(ref_exp, np_exp, atol=1e-15)
 
 
-# TODO: PyQVM Review
 def test_defgate():
     # regression test for https://github.com/rigetti/pyquil/issues/1059
     theta = np.pi / 2

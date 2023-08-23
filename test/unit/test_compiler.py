@@ -17,8 +17,6 @@ def simple_program():
     return program
 
 
-# TODO: The changes to v4 are causing an extra HALT instruction to be appended to the program
-@pytest.mark.skip
 def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
     program = simple_program()
     q = FormalArgument("q")
