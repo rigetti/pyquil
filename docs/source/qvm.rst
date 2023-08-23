@@ -45,7 +45,7 @@ including:
     programs with many qubits.
 
 The QVM is part of the Forest SDK, and it's available for you to use on your local machine.
-After :ref:`downloading and installing the SDK <sdkinstall>`, you can initialize a local
+After :ref:`downloading and installing the SDK <prerequisites>`, you can initialize a local
 QVM server by typing ``qvm -S`` into your terminal. You should see the following message.
 
 .. code:: text
@@ -241,15 +241,17 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
 
     def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None, ...) -> QuantumComputer:
 
-.. code:: python
+.. testcode:: instantiation
 
     from pyquil import get_qc
 
+    QPU_NAME="Aspen-M-3"
+
     # Get a QPU
-    qc = get_qc(QPU_NAME)  # QPU_NAME is just a string naming the quantum_processor
+    # qc = get_qc(QPU_NAME)  # QPU_NAME is just a string naming the quantum_processor
 
     # Get a QVM with the same topology as the QPU
-    qc = get_qc(QPU_NAME, as_qvm=True)
+    # qc = get_qc(QPU_NAME, as_qvm=True)
 
     # A fully connected QVM
     number_of_qubits = 10
@@ -271,7 +273,7 @@ Methods
 Now that you have your ``qc``, there's a lot you can do with it. Most users will want to use ``compile``, ``run`` very
 regularly. The general flow of use would look like this:
 
-.. code:: python
+.. testcode:: methods
 
     from pyquil import get_qc, Program
     from pyquil.gates import *
@@ -297,7 +299,7 @@ The ``.run(...)`` method
 When using the ``.run(...)`` method, **you are responsible for compiling your program before running it.**
 For example:
 
-.. code:: python
+.. testcode:: methods
 
     from pyquil import Program, get_qc
     from pyquil.gates import X, MEASURE
@@ -318,9 +320,13 @@ For example:
 
 The results returned is a *list of lists of integers*. In the above case, that's
 
-.. parsed-literal::
+.. testoutput:: methods
 
-    [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0]]
+    [[1 0]
+     [1 0]
+     [1 0]
+     [1 0]
+     [1 0]]
 
 Let's unpack this. The *outer* list is an enumeration over the trials; the argument given to
 ``wrap_in_numshots_loop`` will match the length of ``results``.
@@ -353,7 +359,11 @@ Providing Your Own Quantum Processor Topology
 It is simple to provide your own quantum processor topology as long as you can give your qubits each a number,
 and specify which edges exist. Here is an example, using the topology of our 16Q chip (two octagons connected by a square):
 
-.. code:: python
+..
+    Will this need to be updated for Ankaa?
+    GitHub issue: https://github.com/rigetti/pyquil/issues/1580
+
+.. testcode:: provide-topology
 
     import networkx as nx
 
@@ -388,6 +398,7 @@ This makes the QVM a powerful tool for testing quantum programs before executing
 
 .. code:: python
 
+    QPU_NAME="Aspen-M-3"
     qpu = get_qc(QPU_NAME)
     qvm = get_qc(QPU_NAME, as_qvm=True)
 

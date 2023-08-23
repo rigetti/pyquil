@@ -118,7 +118,7 @@ class QPU(QAM[QPUExecuteResponse]):
         *,
         quantum_processor_id: str,
         priority: int = 1,
-        timeout: float = 10.0,
+        timeout: Optional[float] = 30.0,
         client_configuration: Optional[QCSClient] = None,
         endpoint_id: Optional[str] = None,
         execution_options: Optional[ExecutionOptions] = None,
@@ -132,7 +132,8 @@ class QPU(QAM[QPUExecuteResponse]):
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         :param endpoint_id: Optional endpoint ID to be used for execution.
-        :param use_gateway: Disable to skip the Gateway server and perform direct execution.
+        :param execution_options: The ``ExecutionOptions`` to use when executing a program. If provided, the options
+            take precedence over the `timeout` and `endpoint_id` parameters.
         """
         super().__init__()
 
@@ -143,7 +144,8 @@ class QPU(QAM[QPUExecuteResponse]):
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
         if execution_options is None:
-            execution_options_builder = ExecutionOptionsBuilder()
+            execution_options_builder = ExecutionOptionsBuilder.default()
+            execution_options_builder.timeout_seconds = timeout
             execution_options_builder.connection_strategy = ConnectionStrategy.default()
             if endpoint_id is not None:
                 execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id(endpoint_id)
