@@ -174,7 +174,7 @@ class Program:
 
         :return: a new Program
         """
-        new_program = Program(self._program.clone())
+        new_program = Program(self._program.copy())
         new_program.native_quil_metadata = self.native_quil_metadata
         new_program.num_shots = self.num_shots
         return new_program
