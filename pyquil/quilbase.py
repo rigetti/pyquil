@@ -36,9 +36,8 @@ from typing import (
 from typing_extensions import Self
 
 import numpy as np
-from deprecation import deprecated
+from deprecated import deprecated
 
-from pyquil._version import pyquil_version
 from pyquil.quilatom import (
     Expression,
     Label,
@@ -322,10 +321,8 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         return super().__new__(cls, gate.name, gate.parameters, gate.qubits, gate.modifiers)
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[List[QubitDesignator], List[int]]:
         if indices:
@@ -513,10 +510,8 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
         quil_rs.Measurement.target.__set__(self, target)  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -553,10 +548,8 @@ class Reset(quil_rs.Reset, AbstractInstruction):
         return super().to_quil()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Optional[Set[QubitDesignator]]:
         if super().qubit is None:
@@ -1680,10 +1673,8 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
         return super().to_quil_or_debug()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1750,10 +1741,8 @@ class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
         quil_rs.SetFrequency.frequency.__set__(self, _convert_to_rs_expression(freq))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1795,10 +1784,8 @@ class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
         quil_rs.ShiftFrequency.frequency.__set__(self, _convert_to_rs_expression(freq))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1840,10 +1827,8 @@ class SetPhase(quil_rs.SetPhase, AbstractInstruction):
         quil_rs.SetPhase.phase.__set__(self, _convert_to_rs_expression(phase))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1885,10 +1870,8 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
         quil_rs.ShiftPhase.phase.__set__(self, _convert_to_rs_expression(phase))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1930,10 +1913,8 @@ class SwapPhases(quil_rs.SwapPhases, AbstractInstruction):
         return super().to_quil_or_debug()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1975,10 +1956,8 @@ class SetScale(quil_rs.SetScale, AbstractInstruction):
         quil_rs.SetScale.scale.__set__(self, _convert_to_rs_expression(scale))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -2044,10 +2023,8 @@ class Capture(quil_rs.Capture, AbstractInstruction):
         return super().to_quil_or_debug()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -2118,10 +2095,8 @@ class RawCapture(quil_rs.RawCapture, AbstractInstruction):
         return super().to_quil_or_debug()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:

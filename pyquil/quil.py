@@ -35,7 +35,7 @@ from typing import (
 )
 import warnings
 
-from deprecation import deprecated
+from deprecated.sphinx import deprecated
 import numpy as np
 
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
@@ -1082,10 +1082,8 @@ def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[Abst
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The Program class sorts instructions automatically. This function will be removed.",
+    version="4.0",
+    reason="The Program class now sorts instructions automatically. This function will be removed.",
 )
 def percolate_declares(program: Program) -> Program:
     """
@@ -1098,10 +1096,8 @@ def percolate_declares(program: Program) -> Program:
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="This function will be removed. Use Program addition instead.",
+    version="4.0",
+    reason="This function will be removed. Use Program addition instead.",
 )
 def merge_programs(prog_list: Sequence[Program]) -> Program:
     """
@@ -1114,10 +1110,8 @@ def merge_programs(prog_list: Sequence[Program]) -> Program:
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="This is now a no-op and will be removed in future versions of pyQuil.",
+    version="4.0",
+    reason="This is now a no-op and will be removed in future versions of pyQuil.",
 )
 def validate_protoquil(program: Program, quilt: bool = False) -> None:
     """
@@ -1127,14 +1121,11 @@ def validate_protoquil(program: Program, quilt: bool = False) -> None:
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="This is now a no-op and will be removed in future versions of pyQuil.",
+    version="4.0",
+    reason="This is now a no-op and will be removed in future versions of pyQuil.",
 )
 def validate_supported_quil(program: Program) -> None:
     """
     This function has been deprecated. It is now a no-op.
     """
-    pass
     pass
