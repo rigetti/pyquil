@@ -148,7 +148,7 @@ def TIKZ_MEASURE() -> str:
 
 
 def _format_parameter(param: ParameterDesignator, settings: Optional[DiagramSettings] = None) -> str:
-    formatted = format_parameter(param)
+    formatted: str = format_parameter(param)
     if settings and settings.texify_numerical_constants:
         formatted = formatted.replace("pi", r"\pi")
     return formatted
@@ -435,7 +435,7 @@ class DiagramBuilder:
         instr = self.working_instructions[self.index]
         assert isinstance(instr, Measurement)
         assert self.diagram is not None
-        self.diagram.append(instr.qubit.index, TIKZ_MEASURE())
+        self.diagram.append(instr.get_qubit_indices().pop(), TIKZ_MEASURE())
         self.index += 1
 
     def _build_custom_source_target_op(self) -> None:
@@ -518,9 +518,7 @@ def qubit_indices(instr: AbstractInstruction) -> List[int]:
     """
     Get a list of indices associated with the given instruction.
     """
-    if isinstance(instr, Measurement):
-        return [instr.qubit.index]
-    elif isinstance(instr, Gate):
-        return [qubit.index for qubit in instr.qubits]
+    if isinstance(instr, (Measurement, Gate)):
+        return list(instr.get_qubit_indices())
     else:
         return []

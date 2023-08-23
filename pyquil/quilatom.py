@@ -34,14 +34,12 @@ from typing import (
     cast,
 )
 from typing_extensions import Self
-from deprecation import deprecated
+from deprecated.sphinx import deprecated
 
 import numpy as np
 
 import quil.instructions as quil_rs
 import quil.expression as quil_rs_expr
-
-from pyquil._version import pyquil_version
 
 
 class QuilAtom(object):
@@ -132,7 +130,7 @@ class QubitPlaceholder(QuilAtom):
             self._placeholder = quil_rs.QubitPlaceholder()
 
     @staticmethod
-    def register(n: int) -> List[Self]:
+    def register(n: int) -> List["QubitPlaceholder"]:
         """Return a 'register' of ``n`` QubitPlaceholders.
 
         >>> qs = QubitPlaceholder.register(8) # a qubyte
@@ -166,15 +164,19 @@ class QubitPlaceholder(QuilAtom):
     def __hash__(self) -> int:
         return hash(self._placeholder)
 
-    def __eq__(self, other) -> int:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, quil_rs.QubitPlaceholder):
             return self._placeholder == other
-        return self._placeholder == other._placeholder
+        if isinstance(other, QubitPlaceholder):
+            return self._placeholder == other._placeholder
+        return False
 
-    def __lt__(self, other) -> int:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, quil_rs.QubitPlaceholder):
             return self._placeholder < other
-        return self._placeholder < other._placeholder
+        if isinstance(other, QubitPlaceholder):
+            return self._placeholder < other._placeholder
+        raise TypeError(f"Comparison between LabelPlaceholder and {type(other)} is not supported.")
 
 
 QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
@@ -289,11 +291,11 @@ class Label(QuilAtom):
     :param label_name: The label name.
     """
 
-    def __init__(self, label_name: str) -> Self:
+    def __init__(self, label_name: str):
         self.target = quil_rs.Target.from_fixed(label_name)
 
     @staticmethod
-    def _from_rs_target(target: quil_rs.Target) -> Self:
+    def _from_rs_target(target: quil_rs.Target) -> "Label":
         return Label(target.to_fixed())
 
     def out(self) -> str:
@@ -304,7 +306,7 @@ class Label(QuilAtom):
         return self.target.to_fixed()
 
     @name.setter
-    def name(self, label_name: str) -> str:
+    def name(self, label_name: str) -> None:
         self.target = quil_rs.Target.from_fixed(label_name)
 
     def __str__(self) -> str:
@@ -313,8 +315,10 @@ class Label(QuilAtom):
     def __repr__(self) -> str:
         return repr(self.target)
 
-    def __eq__(self, other: "Label") -> bool:
-        return self.target == other.target
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Label):
+            return self.target == other.target
+        return False
 
     def __hash__(self) -> int:
         return hash(self.target)
@@ -328,7 +332,7 @@ class LabelPlaceholder(QuilAtom):
             self.target = quil_rs.Target.from_placeholder(quil_rs.TargetPlaceholder(prefix))
 
     @staticmethod
-    def _from_rs_target(target: quil_rs.Target) -> Self:
+    def _from_rs_target(target: quil_rs.Target) -> "LabelPlaceholder":
         return LabelPlaceholder(placeholder=target.to_placeholder())
 
     @property
@@ -344,8 +348,10 @@ class LabelPlaceholder(QuilAtom):
     def __repr__(self) -> str:
         return repr(self.target)
 
-    def __eq__(self, other: "LabelPlaceholder") -> bool:
-        return self.target == other.target
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, LabelPlaceholder):
+            return self.target == other.target
+        return False
 
     def __hash__(self) -> int:
         return hash(self.target)
@@ -372,12 +378,7 @@ def _convert_to_rs_expressions(
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
-@deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The format_parameter function will be removed.",
-)
+@deprecated(version="4.0", reason="This function has been superseded by the `quil` package and will be removed soon.")
 def format_parameter(element: ParameterDesignator) -> str:
     """
     Formats a particular parameter. Essentially the same as built-in formatting except using 'i'
@@ -970,10 +971,8 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The WaveformReference class will be removed, consider using WaveformInvocation instead.",
+    version="4.0",
+    reason="The WaveformReference class will be removed, consider using WaveformInvocation instead.",
 )
 class WaveformReference(WaveformInvocation):
     """
@@ -1018,6 +1017,7 @@ def _template_waveform_property(
                     "found"
                 )
             return dtype(parameter.real)
+        raise TypeError(f"TemplateWaveform is not compatible with dtype {dtype}")
 
     def fset(self: "TemplateWaveform", value: ParameterDesignator) -> None:
         self.set_parameter(name, value)
@@ -1028,13 +1028,11 @@ def _template_waveform_property(
     return property(fget, fset, fdel, doc)
 
 
+@deprecated(
+    version="4.0",
+    reason="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
+)
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
-    @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
-    )
     def __new__(cls, name: str, *, duration: float, **kwargs: Union[ParameterDesignator, ExpressionDesignator]) -> Self:
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
         rs_parameters["duration"] = _convert_to_rs_expression(duration)
