@@ -1022,7 +1022,7 @@ def address_qubits(program: Program, qubit_mapping: Optional[Dict[QubitPlacehold
     This function will also instantiate any label placeholders.
     :param program: The program.
     :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
-        to :py:class:`Qubit` or ``int`` (but not both).
+    to :py:class:`Qubit` or ``int`` (but not both).
     :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
     """
     new_program = program.copy()

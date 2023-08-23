@@ -372,7 +372,12 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         return [qubit.to_fixed() for qubit in super().qubits]
 
     def controlled(
-        self, control_qubit: Union[quil_rs.Qubit, QubitDesignator, Sequence[Union[QubitDesignator, quil_rs.Qubit]]]
+        self,
+        control_qubit: Union[
+            quil_rs.Qubit,
+            QubitDesignator,
+            Sequence[Union[QubitDesignator, quil_rs.Qubit]],
+        ],
     ) -> "Gate":
         """
         Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
