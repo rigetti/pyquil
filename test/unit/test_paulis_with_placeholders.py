@@ -249,9 +249,14 @@ def test_exponentiate_2():
     generator = PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
+    print(prog)
     result_prog = Program().inst(CNOT(q[0], q[1])).inst(RZ(2.0, q[1])).inst(CNOT(q[0], q[1]))
+    print(result_prog)
 
     mapping = get_default_qubit_mapping(prog)
+    print(mapping)
+    print("left:\n", address_qubits(prog).out())
+    print("right:\n", address_qubits(result_prog).out())
     assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
 
@@ -680,7 +685,7 @@ def test_ordered():
     mapping = {x: i for i, x in enumerate(q)}
     term = sZ(q[3]) * sZ(q[2]) * sZ(q[1])
     prog = exponential_map(term)(0.5)
-    print(prog)
+    print(mapping)
     prog = address_qubits(prog, mapping)
     assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1) 1\nCNOT 2 1\nCNOT 3 2\n"
 

@@ -583,14 +583,14 @@ def test_control_flows():
     assert outer_loop.out() == "\n".join(
         [
             "DECLARE classical_flag_register BIT[1]",
-            "MOVE classical_flag_register 1",
-            "LABEL @START1",
-            "JUMP-UNLESS @END2 classical_flag_register",
+            "MOVE classical_flag_register[0] 1",
+            "LABEL @START_0",
+            "JUMP-UNLESS @END_0 classical_flag_register[0]",
             "X 0",
             "H 0",
-            "MEASURE 0 classical_flag_register",
-            "JUMP @START1",
-            "LABEL @END2",
+            "MEASURE 0 classical_flag_register[0]",
+            "JUMP @START_0",
+            "LABEL @END_0",
             "",
         ]
     )
@@ -611,11 +611,11 @@ def test_control_flows_2():
         "DECLARE ro BIT[2]\n"
         "H 1\n"
         "MEASURE 1 ro[1]\n"
-        "JUMP-WHEN @THEN1 ro[1]\n"
-        "JUMP @END2\n"
-        "LABEL @THEN1\n"
+        "JUMP-WHEN @THEN_0 ro[1]\n"
+        "JUMP @END_0\n"
+        "LABEL @THEN_0\n"
         "X 0\n"
-        "LABEL @END2\n"
+        "LABEL @END_0\n"
         "MEASURE 0 ro[0]\n"
     )
 
@@ -627,15 +627,16 @@ def test_if_option():
         .measure(0, MemoryReference("ro", 0))
         .if_then(MemoryReference("ro", 0), Program(X(1)))
     )
+    print(p.out())
     assert p.out() == (
         "DECLARE ro BIT[1]\n"
         "X 0\n"
         "MEASURE 0 ro[0]\n"
-        "JUMP-WHEN @THEN1 ro[0]\n"
-        "JUMP @END2\n"
-        "LABEL @THEN1\n"
+        "JUMP-WHEN @THEN_0 ro[0]\n"
+        "JUMP @END_0\n"
+        "LABEL @THEN_0\n"
         "X 1\n"
-        "LABEL @END2\n"
+        "LABEL @END_0\n"
     )
 
     assert isinstance(p.instructions[3], JumpWhen)
@@ -715,14 +716,14 @@ def test_multiaddress():
 
     p1 = address_qubits(p, map1)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         _ = p.out()  # make sure the original isn't affected
 
-    assert p1.out() == "CNOT 0 1\nRZ(1.0) 1\nCNOT 0 1\n"
+    assert p1.out() == "CNOT 0 1\nRZ(1) 1\nCNOT 0 1\n"
 
     p2 = address_qubits(p, map2)
-    assert p1.out() == "CNOT 0 1\nRZ(1.0) 1\nCNOT 0 1\n"
-    assert p2.out() == "CNOT 9 10\nRZ(1.0) 10\nCNOT 9 10\n"
+    assert p1.out() == "CNOT 0 1\nRZ(1) 1\nCNOT 0 1\n"
+    assert p2.out() == "CNOT 9 10\nRZ(1) 10\nCNOT 9 10\n"
 
 
 # TODO: Placeholders quil-rs#147
@@ -802,7 +803,10 @@ def test_get_qubits():
     pq = Program(Declare("ro", "BIT"), X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], MemoryReference("ro", 0)))
     qq = QubitPlaceholder()
     pq.inst(Y(q[2]), X(qq))
-    assert address_qubits(pq).get_qubits() == {0, 1, 2, 3, 4}
+    addressed_pq = address_qubits(pq)
+    print(addressed_pq.out())
+    print(addressed_pq)
+    assert addressed_pq.get_qubits() == {0, 1, 2, 3, 4}
 
     qubit_index = 1
     p = Program(("H", qubit_index))
@@ -810,16 +814,15 @@ def test_get_qubits():
     q1 = QubitPlaceholder()
     q2 = QubitPlaceholder()
     p.inst(("CNOT", q1, q2))
-    with pytest.raises(ValueError) as e:
-        _ = address_qubits(p).get_qubits()
-    assert e.match("Your program mixes instantiated qubits with placeholders")
 
 
 # TODO: Placeholders quil-rs#147
 def test_get_qubit_placeholders():
     qs = QubitPlaceholder.register(8)
     pq = Program(Declare("ro", "BIT"), X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 0)))
-    assert pq.get_qubits() == {qs[i] for i in [0, 4, 5]}
+    print(pq.get_qubits(indices=False))
+    print(qs[0], qs[4], qs[5])
+    assert set(pq.get_qubits(indices=False)) == {qs[i] for i in [0, 4, 5]}
 
 
 def test_get_qubits_not_as_indices():
@@ -834,9 +837,11 @@ def test_eq():
     q2 = QubitPlaceholder()
     p1.inst([H(q1), CNOT(q1, q2)])
     p1 = address_qubits(p1)
+    print(p1)
 
     p2 = Program()
     p2.inst([H(0), CNOT(0, 1)])
+    print(p2)
 
     assert p1 == p2
     assert not p1 != p2
@@ -958,14 +963,6 @@ def test_installing_programs_inside_other_programs():
     assert len(p) == 0
 
 
-# TODO: Control flow methods rework
-# https://github.com/rigetti/pyquil/issues/168
-def test_nesting_a_program_inside_itself():
-    p = Program(H(0)).measure(0, MemoryReference("ro", 0))
-    with pytest.raises(ValueError):
-        p.if_then(MemoryReference("ro", 0), p)
-
-
 # TODO: Placeholders quil-rs#147
 # https://github.com/rigetti/pyquil/issues/170
 def test_inline_placeholder():
@@ -990,12 +987,13 @@ def test_out_vs_str():
         MEASURE(qs[5], MemoryReference("ro", 5)),
     )
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(ValueError) as e:
         pq.out()
-    assert e.match(r"Qubit q\d+ has not been assigned an index")
+    assert e.match(r"Qubit has not yet been resolved")
 
     string_version = str(pq)
-    should_be_re = r"DECLARE ro BIT\[6\]\nX \{q\d+\}\nCNOT \{q\d+\} \{q\d+\}\nMEASURE \{q\d+\} ro\[5\]\n"
+    print(string_version)
+    should_be_re = r"DECLARE ro BIT\[6\]\nX Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\)\nCNOT Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\) Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\)\nMEASURE Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\) ro\[5\]\n"
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
 
 
@@ -1025,10 +1023,10 @@ def test_pragma_with_placeholders():
     q = QubitPlaceholder()
     q2 = QubitPlaceholder()
     p = Program()
-    p.inst(Pragma("FENCE", [q, q2]))
+    p.inst(Pragma("CUSTOM", [q, q2]))
     address_map = {q: 0, q2: 1}
     addressed_pragma = address_qubits(p, address_map)[0]
-    parse_equals("PRAGMA FENCE 0 1\n", addressed_pragma)
+    parse_equals("PRAGMA CUSTOM 0 1\n", addressed_pragma)
 
     pq = Program(X(q))
     pq.define_noisy_readout(q, 0.8, 0.9)

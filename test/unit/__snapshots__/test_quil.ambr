@@ -85,14 +85,11 @@
   
   '''
 # ---
-# name: test_decal_redefinition
-  'RX(3.141592653589793) 1'
-# ---
 # name: test_def_gate
   '''
   DEFGATE SQRT-X AS MATRIX:
-  	0.5+0.5i, 0.5 - 0.5i
-  	0.5 - 0.5i, 0.5+0.5i
+  	0.5+0.5i, 0.5-0.5i
+  	0.5-0.5i, 0.5+0.5i
   
   SQRT-X 0
   
@@ -162,9 +159,6 @@
   SWAP 0 2
   
   '''
-# ---
-# name: test_defmeasurecal_redefinition
-  'RX(3.141592653589793) 1'
 # ---
 # name: test_gate
   'TEST 1 2'
@@ -266,10 +260,10 @@
 # name: test_multiqubit_gate
   '''
   DEFGATE X-SQRT-X AS MATRIX:
-  	0, 0.5+0.5i, 0, 0.5 - 0.5i
-  	0.5+0.5i, 0, 0.5 - 0.5i, 0
-  	0, 0.5 - 0.5i, 0, 0.5+0.5i
-  	0.5 - 0.5i, 0, 0.5+0.5i, 0
+  	0, 0.5+0.5i, 0, 0.5-0.5i
+  	0.5+0.5i, 0, 0.5-0.5i, 0
+  	0, 0.5-0.5i, 0, 0.5+0.5i
+  	0.5-0.5i, 0, 0.5+0.5i, 0
   
   X-SQRT-X 0 1
   
@@ -364,18 +358,6 @@
   DECLARE ro BIT[1]
   H 0
   MEASURE 0 ro[0]
-  
-  '''
-# ---
-# name: test_program_pop
-  '''
-  X 0
-  
-  '''
-# ---
-# name: test_program_pop.1
-  '''
-  X 1
   
   '''
 # ---

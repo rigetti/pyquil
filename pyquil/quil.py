@@ -78,6 +78,7 @@ from pyquil.quilbase import (
     _convert_to_rs_instructions,
     _convert_to_py_instruction,
     _convert_to_py_instructions,
+    _convert_to_py_qubit,
     _convert_to_py_qubits,
 )
 from pyquil.quiltcalibrations import (
@@ -173,7 +174,10 @@ class Program:
 
         :return: a new Program
         """
-        return deepcopy(self)
+        new_program = Program(self._program.clone())
+        new_program.native_quil_metadata = self.native_quil_metadata
+        new_program.num_shots = self.num_shots
+        return new_program
 
     @property
     def defined_gates(self) -> List[DefGate]:
@@ -187,7 +191,7 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        self._program.resolve_placeholders()
+        self.resolve_label_placeholders()
         return list(self.declarations.values()) + _convert_to_py_instructions(self._program.instructions)
 
     @instructions.setter
@@ -248,15 +252,15 @@ class Program:
 
         return self
 
-    def resolve_qubit_placeholders(self):
+    def resolve_qubit_placeholders(self) -> None:
         """
-        Resolve all qubit and label placeholders in the program.
+        Resolve all qubit placeholders in the program.
         """
         self._program.resolve_placeholders_with_custom_resolvers(target_resolver=lambda _: None)
 
-    def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, Union[Qubit, int]]):
-        def qubit_resolver(placeholder: QubitPlaceholder):
-            return qubit_mapping.get(placeholder, None)
+    def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, Union[Qubit, int]]) -> None:
+        def qubit_resolver(placeholder: quil_rs.QubitPlaceholder):
+            return qubit_mapping.get(QubitPlaceholder(placeholder), None)
 
         def label_resolver(*args):
             return None
@@ -264,6 +268,12 @@ class Program:
         self._program.resolve_placeholders_with_custom_resolvers(
             qubit_resolver=qubit_resolver, target_resolver=label_resolver
         )
+
+    def resolve_label_placeholders(self) -> None:
+        """
+        Resolve all label placeholders in the program.
+        """
+        self._program.resolve_placeholders_with_custom_resolvers(qubit_resolver=lambda _: None)
 
     def _add_instruction(self, instruction: quil_rs.Instruction):
         """
@@ -658,6 +668,7 @@ class Program:
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
+        self.resolve_label_placeholders()
         if calibrations:
             return self._program.to_quil()
         else:
@@ -827,7 +838,11 @@ class Program:
         :param index: The action at the specified index.
         :return:
         """
-        return Program(self._program.to_instructions()[index]) if isinstance(index, slice) else self.instructions[index]
+        return (
+            Program(self._program.to_instructions()[index])
+            if isinstance(index, slice)
+            else _convert_to_py_instruction(self._program.to_instructions()[index])
+        )
 
     def __iter__(self) -> Iterator[AbstractInstruction]:
         """
@@ -838,7 +853,7 @@ class Program:
         return self.instructions.__iter__()
 
     def __eq__(self, other: "Program") -> bool:
-        return self._program == other._program
+        return self._program.to_instructions() == other._program.to_instructions()
 
     def __ne__(self, other: "Program") -> bool:
         return not self.__eq__(other)
@@ -1014,11 +1029,12 @@ def address_qubits(
         to :py:class:`Qubit` or ``int`` (but not both).
     :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
     """
+    new_program = program.copy()
     if qubit_mapping:
-        program.resolve_qubit_placeholders_with_mapping(qubit_mapping)
+        new_program.resolve_qubit_placeholders_with_mapping(qubit_mapping)
     else:
-        program.resolve_qubit_placeholders()
-    return program
+        new_program.resolve_qubit_placeholders()
+    return new_program
 
 
 def _get_label(

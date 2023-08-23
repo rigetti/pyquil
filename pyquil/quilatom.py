@@ -124,19 +124,15 @@ class FormalArgument(QuilAtom):
         return isinstance(other, FormalArgument) and other.name == self.name
 
 
-class QubitPlaceholder(quil_rs.QubitPlaceholder, QuilAtom):
-    def __new__(cls, placeholder: Optional[quil_rs.QubitPlaceholder] = None) -> Self:
+class QubitPlaceholder(QuilAtom):
+    def __init__(self, placeholder: Optional[quil_rs.QubitPlaceholder] = None):
         if placeholder is not None:
-            return super().__new__(cls, placeholder)
-        return super().__new__(cls)
+            self._placeholder = placeholder
+        else:
+            self._placeholder = quil_rs.QubitPlaceholder()
 
     @staticmethod
-    def from_rs_qubit_placeholder(qubit_placeholder: quil_rs.QubitPlaceholder) -> Self:
-        qubit_placeholder.__class__ = QubitPlaceholder
-        return qubit_placeholder
-
-    @classmethod
-    def register(cls, n: int) -> List[Self]:
+    def register(n: int) -> List[Self]:
         """Return a 'register' of ``n`` QubitPlaceholders.
 
         >>> qs = QubitPlaceholder.register(8) # a qubyte
@@ -152,7 +148,7 @@ class QubitPlaceholder(quil_rs.QubitPlaceholder, QuilAtom):
 
         :param n: The number of qubits in the register
         """
-        return [cls() for _ in range(n)]
+        return [QubitPlaceholder() for _ in range(n)]
 
     def out(self) -> str:
         raise RuntimeError("Qubit {} has not been assigned an index".format(self))
@@ -167,6 +163,19 @@ class QubitPlaceholder(quil_rs.QubitPlaceholder, QuilAtom):
     def __repr__(self) -> str:
         return f"q{id(self)}"
 
+    def __hash__(self) -> int:
+        return hash(self._placeholder)
+
+    def __eq__(self, other) -> int:
+        if isinstance(other, quil_rs.QubitPlaceholder):
+            return self._placeholder == other
+        return self._placeholder == other._placeholder
+
+    def __lt__(self, other) -> int:
+        if isinstance(other, quil_rs.QubitPlaceholder):
+            return self._placeholder < other
+        return self._placeholder < other._placeholder
+
 
 QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
@@ -177,7 +186,7 @@ def _convert_to_rs_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, QubitPlace
     if isinstance(qubit, Qubit):
         return quil_rs.Qubit.from_fixed(qubit.index)
     if isinstance(qubit, QubitPlaceholder):
-        return quil_rs.Qubit.from_placeholder(qubit)
+        return quil_rs.Qubit.from_placeholder(qubit._placeholder)
     if isinstance(qubit, FormalArgument):
         return quil_rs.Qubit.from_variable(qubit.name)
     if isinstance(qubit, int):
@@ -196,7 +205,7 @@ def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, quil_rs.Qu
         if qubit.is_variable():
             return FormalArgument(qubit.to_variable())
         if qubit.is_placeholder():
-            return QubitPlaceholder(qubit)
+            return QubitPlaceholder(placeholder=qubit.to_placeholder())
     if isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument, Parameter, int)):
         return qubit
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
@@ -336,8 +345,6 @@ class LabelPlaceholder(QuilAtom):
         return repr(self.target)
 
     def __eq__(self, other: "LabelPlaceholder") -> bool:
-        print("self", self, type(self), self.target)
-        print("other", other, type(other), other.target)
         return self.target == other.target
 
     def __hash__(self) -> int:
@@ -1002,11 +1009,13 @@ def _template_waveform_property(
         if dtype is int or dtype is float:
             if not isinstance(parameter, complex):
                 raise TypeError(
-                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found instead"
+                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found"
+                    "instead"
                 )
             if parameter.imag != 0.0:
                 raise ValueError(
-                    f"Requested float for parameter {name}, but a complex number with a non-zero imaginary part was found"
+                    f"Requested float for parameter {name}, but a complex number with a non-zero imaginary part was "
+                    "found"
                 )
             return dtype(parameter.real)
 

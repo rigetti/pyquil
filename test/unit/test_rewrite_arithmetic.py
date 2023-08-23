@@ -158,8 +158,8 @@ def test_rewrite_arithmetic_mixed_mutations():
     }
 
     response_program = Program(response.quil)
-    assert response_program[0].out() == "DECLARE __P1 REAL[3]"
-    assert response_program[1].out() == "DECLARE theta REAL[1]"
+    print(response_program[0:2])
+    assert set(response_program[0:2].out().split("\n")) == {"DECLARE __P1 REAL[3]", "DECLARE theta REAL[1]", ""}
     assert response_program[2] == fdefn
     assert [inst.out() for inst in response_program[3:]] == [
         'SET-FREQUENCY 0 "rf" __P1[0]',

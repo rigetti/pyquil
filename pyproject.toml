@@ -66,9 +66,12 @@ syrupy = "^3.0.6"
 latex = ["ipython"]
 docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc"]
 
+[tool.ruff]
+line-length = 120
+
 [tool.black]
 line-length = 120
-target-version = ['py37']
+target-version = ['py38']
 include = '\.pyi?$'
 exclude = '''
 

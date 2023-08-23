@@ -47,9 +47,6 @@ class FlatWaveform(TemplateWaveform):
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
-        print("iq", self.iq, type(self.iq))
-        print("rate", rate, type(rate))
-        print("num_samples(rate)", rate, type(rate))
         iqs = np.full(self.num_samples(rate), self.iq, dtype=np.complex128)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 

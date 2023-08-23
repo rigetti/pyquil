@@ -192,6 +192,8 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_jump_unless(instr)
     if isinstance(instr, quil_rs.UnaryLogic):
         return quil_rs.Instruction.from_unary_logic(instr)
+    if isinstance(instr, quil_rs.Comparison):
+        return quil_rs.Instruction.from_comparison(instr)
     raise ValueError(f"{type(instr)} is not an Instruction")
 
 
@@ -611,6 +613,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         matrix: Union[List[List[Expression]], np.ndarray, np.matrix],
         parameters: Optional[List[Parameter]] = None,
     ) -> Self:
+        DefGate._validate_matrix(matrix, parameters is not None and len(parameters) > 0)
         specification = DefGate._convert_to_matrix_specification(matrix)
         rs_parameters = [param.name for param in parameters or []]
         return super().__new__(cls, name, rs_parameters, specification)
@@ -625,6 +628,28 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     ) -> quil_rs.GateSpecification:
         to_rs_matrix = np.vectorize(_convert_to_rs_expression)
         return quil_rs.GateSpecification.from_matrix(to_rs_matrix(np.asarray(matrix)))
+
+    @staticmethod
+    def _validate_matrix(matrix: Union[List[List[Expression]], np.ndarray, np.matrix], contains_parameters: bool):
+        if isinstance(matrix, list):
+            rows = len(matrix)
+            if not all([len(row) == rows for row in matrix]):
+                raise ValueError("Matrix must be square.")
+        elif isinstance(matrix, (np.ndarray, np.matrix)):
+            rows, cols = matrix.shape
+            if rows != cols:
+                raise ValueError("Matrix must be square.")
+        else:
+            raise TypeError("Matrix argument must be a list or NumPy array/matrix")
+
+        if 0 != rows & (rows - 1):
+            raise ValueError("Dimension of matrix must be a power of 2, got {0}".format(rows))
+
+        if not contains_parameters:
+            np_matrix = np.asarray(matrix)
+            is_unitary = np.allclose(np.eye(rows), np_matrix.dot(np_matrix.T.conj()))
+            if not is_unitary:
+                raise ValueError("Matrix must be unitary.")
 
     def out(self) -> str:
         return super().to_quil()
@@ -1451,6 +1476,8 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg.index))
             elif isinstance(arg, int):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg))
+            elif isinstance(arg, QubitPlaceholder):
+                pragma_arguments.append(quil_rs.PragmaArgument.from_placeholder(arg._placeholder))
             elif isinstance(arg, (str, FormalArgument)):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_identifier(str(arg)))
             else:
