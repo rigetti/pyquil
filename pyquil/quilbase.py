@@ -36,7 +36,7 @@ from typing import (
 from typing_extensions import Self
 
 import numpy as np
-from deprecated import deprecated
+from deprecated.sphinx import deprecated
 
 from pyquil.quilatom import (
     Expression,

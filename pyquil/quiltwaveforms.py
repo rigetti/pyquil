@@ -2,7 +2,7 @@ from typing import Optional
 from typing_extensions import Self
 from warnings import warn
 
-from deprecated import deprecated
+from deprecated.sphinx import deprecated
 import numpy as np
 from scipy.special import erf
 
@@ -11,8 +11,6 @@ from pyquil.quilatom import (
     _update_envelope,
     _template_waveform_property,
 )
-
-from pyquil._version import pyquil_version
 
 warn(
     DeprecationWarning("The quiltwaveforms module is deprecated. Use quilatom.WaveformInvocation instead."),

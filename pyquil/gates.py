@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from deprecated import deprecated
+from deprecated.sphinx import deprecated
 from deprecated.sphinx import versionadded
 from numbers import Real
 from typing import Callable, Mapping, Optional, Tuple, Union, Iterable, no_type_check
