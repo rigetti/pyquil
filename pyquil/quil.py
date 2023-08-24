@@ -314,7 +314,7 @@ class Program:
             ):
                 warnings.warn("Redefining gate {}".format(defgate.name))
                 new_instructions = (
-                    self._program.body_instructions[:idx] + [instruction] + self._program.instructions[idx + 1 :]
+                    self._program.body_instructions[:idx] + [instruction] + self._program.body_instructions[idx + 1 :]
                 )
                 self._program = self._program.clone_without_body_instructions()
                 self._program.add_instructions(new_instructions)
