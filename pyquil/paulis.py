@@ -32,6 +32,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -756,10 +757,10 @@ class PauliSum(object):
 
         :returns: A list of all the qubits in the sum of terms.
         """
-        all_qubits = []
+        all_qubits: Set[PauliTargetDesignator] = set()
         for term in self.terms:
-            all_qubits.extend(term.get_qubits())
-        return _convert_to_py_qubits(list(set(all_qubits)))
+            all_qubits.update(term.get_qubits())
+        return _convert_to_py_qubits(set(all_qubits))
 
     def simplify(self) -> "PauliSum":
         """
