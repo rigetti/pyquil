@@ -27,7 +27,7 @@ If you’re new to pyQuil, head to the `getting started <getting_started>`_ guid
    :caption: Contents
 
    getting_started
-   basics
+   programs_and_gates
    qvm
    wavefunction_simulator
    compiler
