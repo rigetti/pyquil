@@ -9,14 +9,14 @@ Exercise 1: Quantum Dice
 Write a quantum program to simulate throwing an 8-sided die. The Python
 function you should produce is:
 
-::
+.. code:: python
 
     def throw_octahedral_die():
         # return the result of throwing an 8 sided die, an int between 1 and 8, by running a quantum program
 
 Next, extend the program to work for any kind of fair die:
 
-::
+.. code:: python
 
     def throw_polyhedral_die(num_sides):
         # return the result of throwing a num_sides sided die by running a quantum program
@@ -41,7 +41,7 @@ Exercise 3: Grover's Algorithm
 Write a quantum program for the single-shot Grover's algorithm. The
 Python function you should produce is:
 
-::
+.. code:: python
 
     # data is an array of 0's and 1's such that there are exactly three times as many
     # 0's as 1's
@@ -115,7 +115,7 @@ equal superposition of :math:`|001\rangle` and :math:`|010\rangle`).
 
 To set up the :math:`|001\rangle` state, we only have to apply one :math:`X`-gate to the zeroth qubit.
 
-.. code:: python
+.. testcode:: qft
 
     from pyquil import Program
     from pyquil.gates import *
@@ -126,17 +126,17 @@ We can verify that this works by computing its wavefunction with the
 :ref:`Wavefunction Simulator <wavefunction_simulator>`. However, we need to add some "dummy" qubits,
 because otherwise ``wavefunction`` would return a two-element vector for only qubit 0.
 
-.. code:: python
+.. testcode:: qft
 
     from pyquil.api import WavefunctionSimulator
 
-    add_dummy_qubits = Program(I(1), I(2))  # The identity gate I has no affect
+    add_dummy_qubits = Program(I(1), I(2))  # The identity gate I has no effect
 
     wf_sim = WavefunctionSimulator()
     wavefunction = wf_sim.wavefunction(state_prep + add_dummy_qubits)
     print(wavefunction)
 
-.. parsed-literal::
+.. testoutput:: qft
 
     (1+0j)|001>
 
@@ -149,7 +149,7 @@ In this part, we define a function, ``qft3``, to make a 3-qubit QFT quantum prog
 is nicely described on `this page <https://algassert.com/quantum/2014/03/07/Building-your-own-Quantum-Fourier-Transform.html>`_.
 It is a mix of Hadamard and CPHASE gates, with a SWAP gate for bit reversal correction.
 
-.. code:: python
+.. testcode:: qft
 
     from math import pi
 
@@ -170,7 +170,12 @@ program* to compute the QFT on qubits ``q0``, ``q1``, and ``q2``.
 
 We can see what this program looks like in Quil notation with ``print(qft(0, 1, 2))``.
 
-.. parsed-literal::
+.. testcode:: qft
+    :hide:
+
+    print(qft3(0, 1, 2))
+
+.. testoutput:: qft
 
     SWAP 0 2
     H 0
@@ -185,33 +190,34 @@ Part c: Execute the QFT
 
 Combining parts a and b:
 
-.. code:: python
+.. testcode:: qft
 
     compute_qft_prog = state_prep + qft3(0, 1, 2)
     wavefunction = wf_sim.wavefunction(compute_qft_prog)
     print(wavefunction.amplitudes)
 
-.. parsed-literal::
+.. testoutput:: qft
 
-    array([ 3.53553391e-01+0.j        ,  2.50000000e-01-0.25j      ,
-            2.16489014e-17-0.35355339j, -2.50000000e-01-0.25j      ,
-           -3.53553391e-01+0.j        , -2.50000000e-01+0.25j      ,
-           -2.16489014e-17+0.35355339j,  2.50000000e-01+0.25j      ])
+    [ 3.53553391e-01+0.j          2.50000000e-01-0.25j      
+      2.16489014e-17-0.35355339j -2.50000000e-01-0.25j      
+     -3.53553391e-01+0.j         -2.50000000e-01+0.25j      
+     -2.16489014e-17+0.35355339j  2.50000000e-01+0.25j      ]
 
 
 We can verify this works by computing the *inverse* FFT on the output with NumPy and seeing that we get back our input
 (with some floating point error).
 
-.. code:: python
+.. testcode:: qft
 
     from numpy.fft import ifft
-    ifft(wavefunction.amplitudes, norm="ortho")
+    print(ifft(wavefunction.amplitudes, norm="ortho"))
 
-.. parsed-literal::
+.. testoutput:: qft
 
-    array([0.+0.00000000e+00j, 1.+9.38127079e-17j, 0.+0.00000000e+00j,
-           0.-1.53080850e-17j, 0.+0.00000000e+00j, 0.-6.31965379e-17j,
-           0.+0.00000000e+00j, 0.-1.53080850e-17j])
+    [ 0.00000000e+00+0.00000000e+00j  1.00000000e+00+5.45603965e-17j
+      0.00000000e+00+0.00000000e+00j  0.00000000e+00-1.53080850e-17j
+      0.00000000e+00+0.00000000e+00j -7.85046229e-17-2.39442265e-17j
+      0.00000000e+00+0.00000000e+00j  0.00000000e+00-1.53080850e-17j]
 
 After ignoring the terms that are on the order of ``1e-17``, we get ``[0, 1, 0, 0, 0, 0, 0, 0]``, which was our input!
 
@@ -270,7 +276,7 @@ In pyQuil
 
 We first import and initialize the necessary tools [3]_
 
-.. code:: python
+.. testcode:: meyer-penny
 
     from pyquil import Program
     from pyquil.api import WavefunctionSimulator
@@ -282,7 +288,7 @@ We first import and initialize the necessary tools [3]_
 and then wire it all up into the overall measurement circuit; remember that qubit 0 is the penny, and qubit 1
 represents Picard's choice.
 
-.. code:: python
+.. testcode:: meyer-penny
 
     p += X(0)
     p += H(0)
@@ -295,22 +301,37 @@ Our method call to the ``WavefunctionSimulator`` will handle measuring for us [4
 
 Finally, we play the game several times. (Remember to run your :ref:`qvm server <server>`.)
 
+.. testcode:: meyer-penny
+
+    results = wf_sim.run_and_measure(p, trials=10)
+    print(results)
+
+.. testoutput:: meyer-penny
+    :hide:
+
+    [[1 ...]
+     [1 ...]
+     [1 ...]
+     [1 ...]
+     [1 ...]
+     [1 ...]
+     [1 ...]
+     [1 ...]
+     [1 ...]
+     [1 ...]]
+
 .. code:: python
 
-    wf_sim.run_and_measure(p, trials=10)
-
-.. parsed-literal::
-
-    array([[1, 1],
-           [1, 1],
-           [1, 1],
-           [1, 1],
-           [1, 1],
-           [1, 0],
-           [1, 1],
-           [1, 1],
-           [1, 1],
-           [1, 0]])
+    [[1 1]
+     [1 1]
+     [1 1]
+     [1 1]
+     [1 1]
+     [1 0]
+     [1 1]
+     [1 1]
+     [1 1]
+     [1 0]]
 
 
 In each trial, the first number is the outcome of the game, whereas the second number represents Picard's choice to flip

@@ -7,6 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 import sphinx_rtd_theme
+from sphinx.ext.doctest import doctest
 from pyquil import __version__
 
 import subprocess
@@ -41,6 +42,8 @@ extensions = [
 templates_path = ['_templates']
 exclude_patterns = []
 source_suffix = [".rst", ".md"]
+
+doctest_default_flags = doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL | doctest.DONT_ACCEPT_TRUE_FOR_1 | doctest.NORMALIZE_WHITESPACE
 
 root_doc = "index"
 autosummary_generate = True

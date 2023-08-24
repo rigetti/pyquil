@@ -106,6 +106,31 @@ jobs:
           . scripts/ci_install_deps
           poetry run make check-types
 
+  test-doctest:
+    name: Run Doctests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
+      - name: Test Unit (Python ${{ matrix.python-version }})
+        run: |
+          sudo apt update
+          . scripts/ci_install_deps
+          sudo apt install pandoc
+          docker run --rm -itd -p 5555:5555 rigetti/quilc -R
+          docker run --rm -itd -p 5000:5000 rigetti/qvm -S
+          poetry run make doctest
+
   test-unit:
     name: Test Unit
     runs-on: ubuntu-latest
@@ -129,6 +154,14 @@ jobs:
           docker run --rm -itd -p 5555:5555 rigetti/quilc -R
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
           poetry run make test
+      - name: Report Coverage
+        if: matrix.python-version == '3.11'
+        uses: orgoro/coverage@v3.1
+        with:
+          coverageFile: coverage.xml
+          thresholdAll: 0.87
+          thresholdNew: 0.9
+          token:  ${{ secrets.PAT }}
 
   test-e2e:
     name: Test e2e QVM
