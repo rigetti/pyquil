@@ -1,6 +1,7 @@
 .. _basics:
 
-Programs and Gates
+==================
+Programs and gates
 ==================
 
 .. note::
@@ -8,10 +9,11 @@ Programs and Gates
     If you're running locally, remember set up the QVM and quilc in server mode before trying to use
     them: :ref:`server`.
 
+************
 Introduction
-~~~~~~~~~~~~
+************
 
-Quantum programs are written in Forest using the :py:class:`~pyquil.quil.Program` object. This ``Program`` abstraction will help us
+Quantum programs are written in pyQuil by using the :py:class:`~pyquil.quil.Program` object. This ``Program`` abstraction will help us
 compose `Quil programs <https://arxiv.org/abs/1608.03355>`_.
 
 .. testcode:: intro
@@ -98,10 +100,12 @@ programs in detail, an essential part of becoming fluent in quantum programming.
 
 .. _standard:
 
-The Standard Gate Set
-~~~~~~~~~~~~~~~~~~~~~
+*********************
+The standard gate set
+*********************
 
-The following gates methods come standard with Quil and ``gates.py``:
+The :py:mod:`pyquil.gates` module defines many of the standard gates you would expect. See the module documentation for
+everything available, but here's a quick list to get you started:
 
 -  Pauli gates ``I``, ``X``, ``Y``, ``Z``
 
@@ -123,10 +127,11 @@ number as an argument.
 
 .. _declaring_memory:
 
-Declaring Memory
-~~~~~~~~~~~~~~~~
+****************
+Declaring memory
+****************
 
-Classical memory regions must be explicitly requested and named by a Quil program using the ``DECLARE`` directive.
+Classical memory regions must be explicitly requested and named in a Quil program by using the ``DECLARE`` directive.
 Details about this directive can be found in :py:func:`pyquil.quil.Program.declare`.
 
 In pyQuil, we declare memory with the ``.declare`` method on a ``Program``. Let's inspect the function signature
@@ -145,8 +150,7 @@ and break down each argument:
     ``OCTET`` always have a determined size, which is 1 bit and 8 bits respectively.
  -  ``memory_size`` is the number of elements of that type to reserve.
  -  ``shared_region`` and ``offsets`` allow you to alias memory regions. For example,
-    you might want to name the third bit in your readout array as ``q3_ro``. ``SHARING`` is currently disallowed for
-    our QPUs, so we won't focus on this here.
+    you might want to name the third bit in your readout array as ``q3_ro``.
 
 Now we can get into an example.
 
@@ -161,7 +165,7 @@ Now we can get into an example.
     print(p)
 
 .. warning::
-    ``.declare`` cannot be chained, since it doesn't return a modified ``Program`` object.
+    ``.declare`` can't be chained, since it doesn't return a modified ``Program`` object.
 
 Notice that the ``.declare`` method returns a reference to the memory we've just declared. We will need this reference
 to make use of these memory spaces again. Let's see how the Quil is looking so far:
@@ -172,14 +176,15 @@ to make use of these memory spaces again. Let's see how the Quil is looking so f
     DECLARE theta REAL[1]
 
 
-That's all we have to do to declare the memory. Continue to the next section on :ref:`measurement` to learn more about
+That's all we need to do to declare the memory. Continue to the next section on :ref:`measurement` to learn more about
 using ``ro`` to store measured readout results. Check out :ref:`parametric_compilation` to see how you might use
 ``theta`` to compile gate parameters dynamically.
 
 .. _measurement:
 
+***********
 Measurement
-~~~~~~~~~~~
+***********
 
 We can use ``MEASURE`` instructions to measure particular qubits in a program:
 
@@ -208,12 +213,8 @@ use the compiler to :ref:`re-index <rewiring>` your qubits):
     for i, q in enumerate(qubits):
         p += MEASURE(q, ro[i])
 
-.. note::
-
-    The QPU can only handle ``MEASURE`` instructions as final instructions. You can't operate gates after measurements.
-
 Specifying the number of trials
--------------------------------
+===============================
 
 Quantum computing is inherently probabilistic. We often have to repeat the same experiment many times to get the
 results we need. Sometimes we expect the results to all be the same, such as when we apply no gates, or only an ``X``
@@ -242,8 +243,9 @@ program should be executed 1000 times:
 
 .. _parametric_compilation:
 
-Parametric Compilation
-~~~~~~~~~~~~~~~~~~~~~~
+**********************
+Parametric compilation
+**********************
 
 Modern quantum algorithms are often parametric, following a hybrid model. In this hybrid
 model, the program ansatz (template of gates) is fixed, and iteratively updated with new
@@ -258,7 +260,7 @@ Taking the compiler out of the execution loop for programs like this offers a hu
 improvement compared to compiling the program each time a parameter update is required.
 
 The first step is to build our parametric program, which functions like a template for all the precise programs we will
-run. Below we create a simple example program to illustrate, which puts the qubit onto the equator of the Bloch Sphere and then
+run. Below we create an example program to illustrate, which puts the qubit onto the equator of the Bloch Sphere and then
 rotates it around the Z axis for some variable angle theta before applying another X pulse and measuring.
 
 .. testcode:: parametric
@@ -282,8 +284,7 @@ rotates it around the Z axis for some variable angle theta before applying anoth
 
 .. note::
 
-    The example program, although simple, is actually more than just a toy example. It is similar to an
-    experiment which measures the qubit frequency.
+    This program is actually more than a toy example. It's similar to an experiment which measures the qubit frequency.
 
 Notice how ``theta`` hasn't been specified yet. The next steps will have to involve a ``QuantumComputer`` or a compiler
 implementation. For simplicity, we will demonstrate with a ``QuantumComputer`` instance.
@@ -318,10 +319,12 @@ In the example here, if you called ``qc.run(executable)`` and didn't specify ``'
 ``RZ(0, qubit)`` for every execution.
 
 .. note::
+
     Classical memory defaults to zero. If you don't specify a value for a declared memory region, it will be zero.
 
-Gate Modifiers
-~~~~~~~~~~~~~~
+**************
+Gate modifiers
+**************
 Gate applications in Quil can be preceded by a `gate modifier`. There are three supported modifiers:
 ``DAGGER``, ``CONTROLLED``, and ``FORKED``. The ``DAGGER`` modifier represents the dagger of the gate. For instance,
 
@@ -378,7 +381,7 @@ control qubit ``0`` and target qubit ``1``
 
 To produce the doubly-controlled NOT gate (``CCNOT``) with
 control qubits ``0`` and ``1`` and target qubit ``2`` you can stack
-the ``controlled`` modifier, or simply pass a list of control qubits
+the ``controlled`` modifier, or pass a list of control qubits
 
 .. testcode:: gate-modifiers
 
@@ -399,11 +402,11 @@ The gate ``FORKED RX(pi/2, pi) 0 1`` may be produced by
    prog = Program(RX(np.pi/2, 1).forked(0, [np.pi]))
 
 
+******************
+Defining new gates
+******************
 
-Defining New Gates
-~~~~~~~~~~~~~~~~~~
-
-New gates can be easily added inline to Quil programs. All you need is a
+New gates can also be added inline to Quil programs. All you need is a
 matrix representation of the gate. For example, below we define a
 :math:`\sqrt{X}` gate.
 
@@ -465,8 +468,9 @@ rather than one, since it operates on two qubits.
     (e.g. ``print(WavefunctionSimulator().wavefunction(p))``).
 
 
-Defining Parametric Gates
-~~~~~~~~~~~~~~~~~~~~~~~~~
+*************************
+Defining parametric gates
+*************************
 
 Let's say we want to have a controlled RX gate. Since RX is a parametric gate, we need a slightly different way of
 defining it than in the previous section.
@@ -509,11 +513,9 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
     (e.g. ``print(WavefunctionSimulator().wavefunction(p))``).
 
 
-Defining Permutation Gates
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. note::
-   ``quilc`` supports permutation gate syntax since version ``1.8.0``. pyQuil introduced support in version ``2.8.0``.
+**************************
+Defining permutation gates
+**************************
 
 Some gates can be compactly represented as a permutation. For example, ``CCNOT`` gate can be represented by the matrix
 
@@ -548,16 +550,17 @@ It can equivalently be defined by the permutation
 
    # etc
 
+*******
 Pragmas
-~~~~~~~
+*******
 
 ``PRAGMA`` directives give users more control over how Quil programs are processed or simulated but generally do not
 change the semantics of the Quil program itself. As a general rule of thumb, deleting all ``PRAGMA`` directives in a Quil
 program should leave a valid and semantically equivalent program.
 
 In pyQuil, ``PRAGMA`` directives play many roles, such as controlling the behavior of gates in noisy simulations,
-or commanding the Quil compiler to perform actions in a certain way. Here, we will cover the basics of two very
-common use cases for including a ``PRAGMA`` in your program: qubit rewiring and delays. For a more comprehensive
+or commanding the Quil compiler to perform actions in a certain way. Here, we will cover the basics of using a ``PRAGMA``
+directive to specify a qubit rewiring scheme, a common use case for pragmas. For a more comprehensive
 review of what pragmas are and what the compiler supports, check out :ref:`compiler`. For more information about
 ``PRAGMA`` in Quil, see
 `A Practical Quantum ISA <https://arxiv.org/pdf/1608.03355.pdf>`_, and
@@ -565,10 +568,10 @@ review of what pragmas are and what the compiler supports, check out :ref:`compi
 
 .. _rewiring:
 
-Specifying A Qubit Rewiring Scheme
-----------------------------------
+Specifying a qubit rewiring scheme
+==================================
 
-Qubit rewiring is one of the most powerful features of the Quil compiler. We are able to write Quil programs which are
+Qubit rewiring is one of the most powerful features of the Quil compiler. We're able to write Quil programs which are
 agnostic to the topology of the chip, and the compiler will intelligently relabel our qubits to
 give better performance.
 
@@ -605,34 +608,48 @@ available options is :ref:`here <compiler_rewirings>`.
     In general, we assume that the qubits you're supplying as input are also the ones which you prefer to
     operate on, and so NAIVE rewiring is the default.
 
-Asking for a Delay
-------------------
+******************
+Asking for a delay
+******************
 
-At times, we may want to add a delay in our program. Usually this is associated with qubit characterization. Delays
-are not regular gate operations, and they do not affect the abstract semantics of the Quil program, so they're implemented with a ``PRAGMA`` directive.
+At times, we may want to add a delay in our program. Usually this is associated with qubit characterization.
+As part of the :ref:`quilt` extension to Quil, ``DELAY`` instructions allow you to insert a gap within a list
+of pulses or gates with a specified duration in seconds. ``DELAY`` instructions aren't regular gate operations,
+and they don't affect they abstract semantics of the Quil program, but you can add one to your program much like
+any other instruction:
 
-.. code:: python
+.. testsetup:: delay
+
+    from pyquil.quil import Program
+    from pyquil.gates import DELAY
+    p = Program()
+
+.. testcode:: delay
 
     #  ...
-    # qubit index and time in seconds must be defined and provided
-    # the time argument accepts exponential notation e.g. 200e-9
-    p += Pragma('DELAY', [qubit], str(time))
+    # qubit indices and time in seconds must be provided
+    p += DELAY(0, 200e-9)
+
+.. testoutput:: delay
+   :hide:
+
+   ...
 
 .. warning::
-    These delays currently have effects on the real QPU. They have no effect on QVM's even when those QVM's have noise
-    models applied.
+   `DELAY` and other Quil-T instructions aren't supported by the QVM.
 
 .. warning::
-    Keep in mind, the program duration is currently capped at 15 seconds, and the length of the program is multiplied
-    by the number of shots. If you have a 1000 shot program, where each shot contains a 100ms delay, you won't be able to execute it.
+   In pyQuil v3 and below, it was common to specify a delay using ``PRAGMA DELAY``. This is no longer supported in v4 because it
+   conflicts with Quil-T's ``DELAY`` instruction described above. They serve the same function, so we recommend using the ``DELAY``
+   instruction instead.
 
-Ways to Construct Programs
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+**************************
+Ways to construct programs
+**************************
 
-pyQuil supports a variety of methods for constructing programs, however you prefer.
+pyQuil supports a variety of methods for constructing programs.
 Multiple instructions can be added at once, and programs can be concatenated together. pyQuil can also produce a
-``Program`` by interpreting raw Quil text. You can still use the more pyQuil 1.X style of using
-the ``.inst`` method to add instruction gates. Thus, the following are all valid programs:
+``Program`` by interpreting raw Quil text. The following are all valid programs:
 
 .. testsetup:: construct-programs
 
@@ -685,49 +702,3 @@ All of the above methods will produce the same output:
 
    X 0
    Y 1
-
-The ``pyquil.parser`` submodule provides a front-end to other similar parser
-functionality.
-
-
-Fixing a Mistaken Instruction
------------------------------
-
-If an instruction was appended to a program incorrectly, you can pop it off.
-
-.. testsetup:: mistake
-
-   from pyquil import Program
-   from pyquil.gates import X, Y
-
-.. testcode:: mistake
-
-    p = Program(X(0), Y(1))
-    print(p)
-
-    print("We can fix by popping:")
-    p.pop()
-    print(p)
-
-.. testoutput:: mistake
-
-    X 0
-    Y 1
-    We can fix by popping:
-    X 0
-
-QPU-allowable Quil
-~~~~~~~~~~~~~~~~~~
-
-Apart from ``DECLARE`` and ``PRAGMA`` directives, a program must break into the following three regions, each optional:
-
-1. A ``RESET`` command.
-2. A sequence of quantum gate applications.
-3. A sequence of ``MEASURE`` commands.
-
-The only memory that is writeable is the region named ``ro``, and only through ``MEASURE`` instructions. All other
-memory is read-only.
-
-The keyword ``SHARING`` is disallowed.
-
-Compilation is unavailable for invocations of ``DEFGATE``\ s with parameters read from classical memory.
