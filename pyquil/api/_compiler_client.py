@@ -138,7 +138,7 @@ class CompilerClient:
         Get version info for compiler server.
         """
 
-        return get_version_info(client=self._client_configuration)
+        return get_version_info(client=self.quilc_client)
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """
@@ -150,7 +150,7 @@ class CompilerClient:
         result = compile_program(
             quil=request.program,
             target=target_device,
-            client=self._client_configuration,
+            client=self.quilc_client,
             options=CompilerOpts(protoquil=request.protoquil, timeout=self.timeout),
         )
         return CompileToNativeQuilResponse(native_program=result.program, metadata=result.native_quil_metadata)
@@ -159,7 +159,7 @@ class CompilerClient:
         """
         Conjugate a Pauli element by a Clifford element.
         """
-        return conjugate_pauli_by_clifford(request=request, client=self._client_configuration)
+        return conjugate_pauli_by_clifford(request=request, client=self.quilc_client)
 
     def generate_randomized_benchmarking_sequence(
         self, request: RandomizedBenchmarkingRequest
@@ -167,4 +167,4 @@ class CompilerClient:
         """
         Generate a randomized benchmarking sequence.
         """
-        return generate_randomized_benchmarking_sequence(request=request, client=self._client_configuration)
+        return generate_randomized_benchmarking_sequence(request=request, client=self.quilc_client)
