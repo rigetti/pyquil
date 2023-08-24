@@ -990,32 +990,6 @@ def test_get_classical_addresses_from_quil_program():
     assert get_classical_addresses_from_program(p) == {"ro": [1]}
 
 
-def test_pragma_with_placeholders():
-    q = QubitPlaceholder()
-    q2 = QubitPlaceholder()
-    p = Program()
-    p.inst(Pragma("CUSTOM", [q, q2]))
-    address_map = {q: 0, q2: 1}
-    addressed_pragma = address_qubits(p, address_map)[0]
-    parse_equals("PRAGMA CUSTOM 0 1\n", addressed_pragma)
-
-    pq = Program(X(q))
-    pq.define_noisy_readout(q, 0.8, 0.9)
-
-    pq.inst(X(q2))
-    pq.define_noisy_readout(q2, 0.9, 0.8)
-
-    ret = address_qubits(pq, address_map).out()
-    assert (
-        ret
-        == """X 0
-PRAGMA READOUT-POVM 0 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
-X 1
-PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
-"""
-    )
-
-
 def test_declare():
     program = Program(Declare("read_out", "BIT", 5), MEASURE(0, MemoryReference("read_out", 4)))
     assert program.out() == ("DECLARE read_out BIT[5]\nMEASURE 0 read_out[4]\n")

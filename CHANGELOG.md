@@ -20,6 +20,8 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - There may be some minor differences in how instructions are converted to a Quil string. These differences should only be cosmetic and should not affect the behavior of a program. However, they may break unit tests or other code that rely on specific formatting of programs.
 - The `pyquil.quil.get_default_qubit_mapping` function for getting a mapping of `QubitPlaceholders` to resolved indices has been removed. Generating a default mapping is handled automatically by the placeholder resolving methods.
 - The `JumpConditional` base class has been removed, used `JumpWhen` and/or `JumpUnless` directly instead.
+- The `Program` class automatically sorts `DECLARE` instructions to the top of the Program when converting to Quil.
+- ``QubitPlaceholders`` are no longer supported as `Pragma` arguments.
 
 ### Features
 
@@ -134,7 +136,7 @@ installation, perform diagnostics checks, and return a summary.
 
 ### Improvements and Changes
 
-- Function `pyquil.quilatom.substitute()` now supports substitution of classical `MemoryReference`
+- Function `pyquil.quilatom.subostitute()` now supports substitution of classical `MemoryReference`
   objects such as `theta[4]` with their parameter values, enabling user-side parameter substitution.
 - Versions of `qcs-api-client` up to 0.20.x are now supported.
 - The CompilerISA of physical QPUs now assigns a fidelity of 1 to virtual RZs.

@@ -1462,7 +1462,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
     def __new__(
         cls,
         command: str,
-        args: Sequence[Union[QubitDesignator, str]] = (),
+        args: Sequence[Union[Qubit, FormalArgument, int, str]] = (),
         freeform_string: str = "",
     ) -> Self:
         data = freeform_string or None
@@ -1480,12 +1480,10 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg.index))
             elif isinstance(arg, int):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg))
-            elif isinstance(arg, QubitPlaceholder):
-                pragma_arguments.append(quil_rs.PragmaArgument.from_placeholder(arg._placeholder))
             elif isinstance(arg, (str, FormalArgument)):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_identifier(str(arg)))
             else:
-                raise TypeError(f"{type(arg)} isn't a valid QubitDesignator")
+                raise TypeError(f"{type(arg)} isn't a valid PRAGMA argument")
         return pragma_arguments
 
     @staticmethod
