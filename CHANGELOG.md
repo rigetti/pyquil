@@ -12,8 +12,12 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - Python 3.7 is no longer supported.
 - The environment variable overrides for `quilc` and `QVM` URLs have been renamed to `QCS_APPLICATIONS_QUILC_URL` and `QCS_APPLICATIONS_QVM_URL`, respectively.
 - The `QuantumComputer`'s `run` method now takes an optional `memory_map` parameter. This mapping takes memory region names to a list of values to use for a run. This replaces the ability to use `write_memory` on `Program`s.
-- `Pragma("DELAY", ...)` will now raise a parser error because it generates invalid Quil. Use the `Delay` instruction instead.
+- `PRAGMA` instructions can no longer have a directive that conflicts with a Quil keyword. If you were using directives like `Delay` or `Fence`, consider using the Quil-T instructions instead.
+- `DefGate` and the other gate definition instructions will no longer accept names that conflict with Quil keywords.
 - `Program#get_qubits()` will raise a `TypeError` if any of the qubits in the program are not a fixed index.
+- `QubitPlaceholders` can no longer be used in Pragma's
+- A `Program`s `LabelPlaceholder`s are no longer resolved automatically when getting it's instructions. Use the `resolve_label_placeholders` method to do it explicitly. Note that the `if_then` and `while_do` methods will add `LabelPlaceholder`s to your program.
+- There may be some minor differences in how instructions are converted to a Quil string. These differences should only be cosmetic and should not affect the behavior of a program. However, they may break unit tests or other code that rely on specific formatting of programs.
 
 ### Features
 
@@ -25,6 +29,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - The new `QPUCompilerAPIOptions` class provides can now be used to customize how a program is compiled against a QPU.
 - The `diagnostics` module has been introduced with a `get_report` function that will gather information on the currently running pyQuil
 installation, perform diagnostics checks, and return a summary.
+- `Program` has new methods for resolving Qubit and Label Placeholders in a program.
 
 ## 3.5.4
 

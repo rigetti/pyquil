@@ -574,6 +574,7 @@ def test_control_flows():
 
     # run inner_loop in a loop until classical_flag_register is 0
     outer_loop.while_do(classical_flag_register, inner_loop)
+    outer_loop.resolve_label_placeholders()
     assert outer_loop.out() == "\n".join(
         [
             "DECLARE classical_flag_register BIT[1]",
@@ -600,6 +601,7 @@ def test_control_flows_2():
         .if_then(MemoryReference("ro", 1), x_prog, z_prog)
         .measure(0, MemoryReference("ro", 0))
     )
+    branch.resolve_label_placeholders()
     assert branch.out() == (
         "DECLARE ro BIT[2]\n"
         "H 1\n"
@@ -619,7 +621,7 @@ def test_if_option():
         .measure(0, MemoryReference("ro", 0))
         .if_then(MemoryReference("ro", 0), Program(X(1)))
     )
-    print(p.out())
+    p.resolve_label_placeholders()
     assert p.out() == (
         "DECLARE ro BIT[1]\n"
         "X 0\n"

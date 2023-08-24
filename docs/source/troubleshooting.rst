@@ -85,9 +85,10 @@ Collect debug information
    .. note:: For information on how to filter the logs, see the `qcs-sdk-python logging documentation <https://github.com/rigetti/qcs-sdk-rust/tree/main/crates/python#enabling-debug-logging>`_
 
    .. testcode:: debug
-   :hide:
+      :hide:
     
-    # Disable deubg logging, otherwise doctests will run with
+    import logging
+    # Disable debug logging, otherwise doctests will run with
     # debug logging enabled.
     logging.basicConfig(level=logging.INFO)
 

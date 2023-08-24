@@ -193,7 +193,6 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        self.resolve_label_placeholders()
         return list(self.declarations.values()) + _convert_to_py_instructions(self._program.instructions)
 
     @instructions.setter
@@ -679,7 +678,6 @@ class Program:
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
-        self.resolve_label_placeholders()
         if calibrations:
             return self._program.to_quil()
         else:
