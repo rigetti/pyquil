@@ -362,7 +362,7 @@ class PyQVM(QAM["PyQVM"]):
                 # jumping: set prog counter to JumpTarget
                 self.program_counter = dest_index
             else:
-                # not jumping: hop over this instrucion
+                # not jumping: hop over this instruction
                 self.program_counter += 1
 
         elif isinstance(instruction, UnaryClassicalInstruction):
