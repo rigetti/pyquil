@@ -1,7 +1,5 @@
 import math
 
-import numpy as np
-
 from pyquil import Program
 from pyquil.api._compiler import QPUCompiler
 from pyquil.gates import RX, MEASURE, RZ

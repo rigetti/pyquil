@@ -78,8 +78,6 @@ def test_rewrite_arithmetic_set_scale():
 
     response = rewrite_arithmetic(prog)
 
-    print(response)
-
     assert response == RewriteArithmeticResponse(
         original_memory_descriptors={"theta": ParameterSpec(length=1, type="REAL")},
         recalculation_table={ParameterAref(index=0, name="__P1"): "theta[0]/8"},
@@ -158,7 +156,6 @@ def test_rewrite_arithmetic_mixed_mutations():
     }
 
     response_program = Program(response.quil)
-    print(response_program[0:2])
     assert set(response_program[0:2].out().split("\n")) == {"DECLARE __P1 REAL[3]", "DECLARE theta REAL[1]", ""}
     assert response_program[2] == fdefn
     assert [inst.out() for inst in response_program[3:]] == [

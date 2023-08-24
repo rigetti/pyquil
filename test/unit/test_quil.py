@@ -777,7 +777,6 @@ def test_merge_with_pauli_noise(snapshot):
     p = Program(X(0)).inst(Z(0))
     probs = [0.0, 1.0, 0.0, 0.0]
     merged = merge_with_pauli_noise(p, probs, [0])
-    print(merged)
     assert merged.out() == snapshot
 
 
@@ -790,8 +789,6 @@ def test_get_qubits():
     qq = QubitPlaceholder()
     pq.inst(Y(q[2]), X(qq))
     addressed_pq = address_qubits(pq)
-    print(addressed_pq.out())
-    print(addressed_pq)
     assert addressed_pq.get_qubits() == {0, 1, 2, 3, 4}
 
     qubit_index = 1
@@ -805,8 +802,6 @@ def test_get_qubits():
 def test_get_qubit_placeholders():
     qs = QubitPlaceholder.register(8)
     pq = Program(Declare("ro", "BIT"), X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 0)))
-    print(pq.get_qubits(indices=False))
-    print(qs[0], qs[4], qs[5])
     assert set(pq.get_qubits(indices=False)) == {qs[i] for i in [0, 4, 5]}
 
 
@@ -821,11 +816,9 @@ def test_eq():
     q2 = QubitPlaceholder()
     p1.inst([H(q1), CNOT(q1, q2)])
     p1 = address_qubits(p1)
-    print(p1)
 
     p2 = Program()
     p2.inst([H(0), CNOT(0, 1)])
-    print(p2)
 
     assert p1 == p2
     assert not p1 != p2
@@ -972,7 +965,6 @@ def test_out_vs_str():
     assert e.match(r"Qubit has not yet been resolved")
 
     string_version = str(pq)
-    print(string_version)
     should_be_re = r"DECLARE ro BIT\[6\]\nX Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\)\nCNOT Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\) Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\)\nMEASURE Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\) ro\[5\]\n"
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
 

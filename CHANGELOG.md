@@ -18,6 +18,8 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - `QubitPlaceholders` can no longer be used in Pragma's
 - A `Program`s `LabelPlaceholder`s are no longer resolved automatically when getting it's instructions. Use the `resolve_label_placeholders` method to do it explicitly. Note that the `if_then` and `while_do` methods will add `LabelPlaceholder`s to your program.
 - There may be some minor differences in how instructions are converted to a Quil string. These differences should only be cosmetic and should not affect the behavior of a program. However, they may break unit tests or other code that rely on specific formatting of programs.
+- The `pyquil.quil.get_default_qubit_mapping` function for getting a mapping of `QubitPlaceholders` to resolved indices has been removed. Generating a default mapping is handled automatically by the placeholder resolving methods.
+- The `JumpConditional` base class has been removed, used `JumpWhen` and/or `JumpUnless` directly instead.
 
 ### Features
 
@@ -30,6 +32,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - The `diagnostics` module has been introduced with a `get_report` function that will gather information on the currently running pyQuil
 installation, perform diagnostics checks, and return a summary.
 - `Program` has new methods for resolving Qubit and Label Placeholders in a program.
+- `QubitPlaceholders` can now be used in programs that also use fixed or variable qubits.
 
 ## 3.5.4
 
