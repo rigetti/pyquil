@@ -212,25 +212,25 @@ class Program:
             >>> from pyquil.gates import H
             >>> p = Program()
             >>> p.inst(H(0)) # A single instruction
-            <pyquil.quil.Program object at ...>
+            Program { ... }
             >>> p.inst(H(0), H(1)) # Multiple instructions
-            <pyquil.quil.Program object at ...>
+            Program { ... }
             >>> p.inst([H(0), H(1)]) # A list of instructions
-            <pyquil.quil.Program object at ...>
+            Program { ... }
             >>> p.inst(H(i) for i in range(4)) # A generator of instructions
-            <pyquil.quil.Program object at ...>
+            Program { ... }
             >>> p.inst(("H", 1)) # A tuple representing an instruction
-            <pyquil.quil.Program object at ...>
+            Program { ... }
             >>> p.inst("H 0") # A string representing an instruction
-            <pyquil.quil.Program object at ...>
+            Program { ... }
             >>> q = Program()
             >>> p.inst(q) # Another program
-            <pyquil.quil.Program object at ...>
+            Program { ... }
 
         It can also be chained:
             >>> p = Program()
             >>> p.inst(H(0)).inst(H(1))
-            <pyquil.quil.Program object at ...>
+            Program { ... }
 
         :param instructions: A list of Instruction objects, e.g. Gates
         :return: self for method chaining
@@ -697,13 +697,13 @@ class Program:
             >>> from pyquil.gates import H
             >>> p = Program()
             >>> p.inst(("H", 1))
-            <pyquil.quil.Program object at ...>
+            Program { ... }
             >>> p.get_qubits()
             {1}
             >>> q = QubitPlaceholder()
             >>> p.inst(H(q))
-            <pyquil.quil.Program object at ...>
-            >>> len(p.get_qubits())
+            Program { ... }
+            >>> len(p.get_qubits(indices=False))
             2
 
         :param indices: Return qubit indices as integers intead of the

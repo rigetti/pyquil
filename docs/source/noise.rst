@@ -617,12 +617,12 @@ The Idiomatic pyQuil Program
 .. testoutput:: decoherence
 
     H 0
-    RX(pi/2) 1
+    RX(1.5707963267948966) 1
     CNOT 0 1
-    RZ(2*pi/3) 1
+    RZ(2.0943951023931953) 1
     CNOT 0 1
     H 0
-    RX(-pi/2) 1
+    RX(-1.5707963267948966) 1
 
 
 The Compiled Program

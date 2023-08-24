@@ -179,10 +179,10 @@ We can see what this program looks like in Quil notation with ``print(qft(0, 1, 
 
     SWAP 0 2
     H 0
-    CPHASE(-pi/2) 0 1
+    CPHASE(-1.5707963267948966) 0 1
     H 1
-    CPHASE(-pi/4) 0 2
-    CPHASE(-pi/2) 1 2
+    CPHASE(-0.7853981633974483) 0 2
+    CPHASE(-1.5707963267948966) 1 2
     H 2
 
 Part c: Execute the QFT

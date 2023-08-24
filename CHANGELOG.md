@@ -13,6 +13,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - The environment variable overrides for `quilc` and `QVM` URLs have been renamed to `QCS_APPLICATIONS_QUILC_URL` and `QCS_APPLICATIONS_QVM_URL`, respectively.
 - The `QuantumComputer`'s `run` method now takes an optional `memory_map` parameter. This mapping takes memory region names to a list of values to use for a run. This replaces the ability to use `write_memory` on `Program`s.
 - `Pragma("DELAY", ...)` will now raise a parser error because it generates invalid Quil. Use the `Delay` instruction instead.
+- `Program#get_qubits()` will raise a `TypeError` if any of the qubits in the program are not a fixed index.
 
 ### Features
 
