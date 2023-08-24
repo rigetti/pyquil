@@ -193,7 +193,7 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        return list(self.declarations.values()) + _convert_to_py_instructions(self._program.instructions)
+        return list(self.declarations.values()) + _convert_to_py_instructions(self._program.body_instructions)
 
     @instructions.setter
     def instructions(self, instructions: List[AbstractInstruction]) -> None:
