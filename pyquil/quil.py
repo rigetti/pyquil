@@ -298,7 +298,9 @@ class Program:
             idx, existing_defgate = next(
                 (
                     (i, gate)
-                    for i, gate in enumerate(map(lambda inst: inst.as_gate_definition(), self._program.instructions))
+                    for i, gate in enumerate(
+                        map(lambda inst: inst.as_gate_definition(), self._program.body_instructions)
+                    )
                     if gate and gate.name == defgate.name
                 ),
                 (0, None),
@@ -312,7 +314,7 @@ class Program:
             ):
                 warnings.warn("Redefining gate {}".format(defgate.name))
                 new_instructions = (
-                    self._program.instructions[:idx] + [instruction] + self._program.instructions[idx + 1 :]
+                    self._program.body_instructions[:idx] + [instruction] + self._program.instructions[idx + 1 :]
                 )
                 self._program = self._program.clone_without_body_instructions()
                 self._program.add_instructions(new_instructions)
