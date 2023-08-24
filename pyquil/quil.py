@@ -21,6 +21,7 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import (
     Any,
+    Callable,
     Dict,
     Generator,
     List,
@@ -263,6 +264,47 @@ class Program:
 
         return self
 
+    def resolve_placeholders(self) -> None:
+        """
+        Resolve all label and qubit placeholders in the program using a default resolver that will generate
+        a unique value for each placeholder within the scope of the program.
+        """
+        self._program.resolve_placeholders()
+
+    def resolve_placeholders_with_custom_resolvers(
+        self,
+        *,
+        label_resolver: Optional[Callable[[LabelPlaceholder], Optional[str]]] = None,
+        qubit_resolver: Optional[Callable[[QubitPlaceholder], Optional[int]]] = None,
+    ) -> None:
+        """
+        Resolve ``LabelPlaceholder``s and ``QubitPlaceholder``s within the program using a function
+        to provide resolved values for the placeholdres.
+
+        If you provide ``target_resolver`` and/or ``qubit_resolver``, they will be used to resolve those values
+        respectively. If your resolver returns `None` for a particular placeholder, it will not be replaced but
+        will be left as a placeholder.
+
+        If you do not provide a resolver for a placeholder, a default resolver will be used which will generate a unique
+        value for that placeholder within the scope of the program using an auto-incrementing value (for qubit) or
+        suffix (for target) while ensuring that unique value is not already in use within the program.
+        """
+        rs_qubit_resolver = None
+        if qubit_resolver is not None:
+
+            def rs_qubit_resolver(placeholder: quil_rs.QubitPlaceholder) -> Optional[int]:
+                return qubit_resolver(QubitPlaceholder(placeholder=placeholder))
+
+        rs_label_resolver = None
+        if label_resolver is not None:
+
+            def rs_label_resolver(placeholder: quil_rs.TargetPlaceholder) -> Optional[str]:
+                return label_resolver(LabelPlaceholder(placeholder=placeholder))
+
+        self._program.resolve_placeholders_with_custom_resolvers(
+            target_resolver=rs_label_resolver, qubit_resolver=rs_qubit_resolver
+        )
+
     def resolve_qubit_placeholders(self) -> None:
         """
         Resolve all qubit placeholders in the program.
@@ -270,6 +312,11 @@ class Program:
         self._program.resolve_placeholders_with_custom_resolvers(target_resolver=lambda _: None)
 
     def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, int]) -> None:
+        """
+        Resolve all qbuit placeholders in the program using a mapping of ``QubitPlaceholder``s to
+        the index they should resolve to.
+        """
+
         def qubit_resolver(placeholder: quil_rs.QubitPlaceholder) -> Optional[int]:
             return qubit_mapping.get(QubitPlaceholder(placeholder), None)
 
@@ -288,9 +335,9 @@ class Program:
 
     def _add_instruction(self, instruction: quil_rs.Instruction) -> None:
         """
-        A helper method that adds an instruction to the Program after normalizing to a `quil_rs.Instruction`. For backwards compatibility,
-        it also prevents duplicate calibration, measurement, and gate definitions from being added. Users of ``Program`` should use
-        ``inst`` or ``Program`` addition instead.
+        A helper method that adds an instruction to the Program after normalizing to a `quil_rs.Instruction`.
+        For backwards compatibility, it also prevents duplicate calibration, measurement, and gate definitions from
+        being added. Users of ``Program`` should use ``inst`` or ``Program`` addition instead.
         """
         if instruction.is_gate_definition():
             defgate = instruction.to_gate_definition()
