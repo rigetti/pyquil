@@ -1,20 +1,16 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import numpy as np
 
-from pyquil.api import ConnectionStrategy, ExecutionOptions
+from pyquil.api import ConnectionStrategy, ExecutionOptions, RegisterMatrixConversionError
 from pyquil.api._qpu import QPU
 from pyquil.api._abstract_compiler import EncryptedProgram
 from pyquil.quil import Program
-from pytest_mock import MockerFixture
-from qcs_sdk import RegisterMatrixConversionError
 from qcs_sdk.qpu.api import Register, ExecutionResult, ExecutionResults
 from rpcq.messages import ParameterSpec
 
 from pyquil.quilatom import MemoryReference
-
-import pyquil.api
 
 
 @pytest.fixture
@@ -101,7 +97,5 @@ def test_qpu_execute_jagged_results(mock_submit, mock_retrieve_results, mock_enc
     with pytest.raises(RegisterMatrixConversionError):
         result.register_map
 
-    assert result.raw_readout_data == {
-        "mappings": {"ro[0]": "q0", "ro[1]": "q1"},
-        "readout_values": {"q0": [1, 1], "q1": [1, 1, 1, 1]},
-    }
+    assert result.raw_readout_data.mappings == {"ro[0]": "q0", "ro[1]": "q1"}
+    assert result.raw_readout_data.readout_values == {"q0": [1, 1], "q1": [1, 1, 1, 1]}

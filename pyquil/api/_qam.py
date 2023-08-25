@@ -20,8 +20,8 @@ from typing import Any, Generic, Mapping, Optional, TypeVar, Sequence, Union, Di
 from deprecated import deprecated
 import numpy as np
 from qcs_sdk import ExecutionData
-from qcs_sdk.qpu import QPUResultData
-from qcs_sdk.qvm import QVMResultData
+from qcs_sdk.qpu import RawQPUReadoutData
+from qcs_sdk.qvm import RawQVMReadoutData
 
 from pyquil.api._abstract_compiler import QuantumExecutable
 
@@ -50,7 +50,7 @@ class QAMExecutionResult:
     """
 
     @property
-    def raw_readout_data(self) -> dict:
+    def raw_readout_data(self) -> Union[RawQVMReadoutData, RawQPUReadoutData]:
         """
         Get the raw result data. This will be a flattened dictionary derived
         from :class:`qcs_sdk.qvm.QVMResultData` or :class:`qcs_sdk.qpu.QPUResultData` depending on where the
@@ -62,10 +62,7 @@ class QAMExecutionResult:
         rectangular matrix. If the program was run on a QVM, or doesn't use those
         features, consider using the ``register_map`` property instead.
         """
-        if self.data.result_data.is_qpu():
-            return self.data.result_data.to_qpu().asdict()
-        else:
-            return self.register_map
+        return self.data.result_data.to_raw_readout_data()
 
     @property
     def register_map(self) -> Dict[str, Optional[np.ndarray]]:
