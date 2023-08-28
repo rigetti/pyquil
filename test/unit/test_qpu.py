@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import numpy as np
 
@@ -58,7 +58,9 @@ def test_provided_execution_options():
 
 @patch("pyquil.api._qpu.retrieve_results")
 @patch("pyquil.api._qpu.submit")
-def test_qpu_execute(mock_submit, mock_retrieve_results, mock_encrypted_program):
+def test_qpu_execute(
+    mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
+):
     qpu = QPU(quantum_processor_id="test")
 
     mock_submit.return_value = "some-job-id"
@@ -73,13 +75,15 @@ def test_qpu_execute(mock_submit, mock_retrieve_results, mock_encrypted_program)
 
     result = qpu.get_result(execute_response)
 
-    assert np.all(result.register_map["ro"] == np.array([[1, 1], [1, 1], [1, 1], [1, 1]]))
-    assert np.all(result.register_map["ro"] == result.readout_data["ro"])
+    assert np.all(result.get_register_map()["ro"] == np.array([[1, 1], [1, 1], [1, 1], [1, 1]]))
+    assert np.all(result.get_register_map()["ro"] == result.readout_data["ro"])
 
 
 @patch("pyquil.api._qpu.retrieve_results")
 @patch("pyquil.api._qpu.submit")
-def test_qpu_execute_jagged_results(mock_submit, mock_retrieve_results, mock_encrypted_program):
+def test_qpu_execute_jagged_results(
+    mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
+):
     qpu = QPU(quantum_processor_id="test")
 
     mock_submit.return_value = "some-job-id"
@@ -95,7 +99,9 @@ def test_qpu_execute_jagged_results(mock_submit, mock_retrieve_results, mock_enc
     result = qpu.get_result(execute_response)
 
     with pytest.raises(RegisterMatrixConversionError):
-        result.register_map
+        result.get_register_map()
 
-    assert result.raw_readout_data.mappings == {"ro[0]": "q0", "ro[1]": "q1"}
-    assert result.raw_readout_data.readout_values == {"q0": [1, 1], "q1": [1, 1, 1, 1]}
+    raw_readout_data = result.get_raw_readout_data()
+
+    assert raw_readout_data.mappings == {"ro[0]": "q0", "ro[1]": "q1"}
+    assert raw_readout_data.readout_values == {"q0": [1, 1], "q1": [1, 1, 1, 1]}

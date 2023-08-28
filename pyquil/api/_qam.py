@@ -16,6 +16,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Generic, Mapping, Optional, TypeVar, Sequence, Union, Dict
+from datetime import timedelta
 
 from deprecated import deprecated
 import numpy as np
@@ -49,12 +50,12 @@ class QAMExecutionResult:
     to get at the data in a more convenient format.
     """
 
-    @property
-    def raw_readout_data(self) -> Union[RawQVMReadoutData, RawQPUReadoutData]:
+    def get_raw_readout_data(self) -> Union[RawQVMReadoutData, RawQPUReadoutData]:
         """
         Get the raw result data. This will be a flattened dictionary derived
-        from :class:`qcs_sdk.qvm.QVMResultData` or :class:`qcs_sdk.qpu.QPUResultData` depending on where the
-        job was run. See the respective
+        from :class:`qcs_sdk.qvm.QVMResultData` or :class:`qcs_sdk.qpu.QPUResultData`
+        depending on where the job was run. See their respective documentation
+        for more information on the data format.
 
         This property should be used when running programs that use features like
         mid-circuit measurement and dynamic control flow on a QPU, since they can
@@ -64,8 +65,7 @@ class QAMExecutionResult:
         """
         return self.data.result_data.to_raw_readout_data()
 
-    @property
-    def register_map(self) -> Dict[str, Optional[np.ndarray]]:
+    def get_register_map(self) -> Dict[str, Optional[np.ndarray]]:
         """
         A mapping of a register name (ie. "ro") to a ``np.ndarray`` containing the values for the
         register.
@@ -73,12 +73,19 @@ class QAMExecutionResult:
         Raises a ``RegisterMatrixConversionError`` if the inner execution data for any of the
         registers would result in a jagged matrix. QPU result data is captured per measure,
         meaning a value is returned for every measure to a memory reference, not just once per shot.
-        This is often the case in programs that use mid-circuit measurement or dynamic control flow,
-        where measurements to the same memory reference might occur multiple times in a shot, or be
-        skipped conditionally. In these cases, building a rectangular ``np.ndarray`` would
-        necessitate making assumptions about the data that could skew the data in undesirable ways.
-        Instead, it's recommended to manually build a matrix from the ``QPUResultData`` available
+        This is often the case in programs that re-use qubits or dynamic control flow, where
+        measurements to the same memory reference might occur multiple times in a shot, or be skipped
+        conditionally. In these cases, building a matrix with one value per memory reference, per shot
+        would necessitate making assumptions about the data that could skew the data in undesirable
+        ways. Instead, it's recommended to manually build a matrix from the ``QPUResultData`` available
         on the ``raw_readout_data`` property.
+
+        .. warning::
+
+            An exception will _not_ be raised if the result data happens to fit a rectangular matrix, since
+            it's possible the register map is valid for some number of shots. Users should be aware of this
+            possibility, especially when running programs that utilize qubit reuse or dynamic control flow.
+
         """
         register_map = self.data.result_data.to_register_map()
         return {key: matrix.to_ndarray() for key, matrix in register_map.items()}
@@ -88,17 +95,19 @@ class QAMExecutionResult:
         version="4.0.0",
         reason=(
             "This property is ambiguous now that the `raw_readout_data` property exists"
-            "and will be removed in future versions. Use `register_map` property instead"
+            "and will be removed in future versions. Use the `register_map()` method instead"
         ),
     )
     def readout_data(self) -> Mapping[str, Optional[np.ndarray]]:
         """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
-        return self.register_map
+        return self.get_register_map()
 
     @property
     def execution_duration_microseconds(self) -> Optional[int]:
         """Duration job held exclusive hardware access. Defaults to ``None`` when information is not available."""
-        return self.data.duration.microseconds
+        if isinstance(self.data.duration, timedelta):
+            return self.data.duration.microseconds
+        return None
 
 
 class QAM(ABC, Generic[T]):
