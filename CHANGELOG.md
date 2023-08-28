@@ -21,7 +21,6 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - The `pyquil.quil.get_default_qubit_mapping` function for getting a mapping of `QubitPlaceholders` to resolved indices has been removed. Generating a default mapping is handled automatically by the placeholder resolving methods.
 - The `JumpConditional` base class has been removed, use `JumpWhen` and/or `JumpUnless` directly instead.
 - The `Program` class automatically sorts `DECLARE` instructions to the top of the Program when converting to Quil.
-- ``QubitPlaceholders`` are no longer supported as `Pragma` arguments.
 
 ### Features
 
