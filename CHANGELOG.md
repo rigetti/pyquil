@@ -15,7 +15,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - `PRAGMA` instructions can no longer have a directive that conflicts with a Quil keyword. If you were using directives like `DELAY` or `FENCE`, consider using the respective Quil-T instructions instead.
 - `DefGate` and the other gate definition instructions will no longer accept names that conflict with Quil keywords.
 - `Program#get_qubits()` will raise a `TypeError` if any of the qubits in the program are not a fixed index.
-- `QubitPlaceholders` can no longer be used in Pragma's
+- `QubitPlaceholders` can no longer be used in `PRAGMA` instructions.
 - A `Program`s `LabelPlaceholder`s are no longer resolved automatically when getting it's instructions. Use the `resolve_label_placeholders` method to do it explicitly. Note that the `if_then` and `while_do` methods will add `LabelPlaceholder`s to your program.
 - There may be some minor differences in how instructions are converted to a Quil string. These differences should only be cosmetic and should not affect the behavior of a program. However, they may break unit tests or other code that rely on specific formatting of programs.
 - The `pyquil.quil.get_default_qubit_mapping` function for getting a mapping of `QubitPlaceholders` to resolved indices has been removed. Generating a default mapping is handled automatically by the placeholder resolving methods.
