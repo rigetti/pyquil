@@ -52,7 +52,7 @@ class QAMExecutionResult:
 
     def get_raw_readout_data(self) -> Union[RawQVMReadoutData, RawQPUReadoutData]:
         """
-        Get the raw result data. This will be a flattened dictionary derived
+        Get the raw result data. This will be a flattened structure derived
         from :class:`qcs_sdk.qvm.QVMResultData` or :class:`qcs_sdk.qpu.QPUResultData`
         depending on where the job was run. See their respective documentation
         for more information on the data format.

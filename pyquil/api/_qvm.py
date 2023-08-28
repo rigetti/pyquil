@@ -54,8 +54,7 @@ class QVMExecuteResponse:
 
     @property
     def memory(self) -> Dict[str, np.ndarray]:
-        register_map = self.data.to_register_map()
-        return {key: matrix.to_ndarray() for key, matrix in register_map.items()}
+        return {key: matrix.as_ndarray() for key, matrix in self.data.memory.items()}
 
 
 class QVM(QAM[QVMExecuteResponse]):
