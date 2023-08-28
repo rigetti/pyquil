@@ -219,8 +219,11 @@ class QPU(QAM[QPUExecuteResponse]):
         }
         result_data = QPUResultData(mappings=mappings, readout_values=readout_values)
         result_data = ResultData(result_data)
-        data = ExecutionData(
-            result_data=result_data, duration=timedelta(microseconds=results.execution_duration_microseconds or 0)
-        )
+        duration = None
+        if results.execution_duration_microseconds is not None:
+            # The result duration can be `None` to account for `QVM` runs, but should never
+            # be `None` for `QPU` runs.
+            duration = timedelta(microseconds=results.execution_duration_microseconds)
+        data = ExecutionData(result_data=result_data, duration=duration)
 
         return QAMExecutionResult(executable=execute_response._executable, data=data)
