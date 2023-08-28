@@ -12,7 +12,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - Python 3.7 is no longer supported.
 - The environment variable overrides for `quilc` and `QVM` URLs have been renamed to `QCS_APPLICATIONS_QUILC_URL` and `QCS_APPLICATIONS_QVM_URL`, respectively.
 - The `QuantumComputer`'s `run` method now takes an optional `memory_map` parameter. This mapping takes memory region names to a list of values to use for a run. This replaces the ability to use `write_memory` on `Program`s.
-- `PRAGMA` instructions can no longer have a directive that conflicts with a Quil keyword. If you were using directives like `Delay` or `Fence`, consider using the Quil-T instructions instead.
+- `PRAGMA` instructions can no longer have a directive that conflicts with a Quil keyword. If you were using directives like `DELAY` or `FENCE`, consider using the respective Quil-T instructions instead.
 - `DefGate` and the other gate definition instructions will no longer accept names that conflict with Quil keywords.
 - `Program#get_qubits()` will raise a `TypeError` if any of the qubits in the program are not a fixed index.
 - `QubitPlaceholders` can no longer be used in Pragma's
