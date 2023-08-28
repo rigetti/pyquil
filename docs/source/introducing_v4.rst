@@ -72,7 +72,7 @@ Accessing Raw Execution Data
 
 In previous versions of pyQuil, readout data was always returned as a mapping of memory regions to rectangular matrices
 that contained one value per memory reference, per shot. However, it shouldn't be assumed that readout data will always
-fit this shape. For example, programs that use mid-circuit measurement or dynamic control flow can emit a different
+fit this shape. For example, programs that reuse qubits or use dynamic control flow can emit a different
 amount of values per shot, breaking the assumption that readout data will contain one value for each memory reference per shot.
 In these cases, it's better to rely on the author of the program to wrangle the data into the shape they expect, so we've
 made it possible to access raw readout data.
