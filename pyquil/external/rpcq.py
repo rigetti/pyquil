@@ -22,7 +22,7 @@ class GateInfo(Operator):
     operator_type: Literal["gate"] = "gate"
 
 
-class QubitInfo(BaseModel):
+class Qubit(BaseModel):
     id: int
     dead: Optional[bool] = False
     gates: List[Union[GateInfo, MeasureInfo]] = Field(default_factory=list)
@@ -49,17 +49,17 @@ class Edge(BaseModel):
 
 
 class CompilerISA(BaseModel):
-    qubits: Dict[str, QubitInfo] = Field(default_factory=dict, alias="1Q")
+    qubits: Dict[str, Qubit] = Field(default_factory=dict, alias="1Q")
     edges: Dict[str, Edge] = Field(default_factory=dict, alias="2Q")
 
 
-def add_qubit(quantum_processor: CompilerISA, node_id: int) -> QubitInfo:
+def add_qubit(quantum_processor: CompilerISA, node_id: int) -> Qubit:
     if node_id not in quantum_processor.qubits:
-        quantum_processor.qubits[str(node_id)] = QubitInfo(id=node_id)
+        quantum_processor.qubits[str(node_id)] = Qubit(id=node_id)
     return quantum_processor.qubits[str(node_id)]
 
 
-def get_qubit(quantum_processor: CompilerISA, node_id: int) -> Optional[QubitInfo]:
+def get_qubit(quantum_processor: CompilerISA, node_id: int) -> Optional[Qubit]:
     return quantum_processor.qubits.get(str(node_id))
 
 

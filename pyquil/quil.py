@@ -278,7 +278,7 @@ class Program:
         qubit_resolver: Optional[Callable[[QubitPlaceholder], Optional[int]]] = None,
     ) -> None:
         """
-        Resolve ``LabelPlaceholder``s and ``QubitPlaceholder``s within the program using a function
+        Resolve ``LabelPlaceholder``\s and ``QubitPlaceholder``\s within the program using a function
         to provide resolved values for the placeholdres.
 
         If you provide ``label_resolver`` and/or ``qubit_resolver``, they will be used to resolve those values
@@ -313,7 +313,7 @@ class Program:
 
     def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, int]) -> None:
         """
-        Resolve all qubit placeholders in the program using a mapping of ``QubitPlaceholder``s to
+        Resolve all qubit placeholders in the program using a mapping of ``QubitPlaceholder``\s to
         the index they should resolve to.
         """
 

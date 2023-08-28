@@ -1,4 +1,4 @@
-from pyquil.external.rpcq import QubitInfo, Edge, GateInfo, Supported1QGate, Supported2QGate
+from pyquil.external.rpcq import Qubit, Edge, GateInfo, Supported1QGate, Supported2QGate
 
 
 def test_qubit_dead_serialization():
@@ -10,13 +10,13 @@ def test_qubit_dead_serialization():
         fidelity=1e0,
         duration=50,
     )
-    qubit = QubitInfo(
+    qubit = Qubit(
         id=0,
         gates=[gate_info],
     )
     assert "dead" not in qubit.dict().keys()
 
-    qubit = QubitInfo(
+    qubit = Qubit(
         id=0,
         gates=[],
         dead=True,
