@@ -12,6 +12,18 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - Python 3.7 is no longer supported.
 - The environment variable overrides for `quilc` and `QVM` URLs have been renamed to `QCS_APPLICATIONS_QUILC_URL` and `QCS_APPLICATIONS_QVM_URL`, respectively.
 - The `QuantumComputer`'s `run` method now takes an optional `memory_map` parameter. This mapping takes memory region names to a list of values to use for a run. This replaces the ability to use `write_memory` on `Program`s.
+- `Program` and instructions have been re-written using the `quil` package. Much of the API remains the same, with the following exceptions:
+	- `SwapPhase` has been renamed to `SwapPhases`
+	- `TemplateWaveform` and its subclasses are no longer `@dataclass`es.
+	- `DefFrame` and `Frame` are no longer `@dataclass`es.
+	- The `pop` method has been removed from `Program`.
+	- A `Program` that uses `QubitPlaceholder`s or `LabelPlaceholder`s can no longer be pickled
+	- `DefMeasureCalibration` now requires a `MemoryReference`.
+	- `fill_placeholders` has been removed.
+	- The `get_qubits` method on `Gate` now returns a `list` so that ordering is guaranteed.
+	- Setting the `offsets` property on `Declare` will raise a `ValueError` if no `shared_region` is set.
+- When converting to Quil, a `Program` automatically places `DECLARE`s at the top of the program.
+- The `parser` module has been removed. Parsing now happens by initializing a `Program` with the program string you want to be parsed.
 - `PRAGMA` instructions can no longer have a directive that conflicts with a Quil keyword. If you were using directives like `DELAY` or `FENCE`, consider using the respective Quil-T instructions instead.
 - `DefGate` and the other gate definition instructions will no longer accept names that conflict with Quil keywords.
 - `Program#get_qubits()` will raise a `TypeError` if any of the qubits in the program are not a fixed index.
@@ -35,10 +47,21 @@ installation, perform diagnostics checks, and return a summary.
 - `Program` has new methods for resolving Qubit and Label Placeholders in a program.
 - `QubitPlaceholders` can now be used in programs that also use fixed or variable qubits.
 - `QAMExecutionResult` now has a `raw_readout_data` property that can be used to get the raw form of readout data returned from the executor.
+- `WaveformInvocation` has been added as a simpler, more flexible class for invoking waveforms.
+- Added two new instruction classes:
+   	- The `Include` class for `INCLUDE` instructions.
+   	- The `DefCircuit` class `DEFCIRCUIT` instructions.
+- The `Program.copy` method now performs a deep copy.
 
 ### Deprecations
 
 - The `QAMExecutionResult` `readout_data` property has been deprecated to avoid confusion with the new `raw_readout_data` property. Use the `register_map` property instead.
+- The `indices` flag on the `get_qubits` method on `Program`s and instruction classes continues to work, but will be removed in future versions. A separate `get_qubit_indices` method has been added to get indices. In future versions, `get_qubits` will only return a list of `QubitDesignator`s.
+- The `is_protoquil`, `is_supported_on_qpu` methods on `Program` and the `validate_supported_quil` function will always return `True`. These methods were never reliable as they were implemented as client-side checks that don't necessarily reflect the latest available features on Rigetti compilers or QPUs. It's safe to stop using these functions and rely on the API to tell you if a program isn't supported.
+- `percolate_declares` is a no-op and will be removed in future versions. `Program` now “percolates” declares automatically.
+- `merge_programs` continues to work, but will be removed in future versions, use `Program` addition instead.
+- The `format_parameter` function continues to work, but will be removed in future versions.
+- The `WaveformReference` and `TemplateWaveform` classes continue to work, but will be removed in future versions. The new `WaveformInvocation` should be used instead.
 
 ## 3.5.4
 
