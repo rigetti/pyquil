@@ -34,6 +34,11 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 installation, perform diagnostics checks, and return a summary.
 - `Program` has new methods for resolving Qubit and Label Placeholders in a program.
 - `QubitPlaceholders` can now be used in programs that also use fixed or variable qubits.
+- `QAMExecutionResult` now has a `raw_readout_data` property that can be used to get the raw form of readout data returned from the executor.
+
+### Deprecations
+
+- The `QAMExecutionResult` `readout_data` property has been deprecated to avoid confusion with the new `raw_readout_data` property. Use the `register_map` property instead.
 
 ## 3.5.4
 

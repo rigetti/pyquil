@@ -3,6 +3,8 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 from pytest_mock import MockerFixture
+from qcs_sdk import ResultData, ExecutionData, RegisterData
+from qcs_sdk.qvm import QVMResultData
 
 from pyquil.api._qam import QAMExecutionResult
 from pyquil.gates import RZ, RX, I, CZ
@@ -293,15 +295,37 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
     mock_qc.run.side_effect = [
         QAMExecutionResult(
             executable=None,
-            readout_data={
-                "ro": np.array([[0]]) * int(round(p00 * trials)) + np.array([[1]]) * int(round((1 - p00) * trials))
-            },
+            data=ExecutionData(
+                result_data=ResultData(
+                    QVMResultData.from_memory_map(
+                        {
+                            "ro": RegisterData.from_i16(
+                                (
+                                    np.array([[0]]) * int(round(p00 * trials))
+                                    + np.array([[1]]) * int(round((1 - p00) * trials))
+                                ).tolist()
+                            )
+                        }
+                    )
+                )
+            ),
         ),  # I gate results
         QAMExecutionResult(
             executable=None,
-            readout_data={
-                "ro": np.array([[1]]) * int(round(p11 * trials)) + np.array([[0]]) * int(round((1 - p11) * trials))
-            },
+            data=ExecutionData(
+                result_data=ResultData(
+                    QVMResultData.from_memory_map(
+                        {
+                            "ro": RegisterData.from_i16(
+                                (
+                                    np.array([[1]]) * int(round(p11 * trials))
+                                    + np.array([[0]]) * int(round((1 - p11) * trials))
+                                ).tolist()
+                            )
+                        }
+                    )
+                )
+            ),
         ),  # X gate results
     ]
     ap_target = np.array([[p00, 1 - p11], [1 - p00, p11]])

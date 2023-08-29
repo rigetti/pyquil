@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "4.0.0-rc.42"
+version = "4.0.0-rc.43"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = ["Rigetti Computing <softapps@rigetti.com>"]
 readme = "README.md"
@@ -10,7 +10,6 @@ license = "Apache-2.0"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "License :: OSI Approved :: Apache Software License",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Operating System :: OS Independent",
