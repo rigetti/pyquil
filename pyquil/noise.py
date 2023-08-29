@@ -32,8 +32,7 @@ if TYPE_CHECKING:
     from pyquil.quil import Program
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
     from pyquil.quantum_processor import QCSQuantumProcessor
-    
-    
+
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
@@ -887,7 +886,7 @@ class Calibrations:
         this may change in time, and require changes in the class.
     """
 
-    def __init__(self, qpu: Optional[PyquilApiQuantumComputer] = None, calibrations = None) -> None:
+    def __init__(self, qpu: Optional[QCSQuantumProcessor] = None, calibrations=None) -> None:
         self.fidelities = {}
         self.readout_fidelity = {}
         self.T2 = {}
