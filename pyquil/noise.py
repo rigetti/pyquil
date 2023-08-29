@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from pyquil.quil import Program
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
     from pyquil.quantum_processor import QCSQuantumProcessor
-    from pyquil.quantum_processor.qcs import get_qcs_quantum_processor
+    
     
 
 INFINITY = float("inf")
