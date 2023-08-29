@@ -986,7 +986,7 @@ class TestFrameMutations:
     @pytest.fixture
     def frame_mutation_instructions(
         self, set_frequency, set_phase, shift_frequency, shift_phase, set_scale
-    ) -> tuple[SetFrequency, SetPhase, ShiftFrequency, ShiftPhase, SetScale]:
+    ) -> Tuple[SetFrequency, SetPhase, ShiftFrequency, ShiftPhase, SetScale]:
         return (set_frequency, set_phase, shift_frequency, shift_phase, set_scale)
 
     def test_out(self, frame_mutation_instructions, snapshot: SnapshotAssertion):
