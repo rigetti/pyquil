@@ -1225,7 +1225,6 @@ class RawCapture(AbstractInstruction):
 
 class DelayFrames(AbstractInstruction):
     def __init__(self, frames: List[Frame], duration: float):
-
         # all frames should be on the same qubits
         if len(frames) == 0:
             raise ValueError("DELAY expected nonempty list of frames.")

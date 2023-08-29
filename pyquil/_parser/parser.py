@@ -142,7 +142,7 @@ class QuilTransformer(Transformer):  # type: ignore
         }
         options = {}
 
-        for (spec_name, spec_value) in specs:
+        for spec_name, spec_value in specs:
             name = names.get(spec_name, None)
             if name:
                 options[name] = json.loads(str(spec_value))

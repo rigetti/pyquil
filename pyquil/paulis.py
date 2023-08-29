@@ -840,7 +840,6 @@ def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
         isAssigned_bool = False
         for p in range(m_s):  # check if it commutes with each group
             if isAssigned_bool is False:
-
                 if check_commutation(groups[p], pauli_terms.terms[j]):
                     isAssigned_bool = True
                     groups[p].append(pauli_terms.terms[j])
