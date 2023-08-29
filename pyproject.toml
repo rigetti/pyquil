@@ -50,14 +50,13 @@ types-deprecated = "^1.2.9.2"
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
 flake8 = "^3.8.1"
-pytest = "^6.2.2"
-pytest-cov = "^2.11.1"
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
 mypy = "^1.5.0"
-pytest-xdist = "^2.2.1"
-pytest-rerunfailures = "^9.1.1"
+pytest-xdist = "^3.3.1"
+pytest-rerunfailures = "^12.0.0"
 pytest-timeout = "^1.4.2"
-pytest-mock = "^3.6.1"
-pytest-freezegun = "^0.4.2"
+pytest-mock = "^3.11.1"
 respx = "^0.20"
 nest-asyncio = "^1.5.6"
 mock = { version = "^4.0", python = "<3.8" }
@@ -94,6 +93,9 @@ exclude = '''
 
 )
 '''
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::DeprecationWarning:pyquil.*:", "ignore::DeprecationWarning:test.unit.*:"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
