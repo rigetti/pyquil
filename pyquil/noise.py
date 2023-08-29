@@ -27,11 +27,12 @@ from pyquil.gates import I, RX, MEASURE
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
 from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator, Qubit
 from pyquil.quilbase import Declare, Gate, DefGate, Pragma, DelayQubits
-from pyquil.quantum_processor import QCSQuantumProcessor, get_qcs_quantum_processor
+from pyquil.quantum_processor import get_qcs_quantum_processor
 
 if TYPE_CHECKING:
     from pyquil.quil import Program
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
+    from pyquil.quantum_processor import QCSQuantumProcessor
     
     
 
