@@ -84,7 +84,7 @@ you should use the ``raw_readout_data`` property to access the raw data and buil
 .. warning::
 
    It's possible to have a program that results in a rectangular matrix of readout data, but have more than one value
-   per memory reference, per shot due to qubit reuse. In these cases, a `RegisterMatrixConversionError` will _not_
+   per memory reference per shot due to qubit reuse. In these cases, a `RegisterMatrixConversionError` will _not_
    be raised, since the resulting matrix would be valid for some number of shots. It's important to be aware of this
    possibility, and to still use `get_raw_readout_data` if that possibility is a concern.
 
