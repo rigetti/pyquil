@@ -117,10 +117,6 @@ def test_param_twoq_gate(param_twoq_gate):
 
 def test_two_param_twoq_gate(two_param_twoq_gate):
     g = two_param_twoq_gate(0.2, 0.4, 234, 567)
-    print(type(g))
-    print(g.name)
-    print(g.params)
-    print(g.qubits)
     assert g.out() == "{}(0.2, 0.4) 234 567".format(g.name)
 
     func_name = two_param_twoq_gate.__name__

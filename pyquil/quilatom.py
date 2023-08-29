@@ -34,14 +34,12 @@ from typing import (
     cast,
 )
 from typing_extensions import Self
-from deprecation import deprecated
+from deprecated.sphinx import deprecated
 
 import numpy as np
 
 import quil.instructions as quil_rs
 import quil.expression as quil_rs_expr
-
-from pyquil._version import pyquil_version
 
 
 class QuilAtom(object):
@@ -125,27 +123,14 @@ class FormalArgument(QuilAtom):
 
 
 class QubitPlaceholder(QuilAtom):
-    def out(self) -> str:
-        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
+    def __init__(self, placeholder: Optional[quil_rs.QubitPlaceholder] = None):
+        if placeholder is not None:
+            self._placeholder = placeholder
+        else:
+            self._placeholder = quil_rs.QubitPlaceholder()
 
-    @property
-    def index(self) -> NoReturn:
-        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
-
-    def __str__(self) -> str:
-        return "q{}".format(id(self))
-
-    def __repr__(self) -> str:
-        return "<QubitPlaceholder {}>".format(id(self))
-
-    def __hash__(self) -> int:
-        return hash(id(self))
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, QubitPlaceholder) and id(other) == id(self)
-
-    @classmethod
-    def register(cls, n: int) -> List["QubitPlaceholder"]:
+    @staticmethod
+    def register(n: int) -> List["QubitPlaceholder"]:
         """Return a 'register' of ``n`` QubitPlaceholders.
 
         >>> from pyquil import Program
@@ -163,19 +148,49 @@ class QubitPlaceholder(QuilAtom):
 
         :param n: The number of qubits in the register
         """
-        return [cls() for _ in range(n)]
+        return [QubitPlaceholder() for _ in range(n)]
+
+    def out(self) -> str:
+        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
+
+    @property
+    def index(self) -> NoReturn:
+        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
+
+    def __str__(self) -> str:
+        return f"q{id(self)}"
+
+    def __repr__(self) -> str:
+        return f"q{id(self)}"
+
+    def __hash__(self) -> int:
+        return hash(self._placeholder)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, quil_rs.QubitPlaceholder):
+            return self._placeholder == other
+        if isinstance(other, QubitPlaceholder):
+            return self._placeholder == other._placeholder
+        return False
+
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, quil_rs.QubitPlaceholder):
+            return self._placeholder < other
+        if isinstance(other, QubitPlaceholder):
+            return self._placeholder < other._placeholder
+        raise TypeError(f"Comparison between LabelPlaceholder and {type(other)} is not supported.")
 
 
 QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
 
-def _convert_to_rs_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit]) -> quil_rs.Qubit:
+def _convert_to_rs_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, QubitPlaceholder]) -> quil_rs.Qubit:
     if isinstance(qubit, quil_rs.Qubit):
         return qubit
     if isinstance(qubit, Qubit):
         return quil_rs.Qubit.from_fixed(qubit.index)
     if isinstance(qubit, QubitPlaceholder):
-        raise NotImplementedError("QubitPlaceholders aren't implemented in quil-rs")
+        return quil_rs.Qubit.from_placeholder(qubit._placeholder)
     if isinstance(qubit, FormalArgument):
         return quil_rs.Qubit.from_variable(qubit.name)
     if isinstance(qubit, int):
@@ -187,12 +202,14 @@ def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[quil_rs.Qub
     return [_convert_to_rs_qubit(qubit) for qubit in qubits]
 
 
-def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit]) -> QubitDesignator:
+def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, quil_rs.QubitPlaceholder]) -> QubitDesignator:
     if isinstance(qubit, quil_rs.Qubit):
         if qubit.is_fixed():
             return Qubit(qubit.to_fixed())
         if qubit.is_variable():
             return FormalArgument(qubit.to_variable())
+        if qubit.is_placeholder():
+            return QubitPlaceholder(placeholder=qubit.to_placeholder())
     if isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument, Parameter, int)):
         return qubit
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
@@ -277,42 +294,69 @@ class Label(QuilAtom):
     """
 
     def __init__(self, label_name: str):
-        self.name = label_name
+        self.target = quil_rs.Target.from_fixed(label_name)
+
+    @staticmethod
+    def _from_rs_target(target: quil_rs.Target) -> "Label":
+        return Label(target.to_fixed())
 
     def out(self) -> str:
-        return "@{name}".format(name=self.name)
+        return self.target.to_quil()
+
+    @property
+    def name(self) -> str:
+        return self.target.to_fixed()
+
+    @name.setter
+    def name(self, label_name: str) -> None:
+        self.target = quil_rs.Target.from_fixed(label_name)
 
     def __str__(self) -> str:
-        return "@{name}".format(name=self.name)
+        return self.target.to_quil_or_debug()
 
     def __repr__(self) -> str:
-        return "<Label {0}>".format(repr(self.name))
+        return repr(self.target)
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Label) and other.name == self.name
+        if isinstance(other, Label):
+            return self.target == other.target
+        return False
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        return hash(self.target)
 
 
 class LabelPlaceholder(QuilAtom):
-    def __init__(self, prefix: str = "L"):
-        self.prefix = prefix
+    def __init__(self, prefix: str = "L", *, placeholder: Optional[quil_rs.TargetPlaceholder] = None):
+        if placeholder:
+            self.target = quil_rs.Target.from_placeholder(placeholder)
+        else:
+            self.target = quil_rs.Target.from_placeholder(quil_rs.TargetPlaceholder(prefix))
+
+    @staticmethod
+    def _from_rs_target(target: quil_rs.Target) -> "LabelPlaceholder":
+        return LabelPlaceholder(placeholder=target.to_placeholder())
+
+    @property
+    def prefix(self) -> str:
+        return self.target.to_placeholder().base_label
 
     def out(self) -> str:
         raise RuntimeError("Label has not been assigned a name")
 
     def __str__(self) -> str:
-        return repr(self)
+        return self.target.to_quil_or_debug()
 
     def __repr__(self) -> str:
-        return "<LabelPlaceholder {} {}>".format(self.prefix, id(self))
+        return repr(self.target)
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, LabelPlaceholder) and id(other) == id(self)
+        if isinstance(other, LabelPlaceholder):
+            return self.target == other.target
+        return False
 
     def __hash__(self) -> int:
-        return hash(id(self))
+        return hash(self.target)
 
 
 ParameterDesignator = Union["Expression", "MemoryReference", int, float, complex, np.number]
@@ -336,12 +380,7 @@ def _convert_to_rs_expressions(
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
-@deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The format_parameter function will be removed.",
-)
+@deprecated(version="4.0", reason="This function has been superseded by the `quil` package and will be removed soon.")
 def format_parameter(element: ParameterDesignator) -> str:
     """
     Formats a particular parameter. Essentially the same as built-in formatting except using 'i'
@@ -389,7 +428,13 @@ ExpressionDesignator = Union["Expression", ExpressionValueDesignator]
 
 
 def _convert_to_py_expression(
-    expression: Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
+    expression: Union[
+        ParameterDesignator,
+        ExpressionDesignator,
+        ExpressionValueDesignator,
+        quil_rs_expr.Expression,
+        quil_rs.MemoryReference,
+    ]
 ) -> ExpressionDesignator:
     if isinstance(expression, (Expression, Number)):
         return expression
@@ -418,7 +463,7 @@ def _convert_to_py_expressions(
     expressions: Sequence[
         Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
     ]
-) -> List[ExpressionDesignator]:
+) -> Sequence[ExpressionDesignator]:
     return [_convert_to_py_expression(expression) for expression in expressions]
 
 
@@ -904,7 +949,10 @@ class Frame(quil_rs.FrameIdentifier):
         quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
@@ -924,14 +972,15 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
         quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return self.to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The WaveformReference class will be removed, consider using WaveformInvocation instead.",
+    version="4.0",
+    reason="The WaveformReference class will be removed, consider using WaveformInvocation instead.",
 )
 class WaveformReference(WaveformInvocation):
     """
@@ -967,13 +1016,16 @@ def _template_waveform_property(
         if dtype is int or dtype is float:
             if not isinstance(parameter, complex):
                 raise TypeError(
-                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found instead"
+                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found"
+                    "instead"
                 )
             if parameter.imag != 0.0:
                 raise ValueError(
-                    f"Requested float for parameter {name}, but a complex number with a non-zero imaginary part was found"
+                    f"Requested float for parameter {name}, but a complex number with a non-zero imaginary part was "
+                    "found"
                 )
             return dtype(parameter.real)
+        raise TypeError(f"TemplateWaveform is not compatible with dtype {dtype}")
 
     def fset(self: "TemplateWaveform", value: ParameterDesignator) -> None:
         self.set_parameter(name, value)
@@ -984,14 +1036,18 @@ def _template_waveform_property(
     return property(fget, fset, fdel, doc)
 
 
+@deprecated(
+    version="4.0",
+    reason="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
+)
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
-    @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
-    )
-    def __new__(cls, name: str, *, duration: float, **kwargs: Union[ParameterDesignator, ExpressionDesignator]) -> Self:
+    def __new__(
+        cls,
+        name: str,
+        *,
+        duration: float,
+        **kwargs: Union[Optional[ParameterDesignator], Optional[ExpressionDesignator]],
+    ) -> Self:
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
         rs_parameters["duration"] = _convert_to_rs_expression(duration)
         return super().__new__(cls, name, rs_parameters)
@@ -1047,6 +1103,9 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
     @classmethod
     def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
         return super().__new__(cls, waveform.name, waveform.parameters)
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 def _update_envelope(

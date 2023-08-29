@@ -186,7 +186,6 @@ def test_program_match_last():
     assert match.settings == {}
 
 
-# TODO: Account for parameter qubits in calibration expansion quil-rs#227
 @pytest.mark.parametrize(
     "program_input,gate,program_output",
     [

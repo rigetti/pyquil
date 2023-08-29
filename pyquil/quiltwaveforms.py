@@ -1,7 +1,8 @@
 from typing import Optional
+from typing_extensions import Self
 from warnings import warn
 
-from deprecation import deprecated
+from deprecated.sphinx import deprecated
 import numpy as np
 from scipy.special import erf
 
@@ -11,8 +12,6 @@ from pyquil.quilatom import (
     _template_waveform_property,
 )
 
-from pyquil._version import pyquil_version
-
 warn(
     DeprecationWarning("The quiltwaveforms module is deprecated. Use quilatom.WaveformInvocation instead."),
     category=DeprecationWarning,
@@ -21,10 +20,8 @@ warn(
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
 )
 class FlatWaveform(TemplateWaveform):
     """
@@ -38,7 +35,7 @@ class FlatWaveform(TemplateWaveform):
         scale: Optional[float] = None,
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
-    ):
+    ) -> Self:
         return super().__new__(cls, "flat", duration=duration, iq=iq, scale=scale, phase=phase, detuning=detuning)
 
     iq = _template_waveform_property("iq", doc="A raw IQ value.")
@@ -47,18 +44,13 @@ class FlatWaveform(TemplateWaveform):
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
-        print("iq", self.iq, type(self.iq))
-        print("rate", rate, type(rate))
-        print("num_samples(rate)", rate, type(rate))
         iqs = np.full(self.num_samples(rate), self.iq, dtype=np.complex128)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
 )
 class GaussianWaveform(TemplateWaveform):
     """A Gaussian pulse."""
@@ -71,7 +63,7 @@ class GaussianWaveform(TemplateWaveform):
         scale: Optional[float] = None,
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
-    ):
+    ) -> Self:
         return super().__new__(
             cls, "gaussian", duration=duration, fwhm=fwhm, t0=t0, scale=scale, phase=phase, detuning=detuning
         )
@@ -94,10 +86,8 @@ class GaussianWaveform(TemplateWaveform):
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
 )
 class DragGaussianWaveform(TemplateWaveform):
     """A DRAG Gaussian pulse."""
@@ -112,7 +102,7 @@ class DragGaussianWaveform(TemplateWaveform):
         scale: Optional[float] = None,
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
-    ):
+    ) -> Self:
         return super().__new__(
             cls,
             "drag_gaussian",
@@ -150,10 +140,8 @@ class DragGaussianWaveform(TemplateWaveform):
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
 )
 class HrmGaussianWaveform(TemplateWaveform):
     """A Hermite Gaussian waveform.
@@ -174,7 +162,7 @@ class HrmGaussianWaveform(TemplateWaveform):
         scale: Optional[float] = None,
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
-    ):
+    ) -> Self:
         return super().__new__(
             cls,
             "hrm_gaussian",
@@ -226,10 +214,8 @@ class HrmGaussianWaveform(TemplateWaveform):
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
 )
 class ErfSquareWaveform(TemplateWaveform):
     """A pulse with a flat top and edges that are error functions (erf)."""
@@ -243,7 +229,7 @@ class ErfSquareWaveform(TemplateWaveform):
         scale: Optional[float] = None,
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
-    ):
+    ) -> Self:
         return super().__new__(
             cls,
             "erf_square",
@@ -283,15 +269,13 @@ class ErfSquareWaveform(TemplateWaveform):
         vals = 0.5 * (erf((ts - t1) / sigma) - erf((ts - t2) / sigma))
         zeros_left = np.zeros(int(np.ceil(self.pad_left * rate)), dtype=np.complex128)
         zeros_right = np.zeros(int(np.ceil(self.pad_right * rate)), dtype=np.complex128)
-        iqs = np.concatenate((zeros_left, vals, zeros_right))  # type: ignore
+        iqs = np.concatenate((zeros_left, vals, zeros_right))
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
 @deprecated(
-    deprecated_in="4.0",
-    removed_in="5.0",
-    current_version=pyquil_version,
-    details="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
 )
 class BoxcarAveragerKernel(TemplateWaveform):
     def __new__(
@@ -300,7 +284,7 @@ class BoxcarAveragerKernel(TemplateWaveform):
         scale: Optional[float] = None,
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
-    ):
+    ) -> Self:
         return super().__new__(cls, "boxcar_kernel", duration=duration, scale=scale, phase=phase, detuning=detuning)
 
     scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)

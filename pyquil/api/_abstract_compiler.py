@@ -115,9 +115,9 @@ class AbstractCompiler(ABC):
             options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout),
         )
 
-        native_program = Program(result.program)
-        native_program.num_shots = program.num_shots
+        native_program = program.copy_everything_except_instructions()
         native_program.native_quil_metadata = result.native_quil_metadata
+        native_program.inst(result.program)
 
         return native_program
 

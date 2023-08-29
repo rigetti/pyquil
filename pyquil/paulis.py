@@ -32,6 +32,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -46,6 +47,7 @@ from pyquil.quilatom import (
     MemoryReference,
     _convert_to_py_expression,
     _convert_to_rs_expression,
+    _convert_to_py_qubits,
 )
 
 import quil.instructions as quil_rs
@@ -108,10 +110,6 @@ PAULI_COEFF = {
 
 class UnequalLengthWarning(Warning):
     def __init__(self, *args: object, **kwargs: object):
-        # TODO: remove this "type: ignore" comment once mypy is upgraded to a version with a more
-        # recent typeshed that contains the following fix:
-        # https://github.com/python/typeshed/pull/1704
-        # https://github.com/python/mypy/pull/8139
         super().__init__(*args, **kwargs)
 
 
@@ -400,7 +398,7 @@ class PauliTerm(object):
 
     @classmethod
     def from_list(
-        cls, terms_list: List[Tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
+        cls, terms_list: Sequence[Tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
     ) -> "PauliTerm":
         """
         Allocates a Pauli Term from a list of operators and indices. This is more efficient than
@@ -759,10 +757,10 @@ class PauliSum(object):
 
         :returns: A list of all the qubits in the sum of terms.
         """
-        all_qubits = []
+        all_qubits: Set[PauliTargetDesignator] = set()
         for term in self.terms:
-            all_qubits.extend(term.get_qubits())
-        return list(set(all_qubits))
+            all_qubits.update(term.get_qubits())
+        return _convert_to_py_qubits(set(all_qubits))
 
     def simplify(self) -> "PauliSum":
         """

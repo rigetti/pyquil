@@ -25,7 +25,6 @@ from pyquil.quilbase import (
     AbstractInstruction,
     Wait,
     ResetQubit,
-    JumpConditional,
     JumpWhen,
     JumpUnless,
     Jump,
@@ -97,7 +96,6 @@ PRAGMA_END_GROUP = "END_LATEX_GATE_GROUP"
 
 UNSUPPORTED_INSTRUCTION_CLASSES = (
     Wait,
-    JumpConditional,
     JumpWhen,
     JumpUnless,
     Jump,
@@ -150,7 +148,7 @@ def TIKZ_MEASURE() -> str:
 
 
 def _format_parameter(param: ParameterDesignator, settings: Optional[DiagramSettings] = None) -> str:
-    formatted = format_parameter(param)
+    formatted: str = format_parameter(param)
     if settings and settings.texify_numerical_constants:
         formatted = formatted.replace("pi", r"\pi")
     return formatted
@@ -303,7 +301,7 @@ def split_on_terminal_measures(
         else:
             remaining.insert(0, instr)
             if isinstance(instr, (Gate, ResetQubit)):
-                seen_qubits |= set(instr.get_qubits())
+                seen_qubits |= set(instr.get_qubit_indices() or {})
             elif isinstance(instr, Pragma):
                 if instr.command == PRAGMA_END_GROUP:
                     warn("Alignment of terminal MEASURE operations may" "conflict with gate group declaration.")
@@ -437,7 +435,7 @@ class DiagramBuilder:
         instr = self.working_instructions[self.index]
         assert isinstance(instr, Measurement)
         assert self.diagram is not None
-        self.diagram.append(instr.qubit.index, TIKZ_MEASURE())
+        self.diagram.append(instr.get_qubit_indices().pop(), TIKZ_MEASURE())
         self.index += 1
 
     def _build_custom_source_target_op(self) -> None:
@@ -520,9 +518,7 @@ def qubit_indices(instr: AbstractInstruction) -> List[int]:
     """
     Get a list of indices associated with the given instruction.
     """
-    if isinstance(instr, Measurement):
-        return [instr.qubit.index]
-    elif isinstance(instr, Gate):
-        return [qubit.index for qubit in instr.qubits]
+    if isinstance(instr, (Measurement, Gate)):
+        return list(instr.get_qubit_indices())
     else:
         return []

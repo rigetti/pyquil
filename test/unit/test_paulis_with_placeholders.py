@@ -43,7 +43,7 @@ from pyquil.paulis import (
     sZ,
     ZERO,
 )
-from pyquil.quil import Program, address_qubits, get_default_qubit_mapping
+from pyquil.quil import Program, address_qubits
 from pyquil.quilatom import QubitPlaceholder
 
 
@@ -64,7 +64,7 @@ def test_get_qubits():
 
     q10 = QubitPlaceholder()
     sum_term = PauliTerm("X", q[0], 0.5) + 0.5j * PauliTerm("Y", q10) * PauliTerm("Y", q[0], 0.5j)
-    assert sum_term.get_qubits() == [q[0], q10]
+    assert set(sum_term.get_qubits()) == {q[0], q10}
 
 
 def test_simplify_term_single():
@@ -163,9 +163,8 @@ def test_ids():
     term_1 = PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0) * PauliTerm("X", q[5], 5)
     term_2 = PauliTerm("X", q[5], 5) * PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0)
     # Not sortable
-    with pytest.raises(TypeError):
-        with pytest.warns(FutureWarning):
-            term_1.id() == term_2.id()
+    with pytest.warns(FutureWarning):
+        term_1.id() == term_2.id()
 
 
 def test_ids_no_sort():
@@ -231,7 +230,6 @@ def test_ps_sub():
     assert re.match(r"\(1\+0j\)\*Xq\d+ \+ \(-1\+0j\)\*I", str(b))
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_1():
     # test rotation of single qubit
     q = QubitPlaceholder.register(8)
@@ -242,7 +240,6 @@ def test_exponentiate_1():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_2():
     # testing general 2-circuit
     q = QubitPlaceholder.register(8)
@@ -251,11 +248,9 @@ def test_exponentiate_2():
     prog = para_prog(1)
     result_prog = Program().inst(CNOT(q[0], q[1])).inst(RZ(2.0, q[1])).inst(CNOT(q[0], q[1]))
 
-    mapping = get_default_qubit_mapping(prog)
-    assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_bp0_ZX():
     q = QubitPlaceholder.register(8)
     # testing change of basis position 0
@@ -266,7 +261,6 @@ def test_exponentiate_bp0_ZX():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_bp1_XZ():
     # testing change of basis position 1
     q = QubitPlaceholder.register(8)
@@ -277,7 +271,6 @@ def test_exponentiate_bp1_XZ():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_bp0_ZY():
     # testing change of basis position 0
     q = QubitPlaceholder.register(8)
@@ -296,7 +289,6 @@ def test_exponentiate_bp0_ZY():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_bp1_YZ():
     q = QubitPlaceholder.register(8)
     # testing change of basis position 1
@@ -315,7 +307,6 @@ def test_exponentiate_bp1_YZ():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_3cob():
     # testing circuit for 3-terms with change of basis
     q = QubitPlaceholder.register(8)
@@ -338,7 +329,6 @@ def test_exponentiate_3cob():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_3ns():
     # testing circuit for 3-terms non-sequential
     q = QubitPlaceholder.register(8)
@@ -365,7 +355,6 @@ def test_exponentiate_3ns():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_commuting_pauli_sum():
     q = QubitPlaceholder.register(8)
     pauli_sum = PauliSum([PauliTerm("Z", q[0], 0.5), PauliTerm("Z", q[1], 0.5)])
@@ -374,7 +363,6 @@ def test_exponentiate_commuting_pauli_sum():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_prog():
     q = QubitPlaceholder.register(8)
     ham = PauliTerm("Z", q[0])
@@ -383,7 +371,6 @@ def test_exponentiate_prog():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_exponentiate_identity():
     q = QubitPlaceholder.register(11)
 
@@ -396,16 +383,15 @@ def test_exponentiate_identity():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(q[0]), PHASE(-1.0, q[0]), X(q[0]), PHASE(-1.0, q[0])])
-    assert address_qubits(prog) == address_qubits(result_prog)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
     generator = PauliTerm("I", q[10], 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(q[0]), PHASE(-0.08, q[0]), X(q[0]), PHASE(-0.08, q[0])])
-    assert address_qubits(prog) == address_qubits(result_prog)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
 
-# TODO: Placeholders quil-rs#147
 def test_trotterize():
     q = QubitPlaceholder.register(8)
     term_one = PauliTerm("X", q[0], 1.0)
@@ -489,7 +475,6 @@ def test_trotterize():
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
-# TODO: Placeholders quil-rs#147
 def test_is_zeron():
     q = QubitPlaceholder.register(8)
     with pytest.raises(TypeError):
@@ -503,7 +488,6 @@ def test_is_zeron():
     assert not is_zero(ps_term)
 
 
-# TODO: Placeholders quil-rs#147
 def test_check_commutation():
     q = QubitPlaceholder.register(8)
     term1 = PauliTerm("X", q[0]) * PauliTerm("X", q[1])
@@ -525,7 +509,6 @@ def _commutator(t1, t2):
         return t1 * t2 + -1 * t2 * t1
 
 
-# TODO: Placeholders quil-rs#147
 def test_check_commutation_rigorous():
     # more rigorous test.  Get all operators in Pauli group
     p_n_group = ("I", "X", "Y", "Z")
@@ -552,7 +535,6 @@ def test_check_commutation_rigorous():
         assert check_commutation([t1], t2)
 
 
-# TODO: Placeholders quil-rs#147
 def test_commuting_sets():
     q = QubitPlaceholder.register(8)
     term1 = PauliTerm("X", q[0]) * PauliTerm("X", q[1])
@@ -562,7 +544,6 @@ def test_commuting_sets():
     commuting_sets(pauli_sum)
 
 
-# TODO: Placeholders quil-rs#147
 def test_paulisum_iteration():
     q = QubitPlaceholder.register(8)
     term_list = [sX(q[2]), sZ(q[4])]
@@ -571,7 +552,6 @@ def test_paulisum_iteration():
         assert term_list[ii] == term
 
 
-# TODO: Placeholders quil-rs#147
 def test_paulisum_indexing():
     q = QubitPlaceholder.register(8)
     pauli_sum = 0.5 * sX(q[0]) + 0.1 * sZ(q[1])
@@ -580,7 +560,6 @@ def test_paulisum_indexing():
         assert pauli_sum[ii] == term
 
 
-# TODO: Placeholders quil-rs#147
 def test_term_powers():
     for qubit in QubitPlaceholder.register(2):
         pauli_terms = [sI(qubit), sX(qubit), sY(qubit), sZ(qubit)]
@@ -593,14 +572,12 @@ def test_term_powers():
         pauli_terms[0] ** -1
 
 
-# TODO: Placeholders quil-rs#147
 def test_term_large_powers():
     # Test to make sure large powers can be computed
     q = QubitPlaceholder.register(2)
     (PauliTerm("X", q[0], 2) * PauliTerm("Y", q[0], 2)) ** 400
 
 
-# TODO: Placeholders quil-rs#147
 def test_sum_power():
     q = QubitPlaceholder.register(8)
     pauli_sum = (sY(q[0]) - sX(q[0])) * (1.0 / np.sqrt(2))
@@ -613,7 +590,6 @@ def test_sum_power():
     pauli_sum**400
 
 
-# TODO: Placeholders quil-rs#147
 def test_term_equality():
     q0, q10 = QubitPlaceholder.register(2)
     with pytest.raises(TypeError):
@@ -624,7 +600,6 @@ def test_term_equality():
     assert PauliTerm("X", q10, 1 + 1.0j) != PauliTerm("X", q10, 1 + 1.0j) + PauliTerm("X", q10, 1 + 1.0j)
 
 
-# TODO: Placeholders quil-rs#147
 def test_term_with_coeff():
     q0 = QubitPlaceholder()
     assert PauliTerm("X", q0, 1.0j) == term_with_coeff(sX(q0), 1.0j)
@@ -633,7 +608,6 @@ def test_term_with_coeff():
         term_with_coeff(sI(q0), None)
 
 
-# TODO: Placeholders quil-rs#147
 def test_sum_equality():
     q0, q1 = QubitPlaceholder.register(2)
     pauli_sum = sY(q0) - sX(q0)
@@ -647,7 +621,6 @@ def test_sum_equality():
         assert pauli_sum != 0
 
 
-# TODO: Placeholders quil-rs#147
 def test_zero_term():
     qubit_id = QubitPlaceholder()
     coefficient = 10
@@ -660,7 +633,6 @@ def test_zero_term():
     assert ps + ZERO() == ps
 
 
-# TODO: Placeholders quil-rs#147
 def test_from_list():
     q = QubitPlaceholder.register(8)
     terms_list = [("X", q[0]), ("Y", q[1]), ("Z", q[5])]
@@ -674,16 +646,15 @@ def test_from_list():
         PauliTerm.from_list([("X", q[0]), ("Y", q[0])])
 
 
-# TODO: Placeholders quil-rs#147
 def test_ordered():
     q = QubitPlaceholder.register(8)
     mapping = {x: i for i, x in enumerate(q)}
     term = sZ(q[3]) * sZ(q[2]) * sZ(q[1])
-    prog = address_qubits(exponential_map(term)(0.5), mapping)
-    assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1.0) 1\nCNOT 2 1\nCNOT 3 2\n"
+    prog = exponential_map(term)(0.5)
+    prog = address_qubits(prog, mapping)
+    assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1) 1\nCNOT 2 1\nCNOT 3 2\n"
 
 
-# TODO: Placeholders quil-rs#147
 def test_simplify():
     q = QubitPlaceholder.register(8)
     t1 = sZ(q[0]) * sZ(q[1])
@@ -691,7 +662,6 @@ def test_simplify():
     assert (t1 + t2) == 2 * sZ(q[0]) * sZ(q[1])
 
 
-# TODO: Placeholders quil-rs#147
 def test_dont_simplify():
     q = QubitPlaceholder.register(8)
     t1 = sZ(q[0]) * sZ(q[1])
@@ -699,7 +669,6 @@ def test_dont_simplify():
     assert (t1 + t2) != 2 * sZ(q[0]) * sZ(q[1])
 
 
-# TODO: Placeholders quil-rs#147
 def test_simplify_warning():
     q = QubitPlaceholder.register(8)
     t1 = sZ(q[0]) * sZ(q[1])

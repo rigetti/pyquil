@@ -103,7 +103,6 @@ def test_damping_after_dephasing():
     np.testing.assert_allclose(noisy_rho, target_rho)
 
 
-# TODO: Instruction API - Hashing
 def test_noise_helpers():
     gates = RX(np.pi / 2, 0), RX(-np.pi / 2, 1), I(1), CZ(0, 1)
     prog = Program(*gates)
@@ -111,7 +110,6 @@ def test_noise_helpers():
     assert set(inferred_gates) == set([g.out() for g in gates])
 
 
-# TODO: Instruction API - Hashing
 def test_decoherence_noise():
     prog = Program(RX(np.pi / 2, 0), CZ(0, 1), RZ(np.pi, 0))
     gates = _get_program_gates(prog)
@@ -281,7 +279,6 @@ def test_readout_compensation():
     assert np.isclose(zm[1, 1, 1], 1.0)
 
 
-# TODO: Instruction API - Hashing
 def test_estimate_assignment_probs(mocker: MockerFixture):
     mock_qc = mocker.patch("pyquil.api.QuantumComputer").return_value
     mock_compiler = mocker.patch("pyquil.api._abstract_compiler.AbstractCompiler").return_value
@@ -318,12 +315,11 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
     for call in mock_compiler.native_quil_to_executable.call_args_list:
         args, kwargs = call
         prog = args[0]
-        assert prog.instructions[1] == povm_pragma
+        assert povm_pragma in prog.instructions
 
     assert np.allclose(ap, ap_target)
 
 
-# TODO: Instruction API - Hashing
 def test_apply_noise_model():
     p = Program(RX(np.pi / 2, 0), RX(np.pi / 2, 1), CZ(0, 1), RX(np.pi / 2, 1))
     noise_model = _decoherence_noise_model(_get_program_gates(p))
@@ -337,7 +333,6 @@ def test_apply_noise_model():
             assert i.name in NO_NOISE or not i.params
 
 
-# TODO: Instruction API - Hashing
 def test_apply_noise_model_perturbed_angles():
     eps = 1e-15
     p = Program(RX(np.pi / 2 + eps, 0), RX(np.pi / 2 - eps, 1), CZ(0, 1), RX(np.pi / 2 + eps, 1))

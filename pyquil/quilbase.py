@@ -25,6 +25,7 @@ from typing import (
     ClassVar,
     Container,
     Dict,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -36,9 +37,8 @@ from typing import (
 from typing_extensions import Self
 
 import numpy as np
-from deprecation import deprecated
+from deprecated.sphinx import deprecated
 
-from pyquil._version import pyquil_version
 from pyquil.quilatom import (
     Expression,
     Label,
@@ -90,7 +90,7 @@ class _InstructionMeta(abc.ABCMeta):
             return True
 
         # __instance is not an Instruction or AbstractInstruction, return False
-        if not self.__name in ["AbstractInstruction", "DefGate"] and not self.__is_abstract_instruction:
+        if self.__name not in ["AbstractInstruction", "DefGate"] and not self.__is_abstract_instruction:
             return False
 
         # __instance is a subclass of AbstractInstruction, do the normal check
@@ -128,10 +128,14 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_circuit_definition(instr)
     if isinstance(instr, quil_rs.Calibration):
         return quil_rs.Instruction.from_calibration_definition(instr)
+    if isinstance(instr, quil_rs.Convert):
+        return quil_rs.Instruction.from_convert(instr)
     if isinstance(instr, quil_rs.Declaration):
         return quil_rs.Instruction.from_declaration(instr)
     if isinstance(instr, quil_rs.Delay):
         return quil_rs.Instruction.from_delay(instr)
+    if isinstance(instr, quil_rs.Exchange):
+        return quil_rs.Instruction.from_exchange(instr)
     if isinstance(instr, quil_rs.Fence):
         return quil_rs.Instruction.from_fence(instr)
     if isinstance(instr, quil_rs.FrameDefinition):
@@ -142,6 +146,8 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_gate_definition(instr)
     if isinstance(instr, Halt):
         return quil_rs.Instruction.new_halt()
+    if isinstance(instr, quil_rs.Load):
+        return quil_rs.Instruction.from_load(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
         return quil_rs.Instruction.from_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
@@ -168,14 +174,30 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_shift_phase(instr)
     if isinstance(instr, quil_rs.SwapPhases):
         return quil_rs.Instruction.from_swap_phases(instr)
+    if isinstance(instr, quil_rs.Store):
+        return quil_rs.Instruction.from_store(instr)
     if isinstance(instr, Wait):
         return quil_rs.Instruction.new_wait()
     if isinstance(instr, quil_rs.WaveformDefinition):
         return quil_rs.Instruction.from_waveform_definition(instr)
+    if isinstance(instr, quil_rs.Label):
+        return quil_rs.Instruction.from_label(instr)
+    if isinstance(instr, quil_rs.Move):
+        return quil_rs.Instruction.from_move(instr)
+    if isinstance(instr, quil_rs.Jump):
+        return quil_rs.Instruction.from_jump(instr)
+    if isinstance(instr, quil_rs.JumpWhen):
+        return quil_rs.Instruction.from_jump_when(instr)
+    if isinstance(instr, quil_rs.JumpUnless):
+        return quil_rs.Instruction.from_jump_unless(instr)
+    if isinstance(instr, quil_rs.UnaryLogic):
+        return quil_rs.Instruction.from_unary_logic(instr)
+    if isinstance(instr, quil_rs.Comparison):
+        return quil_rs.Instruction.from_comparison(instr)
     raise ValueError(f"{type(instr)} is not an Instruction")
 
 
-def _convert_to_rs_instructions(instrs: Sequence[AbstractInstruction]) -> List[quil_rs.Instruction]:
+def _convert_to_rs_instructions(instrs: Iterable[AbstractInstruction]) -> List[quil_rs.Instruction]:
     return [_convert_to_rs_instruction(instr) for instr in instrs]
 
 
@@ -232,6 +254,16 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         return ShiftPhase._from_rs_shift_phase(instr)
     if isinstance(instr, quil_rs.SwapPhases):
         return SwapPhases._from_rs_swap_phases(instr)
+    if isinstance(instr, quil_rs.Label):
+        return JumpTarget._from_rs_label(instr)
+    if isinstance(instr, quil_rs.Move):
+        return ClassicalMove._from_rs_move(instr)
+    if isinstance(instr, quil_rs.Jump):
+        return Jump._from_rs_jump(instr)
+    if isinstance(instr, quil_rs.JumpWhen):
+        return JumpWhen._from_rs_jump_when(instr)
+    if isinstance(instr, quil_rs.JumpUnless):
+        return JumpUnless._from_rs_jump_unless(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     elif isinstance(instr, AbstractInstruction):
@@ -239,7 +271,7 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     raise ValueError(f"{type(instr)} is not a valid Instruction type")
 
 
-def _convert_to_py_instructions(instrs: Sequence[quil_rs.Instruction]) -> List[AbstractInstruction]:
+def _convert_to_py_instructions(instrs: Iterable[quil_rs.Instruction]) -> List[AbstractInstruction]:
     return [_convert_to_py_instruction(instr) for instr in instrs]
 
 
@@ -290,12 +322,10 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         return super().__new__(cls, gate.name, gate.parameters, gate.qubits, gate.modifiers)
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
-    def get_qubits(self, indices: bool = True) -> Union[List[QubitDesignator], List[int]]:
+    def get_qubits(self, indices: bool = True) -> Sequence[QubitDesignator]:
         if indices:
             return self.get_qubit_indices()
         else:
@@ -303,14 +333,14 @@ class Gate(quil_rs.Gate, AbstractInstruction):
 
     @property  # type: ignore[override]
     def qubits(self) -> List[QubitDesignator]:
-        return self.get_qubits(indices=False) # type: ignore
+        return self.get_qubits(indices=False)  # type: ignore
 
     @qubits.setter
     def qubits(self, qubits: Sequence[Union[Qubit, QubitPlaceholder, FormalArgument]]) -> None:
         quil_rs.Gate.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore
 
     @property
-    def params(self) -> List[ParameterDesignator]:
+    def params(self) -> Sequence[ParameterDesignator]:
         return _convert_to_py_expressions(super().parameters)
 
     @params.setter
@@ -319,13 +349,12 @@ class Gate(quil_rs.Gate, AbstractInstruction):
 
     @property  # type: ignore[override]
     def modifiers(self) -> List[str]:
-        return [str(modifier) for modifier in super().modifiers]
+        return [str(modifier).upper() for modifier in super().modifiers]
 
     @modifiers.setter
     def modifiers(self, modifiers: Union[List[str], List[quil_rs.GateModifier]]) -> None:
         modifiers = [
-            self._to_rs_gate_modifier(modifier) if isinstance(modifier, str) else modifier
-            for modifier in modifiers
+            self._to_rs_gate_modifier(modifier) if isinstance(modifier, str) else modifier for modifier in modifiers
         ]
         quil_rs.Gate.modifiers.__set__(self, modifiers)  # type: ignore[attr-defined]
 
@@ -343,7 +372,12 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         return [qubit.to_fixed() for qubit in super().qubits]
 
     def controlled(
-        self, control_qubit: Union[quil_rs.Qubit, QubitDesignator, Sequence[Union[QubitDesignator, quil_rs.Qubit]]]
+        self,
+        control_qubit: Union[
+            quil_rs.Qubit,
+            QubitDesignator,
+            Sequence[Union[QubitDesignator, quil_rs.Qubit]],
+        ],
     ) -> "Gate":
         """
         Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
@@ -360,7 +394,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
     def forked(
         self,
         fork_qubit: Union[quil_rs.Qubit, QubitDesignator],
-        alt_params: Union[List[ParameterDesignator], List[quil_rs_expr.Expression]],
+        alt_params: Union[Sequence[ParameterDesignator], Sequence[quil_rs_expr.Expression]],
     ) -> "Gate":
         """
         Add the FORKED modifier to the gate with the given fork qubit and given additional
@@ -378,18 +412,21 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         return self
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
 
-    def _update_super(self, gate: quil_rs.Gate):
+    def _update_super(self, gate: quil_rs.Gate) -> None:
         """
         Updates the state of the super class using a new gate.
         The super class does not mutate the value of a gate when adding
         modifiers with methods like `dagger()`, but pyQuil does.
         """
-        quil_rs.Gate.name.__set__(self, gate.name)
-        quil_rs.Gate.parameters.__set__(self, gate.parameters)
-        quil_rs.Gate.modifiers.__set__(self, gate.modifiers)
-        quil_rs.Gate.qubits.__set__(self, gate.qubits)
+        quil_rs.Gate.name.__set__(self, gate.name)  # type: ignore[attr-defined]
+        quil_rs.Gate.parameters.__set__(self, gate.parameters)  # type: ignore[attr-defined]
+        quil_rs.Gate.modifiers.__set__(self, gate.modifiers)  # type: ignore[attr-defined]
+        quil_rs.Gate.qubits.__set__(self, gate.qubits)  # type: ignore[attr-defined]
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
@@ -479,10 +516,8 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
         quil_rs.Measurement.target.__set__(self, target)  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -494,7 +529,10 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
         return {super().qubit.to_fixed()}
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class Reset(quil_rs.Reset, AbstractInstruction):
@@ -513,13 +551,11 @@ class Reset(quil_rs.Reset, AbstractInstruction):
         return super().__new__(cls, reset.qubit)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Optional[Set[QubitDesignator]]:
         if super().qubit is None:
@@ -545,6 +581,9 @@ class Reset(quil_rs.Reset, AbstractInstruction):
         if qubit is not None:
             rs_qubit = _convert_to_rs_qubit(qubit)
         quil_rs.Reset.qubit.__set__(self, rs_qubit)  # type: ignore[attr-defined]
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ResetQubit(Reset):
@@ -573,6 +612,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         matrix: Union[List[List[Expression]], np.ndarray, np.matrix],
         parameters: Optional[List[Parameter]] = None,
     ) -> Self:
+        DefGate._validate_matrix(matrix, parameters is not None and len(parameters) > 0)
         specification = DefGate._convert_to_matrix_specification(matrix)
         rs_parameters = [param.name for param in parameters or []]
         return super().__new__(cls, name, rs_parameters, specification)
@@ -588,8 +628,32 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         to_rs_matrix = np.vectorize(_convert_to_rs_expression)
         return quil_rs.GateSpecification.from_matrix(to_rs_matrix(np.asarray(matrix)))
 
+    @staticmethod
+    def _validate_matrix(
+        matrix: Union[List[List[Expression]], np.ndarray, np.matrix], contains_parameters: bool
+    ) -> None:
+        if isinstance(matrix, list):
+            rows = len(matrix)
+            if not all([len(row) == rows for row in matrix]):
+                raise ValueError("Matrix must be square.")
+        elif isinstance(matrix, (np.ndarray, np.matrix)):
+            rows, cols = matrix.shape
+            if rows != cols:
+                raise ValueError("Matrix must be square.")
+        else:
+            raise TypeError("Matrix argument must be a list or NumPy array/matrix")
+
+        if 0 != rows & (rows - 1):
+            raise ValueError("Dimension of matrix must be a power of 2, got {0}".format(rows))
+
+        if not contains_parameters:
+            np_matrix = np.asarray(matrix)
+            is_unitary = np.allclose(np.eye(rows), np_matrix.dot(np_matrix.T.conj()))
+            if not is_unitary:
+                raise ValueError("Matrix must be unitary.")
+
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
 
     def get_constructor(self) -> Union[Callable[..., Gate], Callable[..., Callable[..., Gate]]]:
         """
@@ -630,6 +694,9 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     def __hash__(self) -> int:
         return hash(self.out())
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class DefPermutationGate(DefGate):
     def __new__(cls, name: str, permutation: Union[List[int], np.ndarray]) -> Self:
@@ -656,6 +723,9 @@ class DefPermutationGate(DefGate):
         """
         return int(np.log2(len(self.permutation)))
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 class DefGateByPaulis(DefGate):
     """
@@ -667,7 +737,7 @@ class DefGateByPaulis(DefGate):
         gate_name: str,
         parameters: List[Parameter],
         arguments: List[QubitDesignator],
-        body: Union["PauliSum", Sequence[str]],
+        body: "PauliSum",
     ) -> Self:
         specification = DefGateByPaulis._convert_to_pauli_specification(body, arguments)
         rs_parameters = [param.name for param in parameters]
@@ -676,11 +746,11 @@ class DefGateByPaulis(DefGate):
 
     @staticmethod
     def _convert_to_pauli_specification(
-        body: Union["PauliSum", Sequence[str]], arguments: List[QubitDesignator]
+        body: "PauliSum", arguments: List[QubitDesignator]
     ) -> quil_rs.GateSpecification:
-        print(body, type(body))
         if isinstance(body, Sequence):
             from pyquil.paulis import PauliSum
+
             body = PauliSum(body)
         return quil_rs.GateSpecification.from_pauli_sum(body._to_rs_pauli_sum(arguments))
 
@@ -708,57 +778,107 @@ class DefGateByPaulis(DefGate):
     def num_args(self) -> int:
         return len(self.arguments)
 
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
-class JumpTarget(AbstractInstruction):
+
+class JumpTarget(quil_rs.Label, AbstractInstruction):
     """
     Representation of a target that can be jumped to.
     """
 
-    def __init__(self, label: Union[Label, LabelPlaceholder]):
-        if not isinstance(label, (Label, LabelPlaceholder)):
-            raise TypeError("label must be a Label")
-        self.label = label
+    def __new__(cls, label: Union[Label, LabelPlaceholder]) -> Self:
+        return super().__new__(cls, label.target)
+
+    @classmethod
+    def _from_rs_label(cls, label: quil_rs.Label) -> "JumpTarget":
+        return super().__new__(cls, label.target)
+
+    @property
+    def label(self) -> Union[Label, LabelPlaceholder]:
+        if super().target.is_placeholder():
+            return LabelPlaceholder._from_rs_target(super().target)
+        return Label._from_rs_target(super().target)
 
     def __repr__(self) -> str:
         return "<JumpTarget {0}>".format(str(self.label))
 
     def out(self) -> str:
-        return "LABEL {0}".format(str(self.label))
+        return super().to_quil()
 
 
-class JumpConditional(AbstractInstruction):
-    """
-    Abstract representation of an conditional jump instruction.
-    """
-
-    op: ClassVar[str]
-
-    def __init__(self, target: Union[Label, LabelPlaceholder], condition: MemoryReference):
-        if not isinstance(target, (Label, LabelPlaceholder)):
-            raise TypeError("target should be a Label")
-        if not isinstance(condition, MemoryReference):
-            raise TypeError("condition should be an MemoryReference")
-        self.target = target
-        self.condition = condition
-
-    def out(self) -> str:
-        return "%s %s %s" % (self.op, self.target, self.condition)
-
-
-class JumpWhen(JumpConditional):
+class JumpWhen(quil_rs.JumpWhen, AbstractInstruction):
     """
     The JUMP-WHEN instruction.
     """
 
-    op = "JUMP-WHEN"
+    def __new__(cls, target: Union[Label, LabelPlaceholder], condition: MemoryReference) -> Self:
+        return super().__new__(cls, target.target, condition._to_rs_memory_reference())
+
+    @classmethod
+    def _from_rs_jump_when(cls, jump_when: quil_rs.JumpWhen) -> Self:
+        return super().__new__(cls, jump_when.target, jump_when.condition)
+
+    def out(self) -> str:
+        return super().to_quil()
+
+    @property  # type: ignore[override]
+    def condition(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().condition)
+
+    @condition.setter
+    def condition(self, condition: MemoryReference) -> None:
+        quil_rs.JumpWhen.condition.__set__(self, condition._to_rs_memory_reference())  # type: ignore[attr-defined]
+
+    @property  # type: ignore[override]
+    def target(self) -> Union[Label, LabelPlaceholder]:
+        if super().target.is_placeholder():
+            return LabelPlaceholder._from_rs_target(super().target)
+        return Label._from_rs_target(super().target)
+
+    @target.setter
+    def target(self, target: Union[Label, LabelPlaceholder]) -> None:
+        quil_rs.JumpWhen.target.__set__(self, target)  # type: ignore[attr-defined]
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
-class JumpUnless(JumpConditional):
+class JumpUnless(quil_rs.JumpUnless, AbstractInstruction):
     """
     The JUMP-UNLESS instruction.
     """
 
-    op = "JUMP-UNLESS"
+    def __new__(cls, target: Union[Label, LabelPlaceholder], condition: MemoryReference) -> Self:
+        return super().__new__(cls, target.target, condition._to_rs_memory_reference())
+
+    @classmethod
+    def _from_rs_jump_unless(cls, jump_unless: quil_rs.JumpUnless) -> Self:
+        return super().__new__(cls, jump_unless.target, jump_unless.condition)
+
+    def out(self) -> str:
+        return super().to_quil()
+
+    @property  # type: ignore[override]
+    def condition(self) -> MemoryReference:
+        return MemoryReference._from_rs_memory_reference(super().condition)
+
+    @condition.setter
+    def condition(self, condition: MemoryReference) -> None:
+        quil_rs.JumpUnless.condition.__set__(self, condition._to_rs_memory_reference())  # type: ignore[attr-defined]
+
+    @property  # type: ignore[override]
+    def target(self) -> Union[Label, LabelPlaceholder]:
+        if super().target.is_placeholder():
+            return LabelPlaceholder._from_rs_target(super().target)
+        return Label._from_rs_target(super().target)
+
+    @target.setter
+    def target(self, target: Union[Label, LabelPlaceholder]) -> None:
+        quil_rs.JumpUnless.target.__set__(self, target)  # type: ignore[attr-defined]
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class SimpleInstruction(AbstractInstruction):
@@ -769,7 +889,7 @@ class SimpleInstruction(AbstractInstruction):
     instruction: ClassVar[quil_rs.Instruction]
 
     def out(self) -> str:
-        return str(self.instruction)
+        return self.instruction.to_quil()
 
     def __str__(self) -> str:
         return self.out()
@@ -818,7 +938,10 @@ class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
         quil_rs.UnaryLogic.operand.__set__(self, target._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalNeg(UnaryClassicalInstruction):
@@ -846,18 +969,14 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int]) -> Self:
         operands = cls._to_rs_binary_operands(left, right)
-        return super().__new__(
-                cls,
-                cls.op,
-                operands
-            )
+        return super().__new__(cls, cls.op, operands)
 
     @staticmethod
     def _to_rs_binary_operand(operand: Union[MemoryReference, int]) -> quil_rs.BinaryOperand:
         if isinstance(operand, MemoryReference):
             return quil_rs.BinaryOperand.from_memory_reference(operand._to_rs_memory_reference())
         return quil_rs.BinaryOperand.from_literal_integer(operand)
-        
+
     @staticmethod
     def _to_rs_binary_operands(left: MemoryReference, right: Union[MemoryReference, int]) -> quil_rs.BinaryOperands:
         left_operand = left._to_rs_memory_reference()
@@ -870,29 +989,31 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
             return operand.to_literal_integer()
         return MemoryReference._from_rs_memory_reference(operand.to_memory_reference())
 
-
     @property
     def left(self) -> MemoryReference:
         return MemoryReference._from_rs_memory_reference(super().operands.memory_reference)
 
     @left.setter
-    def left(self, left: MemoryReference):
+    def left(self, left: MemoryReference) -> None:
         operands = super().operands
         operands.memory_reference = left._to_rs_memory_reference()
-        quil_rs.BinaryLogic.operands.__set__(self, operands)
+        quil_rs.BinaryLogic.operands.__set__(self, operands)  # type: ignore[attr-defined]
 
     @property
     def right(self) -> Union[MemoryReference, int]:
         return self._to_py_binary_operand(super().operands.operand)
 
     @right.setter
-    def right(self, right: Union[MemoryReference, int]):
+    def right(self, right: Union[MemoryReference, int]) -> None:
         operands = super().operands
         operands.operand = self._to_rs_binary_operand(right)
-        quil_rs.BinaryLogic.operands.__set__(self, operands)
+        quil_rs.BinaryLogic.operands.__set__(self, operands)  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalAnd(LogicalBinaryOp):
@@ -926,7 +1047,7 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
 
     op: ClassVar[quil_rs.ArithmeticOperator]
 
-    def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]):
+    def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> Self:
         left_operand = quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference())
         right_operand = _to_rs_arithmetic_operand(right)
         return super().__new__(cls, cls.op, left_operand, right_operand)
@@ -936,19 +1057,24 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
         return MemoryReference._from_rs_memory_reference(super().destination.to_memory_reference())
 
     @left.setter
-    def left(self, left: MemoryReference):
-        quil_rs.Arithmetic.destination.__set__(self, quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference()))
+    def left(self, left: MemoryReference) -> None:
+        quil_rs.Arithmetic.destination.__set__(  # type: ignore[attr-defined]
+            self, quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference())
+        )
 
     @property
     def right(self) -> Union[MemoryReference, int, float]:
         return _to_py_arithmetic_operand(super().source)
 
     @right.setter
-    def right(self, right: Union[MemoryReference, int, float]):
-        return quil_rs.Arithmetic.source.__set__(self, _to_rs_arithmetic_operand(right))
+    def right(self, right: Union[MemoryReference, int, float]) -> None:
+        quil_rs.Arithmetic.source.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalAdd(ArithmeticBinaryOp):
@@ -991,6 +1117,10 @@ class ClassicalMove(quil_rs.Move, AbstractInstruction):
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalMove":
         return super().__new__(cls, left._to_rs_memory_reference(), _to_rs_arithmetic_operand(right))
 
+    @classmethod
+    def _from_rs_move(cls, move: quil_rs.Move) -> Self:
+        return super().__new__(cls, move.destination, move.source)
+
     @property
     def left(self) -> MemoryReference:
         return MemoryReference._from_rs_memory_reference(super().destination)
@@ -1008,7 +1138,10 @@ class ClassicalMove(quil_rs.Move, AbstractInstruction):
         quil_rs.Move.source.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
@@ -1040,7 +1173,10 @@ class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
         quil_rs.Exchange.right.__set__(self, right._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
@@ -1068,13 +1204,17 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
         quil_rs.Convert.source.__set__(self, memory_reference._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     """
     The LOAD instruction.
     """
+
     def __new__(cls, target: MemoryReference, left: str, right: MemoryReference) -> "ClassicalLoad":
         return super().__new__(cls, target._to_rs_memory_reference(), left, right._to_rs_memory_reference())
 
@@ -1103,7 +1243,11 @@ class ClassicalLoad(quil_rs.Load, AbstractInstruction):
         quil_rs.Load.offset.__set__(self, right._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
 
 def _to_rs_arithmetic_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ArithmeticOperand:
     if isinstance(operand, MemoryReference):
@@ -1114,6 +1258,7 @@ def _to_rs_arithmetic_operand(operand: Union[MemoryReference, int, float]) -> qu
         return quil_rs.ArithmeticOperand.from_literal_real(operand)
     raise TypeError(f"{type(operand)} is not a valid ArithmeticOperand")
 
+
 def _to_py_arithmetic_operand(operand: quil_rs.ArithmeticOperand) -> Union[MemoryReference, int, float]:
     if not isinstance(operand, quil_rs.ArithmeticOperand):
         raise TypeError(f"{type(operand)} is not an ArithmeticOperand")
@@ -1122,10 +1267,12 @@ def _to_py_arithmetic_operand(operand: quil_rs.ArithmeticOperand) -> Union[Memor
         return MemoryReference._from_rs_memory_reference(inner)
     return inner
 
+
 class ClassicalStore(quil_rs.Store, AbstractInstruction):
     """
     The STORE instruction.
     """
+
     def __new__(cls, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalStore":
         rs_right = _to_rs_arithmetic_operand(right)
         return super().__new__(cls, target, left._to_rs_memory_reference(), rs_right)
@@ -1155,7 +1302,10 @@ class ClassicalStore(quil_rs.Store, AbstractInstruction):
         quil_rs.Store.source.__set__(self, _to_rs_arithmetic_operand(right))  # type: ignore
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
@@ -1222,9 +1372,12 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
         operands = list(super().operands)
         operands[2] = self._to_comparison_operand(right)
         quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
-        
+
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class ClassicalEqual(ClassicalComparison):
@@ -1267,18 +1420,33 @@ class ClassicalGreaterEqual(ClassicalComparison):
     op = quil_rs.ComparisonOperator.GreaterThanOrEqual
 
 
-class Jump(AbstractInstruction):
+class Jump(quil_rs.Jump, AbstractInstruction):
     """
     Representation of an unconditional jump instruction (JUMP).
     """
 
-    def __init__(self, target: Union[Label, LabelPlaceholder]):
-        if not isinstance(target, (Label, LabelPlaceholder)):
-            raise TypeError("target should be a Label: {target}")
-        self.target = target
+    def __new__(cls, target: Union[Label, LabelPlaceholder]) -> Self:
+        return super().__new__(cls, target.target)
+
+    @classmethod
+    def _from_rs_jump(cls, jump: quil_rs.Jump) -> Self:
+        return super().__new__(cls, jump.target)
+
+    @property  # type: ignore[override]
+    def target(self) -> Union[Label, LabelPlaceholder]:
+        if super().target.is_placeholder():
+            return LabelPlaceholder._from_rs_target(super().target)
+        return Label._from_rs_target(super().target)
+
+    @target.setter
+    def target(self, target: Union[Label, LabelPlaceholder]) -> None:
+        quil_rs.Jump.target.__set__(self, target.target)  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return "JUMP %s" % self.target
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class Pragma(quil_rs.Pragma, AbstractInstruction):
@@ -1294,7 +1462,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
     def __new__(
         cls,
         command: str,
-        args: Sequence[Union[QubitDesignator, str]] = (),
+        args: Sequence[Union[Qubit, FormalArgument, int, str]] = (),
         freeform_string: str = "",
     ) -> Self:
         data = freeform_string or None
@@ -1307,7 +1475,6 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
     @staticmethod
     def _to_pragma_arguments(args: Sequence[Union[QubitDesignator, str]]) -> List[quil_rs.PragmaArgument]:
         pragma_arguments = []
-        print("processing pragma args", args, [type(arg for arg in args)])
         for arg in args:
             if isinstance(arg, Qubit):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_integer(arg.index))
@@ -1316,7 +1483,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
             elif isinstance(arg, (str, FormalArgument)):
                 pragma_arguments.append(quil_rs.PragmaArgument.from_identifier(str(arg)))
             else:
-                raise TypeError(f"{type(arg)} isn't a valid QubitDesignator")
+                raise TypeError(f"{type(arg)} isn't a valid PRAGMA argument")
         return pragma_arguments
 
     @staticmethod
@@ -1330,7 +1497,10 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
         return arguments
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property
     def command(self) -> str:
@@ -1408,7 +1578,7 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
 
     @property
     def memory_type(self) -> str:
-        return str(super().size.data_type)
+        return str(super().size.data_type).upper()
 
     @memory_type.setter
     def memory_type(self, memory_type: str) -> None:
@@ -1446,7 +1616,7 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
         sharing = super().sharing
         if sharing is None:
             return []
-        return [(offset.offset, str(offset.data_type)) for offset in sharing.offsets]
+        return [(offset.offset, str(offset.data_type).upper()) for offset in sharing.offsets]
 
     @offsets.setter
     def offsets(self, offsets: Optional[List[Tuple[int, str]]]) -> None:
@@ -1466,12 +1636,18 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
         }
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class Include(quil_rs.Include, AbstractInstruction):
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class RawInstr(AbstractInstruction):
@@ -1500,13 +1676,14 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
         return super().__new__(cls, pulse.blocking, pulse.frame, pulse.waveform)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1551,7 +1728,10 @@ class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
         return super().__new__(cls, set_frequency.frame, set_frequency.frequency)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def frame(self) -> Frame:
@@ -1570,10 +1750,8 @@ class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
         quil_rs.SetFrequency.frequency.__set__(self, _convert_to_rs_expression(freq))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1593,7 +1771,10 @@ class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
         return super().__new__(cls, shift_frequency.frame, shift_frequency.frequency)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def frame(self) -> Frame:
@@ -1612,10 +1793,8 @@ class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
         quil_rs.ShiftFrequency.frequency.__set__(self, _convert_to_rs_expression(freq))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1635,7 +1814,10 @@ class SetPhase(quil_rs.SetPhase, AbstractInstruction):
         return super().__new__(cls, set_phase.frame, set_phase.phase)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def frame(self) -> Frame:
@@ -1654,10 +1836,8 @@ class SetPhase(quil_rs.SetPhase, AbstractInstruction):
         quil_rs.SetPhase.phase.__set__(self, _convert_to_rs_expression(phase))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1677,7 +1857,10 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
         return super().__new__(cls, shift_phase.frame, shift_phase.phase)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def frame(self) -> Frame:
@@ -1696,10 +1879,8 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
         quil_rs.ShiftPhase.phase.__set__(self, _convert_to_rs_expression(phase))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1735,13 +1916,14 @@ class SwapPhases(quil_rs.SwapPhases, AbstractInstruction):
         quil_rs.SwapPhases.frame_2.__set__(self, frame)  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1761,7 +1943,10 @@ class SetScale(quil_rs.SetScale, AbstractInstruction):
         return super().__new__(cls, set_scale.frame, set_scale.scale)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def frame(self) -> Frame:
@@ -1780,10 +1965,8 @@ class SetScale(quil_rs.SetScale, AbstractInstruction):
         quil_rs.SetScale.scale.__set__(self, _convert_to_rs_expression(scale))  # type: ignore[attr-defined]
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1843,13 +2026,14 @@ class Capture(quil_rs.Capture, AbstractInstruction):
         quil_rs.Capture.blocking.__set__(self, not nonblocking)  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1874,16 +2058,9 @@ class RawCapture(quil_rs.RawCapture, AbstractInstruction):
         return super().__new__(cls, not nonblocking, frame, rs_duration, rs_memory_reference)
 
     @classmethod
-    def _from_rs_raw_capture(
-        cls,
-        raw_capture: quil_rs.RawCapture
-        ) -> "RawCapture":
+    def _from_rs_raw_capture(cls, raw_capture: quil_rs.RawCapture) -> "RawCapture":
         return super().__new__(
-            cls,
-            raw_capture.blocking,
-            raw_capture.frame,
-            raw_capture.duration,
-            raw_capture.memory_reference
+            cls, raw_capture.blocking, raw_capture.frame, raw_capture.duration, raw_capture.memory_reference
         )
 
     @property  # type: ignore[override]
@@ -1921,13 +2098,14 @@ class RawCapture(quil_rs.RawCapture, AbstractInstruction):
         quil_rs.RawCapture.blocking.__set__(self, not nonblocking)  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @deprecated(
-        deprecated_in="4.0",
-        removed_in="5.0",
-        current_version=pyquil_version,
-        details="The indices flag will be removed, use get_qubit_indices() instead.",
+        version="4.0",
+        reason="The indices flag will be removed, use get_qubit_indices() instead.",
     )
     def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
         if indices:
@@ -1960,7 +2138,10 @@ class Delay(quil_rs.Delay, AbstractInstruction):
         return list(merged_qubits)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def qubits(self) -> List[QubitDesignator]:
@@ -2010,7 +2191,10 @@ class Fence(quil_rs.Fence, AbstractInstruction):
         return super().__new__(cls, fence.qubits)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def qubits(self) -> List[QubitDesignator]:
@@ -2050,7 +2234,10 @@ class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
         return quil_rs.Waveform(_convert_to_rs_expressions(entries), rs_parameters)
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property
     def parameters(self) -> List[Parameter]:
@@ -2063,7 +2250,7 @@ class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
         quil_rs.WaveformDefinition.definition.__set__(self, waveform)  # type: ignore[attr-defined]
 
     @property
-    def entries(self) -> List[ParameterDesignator]:
+    def entries(self) -> Sequence[ParameterDesignator]:
         return _convert_to_py_expressions(super().definition.matrix)
 
     @entries.setter
@@ -2097,7 +2284,10 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
         )
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property  # type: ignore[override]
     def parameters(self) -> List[Parameter]:
@@ -2157,12 +2347,12 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
         )
 
     @property  # type: ignore[override]
-    def parameters(self) -> List[ParameterDesignator]:
+    def parameters(self) -> Sequence[ParameterDesignator]:
         return _convert_to_py_expressions(super().parameters)
 
     @parameters.setter
     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
-        
+
         quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined]
 
     @property  # type: ignore[override]
@@ -2182,7 +2372,10 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
         quil_rs.Calibration.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstruction):
@@ -2234,7 +2427,10 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
         quil_rs.MeasureCalibrationDefinition.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
@@ -2247,7 +2443,7 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         sample_rate: Optional[float] = None,
         center_frequency: Optional[float] = None,
         enable_raw_capture: Optional[str] = None,
-        channel_delay: Optional[float] = None
+        channel_delay: Optional[float] = None,
     ) -> Self:
         # The quil spec doesn't outline anything for JSON support
         # but it can be used for the hardware_object field.
@@ -2260,8 +2456,24 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         attributes = {
             key: DefFrame._to_attribute_value(value)
             for key, value in zip(
-                ["DIRECTION", "INITIAL-FREQUENCY", "HARDWARE-OBJECT", "SAMPLE-RATE", "CENTER-FREQUENCY", "ENABLE-RAW-CAPTURE", "CHANNEL-DELAY"],
-                [direction, initial_frequency, hardware_object, sample_rate, center_frequency, enable_raw_capture, channel_delay],
+                [
+                    "DIRECTION",
+                    "INITIAL-FREQUENCY",
+                    "HARDWARE-OBJECT",
+                    "SAMPLE-RATE",
+                    "CENTER-FREQUENCY",
+                    "ENABLE-RAW-CAPTURE",
+                    "CHANNEL-DELAY",
+                ],
+                [
+                    direction,
+                    initial_frequency,
+                    hardware_object,
+                    sample_rate,
+                    center_frequency,
+                    enable_raw_capture,
+                    channel_delay,
+                ],
             )
             if value is not None
         }
@@ -2286,7 +2498,10 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         raise ValueError(f"{type(value)} is not a valid AttributeValue")
 
     def out(self) -> str:
-        return str(self)
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
     @property
     def frame(self) -> Frame:
@@ -2347,4 +2562,5 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
 
     @center_frequency.setter
     def center_frequency(self, center_frequency: float) -> None:
+        self._set_attribute("CENTER-FREQUENCY", center_frequency)
         self._set_attribute("CENTER-FREQUENCY", center_frequency)

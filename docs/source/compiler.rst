@@ -382,7 +382,6 @@ For example, consider running a ``CZ`` on non-neighboring qubits on a linear dev
 .. testoutput:: swaps
 
    CZ 2 1
-   HALT
 
 We see that the resulting program has only a single ``CZ`` even though the original program would
 usually require the insertion of a ``SWAP`` gate. The compiler instead opted to just relabel (or

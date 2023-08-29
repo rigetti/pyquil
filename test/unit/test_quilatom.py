@@ -1,8 +1,8 @@
-from typing import Sequence, Union, Optional
+from typing import Sequence, Union
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quilatom import FormalArgument, Frame, MemoryReference, Qubit
+from pyquil.quilatom import FormalArgument, Frame, Qubit, Label, LabelPlaceholder, QubitPlaceholder
 
 
 @pytest.mark.parametrize(
@@ -39,3 +39,33 @@ class TestFrame:
     def test_eq(self, frame: Frame):
         assert frame == frame
         assert frame != Frame([], "definitely-not-eq")
+
+
+def test_label():
+    name = "my-label"
+    label = Label(name)
+    assert label.name == name
+    assert label.out() == str(label) == f"@{name}"
+    assert label == Label(name)
+    assert hash(label) == hash(Label(name))
+    label.name = "new-label"
+    assert label.name == "new-label"
+
+
+def test_label_placeholder():
+    prefix = "my-prefix"
+    placeholder = LabelPlaceholder(prefix)
+    with pytest.raises(RuntimeError):
+        placeholder.out()
+    assert placeholder.prefix == prefix
+    assert placeholder != LabelPlaceholder(prefix)
+    assert hash(placeholder) != hash(LabelPlaceholder(prefix))
+
+
+def test_qubit_placeholder():
+    register = QubitPlaceholder.register(2)
+    assert len(register) == 2
+    with pytest.raises(RuntimeError):
+        register[0].out()
+
+    assert register[0] != register[1]

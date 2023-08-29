@@ -182,7 +182,6 @@ def test_check_min_num_trials_for_symmetrized_readout():
 
 # We sometimes narrowly miss the np.mean(parity) < 0.15 assertion, below. Alternatively, that upper
 # bound could be relaxed.
-# TODO: get_classical_adresses implementation
 @pytest.mark.flaky(reruns=1)
 def test_run(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
@@ -227,7 +226,6 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClient):
     assert np.mean(parity) == 0
 
 
-# TODO: Review PyQVM
 def test_run_pyqvm_noisy(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
@@ -247,7 +245,6 @@ def test_run_pyqvm_noisy(client_configuration: QCSClient):
     assert 0 < np.mean(parity) < 0.15
 
 
-# TODO: Noisy gates
 def test_readout_symmetrization(client_configuration: QCSClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())
@@ -455,7 +452,6 @@ def test_qc_error(client_configuration: QCSClient):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-# TODOV4: Write memory values
 @pytest.mark.parametrize("params", [[np.pi], np.array([np.pi])])
 def test_run_with_parameters(client_configuration: QCSClient, params):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
@@ -531,7 +527,6 @@ def test_get_qvm_with_topology(client_configuration: QCSClient):
     assert min(qc.qubits()) == 5
 
 
-# TODO: get_classical_adresses implementation
 def test_get_qvm_with_topology_2(client_configuration: QCSClient):
     topo = nx.from_edgelist([(5, 6), (6, 7)])
     qc = _get_qvm_with_topology(
@@ -564,7 +559,6 @@ def test_parse_mix_qvm_and_noisy_flag():
     assert noisy
 
 
-# TODO: noisy gates
 def test_noisy(client_configuration: QCSClient):
     # https://github.com/rigetti/pyquil/issues/764
     p = Program(
@@ -600,7 +594,6 @@ def test_orthogonal_array():
                 check_random_columns(oa, strength)
 
 
-# TODO: Memory management
 def test_qc_expectation(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
@@ -636,7 +629,6 @@ def test_qc_expectation(client_configuration: QCSClient, dummy_compiler: DummyCo
     assert results[2].total_counts == 40
 
 
-# TODO: Memory management
 def test_qc_expectation_larger_lattice(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
@@ -681,7 +673,6 @@ def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> N
     return NoiseModel([], aprobs)
 
 
-# TODO: Instruction API - RESET
 def test_qc_calibration_1q(client_configuration: QCSClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0], 0.945, 0.955)
@@ -706,7 +697,6 @@ def test_qc_calibration_1q(client_configuration: QCSClient):
     assert results[0].total_counts == 20000
 
 
-# TODO: Instruction API - RESET
 def test_qc_calibration_2q(client_configuration: QCSClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
@@ -731,7 +721,6 @@ def test_qc_calibration_2q(client_configuration: QCSClient):
     assert results[0].total_counts == 40000
 
 
-# TODO: Instruction API - RESET
 def test_qc_joint_expectation(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
@@ -770,7 +759,6 @@ def test_get_qc_noisy_qpu_error(client_configuration: QCSClient, dummy_compiler:
         get_qc("Aspen-8", noisy=True)
 
 
-# TODO: Instruction API - RESET
 def test_qc_joint_calibration(client_configuration: QCSClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
@@ -802,7 +790,6 @@ def test_qc_joint_calibration(client_configuration: QCSClient):
     assert results[0].additional_results[1].total_counts == 40000
 
 
-# TODO: Instruction API - RESET
 def test_qc_expectation_on_qvm(client_configuration: QCSClient, dummy_compiler: DummyCompiler):
     # regression test for https://github.com/rigetti/forest-tutorials/issues/2
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
