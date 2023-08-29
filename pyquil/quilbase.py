@@ -681,7 +681,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
 
     @matrix.setter
     def matrix(self, matrix: np.ndarray) -> None:
-        quil_rs.GateDefinition.specification.__set__(self, DefGate._convert_to_matrix_specification(matrix))  # type: ignore[attr-defined]
+        quil_rs.GateDefinition.specification.__set__(self, DefGate._convert_to_matrix_specification(matrix))  # type: ignore[attr-defined] # noqa
 
     @property  # type: ignore[override]
     def parameters(self) -> List[Parameter]:
@@ -689,7 +689,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
 
     @parameters.setter
     def parameters(self, parameters: Optional[List[Parameter]]) -> None:
-        quil_rs.GateDefinition.parameters.__set__(self, [param.name for param in parameters or []])  # type: ignore[attr-defined]
+        quil_rs.GateDefinition.parameters.__set__(self, [param.name for param in parameters or []])  # type: ignore[attr-defined] # noqa
 
     def __hash__(self) -> int:
         return hash(self.out())
@@ -762,7 +762,7 @@ class DefGateByPaulis(DefGate):
     def arguments(self, arguments: List[QubitDesignator]) -> None:
         pauli_sum = super().specification.to_pauli_sum()
         pauli_sum.arguments = [str(arg) for arg in arguments]
-        quil_rs.GateDefinition.specification.__set__(self, quil_rs.GateSpecification.from_pauli_sum(pauli_sum))  # type: ignore[attr-defined]
+        quil_rs.GateDefinition.specification.__set__(self, quil_rs.GateSpecification.from_pauli_sum(pauli_sum))  # type: ignore[attr-defined] # noqa
 
     @property
     def body(self) -> "PauliSum":
@@ -2353,7 +2353,7 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     @parameters.setter
     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
 
-        quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined]
+        quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined] # noqa
 
     @property  # type: ignore[override]
     def qubits(self) -> List[QubitDesignator]:
@@ -2369,7 +2369,7 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
 
     @instrs.setter
     def instrs(self, instrs: Sequence[AbstractInstruction]) -> None:
-        quil_rs.Calibration.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined]
+        quil_rs.Calibration.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined] # noqa
 
     def out(self) -> str:
         return super().to_quil()
@@ -2408,7 +2408,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
 
     @qubit.setter
     def qubit(self, qubit: QubitDesignator) -> None:
-        quil_rs.MeasureCalibrationDefinition.qubit.__set__(self, _convert_to_rs_qubit(qubit))  # type: ignore[attr-defined]
+        quil_rs.MeasureCalibrationDefinition.qubit.__set__(self, _convert_to_rs_qubit(qubit))  # type: ignore[attr-defined] # noqa
 
     @property
     def memory_reference(self) -> Optional[MemoryReference]:
@@ -2416,7 +2416,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
 
     @memory_reference.setter
     def memory_reference(self, memory_reference: MemoryReference) -> None:
-        quil_rs.MeasureCalibrationDefinition.parameter.__set__(self, memory_reference.name)  # type: ignore[attr-defined]
+        quil_rs.MeasureCalibrationDefinition.parameter.__set__(self, memory_reference.name)  # type: ignore[attr-defined] # noqa
 
     @property
     def instrs(self) -> List[AbstractInstruction]:
@@ -2424,7 +2424,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
 
     @instrs.setter
     def instrs(self, instrs: List[AbstractInstruction]) -> None:
-        quil_rs.MeasureCalibrationDefinition.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined]
+        quil_rs.MeasureCalibrationDefinition.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined] # noqa
 
     def out(self) -> str:
         return super().to_quil()

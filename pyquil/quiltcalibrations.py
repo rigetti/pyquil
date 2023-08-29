@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union, Dict, List, Any, Optional, Sequence
+from typing import Union, Dict, Any, Optional, Sequence
 
 from pyquil.quilatom import (
     ExpressionDesignator,
