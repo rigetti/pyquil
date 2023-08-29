@@ -19,7 +19,7 @@ Module for creating and verifying noisy gate and readout definitions.
 import json
 import sys
 from collections import namedtuple
-from typing import Dict, List, Sequence, Optional, Any, Tuple, Set, Iterable, TYPE_CHECKING, Union, cast, Self
+from typing import Dict, List, Sequence, Optional, Any, Tuple, Set, Iterable, TYPE_CHECKING, Union, cast
 
 import numpy as np
 import requests
@@ -889,7 +889,7 @@ class Calibrations:
         this may change in time, and require changes in the class.
     """
 
-    def __init__(self, qc: Optional[QuantumComputer] = None, calibrations: Self = None) -> None:
+    def __init__(self, qc: Optional[QuantumComputer] = None, calibrations = None) -> None:
         self.fidelities = {}
         self.readout_fidelity = {}
         self.T2 = {}
