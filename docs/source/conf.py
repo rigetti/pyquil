@@ -106,7 +106,7 @@ mathjax3_config = {
 }
 
 suppress_warnings = [
-    # TODO: Re-enable these warning once Sphinx resolves this open issue:
+    # TODO: Re-enable these warnings once Sphinx resolves this open issue:
     # https://github.com/sphinx-doc/sphinx/issues/4961
     "ref.python",
 ]
