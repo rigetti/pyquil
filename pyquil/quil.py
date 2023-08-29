@@ -85,7 +85,7 @@ from pyquil.quilbase import (
     ShiftFrequency,
     SetPhase,
     ShiftPhase,
-    SwapPhase,
+    SwapPhases,
     SetScale,
     DefPermutationGate,
     DefCalibration,
@@ -186,7 +186,6 @@ class Program:
         """
         new_prog = Program()
         new_prog._calibrations = self.calibrations.copy()
-        new_prog._declarations = self._declarations.copy()
         new_prog._waveforms = self.waveforms.copy()
         new_prog._defined_gates = self._defined_gates.copy()
         new_prog._frames = self.frames.copy()
@@ -206,8 +205,9 @@ class Program:
 
         :return: a new Program
         """
-        new_prog = self.copy_everything_except_instructions()
+        new_prog = self.copy_everything_except_instructions()  # and declarations, which is a view
         new_prog._instructions = self._instructions.copy()
+        new_prog._declarations = self._declarations.copy()
         return new_prog
 
     @property
@@ -742,7 +742,7 @@ class Program:
                     SetFrequency,
                     SetPhase,
                     ShiftPhase,
-                    SwapPhase,
+                    SwapPhases,
                     SetScale,
                 ),
             ):
@@ -1348,7 +1348,7 @@ def validate_protoquil(program: Program, quilt: bool = False) -> None:
                 SetScale,
                 ShiftPhase,
                 SetPhase,
-                SwapPhase,
+                SwapPhases,
                 Pulse,
                 Capture,
                 RawCapture,
