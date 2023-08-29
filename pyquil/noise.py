@@ -16,26 +16,24 @@
 """
 Module for creating and verifying noisy gate and readout definitions.
 """
-import json
 import sys
 from collections import namedtuple
 from typing import Dict, List, Sequence, Optional, Any, Tuple, Set, Iterable, TYPE_CHECKING, Union, cast
 
 import numpy as np
-import requests
 
-from pyquil.api import QuantumComputer
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import I, RX, MEASURE
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
-from pyquil.quantum_processor.qcs import get_qcs_quantum_processor
 from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator, Qubit
 from pyquil.quilbase import Declare, Gate, DefGate, Pragma, DelayQubits
-from pyquil.quantum_processor import QCSQuantumProcessor
+from pyquil.quantum_processor.qcs import get_qcs_quantum_processor
 
 if TYPE_CHECKING:
     from pyquil.quil import Program
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
+    from pyquil.quantum_processor import QCSQuantumProcessor
+    
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
@@ -889,7 +887,7 @@ class Calibrations:
         this may change in time, and require changes in the class.
     """
 
-    def __init__(self, qc: Optional[QuantumComputer] = None, calibrations = None) -> None:
+    def __init__(self, qc: Optional[PyquilApiQuantumComputer] = None, calibrations = None) -> None:
         self.fidelities = {}
         self.readout_fidelity = {}
         self.T2 = {}
@@ -1299,7 +1297,7 @@ def add_kraus_maps_to_program(
 
 
 def add_noise_to_program(
-    qc: QuantumComputer,
+    qc: PyquilApiQuantumComputer,
     p: Program,
     convert_to_native: bool = True,
     calibrations: Optional[Calibrations] = None,
