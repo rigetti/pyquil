@@ -103,10 +103,10 @@ class QAMExecutionResult:
         return self.get_register_map()
 
     @property
-    def execution_duration_microseconds(self) -> Optional[int]:
+    def execution_duration_microseconds(self) -> Optional[float]:
         """Duration job held exclusive hardware access. Defaults to ``None`` when information is not available."""
         if isinstance(self.data.duration, timedelta):
-            return self.data.duration.microseconds
+            return self.data.duration.total_seconds() * 1e6
         return None
 
 
