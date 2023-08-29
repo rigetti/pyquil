@@ -27,7 +27,6 @@ from pyquil.gates import I, RX, MEASURE
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
 from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator, Qubit
 from pyquil.quilbase import Declare, Gate, DefGate, Pragma, DelayQubits
-from pyquil.quantum_processor import get_qcs_quantum_processor
 
 if TYPE_CHECKING:
     from pyquil.quil import Program
@@ -888,7 +887,7 @@ class Calibrations:
         this may change in time, and require changes in the class.
     """
 
-    def __init__(self, qc: Optional[PyquilApiQuantumComputer] = None, calibrations = None) -> None:
+    def __init__(self, qpu: Optional[PyquilApiQuantumComputer] = None, calibrations = None) -> None:
         self.fidelities = {}
         self.readout_fidelity = {}
         self.T2 = {}
@@ -905,12 +904,10 @@ class Calibrations:
             self.two_q_gates = calibrations.two_q_gates
             return
 
-        if qc is None:
+        if qpu is None:
             return  # user can set their own values
 
         else:
-            name = qc.name if "qvm" not in qc.name else qc.name[:-4]
-            qpu = get_qcs_quantum_processor(name)
             self.T1 = get_t1s(qpu)
             self.T2 = get_t2s(qpu)
             self.fidelities[Depolarizing_1Q_gate] = get_1q_fidelities(qpu)
@@ -1298,7 +1295,7 @@ def add_kraus_maps_to_program(
 
 
 def add_noise_to_program(
-    qc: PyquilApiQuantumComputer,
+    qcs_quantum_processor: QCSQuantumProcessor,
     p: Program,
     convert_to_native: bool = True,
     calibrations: Optional[Calibrations] = None,
@@ -1315,10 +1312,8 @@ def add_noise_to_program(
     This function will define new "I" gates and add Kraus noise to these gates.
     :param damping_after_dephasing_only_on_targets: add damping after dephasing only on the target qubits of the gate.
     :param noise_intensity: one parameter to control the noise intensity.
-    :param qc: A Quantum computer object
+    :param qcs_quantum_processor: A QCSQuantumProcessor object.
     :param p: A pyquil program
-    :param convert_to_native: put `False` if the program is already in native pyquil or is not needed -
-    Note that it removes any delays.
     :param calibrations: optional, can get the calibrations in advance,
         instead of producing them from the URL.
     :param depolarizing: add depolarizing noise, default is True.
@@ -1333,11 +1328,8 @@ def add_noise_to_program(
     :return: A new program with noisy operators.
     """
 
-    if convert_to_native:
-        p = qc.compiler.quil_to_native_quil(p)
-
     if calibrations is None:
-        calibrations = Calibrations(qc=qc)
+        calibrations = Calibrations(qpu=qcs_quantum_processor)
 
     new_p = Program()
 
