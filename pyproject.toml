@@ -53,6 +53,7 @@ flake8 = "^3.8.1"
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
 mypy = "^1.5.0"
+toml = "^0.10.2"
 pytest-xdist = "^3.3.1"
 pytest-rerunfailures = "^12.0.0"
 pytest-timeout = "^1.4.2"
@@ -64,7 +65,7 @@ syrupy = "^3.0.6"
 
 [tool.poetry.extras]
 latex = ["ipython"]
-docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc", "matplotlib", "seaborn"]
+docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc", "matplotlib", "seaborn", "toml"]
 
 [tool.ruff]
 line-length = 120
