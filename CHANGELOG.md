@@ -19,15 +19,15 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 	- The `pop` method has been removed from `Program`.
 	- A `Program` that uses `QubitPlaceholder`s or `LabelPlaceholder`s can no longer be pickled
 	- `DefMeasureCalibration` now requires a `MemoryReference`.
-	- `fill_placeholders` has been removed.
+	- `fill_placeholders` has been removed since it is no longer needed to expand calibrations.
 	- The `get_qubits` method on `Gate` now returns a `list` so that ordering is guaranteed.
 	- Setting the `offsets` property on `Declare` will raise a `ValueError` if no `shared_region` is set.
-- When converting to Quil, a `Program` automatically places `DECLARE`s at the top of the program.
+    - When converting to Quil, a `Program` automatically places `DECLARE`s at the top of the program.
 - The `parser` module has been removed. Parsing now happens by initializing a `Program` with the program string you want to be parsed.
 - `PRAGMA` instructions can no longer have a directive that conflicts with a Quil keyword. If you were using directives like `DELAY` or `FENCE`, consider using the respective Quil-T instructions instead.
+- `QubitPlaceholders` can no longer be used in `PRAGMA` instructions.
 - `DefGate` and the other gate definition instructions will no longer accept names that conflict with Quil keywords.
 - `Program#get_qubits()` will raise a `TypeError` if any of the qubits in the program are not a fixed index.
-- `QubitPlaceholders` can no longer be used in `PRAGMA` instructions.
 - A `Program`s `LabelPlaceholder`s are no longer resolved automatically when getting its instructions. Use the `resolve_label_placeholders` method to do it explicitly. Note that the `if_then` and `while_do` methods will add `LabelPlaceholder`s to your program.
 - There may be some minor differences in how instructions are converted to a Quil string. These differences should only be cosmetic and should not affect the behavior of a program. However, they may break unit tests or other code that rely on specific formatting of programs.
 - The `pyquil.quil.get_default_qubit_mapping` function for getting a mapping of `QubitPlaceholders` to resolved indices has been removed. Generating a default mapping is handled automatically by the placeholder resolving methods.
