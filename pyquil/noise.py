@@ -981,7 +981,7 @@ def create_damping_after_dephasing_kraus_maps(
     return kraus_maps
 
 
-def create_kraus_maps(prog: Program, gate_name: str, gate_time: float, T1: Dict[int, float], T2: Dict[int, float]):
+def create_kraus_maps(prog: "Program", gate_name: str, gate_time: float, T1: Dict[int, float], T2: Dict[int, float]):
     gates = [i for i in _get_program_gates(prog) if i.name == gate_name]
     kraus_maps = create_damping_after_dephasing_kraus_maps(
         gates,
@@ -997,12 +997,12 @@ def create_kraus_maps(prog: Program, gate_name: str, gate_time: float, T1: Dict[
 
 
 def add_single_qubit_noise(
-    prog: Program,
+    prog: "Program",
     T1: Dict[int, float],
     T2: Dict[int, float],
     gate_time_1q: float = 32e-9,
     gate_time_2q: float = 176e-09,
-) -> Program:
+) -> "Program":
     """
     Applies the model on the different kinds of I.
     :param prog: The program including I's that are not noisy yet.
@@ -1018,9 +1018,9 @@ def add_single_qubit_noise(
 
 
 def add_readout_noise(
-    prog: Program,
+    prog: "Program",
     ro_fidelity: Dict[int, float],
-) -> Program:
+) -> "Program":
     """
     adds readout noise to the program.
     :param prog: The program without readout noise yet.
@@ -1093,7 +1093,7 @@ def depolarizing_kraus(num_qubits: int, p: float = 0.95) -> List[np.ndarray]:
     return pauli_kraus_map(probabilities)
 
 
-def add_depolarizing_noise(prog: Program, fidelities: Dict[str, Dict[str, float]]) -> Program:
+def add_depolarizing_noise(prog: "Program", fidelities: Dict[str, Dict[str, float]]) -> "Program":
     """
     add depolarizing noise to the program.
 
@@ -1111,7 +1111,9 @@ def add_depolarizing_noise(prog: Program, fidelities: Dict[str, Dict[str, float]
     return prog
 
 
-def add_delay_maps(prog: Program, delay_gates: Dict[str, float], T1: Dict[int, float], T2: Dict[int, float]) -> Program:
+def add_delay_maps(
+    prog: "Program", delay_gates: Dict[str, float], T1: Dict[int, float], T2: Dict[int, float]
+) -> "Program":
     """
     Add kraus maps for a `DELAY` instruction,
     that was converted already into `noisy-I` gate.
@@ -1127,7 +1129,7 @@ def add_delay_maps(prog: Program, delay_gates: Dict[str, float], T1: Dict[int, f
     return prog
 
 
-def def_gate_to_prog(name: str, dim: int, new_p: Program):
+def def_gate_to_prog(name: str, dim: int, new_p: "Program"):
     """
     defines a gate wit name `name` for `new_p`, and returns the gate.
     the gate is an identity matrix, in dimension `dim`.
@@ -1143,13 +1145,13 @@ def def_gate_to_prog(name: str, dim: int, new_p: Program):
 
 
 def define_noisy_gates_on_new_program(
-    new_p: Program,
-    prog: Program,
+    new_p: "Program",
+    prog: "Program",
     two_q_gates: Set,
     depolarizing: bool,
     damping_after_dephasing_after_1q_gate: bool,
     damping_after_dephasing_after_2q_gate: bool,
-) -> Tuple[Program, Dict]:
+) -> Tuple["Program", Dict]:
     """
     defines noisy gates for the new program `new_p`,
     and returns a Dictionary with the new noise gates.
@@ -1209,8 +1211,8 @@ def define_noisy_gates_on_new_program(
 
 
 def add_noisy_gates_to_program(
-    new_p: Program,
-    prog: Program,
+    new_p: "Program",
+    prog: "Program",
     noise_gates: Dict,
     damping_after_dephasing_after_2q_gate: bool,
     damping_after_dephasing_after_1q_gate: bool,
@@ -1273,7 +1275,7 @@ def add_noisy_gates_to_program(
 
 
 def add_kraus_maps_to_program(
-    new_p: Program,
+    new_p: "Program",
     calibrations: Calibrations,
     delay_gates: Dict,
     depolarizing: bool,
@@ -1296,7 +1298,7 @@ def add_kraus_maps_to_program(
 
 def add_noise_to_program(
     isa: InstructionSetArchitecture,
-    p: Program,
+    p: "Program",
     convert_to_native: bool = True,
     calibrations: Optional[Calibrations] = None,
     depolarizing: bool = True,
@@ -1305,7 +1307,7 @@ def add_noise_to_program(
     damping_after_dephasing_only_on_targets: bool = False,
     readout_noise: bool = True,
     noise_intensity: float = 1.0,
-) -> Program:
+) -> "Program":
     """
     Add generic damping and dephasing noise to a program.
     Noise is added to all qubits, after a 2-qubit gate operation.
@@ -1327,6 +1329,7 @@ def add_noise_to_program(
 
     :return: A new program with noisy operators.
     """
+    from pyquil.quil import Program
 
     if calibrations is None:
         calibrations = Calibrations(isa=InstructionSetArchitecture)
