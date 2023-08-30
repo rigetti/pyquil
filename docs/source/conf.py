@@ -13,9 +13,9 @@ from pyquil import __version__
 import subprocess
 import os
 
-project = 'pyQuil'
-copyright = '2021, Rigetti Computing'
-author = 'Rigetti Computing'
+project = "pyQuil"
+copyright = "2021, Rigetti Computing"
+author = "Rigetti Computing"
 # The short X.Y version.
 version = __version__
 # The full version, including alpha/beta/rc tags.
@@ -39,26 +39,28 @@ extensions = [
     "recommonmark",
 ]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
 source_suffix = [".rst", ".md"]
 
-doctest_default_flags = doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL | doctest.DONT_ACCEPT_TRUE_FOR_1 | doctest.NORMALIZE_WHITESPACE
+doctest_default_flags = (
+    doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL | doctest.DONT_ACCEPT_TRUE_FOR_1 | doctest.NORMALIZE_WHITESPACE
+)
 
 root_doc = "index"
 autosummary_generate = True
 autoclass_content = "both"
 pygments_style = "sphinx"
 todo_include_todos = True
-#intersphinx_mapping = { "python": ("https://docs.python.org/3/", None) }
+# intersphinx_mapping = { "python": ("https://docs.python.org/3/", None) }
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-html_static_path = ['_static']
-html_context = {"css_files": ["_static/theme_overrides.css"]}  # override wide tables in RTD theme
+html_static_path = ["_static"]
+html_css_files = ["theme_overrides.css"]  # override wide tables in RTD theme
 htmlhelp_basename = "pyQuildoc"
 
 latex_elements = {}
@@ -139,5 +141,6 @@ def builder_inited_handler(app):
 
 def setup(app):
     app.connect("builder-inited", builder_inited_handler)
+
 
 # end: fun little hack
