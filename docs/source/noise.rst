@@ -617,12 +617,12 @@ The Idiomatic pyQuil Program
 .. testoutput:: decoherence
 
     H 0
-    RX(pi/2) 1
+    RX(1.5707963267948966) 1
     CNOT 0 1
-    RZ(2*pi/3) 1
+    RZ(2.0943951023931953) 1
     CNOT 0 1
     H 0
-    RX(-pi/2) 1
+    RX(-1.5707963267948966) 1
 
 
 The Compiled Program
@@ -1165,10 +1165,10 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
 
 .. testoutput:: readout-noise
 
+    DECLARE ro BIT[3]
     PRAGMA READOUT-POVM 0 "(0.85 0.050000000000000044 0.15000000000000002 0.95)"
     PRAGMA READOUT-POVM 1 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
     PRAGMA READOUT-POVM 2 "(0.9 0.15000000000000002 0.09999999999999998 0.85)"
-    DECLARE ro BIT[3]
     H 0
     CNOT 0 1
     CNOT 1 2

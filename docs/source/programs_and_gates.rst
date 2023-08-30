@@ -434,7 +434,7 @@ matrix representation of the gate. For example, below we define a
 
 .. testoutput:: define-gates
 
-    DEFGATE SQRT-X:
+    DEFGATE SQRT-X AS MATRIX:
         0.5+0.5i, 0.5-0.5i
         0.5-0.5i, 0.5+0.5i
 
@@ -535,7 +535,7 @@ Some gates can be compactly represented as a permutation. For example, ``CCNOT``
        [0, 0, 0, 0, 0, 0, 1, 0]
    ])
 
-   ccnot_gate = DefGate("CCNOT", ccnot_matrix)
+   ccnot_gate = DefGate("MATRIX_CCNOT", ccnot_matrix)
 
    # etc
 
@@ -546,7 +546,7 @@ It can equivalently be defined by the permutation
    import numpy as np
    from pyquil.quilbase import DefPermutationGate
 
-   ccnot_gate = DefPermutationGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
+   ccnot_gate = DefPermutationGate("PERMUTATION_CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
 
    # etc
 

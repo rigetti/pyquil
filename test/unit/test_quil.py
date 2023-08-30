@@ -19,6 +19,8 @@ from math import pi
 
 import numpy as np
 import pytest
+from syrupy.assertion import SnapshotAssertion
+import quil.instructions as quil_rs
 
 from pyquil.gates import (
     I,
@@ -75,36 +77,36 @@ from pyquil.quil import (
     address_qubits,
     get_classical_addresses_from_program,
     Pragma,
-    validate_protoquil,
     validate_supported_quil,
 )
-from pyquil.quilatom import MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
+from pyquil.quilatom import Frame, MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
 from pyquil.quilbase import (
     DefGate,
+    DefFrame,
     Gate,
     Qubit,
     JumpWhen,
     Declare,
     DefCalibration,
-    ClassicalNot,
+    DefMeasureCalibration,
     DefPermutationGate,
 )
 from test.unit.utils import parse_equals
 
 
-def test_gate():
+def test_gate(snapshot):
     tg = Gate("TEST", qubits=[Qubit(1), Qubit(2)], params=[])
-    assert tg.out() == "TEST 1 2"
+    assert tg.out() == snapshot
 
 
-def test_defgate():
+def test_defgate(snapshot):
     dg = DefGate("TEST", np.array([[1.0, 0.0], [0.0, 1.0]]))
-    assert dg.out() == "DEFGATE TEST:\n    1.0, 0\n    0, 1.0\n"
+    assert dg.out() == snapshot
     test = dg.get_constructor()
     tg = test(Qubit(1), Qubit(2))
-    assert tg.out() == "TEST 1 2"
+    assert tg.out() == snapshot
     tg = test(1, 2)
-    assert tg.out() == "TEST 1 2"
+    assert tg.out() == snapshot
 
 
 def test_defgate_non_square_should_throw_error():
@@ -119,12 +121,13 @@ def test_defgate_non_unitary_should_throw_error():
     assert str(error_info.value) == "Matrix must be unitary."
 
 
-def test_defgate_param():
+def test_defgate_param(snapshot):
     dgp = DefGate("TEST", [[1.0, 0.0], [0.0, 1.0]])
-    assert dgp.out() == "DEFGATE TEST:\n    1.0, 0\n    0, 1.0\n"
+    assert dgp.out() == snapshot
     test = dgp.get_constructor()
     tg = test(Qubit(1))
-    assert tg.out() == "TEST 1"
+    assert tg.out() == snapshot
+
 
 def test_defgate_redefintion():
     """Test that adding a defgate with the same name updates the definition."""
@@ -141,71 +144,76 @@ def test_defgate_redefintion():
     program += dgp
 
     assert program.defined_gates[0].name == "TEST"
-    assert np.all(program.defined_gates[0].matrix == new_mat)
     assert len(program.defined_gates) == 1
+    assert np.all(program.defined_gates[0].matrix == new_mat)
 
-def test_decal_redefinition():
-    """Test that adding a defcalibration with the same name updates the definition."""
+
+def test_defcal_redefinition(snapshot: SnapshotAssertion):
+    """Test that adding a DefCalibration with the same name updates the definition."""
     program = Program()
-    defcal = DefCalibration(
-        "TEST",
-        [],
-        [Qubit(1)],
-        instrs=[
-            RX(np.pi, 1)
-        ]
-    )
+    defcal = DefCalibration("TEST", [], [Qubit(1)], instrs=[RX(np.pi, 1)])
     program += defcal
 
     assert len(program.calibrations) == 1
-    assert program.calibrations[0].instrs[0].out() == "RX(pi) 1"
-
+    assert program.calibrations[0].instrs[0].out() == snapshot
 
     program += defcal
 
     assert len(program.calibrations) == 1
 
-    new_defcal = DefCalibration(
-        "TEST",
-        [],
-        [Qubit(1)],
-        instrs=[
-            RX(np.pi/2, 1)
-        ]
-    )
+    new_defcal = DefCalibration("TEST", [], [Qubit(1)], instrs=[RX(np.pi / 2, 1)])
 
     program += new_defcal
     assert len(program.calibrations) == 1
-    assert program.calibrations[0].instrs[0].out() == "RX(pi/2) 1"
+    assert program.calibrations[0].instrs[0].out() == snapshot
 
 
+def test_defcalmeasure_redefinition(snapshot: SnapshotAssertion):
+    """Test that adding a DefMeasureCalibration with the same name updates the definition."""
+    program = Program()
+    defmeasure = DefMeasureCalibration(Qubit(1), MemoryReference("ro"), [RX(np.pi, 1)])
+    program += defmeasure
 
-def test_inst_gates():
+    assert len(program.measure_calibrations) == 1
+    assert program.measure_calibrations[0].instrs[0].out() == snapshot
+
+    program += defmeasure
+
+    assert len(program.measure_calibrations) == 1
+
+    new_defmeasure = DefMeasureCalibration(Qubit(1), MemoryReference("ro"), [RX(np.pi / 2, 1)])
+
+    program += new_defmeasure
+    assert len(program.measure_calibrations) == 1
+    assert program.measure_calibrations[0].instrs[0].out() == snapshot
+
+
+def test_inst_gates(snapshot):
     p = Program()
     p.inst(H(0), X(1))
     assert len(p) == 2
-    assert p.out() == "H 0\nX 1\n"
+    assert p.out() == snapshot
 
 
-def test_inst_tuple():
+def test_inst_tuple(snapshot):
     p = Program()
     p.inst(("Y", 0), ("X", 1))
     assert len(p) == 2
-    assert p.out() == "Y 0\nX 1\n"
+    assert p.out() == snapshot
 
 
-def test_inst_string():
+def test_inst_rs_gate(snapshot):
+    p = Program()
+    q = quil_rs.Qubit.from_fixed(0)
+    p.inst(quil_rs.Gate("X", [], [q], []))
+    assert p.out() == snapshot
+
+
+def test_inst_string(snapshot):
     p = Program()
     p.inst("Y 0", "X 1")
     assert len(p) == 2
-    assert p.out() == "Y 0\nX 1\n"
-
-
-def test_program_pop():
-    prog = Program(X(0), X(1))
-    instruction = prog.pop()
-    assert prog.out() == "X 0\n"
-    assert Program(instruction).out() == "X 1\n"
+    assert p.out() == snapshot
 
 
 def test_len_zero():
@@ -225,12 +233,12 @@ def test_len_nested():
     assert len(p) == 9
 
 
-def test_plus_operator():
+def test_plus_operator(snapshot):
     p = Program()
     p += H(0)
     p += [X(0), Y(0), Z(0)]
     assert len(p) == 4
-    assert p.out() == "H 0\nX 0\nY 0\nZ 0\n"
+    assert p.out() == snapshot
 
 
 def test_indexing():
@@ -248,13 +256,13 @@ def test_iteration():
     gate_list = [H(0), Y(1), CNOT(0, 1)]
     program = Program(gate_list)
     for ii, instruction in enumerate(program):
-        assert instruction == gate_list[ii]
+        assert str(instruction) == gate_list[ii].out()
 
     # https://github.com/rigetti/pyquil/issues/265
     gate_generator = (gate_list[ii] for ii in range(3))
     program = Program(gate_generator)
     for ii, instruction in enumerate(program):
-        assert instruction == gate_list[ii]
+        assert str(instruction) == gate_list[ii].out()
 
 
 def test_program_plus_program():
@@ -269,19 +277,18 @@ def test_program_plus_program():
     assert r.out() == "X 0\nY 0\n"
 
 
-def test_program_tuple():
+def test_program_tuple(snapshot):
     p = Program()
     p.inst(("Y", 0), ("X", 1))
     assert len(p) == 2
-    assert p.out() == "Y 0\nX 1\n"
+    assert p.out() == snapshot
 
 
-def test_program_string():
+def test_program_string(snapshot):
     p = Program()
     p.inst("Y 0", "X 1")
     assert len(p.instructions) == 2
-    assert p.instructions == [Y(0), X(1)]
-    assert p.out() == "Y 0\nX 1\n"
+    assert p.out() == snapshot
 
 
 def test_program_slice():
@@ -289,10 +296,10 @@ def test_program_slice():
     assert isinstance(p[1:], Program)
 
 
-def test_prog_init():
+def test_prog_init(snapshot):
     p = Program()
     p.inst(Declare("ro", "BIT"), X(0)).measure(0, MemoryReference("ro", 0))
-    assert p.out() == ("DECLARE ro BIT[1]\nX 0\nMEASURE 0 ro[0]\n")
+    assert p.out() == snapshot
 
 
 def test_classical_regs():
@@ -302,19 +309,19 @@ def test_classical_regs():
         Declare("reg", "BIT", 2),
         X(0),
     ).measure(0, MemoryReference("reg", 1))
-    assert p.out() == "DECLARE ro BIT[2]\nDECLARE reg BIT[2]\nX 0\nMEASURE 0 reg[1]\n"
+    assert p.out() == "DECLARE reg BIT[2]\nDECLARE ro BIT[2]\nX 0\nMEASURE 0 reg[1]\n"
     assert p.declarations == {
-        "ro": Declare("ro", "BIT", 2),
         "reg": Declare("reg", "BIT", 2),
+        "ro": Declare("ro", "BIT", 2),
     }
 
 
-def test_simple_instructions():
+def test_simple_instructions(snapshot):
     p = Program().inst(HALT, WAIT, RESET(), NOP)
-    assert p.out() == "HALT\nWAIT\nRESET\nNOP\n"
+    assert p.out() == snapshot
 
 
-def test_unary_classicals():
+def test_unary_classicals(snapshot):
     p = Program()
     p.inst(
         MOVE(MemoryReference("ro", 0), 1),
@@ -322,10 +329,10 @@ def test_unary_classicals():
         NOT(MemoryReference("ro", 2)),
         NEG(MemoryReference("ro", 3)),
     )
-    assert p.out() == "MOVE ro[0] 1\nMOVE ro[1] 0\nNOT ro[2]\nNEG ro[3]\n"
+    assert p.out() == snapshot
 
 
-def test_binary_classicals():
+def test_binary_classicals(snapshot):
     p = Program()
 
     p.inst(
@@ -341,21 +348,10 @@ def test_binary_classicals():
         EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1)),
     )
 
-    assert (
-        p.out() == "AND ro[0] ro[1]\n"
-        "MOVE ro[0] ro[1]\n"
-        "CONVERT ro[0] ro[1]\n"
-        "IOR ro[0] ro[1]\n"
-        "XOR ro[0] ro[1]\n"
-        "ADD ro[0] ro[1]\n"
-        "SUB ro[0] ro[1]\n"
-        "MUL ro[0] ro[1]\n"
-        "DIV ro[0] ro[1]\n"
-        "EXCHANGE ro[0] ro[1]\n"
-    )
+    assert p.out() == snapshot
 
 
-def test_memory_reference_unpacking():
+def test_memory_reference_unpacking(snapshot):
     p = Program()
 
     p.inst(
@@ -371,21 +367,10 @@ def test_memory_reference_unpacking():
         EXCHANGE("ro", ("ro", 1)),
     )
 
-    assert (
-        p.out() == "AND ro[0] ro[1]\n"
-        "MOVE ro[0] ro[1]\n"
-        "CONVERT ro[0] ro[1]\n"
-        "IOR ro[0] ro[1]\n"
-        "XOR ro[0] ro[1]\n"
-        "ADD ro[0] ro[1]\n"
-        "SUB ro[0] ro[1]\n"
-        "MUL ro[0] ro[1]\n"
-        "DIV ro[0] ro[1]\n"
-        "EXCHANGE ro[0] ro[1]\n"
-    )
+    assert p.out() == snapshot
 
 
-def test_ternary_classicals():
+def test_ternary_classicals(snapshot):
     p = Program()
     p.inst(
         LOAD(MemoryReference("ro", 0), "ro", MemoryReference("n", 0)),
@@ -408,49 +393,29 @@ def test_ternary_classicals():
         LT(MemoryReference("ro", 0), MemoryReference("ro", 1), 4.4),
         LT(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 4)),
     )
-    assert (
-        p.out() == "LOAD ro[0] ro n[0]\n"
-        "STORE ro n[0] ro[0]\n"
-        "STORE ro n[0] 0\n"
-        "STORE ro n[0] 0.1\n"
-        "EQ ro[0] ro[1] 0\n"
-        "EQ ro[0] ro[1] 0.0\n"
-        "EQ ro[0] ro[1] ro[0]\n"
-        "GE ro[0] ro[1] 1\n"
-        "GE ro[0] ro[1] 1.1\n"
-        "GE ro[0] ro[1] ro[1]\n"
-        "GT ro[0] ro[1] 2\n"
-        "GT ro[0] ro[1] 2.2\n"
-        "GT ro[0] ro[1] ro[2]\n"
-        "LE ro[0] ro[1] 3\n"
-        "LE ro[0] ro[1] 3.3\n"
-        "LE ro[0] ro[1] ro[3]\n"
-        "LT ro[0] ro[1] 4\n"
-        "LT ro[0] ro[1] 4.4\n"
-        "LT ro[0] ro[1] ro[4]\n"
-    )
+    assert p.out() == snapshot
 
 
-def test_measurement_calls():
+def test_measurement_calls(snapshot):
     p = Program()
     p.inst(
         Declare("ro", "BIT", 2),
         MEASURE(0, MemoryReference("ro", 1)),
         MEASURE(0, MemoryReference("ro", 1)),
     )
-    assert p.out() == ("DECLARE ro BIT[2]\nMEASURE 0 ro[1]\nMEASURE 0 ro[1]\n")
+    assert p.out() == snapshot
 
 
-def test_measure_all():
+def test_measure_all(snapshot):
     p = Program()
     mem = p.declare("ro", memory_size=4)
     p.measure_all((0, mem[0]), (1, mem[1]), (2, mem[3]))
-    assert p.out() == "DECLARE ro BIT[4]\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\nMEASURE 2 ro[3]\n"
+    assert p.out() == snapshot
 
     p = Program([H(idx) for idx in range(4)])
     p.measure_all()
     for idx in range(4):
-        assert p[idx + 5] == MEASURE(idx, MemoryReference("ro", idx))
+        assert str(p[idx + 5]) == MEASURE(idx, MemoryReference("ro", idx)).out()
 
     p = Program()
     p.measure_all()
@@ -479,13 +444,13 @@ def test_dagger():
     p += PHASE(pi, target).controlled(control)
     p += CNOT(cnot_control, target).controlled(control)
 
-    for instr, instr_dagger in zip(reversed(p._instructions), p.dagger()._instructions):
-        assert "DAGGER " + instr.out() == instr_dagger.out()
+    for instr, instr_dagger in zip(reversed(p.instructions), p.dagger().instructions):
+        assert "DAGGER " + str(instr) == str(instr_dagger)
 
 
-def test_construction_syntax():
+def test_construction_syntax(snapshot):
     p = Program().inst(Declare("ro", "BIT", 2), X(0), Y(1), Z(0)).measure(0, MemoryReference("ro", 1))
-    assert p.out() == ("DECLARE ro BIT[2]\nX 0\nY 1\nZ 0\nMEASURE 0 ro[1]\n")
+    assert p.out() == snapshot
     p = (
         Program()
         .inst(Declare("ro", "BIT", 3), X(0))
@@ -493,7 +458,7 @@ def test_construction_syntax():
         .measure(0, MemoryReference("ro", 1))
         .inst(MEASURE(1, MemoryReference("ro", 2)))
     )
-    assert p.out() == ("DECLARE ro BIT[3]\nX 0\nY 1\nMEASURE 0 ro[1]\nMEASURE 1 ro[2]\n")
+    assert p.out() == snapshot
     p = (
         Program()
         .inst(Declare("ro", "BIT", 2), X(0))
@@ -501,25 +466,25 @@ def test_construction_syntax():
         .inst(Y(1), X(0))
         .measure(0, MemoryReference("ro", 0))
     )
-    assert p.out() == ("DECLARE ro BIT[2]\nX 0\nMEASURE 0 ro[1]\nY 1\nX 0\nMEASURE 0 ro[0]\n")
+    assert p.out() == snapshot
 
 
-def test_singles():
+def test_singles(snapshot):
     p = Program(I(0), X(0), Y(1), Z(1), H(2), T(2), S(1))
-    assert p.out() == "I 0\nX 0\nY 1\nZ 1\nH 2\nT 2\nS 1\n"
+    assert p.out() == snapshot
 
 
-def test_rotations():
+def test_rotations(snapshot):
     p = Program(RX(0.5, 0), RY(0.1, 1), RZ(1.4, 2))
-    assert p.out() == "RX(0.5) 0\nRY(0.1) 1\nRZ(1.4) 2\n"
+    assert p.out() == snapshot
 
 
-def test_controlled_gates():
+def test_controlled_gates(snapshot):
     p = Program(CNOT(0, 1), CCNOT(0, 1, 2))
-    assert p.out() == "CNOT 0 1\nCCNOT 0 1 2\n"
+    assert p.out() == snapshot
 
 
-def test_phases():
+def test_phases(snapshot):
     p = Program(
         PHASE(np.pi, 1),
         CPHASE00(np.pi, 0, 1),
@@ -527,25 +492,25 @@ def test_phases():
         CPHASE10(np.pi, 0, 1),
         CPHASE(np.pi, 0, 1),
     )
-    assert p.out() == "PHASE(pi) 1\nCPHASE00(pi) 0 1\n" "CPHASE01(pi) 0 1\nCPHASE10(pi) 0 1\n" "CPHASE(pi) 0 1\n"
+    assert p.out() == snapshot
 
 
-def test_swaps():
+def test_swaps(snapshot):
     p = Program(SWAP(0, 1), CSWAP(0, 1, 2), ISWAP(0, 1), PSWAP(np.pi, 0, 1))
-    assert p.out() == "SWAP 0 1\nCSWAP 0 1 2\nISWAP 0 1\nPSWAP(pi) 0 1\n"
+    assert p.out() == snapshot
 
 
-def test_def_gate():
+def test_def_gate(snapshot):
     # First we define the new gate from a matrix
     sqrt_x = np.array([[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]])
     p = Program().defgate("SQRT-X", sqrt_x)
 
     # Then we can use the new gate
     p.inst(("SQRT-X", 0))
-    assert p.out() == "DEFGATE SQRT-X:\n    0.5+0.5i, 0.5-0.5i\n    0.5-0.5i, 0.5+0.5i\n\nSQRT-X 0\n"
+    assert p.out() == snapshot
 
 
-def test_def_gate_with_parameters():
+def test_def_gate_with_parameters(snapshot: SnapshotAssertion):
     theta = Parameter("theta")
     rx = np.array(
         [
@@ -554,20 +519,16 @@ def test_def_gate_with_parameters():
         ]
     )
 
-    p = Program().defgate("RX", rx, [theta])
-    assert (
-        p.out() == "DEFGATE RX(%theta):\n"
-        "    COS(%theta/2), -i*SIN(%theta/2)\n"
-        "    -i*SIN(%theta/2), COS(%theta/2)\n\n"
-    )
+    p = Program().defgate("MY_RX", rx, [theta])
+    assert p.out() == snapshot
 
     dg = DefGate("MY_RX", rx, [theta])
     MY_RX = dg.get_constructor()
     p = Program().inst(MY_RX(np.pi)(0))
-    assert p.out() == "MY_RX(pi) 0\n"
+    assert p.out() == snapshot
 
 
-def test_multiqubit_gate():
+def test_multiqubit_gate(snapshot):
     # A multi-qubit defgate example
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
     sqrt_x = np.array([[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]])
@@ -577,15 +538,10 @@ def test_multiqubit_gate():
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
 
-    assert (
-        p.out() == "DEFGATE X-SQRT-X:\n    0.0, 0.5+0.5i, 0.0, 0.5-0.5i\n    "
-        "0.5+0.5i, 0.0, 0.5-0.5i, 0.0\n    "
-        "0.0, 0.5-0.5i, 0.0, 0.5+0.5i\n    "
-        "0.5-0.5i, 0.0, 0.5+0.5i, 0.0\n\nX-SQRT-X 0 1\n"
-    )
+    assert p.out() == snapshot
 
 
-def test_define_qft():
+def test_define_qft(snapshot):
     def qft3(q0, q1, q2):
         p = Program()
         p.inst(
@@ -604,7 +560,7 @@ def test_define_qft():
 
     prog = state_prep + qft3(0, 1, 2)
     output = prog.out()
-    assert output == "X 0\nH 2\nCPHASE(pi/2) 1 2\nH 1\nCPHASE(pi/4) 0 " "2\nCPHASE(pi/2) 0 1\nH 0\nSWAP 0 2\n"
+    assert output == snapshot
 
 
 def test_control_flows():
@@ -618,17 +574,18 @@ def test_control_flows():
 
     # run inner_loop in a loop until classical_flag_register is 0
     outer_loop.while_do(classical_flag_register, inner_loop)
+    outer_loop.resolve_label_placeholders()
     assert outer_loop.out() == "\n".join(
         [
             "DECLARE classical_flag_register BIT[1]",
-            "MOVE classical_flag_register 1",
-            "LABEL @START1",
-            "JUMP-UNLESS @END2 classical_flag_register",
+            "MOVE classical_flag_register[0] 1",
+            "LABEL @START_0",
+            "JUMP-UNLESS @END_0 classical_flag_register[0]",
             "X 0",
             "H 0",
-            "MEASURE 0 classical_flag_register",
-            "JUMP @START1",
-            "LABEL @END2",
+            "MEASURE 0 classical_flag_register[0]",
+            "JUMP @START_0",
+            "LABEL @END_0",
             "",
         ]
     )
@@ -644,15 +601,16 @@ def test_control_flows_2():
         .if_then(MemoryReference("ro", 1), x_prog, z_prog)
         .measure(0, MemoryReference("ro", 0))
     )
+    branch.resolve_label_placeholders()
     assert branch.out() == (
         "DECLARE ro BIT[2]\n"
         "H 1\n"
         "MEASURE 1 ro[1]\n"
-        "JUMP-WHEN @THEN1 ro[1]\n"
-        "JUMP @END2\n"
-        "LABEL @THEN1\n"
+        "JUMP-WHEN @THEN_0 ro[1]\n"
+        "JUMP @END_0\n"
+        "LABEL @THEN_0\n"
         "X 0\n"
-        "LABEL @END2\n"
+        "LABEL @END_0\n"
         "MEASURE 0 ro[0]\n"
     )
 
@@ -663,15 +621,16 @@ def test_if_option():
         .measure(0, MemoryReference("ro", 0))
         .if_then(MemoryReference("ro", 0), Program(X(1)))
     )
+    p.resolve_label_placeholders()
     assert p.out() == (
         "DECLARE ro BIT[1]\n"
         "X 0\n"
         "MEASURE 0 ro[0]\n"
-        "JUMP-WHEN @THEN1 ro[0]\n"
-        "JUMP @END2\n"
-        "LABEL @THEN1\n"
+        "JUMP-WHEN @THEN_0 ro[0]\n"
+        "JUMP @END_0\n"
+        "LABEL @THEN_0\n"
         "X 1\n"
-        "LABEL @END2\n"
+        "LABEL @END_0\n"
     )
 
     assert isinstance(p.instructions[3], JumpWhen)
@@ -693,9 +652,9 @@ def test_qubit_placeholder():
 
     p.inst(X(q3))  # X 4
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(ValueError) as e:
         _ = p.out()
-    assert e.match(r"Qubit q\d+ has not been assigned an index")
+    assert e.match("Qubit has not yet been resolved")
 
 
 def test_qubit_placeholder_2():
@@ -713,10 +672,6 @@ def test_qubit_placeholder_2():
     q3 = QubitPlaceholder()  # q3 = 4
 
     p.inst(X(q3))  # X 4
-    with pytest.raises(ValueError) as e:
-        _ = address_qubits(p, {q1: 1, q2: 3, q3: 4})
-
-    assert e.match("Your program mixes instantiated qubits with placeholders")
 
 
 def test_qubit_placeholder_new():
@@ -751,14 +706,14 @@ def test_multiaddress():
 
     p1 = address_qubits(p, map1)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         _ = p.out()  # make sure the original isn't affected
 
-    assert p1.out() == "CNOT 0 1\nRZ(1.0) 1\nCNOT 0 1\n"
+    assert p1.out() == "CNOT 0 1\nRZ(1) 1\nCNOT 0 1\n"
 
     p2 = address_qubits(p, map2)
-    assert p1.out() == "CNOT 0 1\nRZ(1.0) 1\nCNOT 0 1\n"
-    assert p2.out() == "CNOT 9 10\nRZ(1.0) 10\nCNOT 9 10\n"
+    assert p1.out() == "CNOT 0 1\nRZ(1) 1\nCNOT 0 1\n"
+    assert p2.out() == "CNOT 9 10\nRZ(1) 10\nCNOT 9 10\n"
 
 
 def test_multiple_instantiate():
@@ -781,7 +736,7 @@ def test_reuse_placeholder():
     assert p.out() == "H 0\nH 1\nCNOT 0 1\n"
 
 
-def test_pauli_gate():
+def test_pauli_gate(snapshot: SnapshotAssertion):
     s = """DEFGATE U(%beta) p q AS PAULI-SUM:
     ZZ(-1*%beta/4) p q
     Z(%beta/4) p
@@ -794,10 +749,10 @@ DEFGATE V:
 U(2.0) 1 0
 """
     p = Program(s)
-    assert p.out() == s
+    assert p.out() == snapshot
 
 
-def test_prog_merge():
+def test_prog_merge(snapshot: SnapshotAssertion):
     prog_0 = Program(X(0))
     prog_1 = Program(Y(0))
     assert merge_programs([prog_0, prog_1]).out() == (prog_0 + prog_1).out()
@@ -807,103 +762,22 @@ def test_prog_merge():
     prog_0.inst(TEST(0))
     prog_1.inst(test_def)
     prog_1.inst(TEST(0))
-    assert (
-        merge_programs([prog_0, prog_1]).out()
-        == """DEFGATE test:
-    1.0, 0
-    0, 1.0
-
-X 0
-test 0
-Y 0
-test 0
-"""
-    )
+    assert merge_programs([prog_0, prog_1]).out() == snapshot
     perm_def = DefPermutationGate("PERM", [0, 1, 3, 2])
     PERM = perm_def.get_constructor()
     prog_0.inst(perm_def)
     prog_0.inst(PERM(0, 1))
     prog_1.inst(perm_def)
     prog_1.inst(PERM(1, 0))
-    assert (
-        merge_programs([prog_0, prog_1]).out()
-        == """DEFGATE PERM AS PERMUTATION:
-    0, 1, 3, 2
-DEFGATE test:
-    1.0, 0
-    0, 1.0
-
-X 0
-test 0
-PERM 0 1
-Y 0
-test 0
-PERM 1 0
-"""
-    )
-    assert (
-        merge_programs([Program("DECLARE ro BIT[1]"), Program("H 0"), Program("MEASURE 0 ro[0]")]).out()
-        == """DECLARE ro BIT[1]
-H 0
-MEASURE 0 ro[0]
-"""
-    )
-
-    q0 = QubitPlaceholder()
-    q0_str = "{" + str(q0) + "}"
-    p0 = Program(X(q0))
-    p1 = Program(Z(q0))
-    merged = merge_programs([p0, p1])
-    assert (
-        str(merged)
-        == f"""X {q0_str}
-Z {q0_str}
-"""
-    )
-    assert (
-        address_qubits(merged, {q0: 1}).out()
-        == """X 1
-Z 1
-"""
-    )
-    q1 = QubitPlaceholder()
-    p2 = Program(Z(q1))
-    assert (
-        address_qubits(merge_programs([p0, p2]), {q0: 1, q1: 2}).out()
-        == """X 1
-Z 2
-"""
-    )
-    p0 = address_qubits(p0, {q0: 2})
-    p1 = address_qubits(p1, {q0: 1})
-    assert (
-        merge_programs([p0, p1]).out()
-        == """X 2
-Z 1
-"""
-    )
+    assert merge_programs([prog_0, prog_1]).out() == snapshot
+    assert merge_programs([Program("DECLARE ro BIT[1]"), Program("H 0"), Program("MEASURE 0 ro[0]")]).out() == snapshot
 
 
-def test_merge_with_pauli_noise():
+def test_merge_with_pauli_noise(snapshot):
     p = Program(X(0)).inst(Z(0))
     probs = [0.0, 1.0, 0.0, 0.0]
     merged = merge_with_pauli_noise(p, probs, [0])
-    assert (
-        merged.out()
-        == """DEFGATE pauli_noise:
-    1.0, 0
-    0, 1.0
-
-PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
-PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 1.0 1.0 0.0)"
-PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
-PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 -0.0)"
-X 0
-pauli_noise 0
-Z 0
-pauli_noise 0
-"""
-    )
+    assert merged.out() == snapshot
 
 
 def test_get_qubits():
@@ -914,7 +788,8 @@ def test_get_qubits():
     pq = Program(Declare("ro", "BIT"), X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], MemoryReference("ro", 0)))
     qq = QubitPlaceholder()
     pq.inst(Y(q[2]), X(qq))
-    assert address_qubits(pq).get_qubits() == {0, 1, 2, 3, 4}
+    addressed_pq = address_qubits(pq)
+    assert addressed_pq.get_qubits() == {0, 1, 2, 3, 4}
 
     qubit_index = 1
     p = Program(("H", qubit_index))
@@ -922,20 +797,17 @@ def test_get_qubits():
     q1 = QubitPlaceholder()
     q2 = QubitPlaceholder()
     p.inst(("CNOT", q1, q2))
-    with pytest.raises(ValueError) as e:
-        _ = address_qubits(p).get_qubits()
-    assert e.match("Your program mixes instantiated qubits with placeholders")
 
 
 def test_get_qubit_placeholders():
     qs = QubitPlaceholder.register(8)
     pq = Program(Declare("ro", "BIT"), X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 0)))
-    assert pq.get_qubits() == {qs[i] for i in [0, 4, 5]}
+    assert set(pq.get_qubits(indices=False)) == {qs[i] for i in [0, 4, 5]}
 
 
 def test_get_qubits_not_as_indices():
     pq = Program(Declare("ro", "BIT"), X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro", 0)))
-    assert pq.get_qubits(indices=False) == {Qubit(i) for i in [0, 4, 5]}
+    assert set(pq.get_qubits(indices=False)) == set(Qubit(i) for i in [0, 4, 5])
 
 
 def test_eq():
@@ -952,7 +824,7 @@ def test_eq():
     assert not p1 != p2
 
 
-def test_kraus():
+def test_kraus(snapshot):
     pq = Program(X(0))
     pq.define_noisy_gate("X", (0,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
     pq.inst(X(1))
@@ -987,13 +859,7 @@ PRAGMA ADD-KRAUS X 1 "(0.0 0.0 0.0 0.0)"
     pq_nn.no_noise()
     pq_nn.inst(X(1))
 
-    assert (
-        pq_nn.out()
-        == """X 0
-PRAGMA NO-NOISE
-X 1
-"""
-    )
+    assert pq_nn.out() == snapshot
 
 
 def test_define_noisy_readout():
@@ -1072,13 +938,6 @@ def test_installing_programs_inside_other_programs():
     assert len(p) == 0
 
 
-# https://github.com/rigetti/pyquil/issues/168
-def test_nesting_a_program_inside_itself():
-    p = Program(H(0)).measure(0, MemoryReference("ro", 0))
-    with pytest.raises(ValueError):
-        p.if_then(MemoryReference("ro", 0), p)
-
-
 # https://github.com/rigetti/pyquil/issues/170
 def test_inline_placeholder():
     p = Program()
@@ -1089,7 +948,7 @@ def test_inline_placeholder():
 # https://github.com/rigetti/pyquil/issues/138
 def test_defgate_integer_input():
     dg = DefGate("TEST", np.array([[1, 0], [0, 1]]))
-    assert dg.out() == "DEFGATE TEST:\n    1, 0\n    0, 1\n"
+    assert dg.out() == "DEFGATE TEST AS MATRIX:\n\t1, 0\n\t0, 1\n"
 
 
 def test_out_vs_str():
@@ -1101,12 +960,12 @@ def test_out_vs_str():
         MEASURE(qs[5], MemoryReference("ro", 5)),
     )
 
-    with pytest.raises(RuntimeError) as e:
+    with pytest.raises(ValueError) as e:
         pq.out()
-    assert e.match(r"Qubit q\d+ has not been assigned an index")
+    assert e.match(r"Qubit has not yet been resolved")
 
     string_version = str(pq)
-    should_be_re = r"DECLARE ro BIT\[6\]\nX \{q\d+\}\nCNOT \{q\d+\} \{q\d+\}\nMEASURE \{q\d+\} ro\[5\]\n"
+    should_be_re = r"DECLARE ro BIT\[6\]\nX Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\)\nCNOT Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\) Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\)\nMEASURE Placeholder\(QubitPlaceholder\(0x[0-9,A-Z]+\)\) ro\[5\]\n"
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
 
 
@@ -1129,32 +988,6 @@ def test_get_classical_addresses_from_quil_program():
 
     p = Program("\n".join(["DECLARE ro BIT[2]", "X 0", "MEASURE 0 ro[1]"]))
     assert get_classical_addresses_from_program(p) == {"ro": [1]}
-
-
-def test_pragma_with_placeholders():
-    q = QubitPlaceholder()
-    q2 = QubitPlaceholder()
-    p = Program()
-    p.inst(Pragma("FENCE", [q, q2]))
-    address_map = {q: 0, q2: 1}
-    addressed_pragma = address_qubits(p, address_map)[0]
-    parse_equals("PRAGMA FENCE 0 1\n", addressed_pragma)
-
-    pq = Program(X(q))
-    pq.define_noisy_readout(q, 0.8, 0.9)
-
-    pq.inst(X(q2))
-    pq.define_noisy_readout(q2, 0.9, 0.8)
-
-    ret = address_qubits(pq, address_map).out()
-    assert (
-        ret
-        == """X 0
-PRAGMA READOUT-POVM 0 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
-X 1
-PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
-"""
-    )
 
 
 def test_declare():
@@ -1180,174 +1013,24 @@ def test_reset():
     assert program.out() == "X 0\nRESET 0\n"
 
 
-def test_copy():
+def test_copy(snapshot):
     prog1 = Program(H(0), CNOT(0, 1))
     prog2 = prog1.copy().measure_all()
-    assert prog1.out() == "\n".join(["H 0", "CNOT 0 1", ""])
-    assert prog2.out() == "\n".join(["H 0", "CNOT 0 1", "DECLARE ro BIT[2]", "MEASURE 0 ro[0]", "MEASURE 1 ro[1]", ""])
+    assert prog1.out() == snapshot
+    assert prog2.out() == snapshot
 
 
-def test_measure_all_noncontig():
+def test_measure_all_noncontig(snapshot):
     prog = Program(H(0), H(10))
     prog.measure_all()
-    assert prog.out() == "\n".join(["H 0", "H 10", "DECLARE ro BIT[11]", "MEASURE 0 ro[0]", "MEASURE 10 ro[10]", ""])
+    assert prog.out() == snapshot
 
 
-def test_validate_supported_quil_reset_first():
+# As of pyQuil v4, this function is a no-op
+def test_validate_supported_quil():
     prog = Program(H(0), RESET())
-    with pytest.raises(ValueError):
-        validate_supported_quil(prog)
-    assert not prog.is_supported_on_qpu()
-
-
-def test_validate_supported_quil_reset_qubit():
-    prog = Program(RESET(2))
-    with pytest.raises(ValueError):
-        validate_supported_quil(prog)
-    assert not prog.is_supported_on_qpu()
-
-
-def test_validate_supported_quil_measure_last():
-    prog = Program(MEASURE(0, None), H(0))
-    with pytest.raises(ValueError):
-        validate_supported_quil(prog)
-    assert not prog.is_supported_on_qpu()
-
-
-def test_validate_supported_quil_with_pragma():
-    prog = Program(RESET(), H(1), Pragma("DELAY"), MEASURE(1, None))
+    validate_supported_quil(prog)
     assert prog.is_supported_on_qpu()
-
-
-def test_validate_supported_quil_suite():
-    validate_supported_quil(
-        Program(
-            """
-RESET
-DECLARE ro BIT[3]
-RX(-pi/4) 2
-RZ(4*pi) 3
-I 0
-CZ 2 3
-MEASURE 2 ro[2]
-MEASURE 3 ro[3]
-"""
-        )
-    )
-
-    validate_supported_quil(
-        Program(
-            """
-RESET
-DECLARE ro BIT[3]
-RX(-pi/4) 2
-RZ(4*pi) 3
-I 0
-CZ 2 3
-MEASURE 2 ro[2]
-MEASURE 3 ro[3]
-"""
-        )
-    )
-    validate_supported_quil(
-        Program(
-            """
-RESET
-DECLARE ro BIT[3]
-RX(-pi/4) 2
-RZ(4*pi) 3
-I 0
-MEASURE 0
-CZ 2 3
-MEASURE 2 ro[2]
-X 3
-MEASURE 3 ro[3]
-"""
-        )
-    )
-
-    with pytest.raises(ValueError):
-        validate_supported_quil(
-            Program(
-                """
-RESET
-DECLARE ro BIT[3]
-RX(-pi/4) 2
-RZ(4*pi) 3
-RESET
-I 0
-CZ 2 3
-MEASURE 2 ro[2]
-MEASURE 3 ro[3]
-"""
-            )
-        )
-
-    with pytest.raises(ValueError):
-        validate_supported_quil(
-            Program(
-                """
-RESET
-DECLARE ro BIT[3]
-RX(-pi/4) 2
-RZ(4*pi) 3
-MEASURE 2
-I 0
-CZ 2 3
-MEASURE 2 ro[2]
-MEASURE 3 ro[3]
-"""
-            )
-        )
-
-    with pytest.raises(ValueError):
-        validate_supported_quil(
-            Program(
-                """
-RESET
-DECLARE ro BIT[3]
-RX(-pi/4) 2
-RZ(4*pi) 3
-HALT
-I 0
-CZ 2 3
-MEASURE 2 ro[2]
-MEASURE 3 ro[3]
-"""
-            )
-        )
-
-
-def test_validate_supported_quil_multiple_measures():
-    prog = Program(RESET(), H(1), Pragma("DELAY"), MEASURE(1, None), MEASURE(1, None))
-    with pytest.raises(ValueError):
-        validate_supported_quil(prog)
-
-
-def test_is_protoquil():
-    prog = Program(Declare("ro", "BIT"), MEASURE(1, MemoryReference("ro", 0)), H(1), RESET())
-    validate_protoquil(prog)
-    assert prog.is_protoquil()
-
-    prog = (
-        Program(Declare("ro", "BIT"), H(0), Y(1), CNOT(0, 1))
-        .measure(0, MemoryReference("ro", 0))
-        .if_then(MemoryReference("ro", 0), Program(X(0)), Program())
-    )
-    with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
-
-    prog = Program(Declare("ro", "BIT"), ClassicalNot(MemoryReference("ro", 0)))
-    with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
-
-    prog = Program(DefCalibration("I", [], [Qubit(0)], []), I(0))
-    with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
-    assert prog.is_protoquil(quilt=True)
 
 
 def test_subtracting_memory_regions():
@@ -1357,8 +1040,8 @@ def test_subtracting_memory_regions():
     beta = p.declare("beta", "REAL")
     p += RZ(alpha - beta, 0)
     p2 = Program(p.out())
-    parsed_rz = p2.pop()  # type: Gate
-    parsed_param = parsed_rz.params[0]
+    parsed_rz = p2[-1]
+    parsed_param = parsed_rz.params[0]  # type: Gate
     assert isinstance(parsed_param, Sub)
     assert parsed_param.op1 == alpha
     assert parsed_param.op2 == beta
@@ -1409,6 +1092,33 @@ def test_params_pi_and_precedence():
     prog = Program(f"RX({more_less_trivial_pi}) 0")
     exp = str(prog[0].params[0])
     assert _eval_as_np_pi(more_less_trivial_pi) == _eval_as_np_pi(exp)
+
+
+class TestProgram:
+    def test_calibrations(self, snapshot: SnapshotAssertion):
+        program = Program(
+            "DEFCAL Calibrate 0:\n\tX 0",
+            DefCalibration("Reticulating-Splines", [Parameter("Spline")], [Qubit(1)], [Y(1)]),
+            DefMeasureCalibration(Qubit(2), MemoryReference("theta"), [Z(2)]),
+        )
+
+        calibrations = program.calibrations
+        measure_calibrations = program.measure_calibrations
+        assert all((isinstance(cal, DefCalibration) for cal in program.calibrations))
+        assert all((isinstance(cal, DefMeasureCalibration) for cal in program.measure_calibrations))
+        assert calibrations == snapshot
+        assert measure_calibrations == snapshot
+
+    def test_frames(self, snapshot: SnapshotAssertion):
+        program = Program(
+            'DEFFRAME 1 "frame":\n\tCENTER-FREQUENCY: 440',
+            DefFrame(Frame([Qubit(1)], "other_frame"), center_frequency=432.0),
+        )
+        frames = program.frames
+        assert all(
+            (isinstance(frame, Frame) and isinstance(def_frame, DefFrame) for frame, def_frame in frames.items())
+        )
+        assert frames == snapshot
 
 
 def test_copy_everything_except_instructions():

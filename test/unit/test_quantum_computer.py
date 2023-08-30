@@ -7,6 +7,7 @@ import networkx as nx
 import numpy as np
 import pytest
 import respx
+from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program, list_quantum_computers
 from pyquil.api._quantum_computer import (
@@ -38,23 +39,16 @@ from qcs_sdk.qpu.isa import InstructionSetArchitecture
 from rpcq.messages import ParameterAref
 
 
-def test_flip_array_to_prog():
+def test_flip_array_to_prog(snapshot: SnapshotAssertion):
     # no flips
     flip_prog = _flip_array_to_prog((0, 0, 0, 0, 0, 0), [0, 1, 2, 3, 4, 5])
     assert flip_prog.out().splitlines() == []
     # mixed flips
     flip_prog = _flip_array_to_prog((1, 0, 1, 0, 1, 1), [0, 1, 2, 3, 4, 5])
-    assert flip_prog.out().splitlines() == ["RX(pi) 0", "RX(pi) 2", "RX(pi) 4", "RX(pi) 5"]
+    assert flip_prog.out() == snapshot
     # flip all
     flip_prog = _flip_array_to_prog((1, 1, 1, 1, 1, 1), [0, 1, 2, 3, 4, 5])
-    assert flip_prog.out().splitlines() == [
-        "RX(pi) 0",
-        "RX(pi) 1",
-        "RX(pi) 2",
-        "RX(pi) 3",
-        "RX(pi) 4",
-        "RX(pi) 5",
-    ]
+    assert flip_prog.out() == snapshot
 
 
 def test_symmetrization():
@@ -68,9 +62,9 @@ def test_symmetrization():
     # exhaustive symm
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=-1)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
-    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
+    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([0, 1]), np.array([1, 0]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 0 i.e. no symm
@@ -81,23 +75,23 @@ def test_symmetrization():
     # strength 1
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=1)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 2
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=2)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
-    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
+    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([1, 0]), np.array([0, 1]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 3
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=3)
-    assert sym_progs[0].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
+    assert sym_progs[0].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
     assert sym_progs[2].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
     right = [np.array([1, 1]), np.array([1, 0]), np.array([0, 0]), np.array([0, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
 
@@ -196,17 +190,16 @@ def test_run(client_configuration: QCSClient):
         qam=QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01)),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
-    result = qc.run(
-        Program(
-            Declare("ro", "BIT", 3),
-            H(0),
-            CNOT(0, 1),
-            CNOT(1, 2),
-            MEASURE(0, MemoryReference("ro", 0)),
-            MEASURE(1, MemoryReference("ro", 1)),
-            MEASURE(2, MemoryReference("ro", 2)),
-        ).wrap_in_numshots_loop(1000)
-    )
+    p = Program(
+        Declare("ro", "BIT", 3),
+        H(0),
+        CNOT(0, 1),
+        CNOT(1, 2),
+        MEASURE(0, MemoryReference("ro", 0)),
+        MEASURE(1, MemoryReference("ro", 1)),
+        MEASURE(2, MemoryReference("ro", 2)),
+    ).wrap_in_numshots_loop(1000)
+    result = qc.run(p)
     bitstrings = result.readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 3)
@@ -875,3 +868,29 @@ def test_get_qc_with_group_account(client_configuration: QCSClient, qcs_aspen8_i
     assert isinstance(qc, QuantumComputer)
     quantum_computer = cast(QuantumComputer, qc)
     assert isinstance(quantum_computer.qam, QPU)
+    qpu = cast(QPU, quantum_computer.qam)
+    engagement_manager = qpu._qpu_client._engagement_manager
+
+    respx.post(
+        url=f"{client_configuration.profile.api_url}/v1/engagements",
+        headers__contains={
+            "X-QCS-ACCOUNT-ID": "group0",
+            "X-QCS-ACCOUNT-TYPE": QCSAccountType.group.value,
+        },
+    ).respond(
+        json={
+            "address": "address",
+            "endpointId": "endpointId",
+            "quantumProcessorId": "quantumProcessorId",
+            "userId": "userId",
+            "expiresAt": "01-01-2200T00:00:00Z",
+            "credentials": {
+                "clientPublic": "faux",
+                "clientSecret": "faux",
+                "serverPublic": "faux",
+            },
+        }
+    )
+
+    engagement = engagement_manager.get_engagement(quantum_processor_id="test")
+    assert "faux" == engagement.credentials.client_public

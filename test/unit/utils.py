@@ -6,7 +6,6 @@ from qcs_sdk import QCSClient
 
 from pyquil import Program
 from pyquil.api._abstract_compiler import AbstractCompiler
-from pyquil.parser import parse
 from pyquil.quantum_processor import AbstractQuantumProcessor
 
 # Valid, sample Z85-encoded keys specified by zmq curve for testing:
@@ -40,7 +39,7 @@ def patch_rpcq_client(*, mocker: MockerFixture, return_value: Any) -> MagicMock:
 
 def parse_equals(quil_string, *instructions):
     expected = list(instructions)
-    actual = parse(quil_string)
+    actual = Program(quil_string).instructions
     assert expected == actual
 
 

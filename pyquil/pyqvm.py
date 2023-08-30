@@ -32,7 +32,6 @@ from pyquil.quilbase import (
     ResetQubit,
     DefGate,
     JumpTarget,
-    JumpConditional,
     JumpWhen,
     JumpUnless,
     Halt,
@@ -310,23 +309,22 @@ class PyQVM(QAM["PyQVM"]):
         instruction = self.program[self.program_counter]
 
         if isinstance(instruction, Gate):
+            qubits = instruction.get_qubit_indices()
             if instruction.name in self.defined_gates:
                 self.wf_simulator.do_gate_matrix(
                     matrix=self.defined_gates[instruction.name],
-                    qubits=[q.index for q in instruction.qubits],
+                    qubits=qubits,
                 )
             else:
                 self.wf_simulator.do_gate(gate=instruction)
 
             for noise_type, noise_prob in self.post_gate_noise_probabilities.items():
-                self.wf_simulator.do_post_gate_noise(
-                    noise_type, noise_prob, qubits=[q.index for q in instruction.qubits]
-                )
+                self.wf_simulator.do_post_gate_noise(noise_type, noise_prob, qubits=qubits)
 
             self.program_counter += 1
 
         elif isinstance(instruction, Measurement):
-            measured_val = self.wf_simulator.do_measurement(qubit=instruction.qubit.index)
+            measured_val = self.wf_simulator.do_measurement(qubit=instruction.get_qubit_indices().pop())
             meas_reg: Optional[MemoryReference] = instruction.classical_reg
             assert meas_reg is not None
             self.ram[meas_reg.name][meas_reg.offset] = measured_val
@@ -353,26 +351,26 @@ class PyQVM(QAM["PyQVM"]):
             # Label; pass straight over
             self.program_counter += 1
 
-        elif isinstance(instruction, JumpConditional):
-            # JumpConditional; check classical reg
+        elif isinstance(instruction, (JumpWhen, JumpUnless)):
+            # JumpWhen/Unless; check classical reg
             jump_reg: Optional[MemoryReference] = instruction.condition
             assert jump_reg is not None
             cond = self.ram[jump_reg.name][jump_reg.offset]
             if not isinstance(cond, (bool, np.bool_, np.int8, int)):
-                raise ValueError("{} requires a data type of BIT; not {}".format(instruction.op, type(cond)))
+                raise ValueError("{} requires a data type of BIT; not {}".format(type(instruction), type(cond)))
             dest_index = self.find_label(instruction.target)
             if isinstance(instruction, JumpWhen):
                 jump_if_cond = True
             elif isinstance(instruction, JumpUnless):
                 jump_if_cond = False
             else:
-                raise TypeError("Invalid JumpConditional")
+                raise TypeError(f"Invalid {type(instruction)}")
 
             if not (cond ^ jump_if_cond):
                 # jumping: set prog counter to JumpTarget
                 self.program_counter = dest_index
             else:
-                # not jumping: hop over this JumpConditional
+                # not jumping: hop over this instruction
                 self.program_counter += 1
 
         elif isinstance(instruction, UnaryClassicalInstruction):

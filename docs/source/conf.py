@@ -105,6 +105,12 @@ mathjax3_config = {
     }
 }
 
+suppress_warnings = [
+    # TODO: Re-enable these warnings once Sphinx resolves this open issue:
+    # https://github.com/sphinx-doc/sphinx/issues/4961
+    "ref.python",
+]
+
 # fun little hack to always build the rst changelog from the markdown
 
 dirname = os.path.dirname(__file__)
