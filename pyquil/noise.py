@@ -31,7 +31,7 @@ from pyquil.quilbase import Declare, Gate, DefGate, Pragma, DelayQubits
 if TYPE_CHECKING:
     from pyquil.quil import Program
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
-    from pyquil.quantum_processor import QCSQuantumProcessor
+    from pyquil.quantum_processor.qcs import QCSQuantumProcessor
 
 
 INFINITY = float("inf")
