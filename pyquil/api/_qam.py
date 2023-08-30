@@ -94,8 +94,8 @@ class QAMExecutionResult:
     @deprecated(
         version="4.0.0",
         reason=(
-            "This property is ambiguous now that the `raw_readout_data` property exists"
-            "and will be removed in future versions. Use the `register_map()` method instead"
+            "This property is ambiguous now that the `get_raw_readout_data()` method exists"
+            "and will be removed in future versions. Use the `get_register_map()` method instead"
         ),
     )
     def readout_data(self) -> Mapping[str, Optional[np.ndarray]]:
