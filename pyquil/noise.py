@@ -27,12 +27,12 @@ from pyquil.gates import I, RX, MEASURE
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
 from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator, Qubit
 from pyquil.quilbase import Declare, Gate, DefGate, Pragma, DelayQubits
+from qcs_api_client.models import InstructionSetArchitecture
 
 
 if TYPE_CHECKING:
     from pyquil.quil import Program
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
-    from pyquil.quantum_processor import AbstractQuantumProcessor
 
 
 INFINITY = float("inf")
@@ -842,29 +842,29 @@ def change_times_by_ratio(times: Dict[Any, float], ratio: float):
     return times
 
 
-def get_t1s(qpu: AbstractQuantumProcessor) -> Dict[int, float]:
-    benchmarks = qpu._isa.benchmarks
+def get_t1s(isa: InstructionSetArchitecture) -> Dict[int, float]:
+    benchmarks = isa.benchmarks
     operations = next(operation for operation in benchmarks if operation.name == "FreeInversionRecovery")
     t1s = {site.node_ids[0]: site.characteristics[0].value for site in operations.sites}
     return t1s
 
 
-def get_t2s(qpu: AbstractQuantumProcessor) -> Dict[int, float]:
-    benchmarks = qpu._isa.benchmarks
+def get_t2s(isa: InstructionSetArchitecture) -> Dict[int, float]:
+    benchmarks = isa.benchmarks
     operations = next(operation for operation in benchmarks if operation.name == "FreeInductionDecay")
     t2s = {site.node_ids[0]: site.characteristics[0].value for site in operations.sites}
     return t2s
 
 
-def get_1q_fidelities(qpu: AbstractQuantumProcessor) -> Dict[int, float]:
-    benchmarks = qpu._isa.benchmarks
+def get_1q_fidelities(isa: InstructionSetArchitecture) -> Dict[int, float]:
+    benchmarks = isa.benchmarks
     operations = next(operation for operation in benchmarks if operation.name == "randomized_benchmark_1q")
     fidelities = {site.node_ids[0]: site.characteristics[0].value for site in operations.sites}
     return fidelities
 
 
-def get_readout_fidelities(qpu: AbstractQuantumProcessor) -> Dict[int, float]:
-    instructions = qpu._isa.instructions
+def get_readout_fidelities(isa: InstructionSetArchitecture) -> Dict[int, float]:
+    instructions = isa.instructions
     sites = [operation for operation in instructions if operation.name == "MEASURE"][0].sites
     fro = {site.node_ids[0]: site.characteristics[0].value for site in sites}
     return fro
@@ -887,7 +887,7 @@ class Calibrations:
         this may change in time, and require changes in the class.
     """
 
-    def __init__(self, qpu: Optional[AbstractQuantumProcessor] = None, calibrations=None) -> None:
+    def __init__(self, isa: Optional[InstructionSetArchitecture] = None, calibrations=None) -> None:
         self.fidelities = {}
         self.readout_fidelity = {}
         self.T2 = {}
@@ -904,18 +904,18 @@ class Calibrations:
             self.two_q_gates = calibrations.two_q_gates
             return
 
-        if qpu is None:
+        if isa is None:
             return  # user can set their own values
 
         else:
-            self.T1 = get_t1s(qpu)
-            self.T2 = get_t2s(qpu)
-            self.fidelities[Depolarizing_1Q_gate] = get_1q_fidelities(qpu)
-            self.readout_fidelity = get_readout_fidelities(qpu)
-            self._create_2q_dicts(qpu)
+            self.T1 = get_t1s(isa)
+            self.T2 = get_t2s(isa)
+            self.fidelities[Depolarizing_1Q_gate] = get_1q_fidelities(isa)
+            self.readout_fidelity = get_readout_fidelities(isa)
+            self._create_2q_dicts(isa)
 
-    def _create_2q_dicts(self, qpu: AbstractQuantumProcessor) -> None:
-        instructions = qpu._isa.instructions
+    def _create_2q_dicts(self, isa: InstructionSetArchitecture) -> None:
+        instructions = isa.instructions
         self.two_q_gates = {
             operation.name
             for operation in instructions
@@ -1295,7 +1295,7 @@ def add_kraus_maps_to_program(
 
 
 def add_noise_to_program(
-    qcs_quantum_processor: AbstractQuantumProcessor,
+    isa: InstructionSetArchitecture,
     p: Program,
     convert_to_native: bool = True,
     calibrations: Optional[Calibrations] = None,
@@ -1312,7 +1312,7 @@ def add_noise_to_program(
     This function will define new "I" gates and add Kraus noise to these gates.
     :param damping_after_dephasing_only_on_targets: add damping after dephasing only on the target qubits of the gate.
     :param noise_intensity: one parameter to control the noise intensity.
-    :param qcs_quantum_processor: A AbstractQuantumProcessor object.
+    :param qcs_quantum_processor: A InstructionSetArchitecture object.
     :param p: A pyquil program
     :param calibrations: optional, can get the calibrations in advance,
         instead of producing them from the URL.
@@ -1329,7 +1329,7 @@ def add_noise_to_program(
     """
 
     if calibrations is None:
-        calibrations = Calibrations(qpu=qcs_quantum_processor)
+        calibrations = Calibrations(isa=InstructionSetArchitecture)
 
     new_p = Program()
 

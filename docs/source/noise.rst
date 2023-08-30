@@ -1559,7 +1559,7 @@ After performing these operations, the resulting GHZ state is :math:`(\ket{000} 
     from pyquil.quantum_processor.qcs import get_qcs_quantum_processor
     import matplotlib.pyplot as plt
 
-    def ghz(qvm, qcs_qpu, qubits, numshots, noise=False, cal=None, intensity=1.0):
+    def ghz(qvm, isa, qubits, numshots, noise=False, cal=None, intensity=1.0):
         p = Program()
         p.declare("ro", "BIT", 3)
         p += H(qubits[0])
@@ -1572,18 +1572,19 @@ After performing these operations, the resulting GHZ state is :math:`(\ket{000} 
         p = qvm.compiler.quil_to_native_quil(p)
         if noise:
             if cal is not None:
-                p = add_noise_to_program(qcs_qpu, p, calibrations=cal, noise_intensity=intensity)
+                p = add_noise_to_program(isa, p, calibrations=cal, noise_intensity=intensity)
             else:
-                p = add_noise_to_program(qcs_qpu, p, noise_intensity=intensity)
+                p = add_noise_to_program(isa, p, noise_intensity=intensity)
         return p
 
     def run_experiment(qpu_name, qubits, numshots):
         qvm = get_qc(qpu_name, as_qvm=True, execution_timeout=1000)
         qcs_qpu = get_qcs_quantum_processor(qpu_name)
+        isa = qcs_qpu._isa
         cal = Calibrations(qcs_qpu)
-        no_noise = qvm.run(ghz(qvm,qcs_qpu,qubits,numshots, False)).readout_data.get("ro")
-        half_noise = qvm.run(ghz(qvm,qcs_qpu,qubits,numshots, True, cal, intensity=0.5)).readout_data.get("ro")
-        noisy = qvm.run(ghz(qvm,qcs_qpu,qubits,numshots, True, cal)).readout_data.get("ro")
+        no_noise = qvm.run(ghz(qvm,isa,qubits,numshots, False)).readout_data.get("ro")
+        half_noise = qvm.run(ghz(qvm,isa,qubits,numshots, True, cal, intensity=0.5)).readout_data.get("ro")
+        noisy = qvm.run(ghz(qvm,isa,qubits,numshots, True, cal)).readout_data.get("ro")
         return no_noise, half_noise, noisy
 
     def plot_results(results, label):
