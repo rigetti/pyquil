@@ -23,6 +23,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 	- The `get_qubits` method on `Gate` now returns a `list` so that ordering is guaranteed.
 	- Setting the `offsets` property on `Declare` will raise a `ValueError` if no `shared_region` is set.
     - When converting to Quil, a `Program` automatically places `DECLARE`s at the top of the program.
+    - The `Program#calibrations` property no longer returns measure calibrations, instead use the new `measure_calibrations` property.
 - The `parser` module has been removed. Parsing now happens by initializing a `Program` with the program string you want to be parsed.
 - `PRAGMA` instructions can no longer have a directive that conflicts with a Quil keyword. If you were using directives like `DELAY` or `FENCE`, consider using the respective Quil-T instructions instead.
 - `QubitPlaceholders` can no longer be used in `PRAGMA` instructions.
