@@ -31,8 +31,7 @@ For information on constructing quantum programs, please refer back to :ref:`bas
 The Quantum Virtual Machine (QVM)
 *********************************
 
-The Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from
-*A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
+The Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from *A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
 executes programs specified in Quil.
 
 As we learned in the :ref:`pre-requisites<prerequisites>` the QVM is part of the Quil SDK, and it's available for you
@@ -309,3 +308,4 @@ Rigetti QPU to specify a 16 qubit topology.
 Now that you have your quantum processor, you could set ``qc.compiler.quantum_processor`` to point to your new quantum processor,
 or use it to make new objects.
 
+.. [1] https://arxiv.org/abs/1608.03355
