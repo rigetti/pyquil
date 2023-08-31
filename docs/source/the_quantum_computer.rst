@@ -1,6 +1,7 @@
-.. _qvm:
+.. _the_quantum_computer:
 
-The Quantum Computer
+====================
+The quantum computer
 ====================
 
 pyQuil is used to build Quil (Quantum Instruction Language) programs and execute them on simulated or real quantum processors. Quil is an opinionated
@@ -26,182 +27,51 @@ For information on constructing quantum programs, please refer back to :ref:`bas
 
 .. _qvm_use:
 
+*********************************
 The Quantum Virtual Machine (QVM)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*********************************
 
-The Rigetti Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from
+The Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from
 *A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
 executes programs specified in Quil.
 
-The QVM simulates the unitary evolution of a wavefunction with
-classical control. The QVM has a plethora of other features,
-including:
-
-  - Stochastic pure-state evolution, density matrix evolution, and
-    Pauli noise channels;
-  - Shared memory access to the quantum state, allowing direct NumPy
-    access to the state without copying or transmission delay; and
-  - A fast just-in-time compilation mode for rapid simulation of large
-    programs with many qubits.
-
-The QVM is part of the Forest SDK, and it's available for you to use on your local machine.
-After :ref:`downloading and installing the SDK <prerequisites>`, you can initialize a local
-QVM server by typing ``qvm -S`` into your terminal. You should see the following message.
-
-.. code:: text
-
-    $ qvm -S
-    ******************************
-    * Welcome to the Rigetti QVM *
-    ******************************
-    Copyright (c) 2018 Rigetti Computing.
-
-    (Configured with 2048 MiB of workspace and 8 workers.)
-
-    [2018-11-06 18:18:18] Starting server on port 5000.
-
-By default, the server is started on port 5000 on your local machine. Consequently, the endpoint which
-the pyQuil :py:class:`~pyquil.api.QVM` will default to for the QVM address is ``http://127.0.0.1:5000``. When you
-run your program, a pyQuil client will send a Quil program to the QVM server and wait for a response back.
-
-It's also possible to use the QVM from the command line. You can write a Quil program in its own file:
-
-.. code:: text
-
-    # example.quil
-
-    DECLARE ro BIT[1]
-    RX(pi/2) 0
-    CZ 0 1
-
-and then execute it with the QVM directly from the command line:
-
-.. code:: text
-
-    $ qvm < example.quil
-
-    [2018-11-30 11:13:58] Reading program.
-    [2018-11-30 11:13:58] Allocating memory for QVM of 2 qubits.
-    [2018-11-30 11:13:58] Allocation completed in 4 ms.
-    [2018-11-30 11:13:58] Loading quantum program.
-    [2018-11-30 11:13:58] Executing quantum program.
-    [2018-11-30 11:13:58] Execution completed in 6 ms.
-    [2018-11-30 11:13:58] Printing 2-qubit state.
-    [2018-11-30 11:13:58] Amplitudes:
-    [2018-11-30 11:13:58]   |00>: 0.0, P=  0.0%
-    [2018-11-30 11:13:58]   |01>: 0.0-1.0i, P=100.0%
-    [2018-11-30 11:13:58]   |10>: 0.0, P=  0.0%
-    [2018-11-30 11:13:58]   |11>: 0.0, P=  0.0%
-    [2018-11-30 11:13:58] Classical memory (low -> high indexes):
-    [2018-11-30 11:13:58]     ro:  1 0
-
-The QVM offers a simple benchmarking mode with ``qvm --verbose
---benchmark``. Example output looks like this:
-
-.. code:: text
-
-   $ ./qvm --verbose --benchmark
-   ******************************
-   * Welcome to the Rigetti QVM *
-   ******************************
-   Copyright (c) 2016-2019 Rigetti Computing.
-
-   (Configured with 8192 MiB of workspace and 8 workers.)
-
-   <135>1 2019-05-01T18:26:14Z workstation.local qvm 96177 - - Selected simulation method: pure-state
-   <135>1 2019-05-01T18:26:15Z workstation.local qvm 96177 - - Computing baseline serial norm timing...
-   <135>1 2019-05-01T18:26:15Z workstation.local qvm 96177 - - Baseline serial norm timing: 96 ms
-   <135>1 2019-05-01T18:26:15Z workstation.local qvm 96177 - - Starting "bell" benchmark with 26 qubits...
-
-   ; Transition H 0 took 686 ms (gc: 0 ms; alloc: 65536 bytes)
-   ; Transition CNOT 0 1 took 651 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition CNOT 1 2 took 658 ms (gc: 0 ms; alloc: 32656 bytes)
-   ; Transition CNOT 2 3 took 661 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition CNOT 3 4 took 650 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition CNOT 4 5 took 662 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition CNOT 5 6 took 673 ms (gc: 0 ms; alloc: 0 bytes)
-   [...]
-   <135>1 2019-05-01T18:30:13Z workstation.local qvm 96288 - - Total time for program run: 24385 ms
-
-The QVM also has mode for faster execution of long quantum programs
-operating on a large number of qubits, called **compiled
-mode**. Compiled mode can be enabled by adding ``-c`` to the command
-line options. Observe the speed-up in the benchmark:
-
-.. code:: text
-
-   $ ./qvm --verbose --benchmark -c
-   ******************************
-   * Welcome to the Rigetti QVM *
-   ******************************
-   Copyright (c) 2016-2019 Rigetti Computing.
-
-   (Configured with 8192 MiB of workspace and 8 workers.)
-
-   <135>1 2019-05-01T18:28:07Z workstation.local qvm 96285 - - Selected simulation method: pure-state
-   <135>1 2019-05-01T18:28:08Z workstation.local qvm 96285 - - Computing baseline serial norm timing...
-   <135>1 2019-05-01T18:28:08Z workstation.local qvm 96285 - - Baseline serial norm timing: 95 ms
-   <135>1 2019-05-01T18:28:08Z workstation.local qvm 96285 - - Starting "bell" benchmark with 26 qubits...
-
-   ; Compiling program loaded into QVM...
-   ; Compiled in 87 ms.
-   ; Optimization eliminated 26 instructions ( 50.0%).
-   ; Transition compiled{ FUSED-GATE-0 1 0 } took 138 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition compiled{ CNOT 1 2 } took 144 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition compiled{ CNOT 2 3 } took 137 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition compiled{ CNOT 3 4 } took 143 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition compiled{ CNOT 4 5 } took 95 ms (gc: 0 ms; alloc: 0 bytes)
-   ; Transition compiled{ CNOT 5 6 } took 75 ms (gc: 0 ms; alloc: 0 bytes)
-   [...]
-   <135>1 2019-05-01T18:29:12Z workstation.local qvm 96287 - - Total time for program run: 2416 ms
-
-The runtime reduced to 2.4 seconds from 24 seconds, a 10x speedup.
-
-.. note::
-   Compiled mode speeds up the execution of a program at the
-   cost of an initial compilation. Note in the above example that
-   compilation took 87 ms.  If you are running small programs with low
-   qubit counts, this cost may be significant, and it may be worth
-   executing in the usual ("interpreted") mode. However, if your
-   programs contain a large number of qubits or a large number of
-   instructions, the initial cost is far outweighed by the benefits.
+As we learned in the :ref:`pre-requisites<prerequisites>` the QVM is part of the Quil SDK, and it's available for you
+to use on your local machine.
 
 For a detailed description of how to use the ``qvm`` from the command line, see the QVM `README
 <https://github.com/rigetti/qvm>`_ or type ``man qvm`` in your terminal.
 
-We also offer a Wavefunction Simulator (formerly a part of the :py:class:`~pyquil.api.QVM` object),
-which allows users to contruct and inspect wavefunctions of quantum programs. Learn more
-about the Wavefunction Simulator :ref:`here <wavefunction_simulator>`.
+We also offer a wavefunction simulator, which allows users to contruct and inspect wavefunctions of quantum programs.
+You can learn more about the wavefunction simulator :ref:`here <wavefunction_simulator>`.
 
 .. _qpu:
 
+*********************************
 The Quantum Processing Unit (QPU)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*********************************
 
 To access a QPU endpoint, you will have to `sign up <https://www.rigetti.com/>`_ for Quantum Cloud Services (QCS).
-Documentation for getting started can be found `here <https://docs.rigetti.com>`_. The documentation will show you how to
-reserve time on a QPU. When your reservation begins, you will be authorized to access the QPU, and you can submit
-requests using pyQuil.
+Documentation for getting started can be found `here <https://docs.rigetti.com>`_. Once you've been authorized to
+access a QPU you can submit requests to it using pyQuil.
 
-For information on available QPUs, you can check out your dashboard at https://qcs.rigetti.com/dashboard after you've
+For information on available QPUs, you can check out `your dashboard <https://qcs.rigetti.com/dashboard>`_ after you've
 been invited to QCS.
-
 
 .. _quantum_computer:
 
+***********************
 The ``QuantumComputer``
-~~~~~~~~~~~~~~~~~~~~~~~
+***********************
 
 The :py:class:`~pyquil.api.QuantumComputer` abstraction offered by pyQuil provides an easy access point to the most
-critical objects used in pyQuil for building and executing your quantum programs.
-We will cover the main methods and attributes on this page.
-The `QuantumComputer API Reference <apidocs/quantum_computer.html>`_ provides a reference for all of its methods and
-options.
+critical objects used in pyQuil for building and executing your quantum programs. We will cover the main methods and attributes
+on this page. The `QuantumComputer API Reference <apidocs/quantum_computer.html>`_ provides a reference for all of its methods
+and options.
 
 At a high level, the :py:class:`~pyquil.api.QuantumComputer` wraps around our favorite quantum computing tools:
 
   - **A quantum abstract machine** ``.qam`` : this is our general purpose quantum computing device,
-    which implements the required abstract methods described :ref:`above <qvm>`. It is implemented as a
+    which implements the required abstract methods described :ref:`above <the_quantum_computer>`. It is implemented as a
     :py:class:`~pyquil.api.QVM` or :py:class:`~pyquil.api.QPU` object in pyQuil.
   - **A compiler** ``.compiler`` : this determines how we manipulate the Quil input to something more efficient when possible,
     and then into a form which our QAM can accept as input.
@@ -225,7 +95,7 @@ For more information on each of the above, check out the following pages:
  - `The Quil Whitepaper <https://arxiv.org/abs/1608.03355>`_ which describes the QAM
 
 Instantiation
--------------
+=============
 
 A decent amount of information needs to be provided to initialize the ``compiler``, ``quantum_processor``, and ``qam`` attributes,
 much of which is already in your :ref:`config files <advanced_usage>` (or provided reasonable defaults when running locally).
@@ -257,9 +127,8 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
     number_of_qubits = 10
     qc = get_qc(f"{number_of_qubits}q-qvm")
 
-For now, you will have to join QCS to get access to a specific quantum processor. Access to the QPU is only possible
-during a booked reservation. If this sounds unfamiliar, check out our `documentation for QCS <https://docs.rigetti.com>`_
-and `join the waitlist <https://www.rigetti.com/>`_.
+As a reminder, you will have to join QCS to get access to a specific quantum processor.
+Check out our `documentation for QCS <https://docs.rigetti.com>`_ and `join the waitlist <https://www.rigetti.com/>`_ if you don't have access already.
 
 For more information about creating and adding your own noise models, check out :ref:`noise`.
 
@@ -268,7 +137,7 @@ For more information about creating and adding your own noise models, check out 
     in :ref:`server mode <server>`.
 
 Methods
--------
+=======
 
 Now that you have your ``qc``, there's a lot you can do with it. Most users will want to use ``compile``, ``run`` very
 regularly. The general flow of use would look like this:
@@ -294,7 +163,7 @@ regularly. The general flow of use would look like this:
     up both of these is very easy, as explained :ref:`here <server>`.
 
 The ``.run(...)`` method
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 When using the ``.run(...)`` method, **you are responsible for compiling your program before running it.**
 For example:
@@ -315,7 +184,7 @@ For example:
 
     executable = qc.compile(p)
     result = qc.run(executable)  # .run takes in a compiled program
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
     print(bitstrings)
 
 The results returned is a *list of lists of integers*. In the above case, that's
@@ -338,13 +207,13 @@ for more details about declaring and accessing classical memory regions.
 
 .. tip:: Get the results for qubit 0 with ``numpy.array(bitstrings)[:,0]``.
 
-In addition to ``readout_data``, the result of ``.run(...)`` includes other information about the job's execution, such
+In addition to readout data, the result of ``.run(...)`` includes other information about the job's execution, such
 as the run duration. See :py:class:`~pyquil.api.QAMExecutionResult` for details.
 
 .. _new_topology:
 
 ``.execute`` and ``.get_result``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------
 
 The ``.run(...)`` method is itself a convenience wrapper around two other methods: ``.execute(...)`` and
 ``.get_result(...)``. ``run`` makes your program appear synchronous (request and then wait for the response),
@@ -353,40 +222,37 @@ then request results at a later time). For finer-grained control over your progr
 you can use these two methods in place of ``.run``. This is most useful when you want to execute work
 concurrently - for that, please see "Advanced Usage."
 
-Providing Your Own Quantum Processor Topology
----------------------------------------------
+Differences between a QVM and a QPU based ``QuantumComputer``
+=============================================================
 
-It is simple to provide your own quantum processor topology as long as you can give your qubits each a number,
-and specify which edges exist. Here is an example, using the topology of our 16Q chip (two octagons connected by a square):
+pyQuil is designed such that code based on a ``QuantumComputer`` can be used in more or less the same way, regardless if it is
+based on a QVM or QPU. However, depending on which you are using, the subcompoments have additional features worth knowing about.
 
-..
-    Will this need to be updated for Ankaa?
-    GitHub issue: https://github.com/rigetti/pyquil/issues/1580
+For instance, if your code targets a QVM, ``qc.qam`` will be a :py:class:`~pyquil.api.QVM``` instance, and ``qc.compiler`` will
+be a :py:class:`~pyquil.api.QVMCompiler` instance. However, if your code targets a QPU, ``qc.qam`` will be a :py:class:`~pyquil.api.QPU` instance, and ``qc.compiler`` will be a :py:class:`~pyquil.api.QPUCompiler` instance.
 
-.. testcode:: provide-topology
+While these subcomponents follow common interfaces, namely :py:class:`~pyquil.api.QAM` and
+:py:class:`~pyquil.api.AbstractCompiler`, there may be some methods or properties that are accessible on the QPU-based instances
+but not on the QVM-based instances, and vice versa.
 
-    import networkx as nx
+You can access these features and keep your code robust by performing type checks on ``qc.qam`` and/or ``qc.compiler``.
+For example, if you wanted to refresh the calibration program, which only applies to QPU-based ``QuantumComputers``, but still
+have a script that works for both QVM and QPU, you could do the following:
 
-    from pyquil.quantum_processor import NxQuantumProcessor
-    from pyquil.noise import decoherence_noise_with_asymmetric_ro
+.. testcode:: differences
 
-    qubits = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17]  # qubits are numbered by octagon
-    edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 0),  # first octagon
-             (1, 16), (2, 15),  # connections across the square
-             (10, 11), (11, 12), (13, 14), (14, 15), (15, 16), (16, 17), (10, 17)] # second octagon
+    from pyquil import get_qc
+    from pyquil.api import QPUCompiler
 
-    # Build the NX graph
-    topo = nx.from_edgelist(edges)
-    # You would uncomment the next line if you have disconnected qubits
-    # topo.add_nodes_from(qubits)
-    quantum_processor = NxQuantumProcessor(topo)
-    quantum_processor.noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())  # Optional
+    qc = get_qc("2q-qvm")  # or "Aspen-M-3" 
 
-Now that you have your quantum processor, you could set ``qc.compiler.quantum_processor`` to point to your new quantum processor,
-or use it to make new objects.
+    if isinstance(qc.compiler, QPUCompiler):
+        # Working with a QPU - refresh calibrations
+        qc.compiler.get_calibration_program(force_refresh=True)
 
+********************************
 Simulating the QPU using the QVM
---------------------------------
+********************************
 
 The :py:class:`~pyquil.api.QAM` methods are intended to be used in the same way, whether a QVM or QPU is being targeted.
 For everywhere on this page, you can swap out the type of the QAM (QVM <=> QPU) and you will still
@@ -411,4 +277,33 @@ In the next section, we will see how to use the Wavefunction Simulator aspect of
 wavefunction set up by a Quil program.
 
 .. [1] https://arxiv.org/abs/1608.03355
+
+Providing your own quantum processor topology
+=============================================
+
+You can provide your own quantum processor topology by specifying qubits as a number, and which edges exist
+between those qubits. Here is an example that uses a subset of the instruction set architecture of a
+Rigetti QPU to specify a 16 qubit topology.
+
+.. code:: python
+
+    import networkx as nx
+    from pyquil import get_qc
+    from pyquil.quantum_processor import NxQuantumProcessor
+    from pyquil.noise import decoherence_noise_with_asymmetric_ro
+    
+    qpu = get_qc("Aspen-M-3")
+    isa = qpu.to_compiler_isa()
+    qubits = sorted(int(k) for k in isa.qubits.keys())[:16]
+    edges = [(q1, q2) for q1 in qubits for q2 in qubits if f"{q1}-{q2}" in isa.edges]
+
+    # Build the NX graph
+    topo = nx.from_edgelist(edges)
+    # You would uncomment the next line if you have disconnected qubits
+    # topo.add_nodes_from(qubits)
+    quantum_processor = NxQuantumProcessor(topo)
+    quantum_processor.noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())  # Optional
+
+Now that you have your quantum processor, you could set ``qc.compiler.quantum_processor`` to point to your new quantum processor,
+or use it to make new objects.
 
