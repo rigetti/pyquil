@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.5.5-rc.0
+
+### Fixes
+
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
 ## 4.0.0-rc.50
 
 ### Breaking Changes
