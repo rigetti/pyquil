@@ -133,6 +133,12 @@ Check out our `documentation for QCS <https://docs.rigetti.com>`_ and `join the 
 For more information about creating and adding your own noise models, check out :ref:`noise`.
 
 .. note::
+
+    This page just covers the essentials, but you can customize the behavior of compilation, execution and more using the
+    various parameters on :py:func:`~pyquil.api.get_qc`, see the API documentation to see everything that is available.
+
+.. note::
+
     When connecting to a QVM locally (such as with ``get_qc(..., as_qvm=True)``) you'll have to set up the QVM
     in :ref:`server mode <server>`.
 
@@ -160,7 +166,7 @@ regularly. The general flow of use would look like this:
 .. note::
 
     In addition to a running QVM server, you will need a running ``quilc`` server to compile your program. Setting
-    up both of these is very easy, as explained :ref:`here <server>`.
+    up both of these is explained :ref:`here <server>`.
 
 The ``.run(...)`` method
 ------------------------
@@ -222,34 +228,6 @@ then request results at a later time). For finer-grained control over your progr
 you can use these two methods in place of ``.run``. This is most useful when you want to execute work
 concurrently - for that, please see "Advanced Usage."
 
-Differences between a QVM and a QPU based ``QuantumComputer``
-=============================================================
-
-pyQuil is designed such that code based on a ``QuantumComputer`` can be used in more or less the same way, regardless if it is
-based on a QVM or QPU. However, depending on which you are using, the subcompoments have additional features worth knowing about.
-
-For instance, if your code targets a QVM, ``qc.qam`` will be a :py:class:`~pyquil.api.QVM``` instance, and ``qc.compiler`` will
-be a :py:class:`~pyquil.api.QVMCompiler` instance. However, if your code targets a QPU, ``qc.qam`` will be a :py:class:`~pyquil.api.QPU` instance, and ``qc.compiler`` will be a :py:class:`~pyquil.api.QPUCompiler` instance.
-
-While these subcomponents follow common interfaces, namely :py:class:`~pyquil.api.QAM` and
-:py:class:`~pyquil.api.AbstractCompiler`, there may be some methods or properties that are accessible on the QPU-based instances
-but not on the QVM-based instances, and vice versa.
-
-You can access these features and keep your code robust by performing type checks on ``qc.qam`` and/or ``qc.compiler``.
-For example, if you wanted to refresh the calibration program, which only applies to QPU-based ``QuantumComputers``, but still
-have a script that works for both QVM and QPU, you could do the following:
-
-.. testcode:: differences
-
-    from pyquil import get_qc
-    from pyquil.api import QPUCompiler
-
-    qc = get_qc("2q-qvm")  # or "Aspen-M-3" 
-
-    if isinstance(qc.compiler, QPUCompiler):
-        # Working with a QPU - refresh calibrations
-        qc.compiler.get_calibration_program(force_refresh=True)
-
 ********************************
 Simulating the QPU using the QVM
 ********************************
@@ -273,10 +251,34 @@ the named QPU. It's a good idea to run your programs against the QVM before book
 bugs. To learn more about how to add noise models to your virtual ``QuantumComputer`` instance, check out
 :ref:`noise`.
 
-In the next section, we will see how to use the Wavefunction Simulator aspect of the QVM server to inspect the full
-wavefunction set up by a Quil program.
+Differences between a QVM and a QPU based ``QuantumComputer``
+=============================================================
 
-.. [1] https://arxiv.org/abs/1608.03355
+As mentioned above, pyQuil is designed such that code based on a ``QuantumComputer`` can be used in more or less the same way,
+regardless if it is based on a QVM or QPU. However, depending on which you are using, the subcompoments have additional features
+worth knowing about.
+
+For instance, if your code targets a QVM, ``qc.qam`` will be a :py:class:`~pyquil.api.QVM``` instance, and ``qc.compiler`` will
+be a :py:class:`~pyquil.api.QVMCompiler` instance. However, if your code targets a QPU, ``qc.qam`` will be a :py:class:`~pyquil.api.QPU` instance, and ``qc.compiler`` will be a :py:class:`~pyquil.api.QPUCompiler` instance.
+
+While these subcomponents follow common interfaces, namely :py:class:`~pyquil.api.QAM` and
+:py:class:`~pyquil.api.AbstractCompiler`, there may be some methods or properties that are accessible on the QPU-based instances
+but not on the QVM-based instances, and vice versa.
+
+You can access these features and keep your code robust by performing type checks on ``qc.qam`` and/or ``qc.compiler``.
+For example, if you wanted to refresh the calibration program, which only applies to QPU-based ``QuantumComputers``, but still
+want a script that works for both QVM and QPU targets, you could do the following:
+
+.. testcode:: differences
+
+    from pyquil import get_qc
+    from pyquil.api import QPUCompiler
+
+    qc = get_qc("2q-qvm")  # or "Aspen-M-3" 
+
+    if isinstance(qc.compiler, QPUCompiler):
+        # Working with a QPU - refresh calibrations
+        qc.compiler.get_calibration_program(force_refresh=True)
 
 Providing your own quantum processor topology
 =============================================
