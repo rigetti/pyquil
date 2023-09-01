@@ -282,8 +282,8 @@ want a script that works for both QVM and QPU targets, you could do the followin
 Providing your own quantum processor topology
 =============================================
 
-You can provide your own quantum processor topology by specifying qubits as a number, and which edges exist
-between those qubits. Here is an example that uses a subset of the instruction set architecture of a
+You can provide your own quantum processor topology by specifying qubits (as numeric indices) and edges.
+Here is an example that uses a subset of the instruction set architecture of a
 Rigetti QPU to specify a 16 qubit topology.
 
 .. code:: python
