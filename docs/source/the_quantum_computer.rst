@@ -254,7 +254,7 @@ Differences between a QVM and a QPU based ``QuantumComputer``
 =============================================================
 
 As mentioned above, pyQuil is designed such that code based on a ``QuantumComputer`` can be used in more or less the same way,
-regardless if it is based on a QVM or QPU. However, depending on which you are using, the subcompoments have additional features
+regardless of whether it is based on a QVM or QPU. However, depending on which you are using, the subcompoments have additional features
 worth knowing about.
 
 For instance, if your code targets a QVM, ``qc.qam`` will be a :py:class:`~pyquil.api.QVM``` instance, and ``qc.compiler`` will
