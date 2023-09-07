@@ -94,7 +94,7 @@ Congratulations! You just ran your program on the QVM. The returned value should
     [[1]]
 
 For more information on what the above result means, and on executing quantum programs on the QVM in
-general, see :ref:`qvm`. The remainder of this section of the docs will be dedicated to constructing
+general, see :ref:`the_quantum_computer`. The remainder of this section of the docs will be dedicated to constructing
 programs in detail, an essential part of becoming fluent in quantum programming.
 
 
