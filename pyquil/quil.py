@@ -844,7 +844,7 @@ class Program:
             _convert_to_rs_instructions(previously_calibrated_instructions),
         )
 
-        return _convert_to_py_instructions(calibrated_instructions)
+        return [instruction] if not calibrated_instructions else _convert_to_py_instructions(calibrated_instructions)
 
     @deprecated(
         version="4.0",
