@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.0.0-rc.51
+
+### Breaking Changes
+
+- Revamp the QuantumComputer and the WavefunctionSimulator sections. (#1643)
+
+### Fixes
+
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
 ## 4.0.0-rc.50
 
 ### Breaking Changes
