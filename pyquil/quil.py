@@ -887,6 +887,10 @@ class Program:
         p.inst(other)
         return p
 
+    def __iadd__(self, other: InstructionDesignator) -> "Program":
+        self.inst(other)
+        return self
+
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
         """
         Allows indexing into the program to get an action.
