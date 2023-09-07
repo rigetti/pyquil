@@ -278,6 +278,12 @@ def test_program_calibrate(program_input, gate, program_output):
     assert Program(calibrated).out() == program_output.out()
 
 
+def test_program_calibrate_no_match():
+    program = Program()
+    instruction = Gate("RX", [np.pi], [Qubit(0)])
+    assert program.calibrate(instruction) == [instruction]
+
+
 @pytest.mark.parametrize(
     "program_text",
     (
