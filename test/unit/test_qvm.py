@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from qcs_sdk.qvm import QVMError, QVMHTTPClient
+from qcs_sdk.qvm import QVMError, QVMClient
 
 from pyquil import Program
 from pyquil.api import QVM
@@ -10,7 +10,7 @@ from pyquil.gates import MEASURE, X
 from pyquil.quilbase import Declare, MemoryReference
 
 
-def test_qvm__default_client(qvm_client: QVMHTTPClient):
+def test_qvm__default_client(qvm_client: QVMClient):
     print(qvm_client)
     qvm = QVM(client=qvm_client)
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
@@ -19,7 +19,7 @@ def test_qvm__default_client(qvm_client: QVMHTTPClient):
     assert bitstrings.shape == (1000, 1)
 
 
-def test_qvm_run_pqer(qvm_client: QVMHTTPClient):
+def test_qvm_run_pqer(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     result = qvm.run(p.wrap_in_numshots_loop(1000))
@@ -28,7 +28,7 @@ def test_qvm_run_pqer(qvm_client: QVMHTTPClient):
     assert np.mean(bitstrings) > 0.8
 
 
-def test_qvm_run_just_program(qvm_client: QVMHTTPClient):
+def test_qvm_run_just_program(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     result = qvm.run(p.wrap_in_numshots_loop(1000))
@@ -37,7 +37,7 @@ def test_qvm_run_just_program(qvm_client: QVMHTTPClient):
     assert np.mean(bitstrings) > 0.8
 
 
-def test_qvm_run_only_pqer(qvm_client: QVMHTTPClient):
+def test_qvm_run_only_pqer(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
 
@@ -47,7 +47,7 @@ def test_qvm_run_only_pqer(qvm_client: QVMHTTPClient):
     assert np.mean(bitstrings) > 0.8
 
 
-def test_qvm_run_region_declared_and_measured(qvm_client: QVMHTTPClient):
+def test_qvm_run_region_declared_and_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     p = Program(Declare("reg", "BIT"), X(0), MEASURE(0, MemoryReference("reg")))
     result = qvm.run(p.wrap_in_numshots_loop(100))
@@ -55,7 +55,7 @@ def test_qvm_run_region_declared_and_measured(qvm_client: QVMHTTPClient):
     assert bitstrings.shape == (100, 1)
 
 
-def test_qvm_run_region_declared_not_measured(qvm_client: QVMHTTPClient):
+def test_qvm_run_region_declared_not_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     p = Program(Declare("reg", "BIT"), X(0))
     result = qvm.run(p.wrap_in_numshots_loop(100))
@@ -64,7 +64,7 @@ def test_qvm_run_region_declared_not_measured(qvm_client: QVMHTTPClient):
     assert bitstrings.shape == (100, 1)
 
 
-def test_qvm_run_region_not_declared_is_measured(qvm_client: QVMHTTPClient):
+def test_qvm_run_region_not_declared_is_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     p = Program(X(0), MEASURE(0, MemoryReference("ro")))
 
@@ -72,14 +72,14 @@ def test_qvm_run_region_not_declared_is_measured(qvm_client: QVMHTTPClient):
         qvm.run(p)
 
 
-def test_qvm_run_region_not_declared_not_measured(qvm_client: QVMHTTPClient):
+def test_qvm_run_region_not_declared_not_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     p = Program(X(0))
     result = qvm.run(p.wrap_in_numshots_loop(100))
     assert result.readout_data.get("ro") is None
 
 
-def test_qvm_version(qvm_client: QVMHTTPClient):
+def test_qvm_version(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     version = qvm.get_version_info()
 

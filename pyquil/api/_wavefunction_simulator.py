@@ -68,7 +68,7 @@ class WavefunctionSimulator:
 
         self.timeout = timeout
         self._client = client_configuration or QCSClient.load()
-        self._qvm_client = qvm.QVMHTTPClient(self._client.qvm_url)
+        self._qvm_client = qvm.QVMClient.new_http(self._client.qvm_url)
 
     def wavefunction(self, quil_program: Program, memory_map: Optional[MemoryMap] = None) -> Wavefunction:
         """
