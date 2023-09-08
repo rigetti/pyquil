@@ -1,15 +1,16 @@
 .. _wavefunction_simulator:
 
-The Wavefunction Simulator
+==========================
+The wavefunction simulator
 ==========================
 
-Formerly a part of the QVM object in pyQuil, the Wavefunction Simulator allows you to directly inspect the wavefunction
-of a quantum state prepared by your program. Because of the probabilistic nature of quantum information, the programs you'll
-be running on the QPU can give a distribution of outputs. When running on the QPU or QVM, you would aggregate results
-(anywhere from tens of trials to 100k+!) that you can sample to get back a distribution.
+The wavefunction simulator allows you to directly inspect the wavefunction of a quantum state prepared by your program.
+Because of the probabilistic nature of quantum information, the programs you'll be running on the QPU can give a distribution
+of outputs. When running on the QPU or QVM, you would aggregate results (anywhere from tens of trials to 100k+!) that you can
+sample to get back a distribution.
 
-With the Wavefunction Simulator, you can look at the distribution without having to collect samples from your program.
-This can save a lot of time for small programs. Let's walk through a basic example of using WavefunctionSimulator:
+With the wavefunction simulator, you can look at the distribution without having to collect samples from your program.
+This can save a lot of time for small programs. Let's walk through a basic example of using the :py:class:`~pyquil.api.WavefunctionSimulator`:
 
 .. testcode::
 
@@ -67,12 +68,12 @@ cannot be feasibly obtained on a quantum processor.
 
 .. _basis_ordering:
 
-Multi-Qubit Basis Enumeration
------------------------------
+*****************************
+Multi-qubit basis enumeration
+*****************************
 
-The WavefunctionSimulator enumerates bitstrings such that qubit ``0`` is the least significant bit (LSB)
-and therefore on the right end of a bitstring as shown in the table below which contains some
-examples.
+The :py:class:`~pyquil.api.WavefunctionSimulator` enumerates bitstrings such that qubit ``0`` is the least significant bit (LSB)
+and therefore on the right end of a bitstring as shown in the table below which contains some examples.
 
 =============== ============= ===== ========= ========= =========
  bitstring       qubit_(n-1)   ...   qubit_2   qubit_1   qubit_0
@@ -82,25 +83,22 @@ examples.
 =============== ============= ===== ========= ========= =========
 
 
-
-This convention is counter to that often found in the quantum computing literature where
-bitstrings are often ordered such that the lowest-index qubit is on the left.
-The vector representation of a wavefunction assumes the "canonical" ordering of basis elements.
-I.e., for two qubits this order is ``00, 01, 10, 11``.
-In the typical Dirac notation for quantum states, the tensor product of two different degrees of
-freedom is not always explicitly understood as having a fixed order of those degrees of freedom.
-This is in contrast to the kronecker product between matrices which uses the same mathematical
-symbol and is clearly not commutative.
-This, however, becomes important when writing things down as coefficient vectors or matrices:
+This convention is counter to that often found in the quantum computing literature where bitstrings are often ordered such that
+the lowest-index qubit is on the left. The vector representation of a wavefunction assumes the "canonical" ordering of basis
+elements. For example, for two qubits this order is ``00, 01, 10, 11``. In the typical Dirac notation for quantum states, the
+tensor product of two different degrees of freedom is not always explicitly understood as having a fixed order of those degrees
+of freedom. This is in contrast to the kronecker product between matrices which uses the same mathematical symbol and is clearly
+not commutative. This, however, becomes important when writing things down as coefficient vectors or matrices:
 
 .. math::
 
     \ket{0}_0 \otimes \ket{1}_1 = \ket{1}_1 \otimes \ket{0}_0
     = \ket{10}_{1,0} \equiv \begin{pmatrix} 0 \\ 0 \\ 1 \\ 0 \end{pmatrix}
 
-As a consequence there arise some subtle but important differences in the ordering of wavefunction
-and multi-qubit gate matrix coefficients.
-According to our conventions the matrix
+As a consequence there arise some subtle but important differences in the ordering of wavefunction and multi-qubit gate matrix
+coefficients.
+
+According to our conventions the matrix:
 
 .. math::
 
@@ -112,9 +110,8 @@ According to our conventions the matrix
         0 & 0 & 1 & 0
     \end{pmatrix}
 
-corresponds to the Quil instruction ``CNOT(1, 0)`` which is counter to how most other people in the
-field order their tensor product factors (or more specifically their kronecker products).
-In this convention ``CNOT(0, 1)`` is given by
+corresponds to the Quil instruction ``CNOT(1, 0)`` which is counter to how most other people in the field order their tensor
+product factors (or more specifically their kronecker products). In this convention ``CNOT(0, 1)`` is given by:
 
 .. math::
 

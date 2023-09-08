@@ -27,8 +27,8 @@ If you’re new to pyQuil, head to the `getting started <getting_started>`_ guid
    :caption: Contents
 
    getting_started
-   basics
-   qvm
+   programs_and_gates
+   the_quantum_computer
    wavefunction_simulator
    compiler
    noise

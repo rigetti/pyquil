@@ -77,12 +77,20 @@ Collect debug information
 
 3. Run your script with debug logging enabled by adding the following to the top of your script:
 
-   .. testcode:: python
+   .. testcode:: debug
 
     import logging
     logging.basicConfig(level=logging.DEBUG)
 
    .. note:: For information on how to filter the logs, see the `qcs-sdk-python logging documentation <https://github.com/rigetti/qcs-sdk-rust/tree/main/crates/python#enabling-debug-logging>`_
+
+   .. testcode:: debug
+      :hide:
+    
+    import logging
+    # Disable debug logging, otherwise doctests will run with
+    # debug logging enabled.
+    logging.basicConfig(level=logging.INFO)
 
 If the problem still isn't clear, then we can help! Please file an issue
 on the `GitHub repo <https://github.com/rigetti/pyquil>`_ if it's an issue with pyQuil itself,

@@ -40,8 +40,10 @@ __all__ = [
     "WavefunctionSimulator",
 ]
 
-from qcs_sdk import QCSClient
+from qcs_sdk import QCSClient, RegisterMatrixConversionError
 from qcs_sdk.qpu.api import ExecutionOptions, ExecutionOptionsBuilder, ConnectionStrategy
+from qcs_sdk.qpu import RawQPUReadoutData
+from qcs_sdk.qvm import RawQVMReadoutData
 
 from pyquil.api._benchmark import BenchmarkConnection
 from pyquil.api._compiler import (

@@ -146,15 +146,13 @@ where using ``QubitPlaceholder``\ s comes in.
 .. testoutput:: placeholders
    :hide:
 
-    H {q...}
-    CNOT {q...} {q...}
+    H Placeholder(QubitPlaceholder(0x...))
+    CNOT Placeholder(QubitPlaceholder(0x...)) Placeholder(QubitPlaceholder(0x...)) 
 
 .. parsed-literal::
 
-    H {q4402789176}
-    CNOT {q4402789176} {q4402789120}
-
-If you try to use this program directly, it will not work
+    H Placeholder(QubitPlaceholder(0x600002DEB5B0))
+    CNOT Placeholder(QubitPlaceholder(0x600002DEB5B0)) Placeholder(QubitPlaceholder(0x600002DEABB0))
 
 ..
     Could not make this a doctest because it would keep failing. ``doctest`` is supposed to match the
@@ -272,20 +270,21 @@ loop by following these steps:
 
     # Run inner_loop in a loop until flag_register is 0
     outer_loop.while_do(flag_register, inner_loop)
+    outer_loop.resolve_label_placeholders()
 
     print(outer_loop)
 
 .. testoutput:: control-flow
 
     DECLARE flag_register BIT[1]
-    MOVE flag_register 1
-    LABEL @START1
-    JUMP-UNLESS @END2 flag_register
+    MOVE flag_register[0] 1
+    LABEL @START_0
+    JUMP-UNLESS @END_0 flag_register[0]
     X 0
     H 0
-    MEASURE 0 flag_register
-    JUMP @START1
-    LABEL @END2
+    MEASURE 0 flag_register[0]
+    JUMP @START_0
+    LABEL @END_0
 
 Notice that the ``outer_loop`` program applied a Quil instruction directly to a
 classical register.  There are several classical commands that can be used in this fashion:
@@ -323,21 +322,22 @@ method.
 
     # Measure qubit 0 into our readout register
     branching_prog += MEASURE(0, ro)
+    branching_prog.resolve_label_placeholders()
 
     print(branching_prog)
 
 .. testoutput:: control-flow
 
-    DECLARE test_register BIT[1]
     DECLARE ro BIT[1]
+    DECLARE test_register BIT[1]
     H 1
-    MEASURE 1 test_register
-    JUMP-WHEN @THEN1 test_register
-    JUMP @END2
-    LABEL @THEN1
+    MEASURE 1 test_register[0]
+    JUMP-WHEN @THEN_0 test_register[0]
+    JUMP @END_0
+    LABEL @THEN_0
     X 0
-    LABEL @END2
-    MEASURE 0 ro
+    LABEL @END_0
+    MEASURE 0 ro[0]
 
 We can run this program a few times to see what we get in the readout register ``ro``.
 
@@ -437,7 +437,7 @@ The following shows an instructive example of all three.
 
     Quil to compute exp[iX] on qubit 0:
     H 0
-    RZ(-2.0) 0
+    RZ(-2) 0
     H 0
 
 ``exponential_map`` returns a function allowing you to fill in a multiplicative
@@ -461,12 +461,12 @@ value for :math:`\alpha`.
 
     1:
     H 0
-    RZ(-2.0) 0
+    RZ(-2) 0
     H 0
 
     2:
     H 0
-    RZ(-4.0) 0
+    RZ(-4) 0
     H 0
 
 To take it one step further, you can use :ref:`parametric_compilation` with ``exponential_map``. For instance:

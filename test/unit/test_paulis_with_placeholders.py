@@ -43,7 +43,7 @@ from pyquil.paulis import (
     sZ,
     ZERO,
 )
-from pyquil.quil import Program, address_qubits, get_default_qubit_mapping
+from pyquil.quil import Program, address_qubits
 from pyquil.quilatom import QubitPlaceholder
 
 
@@ -64,7 +64,7 @@ def test_get_qubits():
 
     q10 = QubitPlaceholder()
     sum_term = PauliTerm("X", q[0], 0.5) + 0.5j * PauliTerm("Y", q10) * PauliTerm("Y", q[0], 0.5j)
-    assert sum_term.get_qubits() == [q[0], q10]
+    assert set(sum_term.get_qubits()) == {q[0], q10}
 
 
 def test_simplify_term_single():
@@ -163,9 +163,8 @@ def test_ids():
     term_1 = PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0) * PauliTerm("X", q[5], 5)
     term_2 = PauliTerm("X", q[5], 5) * PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0)
     # Not sortable
-    with pytest.raises(TypeError):
-        with pytest.warns(FutureWarning):
-            term_1.id() == term_2.id()
+    with pytest.warns(FutureWarning):
+        term_1.id() == term_2.id()
 
 
 def test_ids_no_sort():
@@ -249,8 +248,7 @@ def test_exponentiate_2():
     prog = para_prog(1)
     result_prog = Program().inst(CNOT(q[0], q[1])).inst(RZ(2.0, q[1])).inst(CNOT(q[0], q[1]))
 
-    mapping = get_default_qubit_mapping(prog)
-    assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
 
 def test_exponentiate_bp0_ZX():
@@ -385,13 +383,13 @@ def test_exponentiate_identity():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(q[0]), PHASE(-1.0, q[0]), X(q[0]), PHASE(-1.0, q[0])])
-    assert address_qubits(prog) == address_qubits(result_prog)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
     generator = PauliTerm("I", q[10], 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(q[0]), PHASE(-0.08, q[0]), X(q[0]), PHASE(-0.08, q[0])])
-    assert address_qubits(prog) == address_qubits(result_prog)
+    assert address_qubits(prog).out() == address_qubits(result_prog).out()
 
 
 def test_trotterize():
@@ -522,7 +520,6 @@ def test_check_commutation_rigorous():
     commuting_pairs = []
     for x in range(len(pauli_ops_pq)):
         for y in range(x, len(pauli_ops_pq)):
-
             tmp_op = _commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
             if is_zero(tmp_op.terms[0]):
@@ -567,10 +564,10 @@ def test_term_powers():
     for qubit in QubitPlaceholder.register(2):
         pauli_terms = [sI(qubit), sX(qubit), sY(qubit), sZ(qubit)]
         for pauli_term in pauli_terms:
-            assert pauli_term ** 0 == sI(qubit)
-            assert pauli_term ** 1 == pauli_term
-            assert pauli_term ** 2 == sI(qubit)
-            assert pauli_term ** 3 == pauli_term
+            assert pauli_term**0 == sI(qubit)
+            assert pauli_term**1 == pauli_term
+            assert pauli_term**2 == sI(qubit)
+            assert pauli_term**3 == pauli_term
     with pytest.raises(ValueError):
         pauli_terms[0] ** -1
 
@@ -584,13 +581,13 @@ def test_term_large_powers():
 def test_sum_power():
     q = QubitPlaceholder.register(8)
     pauli_sum = (sY(q[0]) - sX(q[0])) * (1.0 / np.sqrt(2))
-    assert pauli_sum ** 2 == PauliSum([sI(q[0])])
+    assert pauli_sum**2 == PauliSum([sI(q[0])])
     with pytest.raises(ValueError):
-        _ = pauli_sum ** -1
+        _ = pauli_sum**-1
     pauli_sum = sI(q[0]) + sI(q[1])
-    assert pauli_sum ** 0 == sI(q[0])
+    assert pauli_sum**0 == sI(q[0])
     # Test to make sure large powers can be computed
-    pauli_sum ** 400
+    pauli_sum**400
 
 
 def test_term_equality():
@@ -653,8 +650,9 @@ def test_ordered():
     q = QubitPlaceholder.register(8)
     mapping = {x: i for i, x in enumerate(q)}
     term = sZ(q[3]) * sZ(q[2]) * sZ(q[1])
-    prog = address_qubits(exponential_map(term)(0.5), mapping)
-    assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1.0) 1\nCNOT 2 1\nCNOT 3 2\n"
+    prog = exponential_map(term)(0.5)
+    prog = address_qubits(prog, mapping)
+    assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1) 1\nCNOT 2 1\nCNOT 3 2\n"
 
 
 def test_simplify():

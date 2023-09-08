@@ -15,10 +15,12 @@
 ##############################################################################
 from dataclasses import dataclass
 from collections import defaultdict
+from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
+from qcs_sdk.qpu import ReadoutValues, QPUResultData
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram
@@ -27,7 +29,7 @@ from pyquil.api._qam import MemoryMap, QAM, QAMExecutionResult
 from pyquil.quilatom import (
     MemoryReference,
 )
-from qcs_sdk import QCSClient
+from qcs_sdk import QCSClient, ResultData, ExecutionData
 from qcs_sdk.qpu.api import (
     submit,
     retrieve_results,
@@ -184,7 +186,8 @@ class QPU(QAM[QPUExecuteResponse]):
             executable.ro_sources is not None
         ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
 
-        patch_values = build_patch_values(executable.recalculation_table, memory_map or {})
+        memory_map = memory_map or {}
+        patch_values = build_patch_values(executable.recalculation_table, memory_map)
 
         job_id = submit(
             program=executable.program,
@@ -208,21 +211,19 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options=execute_response.execution_options,
         )
 
-        ro_sources = execute_response._executable.ro_sources
-        decoded_buffers = {k: decode_buffer(v) for k, v in results.buffers.items()}
+        readout_values = {key: ReadoutValues(value.data.inner()) for key, value in results.buffers.items()}
+        mappings = {
+            mref.out(): readout_name
+            for mref, readout_name in execute_response._executable.ro_sources.items()
+            if mref.name in execute_response._executable.memory_descriptors
+        }
+        result_data = QPUResultData(mappings=mappings, readout_values=readout_values)
+        result_data = ResultData(result_data)
+        duration = None
+        if results.execution_duration_microseconds is not None:
+            # The result duration can be `None` to account for `QVM` runs, but should never
+            # be `None` for `QPU` runs.
+            duration = timedelta(microseconds=results.execution_duration_microseconds)
+        data = ExecutionData(result_data=result_data, duration=duration)
 
-        result_memory = {}
-        if len(decoded_buffers) != 0:
-            extracted = _extract_memory_regions(
-                execute_response._executable.memory_descriptors, ro_sources, decoded_buffers
-            )
-            for name, array in extracted.items():
-                result_memory[name] = array
-        elif not ro_sources:
-            result_memory["ro"] = np.zeros((0, 0), dtype=np.int64)
-
-        return QAMExecutionResult(
-            executable=execute_response._executable,
-            readout_data=result_memory,
-            execution_duration_microseconds=results.execution_duration_microseconds,
-        )
+        return QAMExecutionResult(executable=execute_response._executable, data=data)

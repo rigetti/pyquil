@@ -14,12 +14,12 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence, Tuple, Dict
 
 import numpy as np
 
-from qcs_sdk import QCSClient, qvm
-from qcs_sdk.qvm import QVMOptions, QVMHTTPClient
+from qcs_sdk import QCSClient, qvm, ResultData, ExecutionData
+from qcs_sdk.qvm import QVMOptions, QVMResultData, QVMHTTPClient
 
 from pyquil._version import pyquil_version
 from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
@@ -51,7 +51,11 @@ def check_qvm_version(version: str) -> None:
 @dataclass
 class QVMExecuteResponse:
     executable: Program
-    memory: Mapping[str, np.ndarray]
+    data: QVMResultData
+
+    @property
+    def memory(self) -> Dict[str, np.ndarray]:
+        return {key: matrix.as_ndarray() for key, matrix in self.data.memory.items()}
 
 
 class QVM(QAM[QVMExecuteResponse]):
@@ -154,16 +158,16 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             options=QVMOptions(timeout_seconds=self.timeout),
         )
 
-        memory = {name: np.asarray(data.inner()) for name, data in result.memory.items()}
-        return QVMExecuteResponse(executable=executable, memory=memory)
+        return QVMExecuteResponse(executable=executable, data=result)
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
         Return the results of execution on the QVM.
-
-        Because QVM execution is synchronous, this is a no-op which returns its input.
         """
-        return QAMExecutionResult(executable=execute_response.executable, readout_data=execute_response.memory)
+
+        result_data = ResultData(execute_response.data)
+        data = ExecutionData(result_data=result_data, duration=None)
+        return QAMExecutionResult(executable=execute_response.executable, data=data)
 
     def get_version_info(self) -> str:
         """

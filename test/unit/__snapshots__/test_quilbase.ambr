@@ -1,0 +1,583 @@
+# name: TestArithmeticBinaryOp.test_out[ADD-left0-right0]
+  'ADD a[0] b[0]'
+# ---
+# name: TestArithmeticBinaryOp.test_out[DIV-left3-4.2]
+  'DIV c[2] 4.2'
+# ---
+# name: TestArithmeticBinaryOp.test_out[MUL-left2-1.0]
+  'MUL c[2] 1'
+# ---
+# name: TestArithmeticBinaryOp.test_out[SUB-left1-1]
+  'SUB b[1] 1'
+# ---
+# name: TestCapture.test_out[Blocking]
+  'CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
+# ---
+# name: TestCapture.test_out[NonBlocking]
+  'NONBLOCKING CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
+# ---
+# name: TestCapture.test_out[TemplateWaveform]
+  'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2.0i) ro[0]'
+# ---
+# name: TestClassicalComparison.test_out[EQ-target0-left0-right0]
+  'EQ t[0] y[0] z[0]'
+# ---
+# name: TestClassicalComparison.test_out[GE-target4-left4-3.14]
+  'GE t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[GT-target3-left3-3.14]
+  'GT t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[LE-target2-left2-3.14]
+  'LE t[2] y[0] 3.14'
+# ---
+# name: TestClassicalComparison.test_out[LT-target1-left1-2]
+  'LT t[0] y[5] 2'
+# ---
+# name: TestClassicalConvert.test_out[left0-right0]
+  'CONVERT ro[0] bar[0]'
+# ---
+# name: TestClassicalConvert.test_out[left1-right1]
+  'CONVERT foo[5] bar[0]'
+# ---
+# name: TestClassicalExchange.test_out[left0-right0]
+  'EXCHANGE ro[0] bar[0]'
+# ---
+# name: TestClassicalExchange.test_out[left1-right1]
+  'EXCHANGE foo[5] bar[0]'
+# ---
+# name: TestClassicalLoad.test_out[target0-y-right0]
+  'LOAD t[0] y z[0]'
+# ---
+# name: TestClassicalLoad.test_out[target1-y-right1]
+  'LOAD t[5] y bar[1]'
+# ---
+# name: TestClassicalMove.test_out[left0-right0]
+  'MOVE ro[0] bar[0]'
+# ---
+# name: TestClassicalMove.test_out[left1-5]
+  'MOVE foo[5] 5'
+# ---
+# name: TestClassicalMove.test_out[left2-3.2]
+  'MOVE bar[0] 3.2'
+# ---
+# name: TestClassicalStore.test_out[t-left0-right0]
+  'STORE t y[0] z[0]'
+# ---
+# name: TestClassicalStore.test_out[t-left1-2]
+  'STORE t y[5] 2'
+# ---
+# name: TestClassicalStore.test_out[t-left2-3.14]
+  'STORE t y[5] 3.14'
+# ---
+# name: TestDeclare.test_asdict[Defaults]
+  dict({
+    'memory_size': 1,
+    'memory_type': 'BIT',
+    'name': 'ro',
+    'offsets': list([
+    ]),
+    'shared_region': None,
+  })
+# ---
+# name: TestDeclare.test_asdict[With-Offsets]
+  dict({
+    'memory_size': 5,
+    'memory_type': 'BIT',
+    'name': 'ro',
+    'offsets': list([
+      tuple(
+        2,
+        'OCTET',
+      ),
+    ]),
+    'shared_region': 'theta',
+  })
+# ---
+# name: TestDeclare.test_asdict[With-Shared]
+  dict({
+    'memory_size': 5,
+    'memory_type': 'INTEGER',
+    'name': 'ro',
+    'offsets': list([
+    ]),
+    'shared_region': 'theta',
+  })
+# ---
+# name: TestDeclare.test_asdict[With-Size]
+  dict({
+    'memory_size': 5,
+    'memory_type': 'OCTET',
+    'name': 'ro',
+    'offsets': list([
+    ]),
+    'shared_region': None,
+  })
+# ---
+# name: TestDeclare.test_out[Defaults]
+  'DECLARE ro BIT[1]'
+# ---
+# name: TestDeclare.test_out[With-Offsets]
+  'DECLARE ro BIT[5] SHARING theta OFFSET 2 OCTET'
+# ---
+# name: TestDeclare.test_out[With-Shared]
+  'DECLARE ro INTEGER[5] SHARING theta'
+# ---
+# name: TestDeclare.test_out[With-Size]
+  'DECLARE ro OCTET[5]'
+# ---
+# name: TestDeclare.test_str[Defaults]
+  'DECLARE ro BIT[1]'
+# ---
+# name: TestDeclare.test_str[With-Offsets]
+  'DECLARE ro BIT[5] SHARING theta OFFSET 2 OCTET'
+# ---
+# name: TestDeclare.test_str[With-Shared]
+  'DECLARE ro INTEGER[5] SHARING theta'
+# ---
+# name: TestDeclare.test_str[With-Size]
+  'DECLARE ro OCTET[5]'
+# ---
+# name: TestDefCalibration.test_out[No-Params]
+  '''
+  DEFCAL Calibrate 0:
+  	X 0
+  '''
+# ---
+# name: TestDefCalibration.test_out[Params]
+  '''
+  DEFCAL Calibrate(%X) 0:
+  	X 0
+  '''
+# ---
+# name: TestDefCalibration.test_str[No-Params]
+  '''
+  DEFCAL Calibrate 0:
+  	X 0
+  '''
+# ---
+# name: TestDefCalibration.test_str[Params]
+  '''
+  DEFCAL Calibrate(%X) 0:
+  	X 0
+  '''
+# ---
+# name: TestDefCircuit.test_out[No-Params]
+  '''
+  DEFCIRCUIT NiftyCircuit a:
+  	MEASURE a
+  
+  '''
+# ---
+# name: TestDefCircuit.test_out[With-Params]
+  '''
+  DEFCIRCUIT NiftyCircuit(%theta) a:
+  	DECLARE ro BIT[1]
+  	MEASURE a ro[0]
+  	DEFGATE ParameterizedGate(%theta) AS MATRIX:
+  		%theta, 0, 0, 0
+  		0, %theta, 0, 0
+  		0, 0, %theta, 0
+  		0, 0, 0, %theta
+  	
+  
+  '''
+# ---
+# name: TestDefFrame.test_out[Frame-Only]
+  'DEFFRAME 0 "frame":'
+# ---
+# name: TestDefFrame.test_out[Frame-Only].1
+  set({
+  })
+# ---
+# name: TestDefFrame.test_out[With-Optionals]
+  'DEFFRAME 1 "frame":'
+# ---
+# name: TestDefFrame.test_out[With-Optionals].1
+  set({
+    '\tCENTER-FREQUENCY: 440',
+    '\tDIRECTION: "direction"',
+    '\tHARDWARE-OBJECT: "hardware_object"',
+    '\tINITIAL-FREQUENCY: 1.39',
+    '\tSAMPLE-RATE: 44.1',
+  })
+# ---
+# name: TestDefFrame.test_str[Frame-Only]
+  'DEFFRAME 0 "frame":'
+# ---
+# name: TestDefFrame.test_str[Frame-Only].1
+  set({
+  })
+# ---
+# name: TestDefFrame.test_str[With-Optionals]
+  'DEFFRAME 1 "frame":'
+# ---
+# name: TestDefFrame.test_str[With-Optionals].1
+  set({
+    '\tCENTER-FREQUENCY: 440',
+    '\tDIRECTION: "direction"',
+    '\tHARDWARE-OBJECT: "hardware_object"',
+    '\tINITIAL-FREQUENCY: 1.39',
+    '\tSAMPLE-RATE: 44.1',
+  })
+# ---
+# name: TestDefGate.test_get_constructor[No-Params]
+  'NoParamGate 123'
+# ---
+# name: TestDefGate.test_get_constructor[Params]
+  'ParameterizedGate(%theta) 123'
+# ---
+# name: TestDefGate.test_out[No-Params]
+  '''
+  DEFGATE NoParamGate AS MATRIX:
+  	1, 0, 0, 0
+  	0, 1, 0, 0
+  	0, 0, 1, 0
+  	0, 0, 0, 1
+  
+  '''
+# ---
+# name: TestDefGate.test_out[Params]
+  '''
+  DEFGATE ParameterizedGate(%X) AS MATRIX:
+  	%X, 0, 0, 0
+  	0, %X, 0, 0
+  	0, 0, %X, 0
+  	0, 0, 0, %X
+  
+  '''
+# ---
+# name: TestDefGate.test_str[No-Params]
+  '''
+  DEFGATE NoParamGate AS MATRIX:
+  	1, 0, 0, 0
+  	0, 1, 0, 0
+  	0, 0, 1, 0
+  	0, 0, 0, 1
+  
+  '''
+# ---
+# name: TestDefGate.test_str[Params]
+  '''
+  DEFGATE ParameterizedGate(%X) AS MATRIX:
+  	%X, 0, 0, 0
+  	0, %X, 0, 0
+  	0, 0, %X, 0
+  	0, 0, 0, %X
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_get_constructor[DefaultWithParams]
+  'PauliGate(%theta) 123'
+# ---
+# name: TestDefGateByPaulis.test_get_constructor[Default]
+  'PauliGate 123'
+# ---
+# name: TestDefGateByPaulis.test_get_constructor[WithSumAndParams]
+  'PauliGate(%theta) 123'
+# ---
+# name: TestDefGateByPaulis.test_get_constructor[WithSum]
+  'PauliGate 123'
+# ---
+# name: TestDefGateByPaulis.test_out[DefaultWithParams]
+  '''
+  DEFGATE PauliGate(%theta) p AS PAULI-SUM:
+  	(0)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_out[Default]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	(0)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_out[WithSumAndParams]
+  '''
+  DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
+  	Z(1*%theta) p
+  	Y(2) p
+  	X(3) q
+  	(3)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_out[WithSum]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	Y(2) p
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[DefaultWithParams]
+  '''
+  DEFGATE PauliGate(%theta) p AS PAULI-SUM:
+  	(0)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[Default]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	(0)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[WithSumAndParams]
+  '''
+  DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
+  	Z(1*%theta) p
+  	Y(2) p
+  	X(3) q
+  	(3)
+  
+  '''
+# ---
+# name: TestDefGateByPaulis.test_str[WithSum]
+  '''
+  DEFGATE PauliGate p AS PAULI-SUM:
+  	Y(2) p
+  
+  '''
+# ---
+# name: TestDefMeasureCalibration.test_out[qubit0-memory_reference0-instrs0]
+  '''
+  DEFCAL MEASURE 0 theta:
+  	X 0
+  
+  '''
+# ---
+# name: TestDefPermutationGate.test_get_constructor[PermGate-permutation0]
+  'PermGate 123'
+# ---
+# name: TestDefPermutationGate.test_out[PermGate-permutation0]
+  '''
+  DEFGATE PermGate AS PERMUTATION:
+  	4, 3, 2, 1
+  
+  '''
+# ---
+# name: TestDefPermutationGate.test_str[PermGate-permutation0]
+  '''
+  DEFGATE PermGate AS PERMUTATION:
+  	4, 3, 2, 1
+  
+  '''
+# ---
+# name: TestDefWaveform.test_out[No-Params-Entries]
+  '''
+  DEFWAVEFORM Wavey:
+  	
+  '''
+# ---
+# name: TestDefWaveform.test_out[With-Param]
+  '''
+  DEFWAVEFORM Wavey(%x):
+  	%x
+  '''
+# ---
+# name: TestDefWaveform.test_out[With-Params-Complex]
+  '''
+  DEFWAVEFORM Wavey(%x, %y):
+  	1+2.0i, %x, 3*%y
+  '''
+# ---
+# name: TestDelayFrames.test_out[frames0-5.0]
+  'DELAY 0 "frame" 5'
+# ---
+# name: TestDelayQubits.test_out[FormalArgument]
+  'DELAY a 2.5'
+# ---
+# name: TestDelayQubits.test_out[Qubit]
+  'DELAY 0 5'
+# ---
+# name: TestFence.test_out[FormalArgument]
+  'FENCE a'
+# ---
+# name: TestFence.test_out[Qubit]
+  'FENCE 0'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0]
+  'SET-FREQUENCY 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0].1
+  'SET-PHASE 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0].2
+  'SHIFT-FREQUENCY 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0].3
+  'SHIFT-PHASE 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame0-5.0].4
+  'SET-SCALE 1 "FRAMEX" 5'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1]
+  'SET-FREQUENCY 2 "FRAMEX" ro[0]'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1].1
+  'SET-PHASE 2 "FRAMEX" ro[0]'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1].2
+  'SHIFT-FREQUENCY 2 "FRAMEX" ro[0]'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1].3
+  'SHIFT-PHASE 2 "FRAMEX" ro[0]'
+# ---
+# name: TestFrameMutations.test_out[frame1-expression1].4
+  'SET-SCALE 2 "FRAMEX" ro[0]'
+# ---
+# name: TestGate.test_controlled_modifier[CPHASE-Expression]
+  'CONTROLLED CPHASE(1.5707963267948966) 5 0 1'
+# ---
+# name: TestGate.test_controlled_modifier[RZ-MemoryReference-Expression]
+  'CONTROLLED RZ(alpha[0] - beta[0]) 5 0'
+# ---
+# name: TestGate.test_controlled_modifier[RZ-MemoryReference]
+  'CONTROLLED RZ(theta[0]) 5 0'
+# ---
+# name: TestGate.test_controlled_modifier[X-Gate]
+  'CONTROLLED X 5 0'
+# ---
+# name: TestGate.test_dagger_modifier[CPHASE-Expression]
+  'DAGGER CPHASE(1.5707963267948966) 0 1'
+# ---
+# name: TestGate.test_dagger_modifier[RZ-MemoryReference-Expression]
+  'DAGGER RZ(alpha[0] - beta[0]) 0'
+# ---
+# name: TestGate.test_dagger_modifier[RZ-MemoryReference]
+  'DAGGER RZ(theta[0]) 0'
+# ---
+# name: TestGate.test_dagger_modifier[X-Gate]
+  'DAGGER X 0'
+# ---
+# name: TestGate.test_forked_modifier[CPHASE-Expression]
+  'FORKED CPHASE(1.5707963267948966, 0) 5 0 1'
+# ---
+# name: TestGate.test_forked_modifier[RZ-MemoryReference-Expression]
+  'FORKED RZ(alpha[0] - beta[0], 0) 5 0'
+# ---
+# name: TestGate.test_forked_modifier[RZ-MemoryReference]
+  'FORKED RZ(theta[0], 0) 5 0'
+# ---
+# name: TestGate.test_forked_modifier[X-Gate]
+  'FORKED X 5 0'
+# ---
+# name: TestGate.test_repr[CPHASE-Expression]
+  'Gate { name: "CPHASE", parameters: [Number(Complex { re: 1.5707963267948966, im: 0.0 })], qubits: [Fixed(0), Fixed(1)], modifiers: [] }'
+# ---
+# name: TestGate.test_repr[RZ-MemoryReference-Expression]
+  'Gate { name: "RZ", parameters: [Infix(InfixExpression { left: Address(MemoryReference { name: "alpha", index: 0 }), operator: Minus, right: Address(MemoryReference { name: "beta", index: 0 }) })], qubits: [Fixed(0)], modifiers: [] }'
+# ---
+# name: TestGate.test_repr[RZ-MemoryReference]
+  'Gate { name: "RZ", parameters: [Address(MemoryReference { name: "theta", index: 0 })], qubits: [Fixed(0)], modifiers: [] }'
+# ---
+# name: TestGate.test_repr[X-Gate]
+  'Gate { name: "X", parameters: [], qubits: [Fixed(0)], modifiers: [] }'
+# ---
+# name: TestGate.test_str[CPHASE-Expression]
+  'CPHASE(1.5707963267948966) 0 1'
+# ---
+# name: TestGate.test_str[RZ-MemoryReference-Expression]
+  'RZ(alpha[0] - beta[0]) 0'
+# ---
+# name: TestGate.test_str[RZ-MemoryReference]
+  'RZ(theta[0]) 0'
+# ---
+# name: TestGate.test_str[X-Gate]
+  'X 0'
+# ---
+# name: TestLogicalBinaryOp.test_out[AND-left0-right0]
+  'AND a[0] b[0]'
+# ---
+# name: TestLogicalBinaryOp.test_out[IOR-left1-1]
+  'IOR b[1] 1'
+# ---
+# name: TestLogicalBinaryOp.test_out[XOR-left2-2]
+  'XOR c[2] 2'
+# ---
+# name: TestMeasurement.test_out[MemoryReference]
+  'MEASURE 1 theta[0]'
+# ---
+# name: TestMeasurement.test_out[No-MemoryReference]
+  'MEASURE 0'
+# ---
+# name: TestMeasurement.test_str[MemoryReference]
+  'MEASURE 1 theta[0]'
+# ---
+# name: TestMeasurement.test_str[No-MemoryReference]
+  'MEASURE 0'
+# ---
+# name: TestPragma.test_out[Command-Only]
+  'PRAGMA NO-NOISE'
+# ---
+# name: TestPragma.test_out[With-Arg-And-String]
+  'PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"'
+# ---
+# name: TestPragma.test_out[With-Arg]
+  'PRAGMA DOES-A-THING 0 b'
+# ---
+# name: TestPragma.test_out[With-String]
+  'PRAGMA INITIAL_REWIRING "GREEDY"'
+# ---
+# name: TestPragma.test_str[Command-Only]
+  'PRAGMA NO-NOISE'
+# ---
+# name: TestPragma.test_str[With-Arg-And-String]
+  'PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"'
+# ---
+# name: TestPragma.test_str[With-Arg]
+  'PRAGMA DOES-A-THING 0 b'
+# ---
+# name: TestPragma.test_str[With-String]
+  'PRAGMA INITIAL_REWIRING "GREEDY"'
+# ---
+# name: TestPulse.test_out[Blocking]
+  'PULSE 123 q "FRAMEX" WAVEFORMY'
+# ---
+# name: TestPulse.test_out[FlatWaveform]
+  'NONBLOCKING PULSE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2.0i)'
+# ---
+# name: TestPulse.test_out[NonBlocking]
+  'NONBLOCKING PULSE 123 q "FRAMEX" WAVEFORMY'
+# ---
+# name: TestRawCapture.test_out[Blocking]
+  'RAW-CAPTURE 123 q "FRAMEX" 0.5 ro[0]'
+# ---
+# name: TestRawCapture.test_out[FlatWaveform]
+  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 ro[0]'
+# ---
+# name: TestRawCapture.test_out[NonBlocking]
+  'NONBLOCKING RAW-CAPTURE 123 q "FRAMEX" 2.5 ro[0]'
+# ---
+# name: TestReset.test_out[FormalArgument]
+  'RESET a'
+# ---
+# name: TestReset.test_out[None]
+  'RESET'
+# ---
+# name: TestReset.test_out[Qubit]
+  'RESET 0'
+# ---
+# name: TestReset.test_str[FormalArgument]
+  'RESET a'
+# ---
+# name: TestReset.test_str[None]
+  'RESET'
+# ---
+# name: TestReset.test_str[Qubit]
+  'RESET 0'
+# ---
+# name: TestSwapPhases.test_out[frame_a0-frame_b0]
+  'SWAP-PHASES 1 "FRAMEX" 2 "FRAMEX"'
+# ---
+# name: TestUnaryClassicalInstruction.test_out[NEG-target0]
+  'NEG a[0]'
+# ---
+# name: TestUnaryClassicalInstruction.test_out[NEG-target2]
+  'NEG c[2]'
+# ---
+# name: TestUnaryClassicalInstruction.test_out[NOT-target1]
+  'NOT b[1]'
+# ---

@@ -1,141 +1,82 @@
-from copy import copy
-from dataclasses import dataclass
-from numbers import Complex, Real
-from typing import Callable, Dict, Union, List, Optional, no_type_check
+from typing import Optional
+from typing_extensions import Self
+from warnings import warn
 
+from deprecated.sphinx import deprecated
 import numpy as np
 from scipy.special import erf
 
-from pyquil.quilatom import TemplateWaveform, _update_envelope, _complex_str, Expression, substitute
+from pyquil.quilatom import (
+    TemplateWaveform,
+    _update_envelope,
+    _template_waveform_property,
+)
 
-_waveform_classes: Dict[str, type] = {}
-"""A mapping from Quil-T waveform names to their corresponding classes.
-
-This should not be mutated directly, but rather filled by the @waveform
-decorator.
-"""
-
-
-def waveform(name: str) -> Callable[[type], type]:
-    """Define a Quil-T wavefom with the given name."""
-
-    def wrap(cls: type) -> type:
-        cls: type = dataclass(cls)
-        _waveform_classes[name] = cls
-        return cls
-
-    return wrap
+warn(
+    DeprecationWarning("The quiltwaveforms module is deprecated. Use quilatom.WaveformInvocation instead."),
+    category=DeprecationWarning,
+    stacklevel=2,
+)
 
 
-@no_type_check
-def _wf_from_dict(name: str, params: Dict[str, Union[Expression, Real, Complex]]) -> TemplateWaveform:
-    """Construct a TemplateWaveform from a name and a dictionary of properties.
-
-    :param name: The Quil-T name of the template.
-    :param params: A mapping from parameter names to their corresponding values.
-    :returns: A template waveform.
-    """
-    params = copy(params)
-    if name not in _waveform_classes:
-        raise ValueError(f"Unknown template waveform {name}.")
-    cls = _waveform_classes[name]
-    fields = getattr(cls, "__dataclass_fields__", {})
-
-    for param, value in params.items():
-        if param not in fields:
-            raise ValueError(f"Unexpected parameter '{param}' in {name}.")
-
-        if isinstance(value, Expression):
-            value = substitute(value, {})
-
-        if isinstance(value, Real):
-            # normalize to float
-            params[param] = float(value)
-        elif isinstance(value, Complex):
-            # no normalization needed
-            pass
-        else:
-            raise ValueError(f"Unable to resolve parameter '{param}' in template {name} to a constant value.")
-
-    for field, spec in fields.items():
-        if field not in params and spec.default is not None:
-            raise ValueError(f"Missing parameter '{field}' in {name}.")
-
-    return cls(**params)
-
-
-def _optional_field_strs(wf: TemplateWaveform) -> List[str]:
-    """Get the printed representations of optional template parameters."""
-    result = []
-    for field, spec in getattr(wf, "__dataclass_fields__", {}).items():
-        if spec.default is None:
-            value = getattr(wf, field, None)
-            if value is not None:
-                result.append(f"{field}: {value}")
-    return result
-
-
-@waveform("flat")
+@deprecated(
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class FlatWaveform(TemplateWaveform):
     """
     A flat (constant) waveform.
     """
 
-    iq: Complex
-    """ A raw IQ value. """
+    def __new__(
+        cls,
+        duration: float,
+        iq: complex,
+        scale: Optional[float] = None,
+        phase: Optional[float] = None,
+        detuning: Optional[float] = None,
+    ) -> Self:
+        return super().__new__(cls, "flat", duration=duration, iq=iq, scale=scale, phase=phase, detuning=detuning)
 
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
-
-    def out(self) -> str:
-        output = "flat("
-        output += ", ".join([f"duration: {self.duration}", f"iq: {_complex_str(self.iq)}"] + _optional_field_strs(self))
-        output += ")"
-        return output
-
-    def __str__(self) -> str:
-        return self.out()
+    iq = _template_waveform_property("iq", doc="A raw IQ value.")
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         iqs = np.full(self.num_samples(rate), self.iq, dtype=np.complex128)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
-@waveform("gaussian")
+@deprecated(
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class GaussianWaveform(TemplateWaveform):
     """A Gaussian pulse."""
 
-    fwhm: float
-    """ The Full-Width-Half-Max of the Gaussian (seconds). """
-
-    t0: float
-    """ The center time coordinate of the Gaussian (seconds). """
-
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
-
-    def out(self) -> str:
-        output = "gaussian("
-        output += ", ".join(
-            [f"duration: {self.duration}", f"fwhm: {self.fwhm}", f"t0: {self.t0}"] + _optional_field_strs(self)
+    def __new__(
+        cls,
+        duration: float,
+        fwhm: float,
+        t0: float,
+        scale: Optional[float] = None,
+        phase: Optional[float] = None,
+        detuning: Optional[float] = None,
+    ) -> Self:
+        return super().__new__(
+            cls, "gaussian", duration=duration, fwhm=fwhm, t0=t0, scale=scale, phase=phase, detuning=detuning
         )
-        output += ")"
-        return output
 
-    def __str__(self) -> str:
-        return self.out()
+    fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the Gaussian (seconds).", dtype=float)
+
+    t0 = _template_waveform_property("t0", doc="The center time coordinate of the Gaussian (seconds).", dtype=float)
+
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
+
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
+
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
@@ -144,48 +85,50 @@ class GaussianWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
-@waveform("drag_gaussian")
+@deprecated(
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class DragGaussianWaveform(TemplateWaveform):
     """A DRAG Gaussian pulse."""
 
-    fwhm: float
-    """ The Full-Width-Half-Max of the gaussian (seconds). """
-
-    t0: float
-    """ The center time coordinate of the Gaussian (seconds). """
-
-    anh: float
-    """ The anharmonicity of the qubit, f01-f12 (Hertz). """
-
-    alpha: float
-    """ Dimensionles DRAG parameter. """
-
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
-
-    def out(self) -> str:
-        output = "drag_gaussian("
-        output += ", ".join(
-            [
-                f"duration: {self.duration}",
-                f"fwhm: {self.fwhm}",
-                f"t0: {self.t0}",
-                f"anh: {self.anh}",
-                f"alpha: {self.alpha}",
-            ]
-            + _optional_field_strs(self)
+    def __new__(
+        cls,
+        duration: float,
+        fwhm: float,
+        t0: float,
+        anh: float,
+        alpha: float,
+        scale: Optional[float] = None,
+        phase: Optional[float] = None,
+        detuning: Optional[float] = None,
+    ) -> Self:
+        return super().__new__(
+            cls,
+            "drag_gaussian",
+            duration=duration,
+            fwhm=fwhm,
+            t0=t0,
+            anh=anh,
+            alpha=alpha,
+            scale=scale,
+            phase=phase,
+            detuning=detuning,
         )
-        output += ")"
-        return output
 
-    def __str__(self) -> str:
-        return self.out()
+    fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the gaussian (seconds).", dtype=float)
+
+    t0 = _template_waveform_property("t0", doc="The center time coordinate of the Gaussian (seconds).", dtype=float)
+
+    anh = _template_waveform_property("anh", doc="The anharmonicity of the qubit, f01-f12 (Hertz).", dtype=float)
+
+    alpha = _template_waveform_property("alpha", doc="Dimensionles DRAG parameter.", dtype=float)
+
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
+
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
+
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
@@ -196,7 +139,10 @@ class DragGaussianWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
-@waveform("hrm_gaussian")
+@deprecated(
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class HrmGaussianWaveform(TemplateWaveform):
     """A Hermite Gaussian waveform.
 
@@ -205,48 +151,49 @@ class HrmGaussianWaveform(TemplateWaveform):
         10.1063/1.447644
     """
 
-    fwhm: float
-    """ The Full-Width-Half-Max of the Gaussian (seconds). """
-
-    t0: float
-    """ The center time coordinate of the Gaussian (seconds). """
-
-    anh: float
-    """ The anharmonicity of the qubit, f01-f12 (Hertz). """
-
-    alpha: float
-    """ Dimensionles DRAG parameter. """
-
-    second_order_hrm_coeff: float
-    """ Second order coefficient (see Warren 1984). """
-
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
-
-    def out(self) -> str:
-        output = "hrm_gaussian("
-        output += ", ".join(
-            [
-                f"duration: {self.duration}",
-                f"fwhm: {self.fwhm}",
-                f"t0: {self.t0}",
-                f"anh: {self.anh}",
-                f"alpha: {self.alpha}",
-                f"second_order_hrm_coeff: {self.second_order_hrm_coeff}",
-            ]
-            + _optional_field_strs(self)
+    def __new__(
+        cls,
+        duration: float,
+        fwhm: float,
+        t0: float,
+        anh: float,
+        alpha: float,
+        second_order_hrm_coeff: float,
+        scale: Optional[float] = None,
+        phase: Optional[float] = None,
+        detuning: Optional[float] = None,
+    ) -> Self:
+        return super().__new__(
+            cls,
+            "hrm_gaussian",
+            duration=duration,
+            fwhm=fwhm,
+            t0=t0,
+            anh=anh,
+            second_order_hrm_coeff=second_order_hrm_coeff,
+            alpha=alpha,
+            scale=scale,
+            phase=phase,
+            detuning=detuning,
         )
-        output += ")"
-        return output
 
-    def __str__(self) -> str:
-        return self.out()
+    fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the Gaussian (seconds).", dtype=float)
+
+    t0 = _template_waveform_property("t0", doc="The center time coordinate of the Gaussian (seconds).", dtype=float)
+
+    anh = _template_waveform_property("anh", doc="The anharmonicity of the qubit, f01-f12 (Hertz).", dtype=float)
+
+    alpha = _template_waveform_property("alpha", doc="Dimensionles DRAG parameter.", dtype=float)
+
+    second_order_hrm_coeff = _template_waveform_property(
+        "second_order_hrm_coeff", doc="Second order coefficient (see Warren 1984).", dtype=float
+    )
+
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
+
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
+
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
@@ -266,42 +213,52 @@ class HrmGaussianWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
-@waveform("erf_square")
+@deprecated(
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class ErfSquareWaveform(TemplateWaveform):
     """A pulse with a flat top and edges that are error functions (erf)."""
 
-    risetime: float
-    """ The width of each of the rise and fall sections of the pulse (seconds). """
-    pad_left: float
-    """ Amount of zero-padding to add to the left of the pulse (seconds)."""
-    pad_right: float
-    """ Amount of zero-padding to add to the right of the pulse (seconds). """
-
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
-
-    def out(self) -> str:
-        output = "erf_square("
-        output += ", ".join(
-            [
-                f"duration: {self.duration}",
-                f"risetime: {self.risetime}",
-                f"pad_left: {self.pad_left}",
-                f"pad_right: {self.pad_right}",
-            ]
-            + _optional_field_strs(self)
+    def __new__(
+        cls,
+        duration: float,
+        risetime: float,
+        pad_left: float,
+        pad_right: float,
+        scale: Optional[float] = None,
+        phase: Optional[float] = None,
+        detuning: Optional[float] = None,
+    ) -> Self:
+        return super().__new__(
+            cls,
+            "erf_square",
+            duration=duration,
+            risetime=risetime,
+            pad_left=pad_left,
+            pad_right=pad_right,
+            scale=scale,
+            phase=phase,
+            detuning=detuning,
         )
-        output += ")"
-        return output
 
-    def __str__(self) -> str:
-        return self.out()
+    risetime = _template_waveform_property(
+        "risetime", doc="The width of each of the rise and fall sections of the pulse (seconds).", dtype=float
+    )
+
+    pad_left = _template_waveform_property(
+        "pad_left", doc="Amount of zero-padding to add to the left of the pulse (seconds)", dtype=float
+    )
+
+    pad_right = _template_waveform_property(
+        "pad_right", doc="Amount of zero-padding to add to the right of the pulse (seconds).", dtype=float
+    )
+
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
+
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
+
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
@@ -316,25 +273,25 @@ class ErfSquareWaveform(TemplateWaveform):
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
-@waveform("boxcar_kernel")
+@deprecated(
+    version="4.0",
+    reason="The TemplateWaveform class and its subclasses will be removed, consider using WaveformInvocation instead.",
+)
 class BoxcarAveragerKernel(TemplateWaveform):
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
+    def __new__(
+        cls,
+        duration: float,
+        scale: Optional[float] = None,
+        phase: Optional[float] = None,
+        detuning: Optional[float] = None,
+    ) -> Self:
+        return super().__new__(cls, "boxcar_kernel", duration=duration, scale=scale, phase=phase, detuning=detuning)
 
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
+    scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
 
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
+    phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
 
-    def out(self) -> str:
-        output = "boxcar_kernel("
-        output += ", ".join([f"duration: {self.duration}"] + _optional_field_strs(self))
-        output += ")"
-        return output
-
-    def __str__(self) -> str:
-        return self.out()
+    detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
         n = self.num_samples(rate)

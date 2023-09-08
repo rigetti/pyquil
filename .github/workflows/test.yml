@@ -163,6 +163,34 @@ jobs:
           thresholdNew: 0.9
           token:  ${{ secrets.PAT }}
 
+  check-docker-image:
+    name: Check types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
+      - name: Check types
+        run: |
+          sudo apt update
+          pip wheel . -w wheels
+      - name: Build and Test
+        uses: docker/build-push-action@v4
+        with:
+          file: Dockerfile.test
+          context: .
+          load: true
+          tags: test
+      - name: Test Image
+        run: |
+          docker run --rm test python -c "from pyquil import get_qc"
+
   test-e2e:
     name: Test e2e QVM
     runs-on: ubuntu-latest

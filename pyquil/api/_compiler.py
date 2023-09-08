@@ -26,7 +26,6 @@ from qcs_sdk.compiler.quilc import RPCQClient
 from rpcq.messages import ParameterSpec
 
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
-from pyquil.parser import parse_program
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
@@ -129,7 +128,7 @@ class QPUCompiler(AbstractCompiler):
         response = get_quilt_calibrations(
             quantum_processor_id=self.quantum_processor_id,
         )
-        return parse_program(response.quilt)
+        return Program(response.quilt)
 
     def get_calibration_program(self, force_refresh: bool = False) -> Program:
         """

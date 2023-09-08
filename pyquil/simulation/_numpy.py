@@ -152,7 +152,7 @@ def _get_gate_tensor_and_qubits(gate: Gate) -> Tuple[np.ndarray, List[int]]:
     else:
         matrix = QUANTUM_GATES[gate.name]
 
-    qubit_inds = [q.index for q in gate.qubits]
+    qubit_inds = gate.get_qubit_indices()
 
     # e.g. 2-qubit matrix is 4x4; turns into (2,2,2,2) tensor.
     tensor = np.reshape(matrix, (2,) * len(qubit_inds) * 2)

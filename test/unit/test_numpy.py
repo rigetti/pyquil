@@ -190,8 +190,6 @@ def test_expectation_vs_ref_qvm(n_qubits):
     for _ in range(20):
         prog = _generate_random_program(n_qubits=n_qubits, length=10)
         operator = _generate_random_pauli(n_qubits=n_qubits, n_terms=5)
-        print(prog)
-        print(operator)
 
         ref_wf = ReferenceWavefunctionSimulator(n_qubits=n_qubits).do_program(prog)
         ref_exp = ref_wf.expectation(operator=operator)

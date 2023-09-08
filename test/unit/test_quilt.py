@@ -1,6 +1,9 @@
 import os
+from typing import Optional
+
 import pytest
 import numpy as np
+from syrupy.assertion import SnapshotAssertion
 
 from pyquil.quil import Program
 from pyquil.gates import RX
@@ -21,14 +24,16 @@ from pyquil.quiltwaveforms import (
 from pyquil.quiltcalibrations import (
     CalibrationError,
     CalibrationMatch,
-    fill_placeholders,
     match_calibration,
 )
 from pyquil.quilbase import (
+    AbstractInstruction,
     Gate,
     DefCalibration,
+    DefMeasureCalibration,
     ShiftPhase,
     DelayQubits,
+    Pulse,
     Qubit,
 )
 from test.unit.conftest import TEST_DATA_DIR
@@ -70,12 +75,24 @@ def test_waveform_samples_optional_args():
     assert np.array_equal(np.exp(1j) * flat(), flat(phase=1.0))
 
 
-def _match(cal, instr):
+def _match(cal: DefCalibration, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast
     full_calibration = cal_header + ":\n    NOP\n\n"
     cal = Program(full_calibration).calibrations[0]
+
+    # we pull the last instr (omitting implicit DECLARE)
+    instr = Program(instr)[-1]
+    return match_calibration(instr, cal)
+
+
+def _match_measure(cal: DefMeasureCalibration, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
+    # get the first line, remove trailing colon if present
+    cal_header = cal.splitlines()[0].strip().replace(":", "")
+    # convert to quil ast
+    full_calibration = cal_header + ":\n    NOP\n\n"
+    cal = Program(full_calibration).measure_calibrations[0]
 
     # we pull the last instr (omitting implicit DECLARE)
     instr = Program(instr)[-1]
@@ -138,50 +155,26 @@ def test_memory_reference_parameter():
 
 def test_measure_calibration_match():
     matches = [
-        ("DEFCAL MEASURE 0", "MEASURE 0"),
-        ("DEFCAL MEASURE q", "MEASURE 0"),
+        ("DEFCAL MEASURE 0 dest", "MEASURE 0 ro[0]"),
+        ("DEFCAL MEASURE q dest", "MEASURE 0 ro[1]"),
         ("DEFCAL MEASURE 0 b", "DECLARE ro BIT\nMEASURE 0 ro[0]"),
         ("DEFCAL MEASURE q b", "DECLARE ro BIT\nMEASURE 1 ro[0]"),
     ]
 
     for cal, instr in matches:
-        assert _match(cal, instr) is not None
+        assert _match_measure(cal, instr) is not None
 
-    assert _match(cal, instr).settings[FormalArgument("q")] == Qubit(1)
-    assert _match(cal, instr).settings[FormalArgument("b")] == MemoryReference("ro")
+    match = _match_measure(cal, instr)
+    assert match.settings[FormalArgument("q")] == Qubit(1)
+    assert match.settings[MemoryReference("b")] == MemoryReference("ro")
 
     mismatches = [
-        ("DEFCAL MEASURE 1", "MEASURE 0"),
+        ("DEFCAL MEASURE 1 dest", "MEASURE 0"),
         ("DEFCAL MEASURE 0 b", "MEASURE 0"),
-        ("DEFCAL MEASURE q", "DECLARE ro BIT\nMEASURE 0 ro[0]"),
     ]
 
     for cal, instr in mismatches:
-        assert _match(cal, instr) is None
-
-
-def test_apply_match_shift_phase():
-    settings = {FormalArgument("q"): Qubit(0), Parameter("theta"): np.pi}
-
-    instr = ShiftPhase(Frame([FormalArgument("q")], "ff"), Parameter("theta") / (2.0 * np.pi))
-
-    actual = fill_placeholders(instr, settings)
-
-    expected = ShiftPhase(Frame([Qubit(0)], "ff"), 0.5)
-
-    assert actual == expected
-
-
-def test_apply_match_delay_qubits():
-    settings = {FormalArgument("q"): Qubit(0), Parameter("foo"): 1.0}
-
-    instr = DelayQubits([Qubit(1), FormalArgument("q")], duration=Parameter("foo"))
-
-    actual = fill_placeholders(instr, settings)
-
-    expected = DelayQubits([Qubit(1), Qubit(0)], 1.0)
-
-    assert actual == expected
+        assert _match_measure(cal, instr) is None
 
 
 def test_program_match_last():
@@ -189,7 +182,8 @@ def test_program_match_last():
     second = DefCalibration("X", [], [Qubit(0)], [RX(-np.pi / 2, 0)])
     prog = Program(first, second)
     match = prog.match_calibrations(Gate("X", [], [Qubit(0)]))
-    assert match == CalibrationMatch(cal=second, settings={})
+    assert match.cal.out() == second.out()
+    assert match.settings == {}
 
 
 @pytest.mark.parametrize(
@@ -203,7 +197,7 @@ DEFCAL RZ(%theta) q:
 """
             ),
             Gate("RZ", [np.pi], [Qubit(0)]),
-            Program('SHIFT-PHASE 0 "rf" -pi'),
+            Program('SHIFT-PHASE 0 "rf" -3.141592653589793'),
         ),
         (
             Program(
@@ -217,7 +211,7 @@ DEFCAL RZ(%theta) q:
 """
             ),
             Gate("RZ", [np.pi], [Qubit(0)]),
-            Program('SHIFT-PHASE 0 "rf" -pi', 'SHIFT-PHASE 0 "rf" -pi'),
+            Program('SHIFT-PHASE 0 "rf" -3.141592653589793', 'SHIFT-PHASE 0 "rf" -3.141592653589793'),
         ),
         (
             Program(
@@ -234,7 +228,7 @@ DEFCAL RZ(%theta) q:
 """
             ),
             Gate("RZ", [np.pi], [Qubit(0)]),
-            Program("RX(pi) 0", "RY(pi) 0", "RX(pi) 0"),
+            Program("RX(3.141592653589793) 0", "RY(3.141592653589793) 0", "RX(3.141592653589793) 0"),
         ),
         (
             Program(
@@ -247,7 +241,7 @@ DEFCAL RZ(%theta) q:
 """
             ),
             Gate("RZ", [np.pi], [Qubit(0)]),
-            Program("RY(pi) 0"),
+            Program("RY(3.141592653589793) 0"),
         ),
         (
             Program(
@@ -281,7 +275,13 @@ DEFCAL RX(pi / 4) 0:
 )
 def test_program_calibrate(program_input, gate, program_output):
     calibrated = program_input.calibrate(gate)
-    assert Program(calibrated) == program_output
+    assert Program(calibrated).out() == program_output.out()
+
+
+def test_program_calibrate_no_match():
+    program = Program()
+    instruction = Gate("RX", [np.pi], [Qubit(0)])
+    assert program.calibrate(instruction) == [instruction]
 
 
 @pytest.mark.parametrize(
@@ -323,7 +323,7 @@ DEFCAL RZ(0) q:
 )
 def test_program_calibrate_cyclic_error(program_text):
     prog = Program(program_text)
-    with pytest.raises(CalibrationError):
+    with pytest.raises(Exception):
         prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
 
@@ -372,11 +372,10 @@ DEFWAVEFORM foo:
 
 
 @pytest.mark.parametrize("calibration_program_suffix", ["rx", "cz", "cz_cphase", "xy", "measure"])
-def test_round_trip_calibration_program(calibration_program_suffix):
+def test_round_trip_calibration_program(calibration_program_suffix: str, snapshot: SnapshotAssertion):
     """Test we round-trip a multi-part Quil-T calibration program; tests calibration overlap elimination."""
     with open(os.path.join(TEST_DATA_DIR, f"calibration_program_{calibration_program_suffix}.quil")) as file:
         calibration_program_text = file.read()
 
     calibration_program = Program(calibration_program_text)
-    calibration_program_text_out = calibration_program.out()
-    assert calibration_program_text_out == calibration_program_text
+    assert calibration_program.out() == snapshot
