@@ -30,7 +30,7 @@ from qcs_sdk.compiler.quilc import (
     RandomizedBenchmarkingRequest,
     GenerateRandomizedBenchmarkingSequenceResponse,
     NativeQuilMetadata,
-    RPCQClient,
+    QuilcClient,
 )
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
@@ -110,7 +110,7 @@ class CompilerClient:
         *,
         client_configuration: QCSClient,
         request_timeout: float = 10.0,
-        quilc_client: Optional[RPCQClient] = None,
+        quilc_client: Optional[QuilcClient] = None,
     ) -> None:
         """
         Instantiate a new compiler client.
@@ -124,8 +124,8 @@ class CompilerClient:
             raise ValueError(f"Expected compiler URL '{base_url}' to start with 'tcp://'")
 
         if quilc_client is None:
-            self.quilc_client = RPCQClient(base_url)
-        elif isinstance(quilc_client, RPCQClient):
+            self.quilc_client = QuilcClient.new_rpcq(base_url)
+        elif isinstance(quilc_client, QuilcClient):
             self.quilc_client = quilc_client
         else:
             raise TypeError(f"Unsupported type for Quilc client: {quilc_client}")

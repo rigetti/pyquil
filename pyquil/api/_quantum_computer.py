@@ -36,7 +36,7 @@ import numpy as np
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu import list_quantum_processors
-from qcs_sdk.compiler.quilc import RPCQClient
+from qcs_sdk.compiler.quilc import QuilcClient
 from qcs_sdk.qvm import QVMHTTPClient
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
@@ -523,7 +523,7 @@ def _get_qvm_qc(
     compiler_timeout: float,
     execution_timeout: float,
     noise_model: Optional[NoiseModel],
-    quilc_client: Optional[RPCQClient] = None,
+    quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMHTTPClient] = None,
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
@@ -567,7 +567,7 @@ def _get_qvm_with_topology(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    quilc_client: Optional[RPCQClient] = None,
+    quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMHTTPClient] = None,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
@@ -613,7 +613,7 @@ def _get_9q_square_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    quilc_client: Optional[RPCQClient] = None,
+    quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMHTTPClient] = None,
 ) -> QuantumComputer:
     """
@@ -653,7 +653,7 @@ def _get_unrestricted_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    quilc_client: Optional[RPCQClient] = None,
+    quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMHTTPClient] = None,
 ) -> QuantumComputer:
     """
@@ -693,7 +693,7 @@ def _get_qvm_based_on_real_quantum_processor(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    quilc_client: Optional[RPCQClient] = None,
+    quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMHTTPClient] = None,
 ) -> QuantumComputer:
     """
@@ -737,7 +737,7 @@ def get_qc(
     execution_timeout: float = 30.0,
     client_configuration: Optional[QCSClient] = None,
     endpoint_id: Optional[str] = None,
-    quilc_client: Optional[RPCQClient] = None,
+    quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMHTTPClient] = None,
 ) -> QuantumComputer:
     """

@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import json
 
 from qcs_sdk import QCSClient
-from qcs_sdk.compiler.quilc import compile_program, TargetDevice, CompilerOpts, RPCQClient
+from qcs_sdk.compiler.quilc import compile_program, TargetDevice, CompilerOpts, QuilcClient
 
 from pyquil._version import pyquil_version
 from pyquil.api._compiler_client import CompilerClient
@@ -78,7 +78,7 @@ class AbstractCompiler(ABC):
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
         client_configuration: Optional[QCSClient] = None,
-        quilc_client: Optional[RPCQClient] = None,
+        quilc_client: Optional[QuilcClient] = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
