@@ -30,6 +30,7 @@ from qcs_sdk.compiler.quilc import (
     RandomizedBenchmarkingRequest,
     GenerateRandomizedBenchmarkingSequenceResponse,
     NativeQuilMetadata,
+    QuilcClient,
 )
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
@@ -109,6 +110,7 @@ class CompilerClient:
         *,
         client_configuration: QCSClient,
         request_timeout: float = 10.0,
+        quilc_client: Optional[QuilcClient] = None,
     ) -> None:
         """
         Instantiate a new compiler client.
@@ -121,6 +123,13 @@ class CompilerClient:
         if not base_url.startswith("tcp://"):
             raise ValueError(f"Expected compiler URL '{base_url}' to start with 'tcp://'")
 
+        if quilc_client is None:
+            self.quilc_client = QuilcClient.new_rpcq(base_url)
+        elif isinstance(quilc_client, QuilcClient):
+            self.quilc_client = quilc_client
+        else:
+            raise TypeError(f"Unsupported type for Quilc client: {quilc_client}")
+
         self.base_url = base_url
         self.timeout = request_timeout
 
@@ -129,7 +138,7 @@ class CompilerClient:
         Get version info for compiler server.
         """
 
-        return get_version_info(client=self._client_configuration)
+        return get_version_info(client=self.quilc_client)
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """
@@ -141,7 +150,7 @@ class CompilerClient:
         result = compile_program(
             quil=request.program,
             target=target_device,
-            client=self._client_configuration,
+            client=self.quilc_client,
             options=CompilerOpts(protoquil=request.protoquil, timeout=self.timeout),
         )
         return CompileToNativeQuilResponse(native_program=result.program, metadata=result.native_quil_metadata)
@@ -150,7 +159,7 @@ class CompilerClient:
         """
         Conjugate a Pauli element by a Clifford element.
         """
-        return conjugate_pauli_by_clifford(request=request, client=self._client_configuration)
+        return conjugate_pauli_by_clifford(request=request, client=self.quilc_client)
 
     def generate_randomized_benchmarking_sequence(
         self, request: RandomizedBenchmarkingRequest
@@ -158,4 +167,4 @@ class CompilerClient:
         """
         Generate a randomized benchmarking sequence.
         """
-        return generate_randomized_benchmarking_sequence(request=request, client=self._client_configuration)
+        return generate_randomized_benchmarking_sequence(request=request, client=self.quilc_client)

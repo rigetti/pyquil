@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import json
 
 from qcs_sdk import QCSClient
-from qcs_sdk.compiler.quilc import compile_program, CompilerOpts, TargetDevice
+from qcs_sdk.compiler.quilc import compile_program, TargetDevice, CompilerOpts, QuilcClient
 
 from pyquil._version import pyquil_version
 from pyquil.api._compiler_client import CompilerClient
@@ -78,6 +78,7 @@ class AbstractCompiler(ABC):
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
         client_configuration: Optional[QCSClient] = None,
+        quilc_client: Optional[QuilcClient] = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
@@ -87,6 +88,7 @@ class AbstractCompiler(ABC):
         self._compiler_client = CompilerClient(
             client_configuration=self._client_configuration,
             request_timeout=timeout,
+            quilc_client=quilc_client,
         )
 
     def get_version_info(self) -> Dict[str, Any]:
@@ -111,7 +113,7 @@ class AbstractCompiler(ABC):
         result = compile_program(
             quil=program.out(calibrations=False),
             target=target_device,
-            client=self._client_configuration,
+            client=self._compiler_client.quilc_client,
             options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout),
         )
 

@@ -22,6 +22,7 @@ from qcs_sdk.qpu.translation import (
     translate,
     TranslationOptions as QPUCompilerAPIOptions,
 )
+from qcs_sdk.compiler.quilc import QuilcClient
 from rpcq.messages import ParameterSpec
 
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
@@ -76,6 +77,7 @@ class QPUCompiler(AbstractCompiler):
         timeout: float = 10.0,
         client_configuration: Optional[QCSClient] = None,
         api_options: Optional[QPUCompilerAPIOptions] = None,
+        quilc_client: Optional[QuilcClient] = None,
     ) -> None:
         """
         Instantiate a new QPU compiler client.
@@ -171,6 +173,7 @@ class QVMCompiler(AbstractCompiler):
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
         client_configuration: Optional[QCSClient] = None,
+        quilc_client: Optional[QuilcClient] = None,
     ) -> None:
         """
         Client to communicate with compiler.
@@ -183,6 +186,7 @@ class QVMCompiler(AbstractCompiler):
             quantum_processor=quantum_processor,
             timeout=timeout,
             client_configuration=client_configuration,
+            quilc_client=quilc_client,
         )
 
     def native_quil_to_executable(self, nq_program: Program, **kwargs: Any) -> QuantumExecutable:

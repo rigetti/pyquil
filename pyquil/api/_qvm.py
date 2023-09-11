@@ -17,8 +17,9 @@ from dataclasses import dataclass
 from typing import Any, Optional, Sequence, Tuple, Dict
 
 import numpy as np
+
 from qcs_sdk import QCSClient, qvm, ResultData, ExecutionData
-from qcs_sdk.qvm import QVMOptions, QVMResultData
+from qcs_sdk.qvm import QVMOptions, QVMResultData, QVMClient
 
 from pyquil._version import pyquil_version
 from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
@@ -65,7 +66,7 @@ class QVM(QAM[QVMExecuteResponse]):
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClient] = None,
+        client: Optional[QVMClient] = None,
     ) -> None:
         """
         A virtual machine that classically emulates the execution of Quil programs.
@@ -112,7 +113,11 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise TypeError("random_seed should be None or a non-negative int")
 
         self.timeout = timeout
-        self._client = client_configuration or QCSClient.load()
+
+        if client is None:
+            client = QVMClient.new_http(QCSClient.load().qvm_url)
+        self._client = client
+
         self.connect()
 
     def connect(self) -> None:
@@ -146,10 +151,10 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             trials,
             addresses,
             memory_map or {},
+            self._client,
             self.measurement_noise,
             self.gate_noise,
             self.random_seed,
-            self._client,
             options=QVMOptions(timeout_seconds=self.timeout),
         )
 

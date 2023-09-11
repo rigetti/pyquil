@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu.isa import InstructionSetArchitecture
+from qcs_sdk.qvm import QVMClient
 
 from pyquil.api import (
     QVMCompiler,
@@ -149,6 +150,11 @@ def dummy_compiler(qcs_aspen8_quantum_processor: QCSQuantumProcessor, client_con
 @pytest.fixture(scope="session")
 def client_configuration() -> QCSClient:
     return QCSClient.load()
+
+
+@pytest.fixture(scope="session")
+def qvm_client(client_configuration: QCSClient) -> QVMClient:
+    return QVMClient.new_http(client_configuration.qvm_url)
 
 
 @pytest.fixture(scope="session")
