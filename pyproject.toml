@@ -27,7 +27,7 @@ rpcq = "^3.10.0"
 pydantic = "^1.10.7"
 networkx = ">=2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
-qcs-sdk-python = { git = "https://github.com/rigetti/qcs-sdk-rust", branch = "344-quilc-clients", subdirectory = "crates/python" }
+qcs-sdk-python = "0.12.0"
 tenacity = "^8.2.2"
 types-python-dateutil = "^2.8.19"
 types-retry = "^0.9.9"
