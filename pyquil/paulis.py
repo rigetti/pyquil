@@ -36,6 +36,9 @@ from typing import (
     Union,
     cast,
 )
+from numpy.typing import NDArray
+from functools import reduce
+from scipy.linalg import expm
 
 from pyquil.quilatom import (
     QubitPlaceholder,
@@ -840,7 +843,6 @@ def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
         isAssigned_bool = False
         for p in range(m_s):  # check if it commutes with each group
             if isAssigned_bool is False:
-
                 if check_commutation(groups[p], pauli_terms.terms[j]):
                     isAssigned_bool = True
                     groups[p].append(pauli_terms.terms[j])
@@ -929,6 +931,64 @@ def exponentiate_commuting_pauli_sum(
         return Program([f(param) for f in fns])
 
     return combined_exp_wrap
+
+
+def exponentiate_pauli_sum(
+    pauli_sum: Union[PauliSum, PauliTerm],
+) -> NDArray[np.complex_]:
+    r"""
+    Exponentiates a sequence of PauliTerms, which may or may not commute. The Pauliterms must
+    have fixed (non-parametric) coefficients. The coefficients are interpreted in cycles
+    rather than radians or degrees.
+
+    e^{-i\pi\sum_i \theta_i P_i}
+
+    Thus, 1.0 corresponds to one full rotation.
+
+    To produce a CZ gate:
+
+    >>> phi = pi
+    >>> coeff = phi/(-4*pi) # -0.25
+    >>> hamiltonian = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1*PauliTerm("Z", 0) - 1*PauliTerm("Z", 1)
+    >>> exponentiate_pauli_sum(coeff*hamiltonian)
+
+    To produce the Quil XY(theta) gate, you can use:
+
+    >>> coeff = theta/(-4*pi)
+    >>> hamiltonian = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
+    >>> exponentiate_pauli_sum(coeff*hamiltonian)
+
+    A global phase is applied to the unitary such that the [0,0] element is always real.
+
+    :param pauli_sum: PauliSum to exponentiate.
+    :returns: The matrix exponetial of the PauliSum
+    """
+    if isinstance(pauli_sum, PauliTerm):
+        pauli_sum = PauliSum([pauli_sum])
+
+    pauli_matrices = {
+        "X": np.array([[0.0, 1.0], [1.0, 0.0]]),
+        "Y": np.array([[0.0, 0.0 - 1.0j], [0.0 + 1.0j, 0.0]]),
+        "Z": np.array([[1.0, 0.0], [0.0, -1.0]]),
+        "I": np.array([[1.0, 0.0], [0.0, 1.0]]),
+    }
+
+    qubits = pauli_sum.get_qubits()
+    for q in qubits:
+        assert isinstance(q, int)
+    qubits.sort()
+
+    matrices = []
+    for term in pauli_sum.terms:
+        coeff = term.coefficient
+        assert isinstance(coeff, Number)
+        qubit_paulis = {qubit: pauli for qubit, pauli in term.operations_as_set()}
+        paulis = [qubit_paulis[q] if q in qubit_paulis else "I" for q in qubits]
+        matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis])  # type: ignore
+        matrices.append(matrix)
+    generated_unitary = expm(-1j * np.pi * sum(matrices))
+    phase = np.exp(-1j * np.angle(generated_unitary[0, 0]))  # type: ignore
+    return np.asarray(phase * generated_unitary, dtype=np.complex_)
 
 
 def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
