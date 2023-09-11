@@ -7,26 +7,26 @@ from pytest_mock import MockerFixture
 from pyquil.api._qam import QAMExecutionResult
 from pyquil.gates import RZ, RX, I, CZ
 from pyquil.noise import (
-    pauli_kraus_map,
-    damping_kraus_map,
-    dephasing_kraus_map,
-    tensor_kraus_maps,
-    _get_program_gates,
-    _decoherence_noise_model,
-    add_decoherence_noise,
-    combine_kraus_maps,
-    damping_after_dephasing,
-    INFINITY,
-    apply_noise_model,
-    _noise_model_program_header,
-    KrausModel,
-    NoiseModel,
-    corrupt_bitstring_probs,
-    correct_bitstring_probs,
-    estimate_bitstring_probs,
-    bitstring_probs_to_z_moments,
-    estimate_assignment_probs,
-    NO_NOISE,
+	pauli_kraus_map,
+	damping_kraus_map,
+	dephasing_kraus_map,
+	tensor_kraus_maps,
+	_get_program_gates,
+	_decoherence_noise_model,
+	add_single_qubit_noise,
+	combine_kraus_maps,
+	damping_after_dephasing,
+	INFINITY,
+	apply_noise_model,
+	_noise_model_program_header,
+	KrausModel,
+	NoiseModel,
+	corrupt_bitstring_probs,
+	correct_bitstring_probs,
+	estimate_bitstring_probs,
+	bitstring_probs_to_z_moments,
+	estimate_assignment_probs,
+	NO_NOISE,
 )
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
@@ -157,8 +157,8 @@ def test_decoherence_noise():
     )
     assert headers.out() in new_prog.out()
 
-    # verify that high-level add_decoherence_noise reproduces new_prog
-    new_prog2 = add_decoherence_noise(prog, T1={0: 30e-6}, T2={0: 30e-6})
+    # verify that high-level add_single_qubit_noise reproduces new_prog
+    new_prog2 = add_single_qubit_noise(prog, T1={0: 30e-6}, T2={0: 30e-6})
     assert new_prog == new_prog2
 
 

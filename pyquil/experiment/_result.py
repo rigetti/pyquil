@@ -62,7 +62,6 @@ class ExperimentResult:
         calibration_counts: Optional[int] = None,
         additional_results: Optional[List["ExperimentResult"]] = None,
     ):
-
         object.__setattr__(self, "setting", setting)
         object.__setattr__(self, "expectation", expectation)
         object.__setattr__(self, "total_counts", total_counts)

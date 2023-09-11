@@ -318,7 +318,6 @@ class ErfSquareWaveform(TemplateWaveform):
 
 @waveform("boxcar_kernel")
 class BoxcarAveragerKernel(TemplateWaveform):
-
     scale: Optional[float] = None
     """ An optional global scaling factor. """
 
