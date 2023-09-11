@@ -30,6 +30,7 @@ from pyquil.paulis import (
     PauliSum,
     exponential_map,
     exponentiate_commuting_pauli_sum,
+    exponentiate_pauli_sum,
     ID,
     exponentiate,
     trotterize,
@@ -45,7 +46,8 @@ from pyquil.paulis import (
     is_identity,
 )
 from pyquil.quil import Program
-from pyquil.simulation.tools import program_unitary
+from pyquil.simulation.tools import program_unitary, unitary_equal
+from pyquil.simulation import matrices
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
@@ -397,6 +399,56 @@ def test_exponentiate_prog():
     assert prog == result_prog
 
 
+def test_exponentiate_pauli_sum_rxx():
+    """Test that exponentiate_exponentiate_pauli_sum generates the RXX gate"""
+    generators = PauliTerm("X", 0) * PauliTerm("X", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.RXX(2 * np.pi * angle))
+
+
+def test_exponentiate_pauli_sum_ryy():
+    """Test that exponentiate_exponentiate_pauli_sum generates the RYY gate"""
+    generators = PauliTerm("Y", 0) * PauliTerm("Y", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.RYY(2 * np.pi * angle))
+
+
+def test_exponentiate_pauli_sum_rzz():
+    """Test that exponentiate_exponentiate_pauli_sum generates the RZZ gate"""
+    generators = PauliTerm("Z", 0) * PauliTerm("Z", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.RZZ(2 * np.pi * angle))
+
+
+def test_exponentiate_pauli_sum_cphase():
+    """Test that exponentiate_exponentiate_pauli_sum generates the CZ gate"""
+    generators = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.CPHASE(2 * np.pi * (-2 * angle)))
+
+
+def test_exponentiate_pauli_sum_xy():
+    """Test that exponentiate_exponentiate_pauli_sum generates the XY gate"""
+    generators = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.XY(2 * np.pi * (-2 * angle)))
+
+
+def test_exponentiate_pauli_sum_fsim():
+    """Test that exponentiate_exponentiate_pauli_sum generates the FSIM gate"""
+    xy_generators = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
+    cphase_generators = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
+    for theta in np.linspace(-0.5, 0.5):
+        for phi in np.linspace(-0.5, 0.5):
+            generated_unitary = exponentiate_pauli_sum(xy_generators * theta + cphase_generators * phi)
+            assert unitary_equal(generated_unitary, matrices.FSIM(2 * np.pi * (-2 * theta), 2 * np.pi * (-2 * phi)))
+
+
 def test_exponentiate_identity():
     generator = PauliTerm("I", 1, 0.0)
     para_prog = exponential_map(generator)
@@ -566,7 +618,6 @@ def test_check_commutation_rigorous():
     commuting_pairs = []
     for x in range(len(pauli_ops_pq)):
         for y in range(x, len(pauli_ops_pq)):
-
             tmp_op = _commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
             if is_zero(tmp_op.terms[0]):
@@ -608,10 +659,10 @@ def test_term_powers():
     for qubit_id in range(2):
         pauli_terms = [sI(qubit_id), sX(qubit_id), sY(qubit_id), sZ(qubit_id)]
         for pauli_term in pauli_terms:
-            assert pauli_term ** 0 == sI(qubit_id)
-            assert pauli_term ** 1 == pauli_term
-            assert pauli_term ** 2 == sI(qubit_id)
-            assert pauli_term ** 3 == pauli_term
+            assert pauli_term**0 == sI(qubit_id)
+            assert pauli_term**1 == pauli_term
+            assert pauli_term**2 == sI(qubit_id)
+            assert pauli_term**3 == pauli_term
     with pytest.raises(ValueError):
         pauli_terms[0] ** -1
     # Test to make sure large powers can be computed
@@ -620,13 +671,13 @@ def test_term_powers():
 
 def test_sum_power():
     pauli_sum = (sY(0) - sX(0)) * (1.0 / np.sqrt(2))
-    assert pauli_sum ** 2 == PauliSum([sI(0)])
+    assert pauli_sum**2 == PauliSum([sI(0)])
     with pytest.raises(ValueError):
-        _ = pauli_sum ** -1
+        _ = pauli_sum**-1
     pauli_sum = sI(0) + sI(1)
-    assert pauli_sum ** 0 == sI(0)
+    assert pauli_sum**0 == sI(0)
     # Test to make sure large powers can be computed
-    pauli_sum ** 400
+    pauli_sum**400
 
 
 def test_term_equality():
