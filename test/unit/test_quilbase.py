@@ -71,7 +71,7 @@ from pyquil.quilbase import (
     Nop,
 )
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference
+from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference, TemplateWaveform
 from pyquil.api._compiler import QPUCompiler
 from pyquil.quiltwaveforms import FlatWaveform
 
@@ -893,6 +893,9 @@ class TestPulse:
 
     def test_waveform(self, pulse: Pulse, waveform: Waveform):
         assert pulse.waveform == waveform
+        if isinstance(waveform, TemplateWaveform):
+            assert isinstance(pulse.waveform, TemplateWaveform)
+            pulse.waveform.samples(0.5)
         pulse.waveform = WaveformReference("new-waveform")
         assert pulse.waveform == WaveformReference("new-waveform")
 
