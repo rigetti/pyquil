@@ -73,7 +73,14 @@ from pyquil.quilbase import (
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference, TemplateWaveform
 from pyquil.api._compiler import QPUCompiler
-from pyquil.quiltwaveforms import FlatWaveform
+from pyquil.quiltwaveforms import (
+    FlatWaveform,
+    GaussianWaveform,
+    DragGaussianWaveform,
+    HrmGaussianWaveform,
+    ErfSquareWaveform,
+    BoxcarAveragerKernel,
+)
 
 
 @pytest.mark.parametrize(
@@ -875,8 +882,42 @@ class TestCapture:
             FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
             True,
         ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            GaussianWaveform(duration=2.5, fwhm=1.0, t0=1.0, phase=0.1),
+            True,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            DragGaussianWaveform(duration=2.5, fwhm=1.0, t0=1.0, anh=0.1, alpha=1.0),
+            True,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            HrmGaussianWaveform(duration=2.5, fwhm=1.0, t0=1.0, anh=0.1, alpha=1.0, second_order_hrm_coeff=0.5),
+            True,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            ErfSquareWaveform(duration=2.5, risetime=1.0, pad_left=1.0, pad_right=0.1, scale=1.0),
+            True,
+        ),
+        (
+            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            BoxcarAveragerKernel(duration=2.5, scale=1.0),
+            True,
+        ),
     ],
-    ids=("Blocking", "NonBlocking", "FlatWaveform"),
+    ids=(
+        "Blocking",
+        "NonBlocking",
+        "FlatWaveform",
+        "GaussianWaveform",
+        "DragGaussianWaveform",
+        "HrmGaussianWaveform",
+        "ErfSquareWaveform",
+        "BoxcarAveragerKernel",
+    ),
 )
 class TestPulse:
     @pytest.fixture
@@ -894,7 +935,7 @@ class TestPulse:
     def test_waveform(self, pulse: Pulse, waveform: Waveform):
         assert pulse.waveform == waveform
         if isinstance(waveform, TemplateWaveform):
-            assert isinstance(pulse.waveform, TemplateWaveform)
+            assert isinstance(pulse.waveform, type(waveform))
             pulse.waveform.samples(0.5)
         pulse.waveform = WaveformReference("new-waveform")
         assert pulse.waveform == WaveformReference("new-waveform")

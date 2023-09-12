@@ -1671,12 +1671,6 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
     def __new__(cls, frame: Frame, waveform: Waveform, nonblocking: bool = False) -> Self:
         return super().__new__(cls, not nonblocking, frame, waveform)
 
-    def __init__(self, frame: Frame, waveform: Waveform, nonblocking: bool = False):
-        # quil_rs doesn't have `TemplateWaveform`, so once it's stored, we don't
-        # know if it was a template or not. Caching it on the pyQuil side allows
-        # us to return the instruction the user originally set.
-        self._waveform = waveform
-
     @classmethod
     def _from_rs_pulse(cls, pulse: quil_rs.Pulse) -> "Pulse":
         return super().__new__(cls, pulse.blocking, pulse.frame, pulse.waveform)
@@ -1710,11 +1704,10 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
 
     @property  # type: ignore[override]
     def waveform(self) -> Waveform:
-        return self._waveform
+        return _convert_to_py_waveform(super().waveform)
 
     @waveform.setter
     def waveform(self, waveform: Waveform) -> None:
-        self._waveform = waveform
         quil_rs.Pulse.waveform.__set__(self, waveform)  # type: ignore[attr-defined]
 
     @property

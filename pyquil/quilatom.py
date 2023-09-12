@@ -1102,6 +1102,99 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
 
     @classmethod
     def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
+        """
+        The ``quil`` package has no equivalent to ``TemplateWaveform``s, this function checks the name and
+        properties of a ``quil`` ``WaveformInvocation`` to see if they potentially match a subclass of
+        ``TemplateWaveform``. If a match is found and construction succeeds, then that type is returned.
+        Otherwise, a generic ``WaveformInvocation`` is returned.
+        """
+        from pyquil.quiltwaveforms import (
+            FlatWaveform,
+            GaussianWaveform,
+            DragGaussianWaveform,
+            HrmGaussianWaveform,
+            ErfSquareWaveform,
+            BoxcarAveragerKernel,
+        )
+
+        template_class: Optional[Type["TemplateWaveform"]] = None
+        if waveform.name == "flat" and set(waveform.parameters.keys()).issubset(
+            {
+                "duration",
+                "iq",
+                "scale",
+                "phase",
+                "detuning",
+            }
+        ):
+            template_class = FlatWaveform
+        elif waveform.name == "gaussian" and set(waveform.parameters.keys()).issubset(
+            {
+                "duration",
+                "fwhm",
+                "t0",
+                "scale",
+                "phase",
+                "detuning",
+            }
+        ):
+            template_class = GaussianWaveform
+        elif waveform.name == "drag_gaussian" and set(waveform.parameters.keys()).issubset(
+            {
+                "duration",
+                "fwhm",
+                "t0",
+                "anh",
+                "alpha",
+                "scale",
+                "phase",
+                "detuning",
+            }
+        ):
+            template_class = DragGaussianWaveform
+        elif waveform.name == "hrm_gaussian" and set(waveform.parameters.keys()).issubset(
+            {
+                "duration",
+                "fwhm",
+                "t0",
+                "anh",
+                "second_order_hrm_coeff",
+                "alpha",
+                "scale",
+                "phase",
+                "detuning",
+            }
+        ):
+            template_class = HrmGaussianWaveform
+        elif waveform.name == "erf_square" and set(waveform.parameters.keys()).issubset(
+            {
+                "duration",
+                "risetime",
+                "pad_left",
+                "pad_right",
+                "scale",
+                "phase",
+                "detuning",
+            }
+        ):
+            template_class = ErfSquareWaveform
+        elif waveform.name == "boxcar_kernel" and set(waveform.parameters.keys()).issubset(
+            {
+                "duration",
+                "scale",
+                "phase",
+                "detuning",
+            }
+        ):
+            template_class = BoxcarAveragerKernel
+
+        if template_class is not None:
+            try:
+                parameters = {key: value.inner() for key, value in waveform.parameters.items()}
+                return template_class(**parameters)  # type: ignore[arg-type] (let the class constructor handle type errors)
+            except TypeError:
+                pass
+
         return super().__new__(cls, waveform.name, waveform.parameters)
 
     def __str__(self) -> str:

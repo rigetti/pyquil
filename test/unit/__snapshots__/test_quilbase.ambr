@@ -536,8 +536,23 @@
 # name: TestPulse.test_out[Blocking]
   'PULSE 123 q "FRAMEX" WAVEFORMY'
 # ---
+# name: TestPulse.test_out[BoxcarAveragerKernel]
+  'NONBLOCKING PULSE 123 q "FRAMEX" boxcar_kernel(duration: 2.5, scale: 1)'
+# ---
+# name: TestPulse.test_out[DragGaussianWaveform]
+  'NONBLOCKING PULSE 123 q "FRAMEX" drag_gaussian(alpha: 1, anh: 0.1, duration: 2.5, fwhm: 1, t0: 1)'
+# ---
+# name: TestPulse.test_out[ErfSquareWaveform]
+  'NONBLOCKING PULSE 123 q "FRAMEX" erf_square(duration: 2.5, pad_left: 1, pad_right: 0.1, risetime: 1, scale: 1)'
+# ---
 # name: TestPulse.test_out[FlatWaveform]
   'NONBLOCKING PULSE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2.0i)'
+# ---
+# name: TestPulse.test_out[GaussianWaveform]
+  'NONBLOCKING PULSE 123 q "FRAMEX" gaussian(duration: 2.5, fwhm: 1, phase: 0.1, t0: 1)'
+# ---
+# name: TestPulse.test_out[HrmGaussianWaveform]
+  'NONBLOCKING PULSE 123 q "FRAMEX" hrm_gaussian(alpha: 1, anh: 0.1, duration: 2.5, fwhm: 1, second_order_hrm_coeff: 0.5, t0: 1)'
 # ---
 # name: TestPulse.test_out[NonBlocking]
   'NONBLOCKING PULSE 123 q "FRAMEX" WAVEFORMY'
