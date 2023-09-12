@@ -15,6 +15,7 @@
 ##############################################################################
 
 from fractions import Fraction
+import inspect
 from numbers import Number
 from typing import (
     Any,
@@ -1041,6 +1042,8 @@ def _template_waveform_property(
     reason="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
 )
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
+    NAME: ClassVar[str]
+
     def __new__(
         cls,
         name: str,
@@ -1117,83 +1120,26 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
             BoxcarAveragerKernel,
         )
 
-        template_class: Optional[Type["TemplateWaveform"]] = None
-        if waveform.name == "flat" and set(waveform.parameters.keys()).issubset(
-            {
-                "duration",
-                "iq",
-                "scale",
-                "phase",
-                "detuning",
-            }
-        ):
-            template_class = FlatWaveform
-        elif waveform.name == "gaussian" and set(waveform.parameters.keys()).issubset(
-            {
-                "duration",
-                "fwhm",
-                "t0",
-                "scale",
-                "phase",
-                "detuning",
-            }
-        ):
-            template_class = GaussianWaveform
-        elif waveform.name == "drag_gaussian" and set(waveform.parameters.keys()).issubset(
-            {
-                "duration",
-                "fwhm",
-                "t0",
-                "anh",
-                "alpha",
-                "scale",
-                "phase",
-                "detuning",
-            }
-        ):
-            template_class = DragGaussianWaveform
-        elif waveform.name == "hrm_gaussian" and set(waveform.parameters.keys()).issubset(
-            {
-                "duration",
-                "fwhm",
-                "t0",
-                "anh",
-                "second_order_hrm_coeff",
-                "alpha",
-                "scale",
-                "phase",
-                "detuning",
-            }
-        ):
-            template_class = HrmGaussianWaveform
-        elif waveform.name == "erf_square" and set(waveform.parameters.keys()).issubset(
-            {
-                "duration",
-                "risetime",
-                "pad_left",
-                "pad_right",
-                "scale",
-                "phase",
-                "detuning",
-            }
-        ):
-            template_class = ErfSquareWaveform
-        elif waveform.name == "boxcar_kernel" and set(waveform.parameters.keys()).issubset(
-            {
-                "duration",
-                "scale",
-                "phase",
-                "detuning",
-            }
-        ):
-            template_class = BoxcarAveragerKernel
-
-        if template_class is not None:
-            try:
-                parameters = {key: value.inner() for key, value in waveform.parameters.items()}
-                return template_class(**parameters)  # type: ignore[arg-type] (let the class constructor handle type errors)
-            except TypeError:
-                pass
+        template: Type["TemplateWaveform"]  # mypy needs a type annotation here to understand this.
+        for template in [
+            FlatWaveform,
+            GaussianWaveform,
+            DragGaussianWaveform,
+            HrmGaussianWaveform,
+            ErfSquareWaveform,
+            BoxcarAveragerKernel,
+        ]:
+            if template.NAME != waveform.name:
+                continue
+            parameter_names = [
+                parameter[0] for parameter in inspect.getmembers(template, lambda a: isinstance(a, property))
+            ]
+            if set(waveform.parameters.keys()).issubset(parameter_names):
+                try:
+                    parameters = {key: value.inner() for key, value in waveform.parameters.items()}
+                    return template(**parameters)  # type: ignore[arg-type]
+                except TypeError:
+                    break
 
         return super().__new__(cls, waveform.name, waveform.parameters)
 
