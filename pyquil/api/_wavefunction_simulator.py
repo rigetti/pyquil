@@ -68,6 +68,7 @@ class WavefunctionSimulator:
 
         self.timeout = timeout
         self._client = client_configuration or QCSClient.load()
+        self._qvm_client = qvm.QVMClient.new_http(self._client.qvm_url)
 
     def wavefunction(self, quil_program: Program, memory_map: Optional[MemoryMap] = None) -> Wavefunction:
         """
@@ -99,7 +100,7 @@ class WavefunctionSimulator:
             self.random_seed,
         )
         wavefunction = bytes(
-            qvm.api.get_wavefunction(request, self._client, options=QVMOptions(timeout_seconds=self.timeout))
+            qvm.api.get_wavefunction(request, self._qvm_client, options=QVMOptions(timeout_seconds=self.timeout))
         )
         return Wavefunction.from_bit_packed_string(wavefunction)
 
@@ -146,7 +147,7 @@ class WavefunctionSimulator:
 
         request = qvm.api.ExpectationRequest(prep_prog.out(), [prog.out() for prog in progs])
         expectations = qvm.api.measure_expectation(
-            request, self._client, options=QVMOptions(timeout_seconds=self.timeout)
+            request, self._qvm_client, options=QVMOptions(timeout_seconds=self.timeout)
         )
         bare_results = np.asarray(expectations)
         results = coeffs * bare_results
@@ -202,7 +203,9 @@ class WavefunctionSimulator:
             trials,
             qubits,
         )
-        measured_qubits = qvm.api.run_and_measure(request, options=QVMOptions(timeout_seconds=self.timeout))
+        measured_qubits = qvm.api.run_and_measure(
+            request, client=self._qvm_client, options=QVMOptions(timeout_seconds=self.timeout)
+        )
         return np.asarray(measured_qubits)
 
     @staticmethod
