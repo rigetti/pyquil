@@ -15,6 +15,7 @@
 ##############################################################################
 
 from fractions import Fraction
+import inspect
 from numbers import Number
 from typing import (
     Any,
@@ -1041,6 +1042,8 @@ def _template_waveform_property(
     reason="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
 )
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
+    NAME: ClassVar[str]
+
     def __new__(
         cls,
         name: str,
@@ -1102,6 +1105,42 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
 
     @classmethod
     def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
+        """
+        The ``quil`` package has no equivalent to ``TemplateWaveform``s, this function checks the name and
+        properties of a ``quil`` ``WaveformInvocation`` to see if they potentially match a subclass of
+        ``TemplateWaveform``. If a match is found and construction succeeds, then that type is returned.
+        Otherwise, a generic ``WaveformInvocation`` is returned.
+        """
+        from pyquil.quiltwaveforms import (
+            FlatWaveform,
+            GaussianWaveform,
+            DragGaussianWaveform,
+            HrmGaussianWaveform,
+            ErfSquareWaveform,
+            BoxcarAveragerKernel,
+        )
+
+        template: Type["TemplateWaveform"]  # mypy needs a type annotation here to understand this.
+        for template in [
+            FlatWaveform,
+            GaussianWaveform,
+            DragGaussianWaveform,
+            HrmGaussianWaveform,
+            ErfSquareWaveform,
+            BoxcarAveragerKernel,
+        ]:
+            if template.NAME != waveform.name:
+                continue
+            parameter_names = [
+                parameter[0] for parameter in inspect.getmembers(template, lambda a: isinstance(a, property))
+            ]
+            if set(waveform.parameters.keys()).issubset(parameter_names):
+                try:
+                    parameters = {key: value.inner() for key, value in waveform.parameters.items()}
+                    return template(**parameters)  # type: ignore[arg-type]
+                except TypeError:
+                    break
+
         return super().__new__(cls, waveform.name, waveform.parameters)
 
     def __str__(self) -> str:
