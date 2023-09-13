@@ -17,7 +17,6 @@
 Module for creating and defining Quil programs.
 """
 import types
-import functools
 from collections import defaultdict
 from copy import deepcopy
 from typing import (
@@ -125,12 +124,12 @@ class Program:
 
         self.native_quil_metadata: Optional[NativeQuilMetadata] = None
 
-    @functools.cached_property
+    @property
     def calibrations(self) -> List[DefCalibration]:
         """A list of Quil-T calibration definitions."""
         return [DefCalibration._from_rs_calibration(cal) for cal in self._program.calibrations.calibrations]
 
-    @functools.cached_property
+    @property
     def measure_calibrations(self) -> List[DefMeasureCalibration]:
         """A list of measure calibrations"""
         return [
@@ -138,7 +137,7 @@ class Program:
             for cal in self._program.calibrations.measure_calibrations
         ]
 
-    @functools.cached_property
+    @property
     def waveforms(self) -> Dict[str, DefWaveform]:
         """A mapping from waveform names to their corresponding definitions."""
         return {
@@ -146,7 +145,7 @@ class Program:
             for name, waveform in self._program.waveforms.items()
         }
 
-    @functools.cached_property
+    @property
     def frames(self) -> Dict[Frame, DefFrame]:
         """A mapping from Quil-T frames to their definitions."""
         return {
@@ -154,7 +153,7 @@ class Program:
             for frame, attributes in self._program.frames.get_all_frames().items()
         }
 
-    @functools.cached_property
+    @property
     def declarations(self) -> Dict[str, Declare]:
         """A mapping from declared region names to their declarations."""
         return {name: Declare._from_rs_declaration(inst) for name, inst in self._program.declarations.items()}
@@ -187,7 +186,7 @@ class Program:
         new_program.num_shots = self.num_shots
         return new_program
 
-    @functools.cached_property
+    @property
     def defined_gates(self) -> List[DefGate]:
         """
         A list of defined gates on the program.
