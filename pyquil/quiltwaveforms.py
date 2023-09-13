@@ -10,6 +10,7 @@ from pyquil.quilatom import (
     _template_waveform_property,
 )
 
+
 class FlatWaveform(TemplateWaveform):
     """
     A flat (constant) waveform.

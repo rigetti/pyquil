@@ -101,6 +101,7 @@ InstructionDesignator = Union[
     Generator[Any, Any, Any],
 ]
 
+
 class Program:
     """
     A list of pyQuil instructions that comprise a quantum program.
@@ -1062,7 +1063,10 @@ def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[Abst
 
     return result
 
+
 RetType = TypeVar("RetType")
+
+
 def invalidates_cached_properties(func: Callable[..., RetType]) -> Callable[..., RetType]:
     @functools.wraps(func)
     def wrapper(self: "Program", *args: Any, **kwargs: Any) -> RetType:
