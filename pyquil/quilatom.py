@@ -13,7 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-
 from fractions import Fraction
 import inspect
 from numbers import Number
@@ -1015,9 +1014,11 @@ def _template_waveform_property(
             return parameter
 
         if dtype is int or dtype is float:
+            if isinstance(parameter, dtype):
+                return parameter
             if not isinstance(parameter, complex):
                 raise TypeError(
-                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found"
+                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found "
                     "instead"
                 )
             if parameter.imag != 0.0:
@@ -1037,10 +1038,6 @@ def _template_waveform_property(
     return property(fget, fset, fdel, doc)
 
 
-@deprecated(
-    version="4.0",
-    reason="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
-)
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
     NAME: ClassVar[str]
 
@@ -1136,7 +1133,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
             ]
             if set(waveform.parameters.keys()).issubset(parameter_names):
                 try:
-                    parameters = {key: value.inner() for key, value in waveform.parameters.items()}
+                    parameters = {key: _convert_to_py_expression(value) for key, value in waveform.parameters.items()}
                     return template(**parameters)  # type: ignore[arg-type]
                 except TypeError:
                     break
