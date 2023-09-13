@@ -1,50 +1,32 @@
 .. _compiler:
 
-The Quil Compiler
+=================
+The Quil compiler
 =================
 
-Expectations for Program Contents
----------------------------------
+*********************************
+Expectations for program contents
+*********************************
 
-The QPUs have much more limited natural gate sets than the standard gate set offered by pyQuil: on
-Rigetti QPUs, the gate operators are constrained to lie in ``RZ(θ)``, ``RX(k*π/2)``, ``CZ`` and
-``XY``; and the gates are required to act on physically available hardware (for single-qubit gates,
-this means acting only on live qubits, and for qubit-pair gates, this means acting on neighboring
-qubits). However, as a programmer, it is often (though not always) desirable to to be able to write
+Real QPUs have a much more limited natural gate sets than the standard gate set offered by pyQuil 
+because gates are required to act on physically available hardware (for single-qubit gates, this
+means acting only on live qubits, and for qubit-pair gates, this means acting on neighboring qubits).
+However, as a programmer, it is often (though not always) desirable to to be able to write
 programs which don't take these details into account. This generally leads to more portable code if
 one isn't tied to a specific set of gates or QPU architecture. To ameliorate these limitations, the
-Rigetti software toolkit contains an optimizing compiler that translates arbitrary Quil to native
+Quil SDK contains an optimizing compiler that translates arbitrary Quil to native
 Quil and native Quil to executables suitable for Rigetti hardware.
 
-
-Interacting with the Compiler
------------------------------
+*****************************
+Interacting with the compiler
+*****************************
 
 After :ref:`installing the SDK <prerequisites>`, the Quil Compiler, ``quilc`` is available on your
 local machine. You can initialize a local ``quilc`` server by typing ``quilc -S`` into your
-terminal. You should see the following message.
+terminal.
 
-.. code:: text
-
-    $ quilc -S
-    +-----------------+
-    |  W E L C O M E  |
-    |   T O   T H E   |
-    |  R I G E T T I  |
-    |     Q U I L     |
-    | C O M P I L E R |
-    +-----------------+
-    Copyright (c) 2018 Rigetti Computing.
-
-    ... - Launching quilc.
-    ... - Spawning server at (tcp://*:5555) .
-
-To get a description of ``quilc`` and its options and examples of command line use, see the quilc `README
-<https://github.com/rigetti/quilc>`_ or type ``man quilc`` in your terminal.
-
-
-A ``QuantumComputer`` object supplied by the function ``pyquil.api.get_qc()`` comes equipped with a
-connection to your local Rigetti Quil compiler.  This can be accessed using the instance method ``.compile()``,
+A ``QuantumComputer`` object supplied by the function :py:func:`~pyquil.get_qc()` comes equipped with a
+connection to your local quilc server. This can be accessed using the instance method ``.compile()``,
 as in the following:
 
 .. testcode:: quilc
@@ -86,8 +68,8 @@ with output
     RZ(pi/2) 2
 
 The compiler connection is also available directly via the property ``qc.compiler``.  The
-precise class of this object changes based on context (e.g., ``QPUCompiler``,
-``QVMCompiler``), but it always conforms to the interface laid out by ``AbstractCompiler``:
+precise class of this object changes based on context (e.g., :py:class:`~pyquil.api.QPUCompiler`,
+:py:class:`~pyquil.api.QVMCompiler`), but it always conforms to the interface laid out by :py:class:`~pyquil.api.AbstractCompiler`:
 
 * ``compiler.quil_to_native_quil(program, *, protoquil)``: This method converts a Quil program into
   native Quil, according to the ISA that the compiler is initialized with.  The input parameter is
@@ -127,7 +109,7 @@ the previous example snippet is identical to the following:
     ...
 
 Timeouts
---------
+========
 
 If your circuit is sufficiently complex the compiler may require more time than is permitted by
 default. To change this timeout, use the `compiler_timeout` option on `get_qc`:
@@ -141,7 +123,7 @@ default. To change this timeout, use the `compiler_timeout` option on `get_qc`:
     qc = get_qc("2q-qvm", compiler_timeout=100) # 100 seconds
 
 Legal compiler input
---------------------
+====================
 
 The QPU is not able to execute all possible Quil programs. At present, a Quil program qualifies for
 execution if has the following form:
@@ -166,9 +148,9 @@ To instruct the compiler to produce Quil code that can be executed on a QPU, you
    and forcefully disable protoquil. Specifying ``protoquil=None`` defers to the server's choice.
 
 Compilation metadata
---------------------
+====================
 
-When your compiler is started with the ``-P`` option, the ``compiler.quil_to_native_quil()`` method
+When your compiler is started with the protoquil option (``-P``), the ``compiler.quil_to_native_quil()`` method
 will return both the compiled program and a dictionary of statistics for the compiled program. This
 dictionary contains the keys
 
@@ -214,19 +196,15 @@ For example, to inspect the ``qpu_runtime_estimation`` you might do the followin
 
 .. _pragma:
 
-Region-specific compiler features through PRAGMA
-------------------------------------------------
+*********************************************************
+Region-specific compiler features through PRAGMA commands
+*********************************************************
 
 The Quil compiler can also be communicated with through ``PRAGMA`` commands embedded in the Quil
 program.
 
-.. note::
-
-    The interface to the Quil compiler from pyQuil is under construction, and some of the ``PRAGMA`` directives will soon be replaced by finer-grained method calls.
-
-
 Preserved regions
-~~~~~~~~~~~~~~~~~
+=================
 
 The compiler can be circumvented in user-specified regions. The start of such a region is denoted by
 ``PRAGMA PRESERVE_BLOCK``, and the end is denoted by ``PRAGMA END_PRESERVE_BLOCK``.  The Quil
@@ -266,7 +244,7 @@ to the native gate set.
     MEASURE 1 ro[1]
 
 Parallelizable regions
-~~~~~~~~~~~~~~~~~~~~~~
+======================
 
 The compiler can sometimes arrange gate sequences more cleverly if the user gives it hints about
 sequences of gates that commute.  A region containing commuting sequences is bookended by
@@ -333,8 +311,9 @@ instead execute the blocks in their written order.
 
 .. _compiler_rewirings:
 
+*********
 Rewirings
-~~~~~~~~~
+*********
 
 When a Quil program contains multi-qubit instructions that do not name qubit-qubit links present on a
 target device, the compiler will rearrange the qubits so that execution becomes possible.  In order to
@@ -348,7 +327,7 @@ the device.  This is strictly for human-readability: these comments are discarde
 .. _swaps:
 
 SWAPs
-*****
+=====
 
 When the compiler needs to move an instruction's qubits closer it will insert ``SWAP`` gates which
 can be costly. If, however, the swaps are inserted at the very beginning of the program, the
@@ -445,7 +424,7 @@ inserting swaps. For example, the following program requires a ``SWAP`` that inc
    uses only `two` two-qubit gates (one ``CZ`` and one ``XY``).
 
 Initial rewiring
-****************
+================
 
 In addition, you have some control over how the compiler constructs its
 rewiring, which is controlled by ``PRAGMA INITIAL_REWIRING``. The syntax is as follows.
@@ -461,7 +440,7 @@ Including this `before any non-pragmas` will allow the compiler to alter its rew
 behavior.
 
 The default initial rewiring strategy
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=====================================
 
 .. note::
 
@@ -490,8 +469,8 @@ For example, if your program consists of two-qubit instructions where the qubits
 
    CZ 3 4
 
-In the above example, `CZ 3 4` touches qubits that are already nearest neighbors (and support a
-`CZ` instruction) and so the compiler employs the naive strategy (and thus does not rewire those
+In the above example, ``CZ 3 4`` touches qubits that are already nearest neighbors (and support a
+``CZ`` instruction) and so the compiler employs the naive strategy (and thus does not rewire those
 qubits to use better ones).
 
 If however, the program uses qubits that `must` be rewired, then the compiler defaults to the
@@ -637,8 +616,9 @@ instructions are placed.
 
 Note that each of these have drawbacks described in the sections above.
 
+*********************
 Common Error Messages
----------------------
+*********************
 
 The compiler itself is subject to some limitations, and some of the more commonly observed errors
 follow:

@@ -1,6 +1,7 @@
 .. _advanced_usage:
 
-Advanced Usage
+==============
+Advanced usage
 ==============
 
 .. note::
@@ -10,21 +11,22 @@ Advanced Usage
 
 .. _pyquil_configuration:
 
-pyQuil Configuration
-~~~~~~~~~~~~~~~~~~~~
+********************
+pyQuil configuration
+********************
 
-:py:class:`~pyquil.api.QCSClientConfiguration` instructs pyQuil on how to connect with the
-components needed to compile and run programs (quilc, QVMs, and QCS). Any APIs that take a configuration object
-as input (e.g. :py:func:`~pyquil.get_qc()`) typically do so optionally, so that a default configuration can be loaded
+:py:class:`~pyquil.api.QCSClient` instructs pyQuil on how to connect with the components needed to compile and run
+programs (``quilc``, ``qvm``, and QCS). Any APIs that take a configuration object as input
+(e.g. :py:func:`~pyquil.api.get_qc`) typically do so optionally, so that a default configuration can be loaded
 for you if one is not provided. You can override this default configuration by either instantiating your own
-:py:class:`~pyquil.api.QCSClientConfiguration` object and providing it as input to the function in question,
+:py:class:`~pyquil.api.QCSClient` object and providing it as input to the function in question,
 or by setting the ``QCS_SETTINGS_FILE_PATH`` and/or ``QCS_SECRETS_FILE_PATH`` environment variables to have
 pyQuil load its settings and secrets from specific locations. By default, configuration will be loaded from
 ``$HOME/.qcs/settings.toml`` and ``$HOME/.qcs/secrets.toml``.
 
 Additionally, you can override whichever QVM and quilc URLs are loaded from ``settings.toml``
 (``profiles.<profile>.applications.pyquil.qvm_url`` and ``profiles.<profile>.applications.pyquil.quilc_url`` fields)
-by setting the ``QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL`` and/or ``QCS_SETTINGS_APPLICATIONS_QUILC_URL``
+by setting the ``QCS_SETTINGS_APPLICATIONS_QVM_URL`` and/or ``QCS_SETTINGS_APPLICATIONS_QUILC_URL``
 environment variables. If these URLs are missing from ``settings.toml`` and are not set by environment variables,
 the following defaults will be used (as they correspond to the default behavior of the QVM and quilc when running
 locally):
@@ -32,8 +34,9 @@ locally):
 - QVM URL: ``http://127.0.0.1:5000``
 - quilc URL: ``tcp://127.0.0.1:5555``
 
+**************
 Multithreading
-~~~~~~~~~~~~~~
+**************
 
 :py:class:`~pyquil.api.QuantumComputer` objects are safe to share between threads, enabling you to execute and retrieve
 results for multiple programs or parameter values at once.  Note that :py:class:`~pyquil.Program` and
@@ -43,12 +46,15 @@ concurrent context.
 .. note::
     The QVM processes incoming requests in parallel, while a QPU may process them sequentially or in parallel
     (depending on the qubits used). If you encounter timeouts while trying to run large numbers of programs against a
-    QPU, try increasing the ``execution_timeout`` parameter on calls  to :py:func:`~pyquil.get_qc()` (specified in
+    QPU, try increasing the ``execution_timeout`` parameter on calls  to :py:func:`~pyquil.get_qc` (specified in
     seconds).
 
 .. note::
     We suggest running jobs with a minimum of 2x parallelism, so that the QVM or QPU
     is fully occupied while your program runs and no time is wasted in between jobs.
+
+.. note::
+   Because pyQuil does not currently have an ``asyncio`` API it is recommended to use ``ThreadPool``\s.
 
 Below is an example that demonstrates how to use pyQuil in a multithreading scenario:
 
@@ -81,8 +87,9 @@ Below is an example that demonstrates how to use pyQuil in a multithreading scen
         print(f"Results for program {i}:\n{result}\n")
 
 
-Alternative QPU Endpoints
-~~~~~~~~~~~~~~~~~~~~~~~~~
+*************************
+Alternative QPU endpoints
+*************************
 
 Rigetti QCS supports alternative endpoints for access to a QPU architecture, useful for very particular cases.
 Generally, this is useful to call "mock" or test endpoints, which simulate the results of execution for the
@@ -95,18 +102,19 @@ of the sites where ``quantum_processor_id`` is used:
 .. code:: python
 
     # Option 1
-    qc = get_qc("Aspen-9", endpoint_id="my_endpoint")
+    qc = get_qc("Aspen-M-3", endpoint_id="my_endpoint")
 
     # Option 2
-    qam = QPU(quantum_processor_id="Aspen-9", endpoint_id="my_endpoint")
+    qam = QPU(quantum_processor_id="Aspen-M-3", endpoint_id="my_endpoint")
 
 After doing so, for all intents and purposes - compilation, optimization, etc - your program will behave the same
 as when using "default" endpoint for a given quantum processor, except that it will be executed by an
 alternate QCS service, and the results of execution should not be treated as correct or meaningful.
 
 
-Using Qubit Placeholders
-~~~~~~~~~~~~~~~~~~~~~~~~
+************************
+Using qubit placeholders
+************************
 
 .. note::
     The functionality provided inline by ``QubitPlaceholders`` is similar to writing a function which returns a
@@ -128,7 +136,7 @@ In pyQuil, we typically use integers to identify qubits
 However, when running on real, near-term QPUs we care about what
 particular physical qubits our program will run on. In fact, we may want
 to run the same program on an assortment of different qubits. This is
-where using ``QubitPlaceholder``\ s comes in.
+where using ``QubitPlaceholder``\s comes in.
 
 .. testsetup:: placeholders
 
@@ -154,9 +162,11 @@ where using ``QubitPlaceholder``\ s comes in.
     H Placeholder(QubitPlaceholder(0x600002DEB5B0))
     CNOT Placeholder(QubitPlaceholder(0x600002DEB5B0)) Placeholder(QubitPlaceholder(0x600002DEABB0))
 
-..
-    Could not make this a doctest because it would keep failing. ``doctest`` is supposed to match the
-    exception text if one occurs, but instead it seemed to fail the test because an exception happened.
+Addressing qubits
+=================
+
+If your program uses ``QubitPlaceholder``\s, the placeholders must be resolved before your program can
+be run. If you try to run a program with unresolved placeholders, you will get an error:
 
 .. code:: python
 
@@ -166,10 +176,9 @@ where using ``QubitPlaceholder``\ s comes in.
 
     RuntimeError: Qubit q4402789176 has not been assigned an index
 
-
 Instead, you must explicitly map the placeholders to physical qubits. By
-default, the function ``address_qubits`` will address qubits from 0 to
-N.
+default, the function :py:func:`~pyquil.quil.address_qubits` will address qubits from 0 to
+N, skipping indices that are already used in the program.
 
 .. testcode:: placeholders
 
@@ -195,13 +204,43 @@ The real power comes into play when you provide an explicit mapping:
     H 14
     CNOT 14 19
 
+As an alternative to a mapping, you can consider using :py:meth:`~pyquil.quil.Program.resolve_placeholders_with_custom_resolvers`.
+This method accepts any function that takes a placeholder as an argument, and returns a fixed value for that placeholder (or
+``None``, if you want it to remain unresolved).
 
-Register
---------
+.. testsetup:: placeholders
+
+    from pyquil import Program
+    from pyquil.gates import H, CNOT
+    from pyquil.quilatom import QubitPlaceholder
+
+.. testcode:: placeholders
+
+    q0 = QubitPlaceholder()
+    q1 = QubitPlaceholder()
+    p = Program(H(q0), CNOT(q0, q1))
+    qc = qc.get_qc("Aspen-M-3")
+
+    def qubit_resolver(placeholder: QubitPlaceholder) -> Optional[int]:
+        if placeholder == q0:
+            return 0
+        if placeholder == q1:
+            return None
+
+    p.resolve_qubit_placeholders_with_custom_resolvers(qubit_resolver=qubit_resolver)
+    print(p)
+
+.. testoutput:: placeholders
+
+   H 0
+   CNOT 0 QubitPlaceholder(...)
+
+Requesting a register of qubit placeholders
+===========================================
 
 Usually, your algorithm will use an assortment of qubits. You can use
-the convenience function ``QubitPlaceholder.register()`` to request a
-list of qubits to build your program.
+the convenience function :py:meth:`~pyquil.quilatom.QubitPlaceholder.register` to request a
+register of qubits to build your program.
 
 .. testsetup:: register
 
@@ -228,17 +267,20 @@ list of qubits to build your program.
     H 12
     H 14
 
-Classical Control Flow
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. note::
-
-    Classical control flow is not yet supported on the QPU.
-
+**********************
+Classical control flow
+**********************
 
 Here are a couple quick examples that show how much richer a Quil program
-can be with classical control flow. In this first example, we create a while
-loop by following these steps:
+can be with classical control flow.
+
+.. warning::
+    Dynamic control flow can have unexpected effects on readout data. See :ref:`accessing_raw_execution_data` for more information.
+
+While loops
+===========
+
+In this first example, we create a while loop by following these steps:
 
 1. Declare a register called ``flag_register`` to use as a boolean test for looping.
 
@@ -250,6 +292,8 @@ loop by following these steps:
    qubit.
 
 4. Use the :py:func:`~pyquil.quil.Program.while_do` method to add control flow.
+
+5. Call :py:meth:`~pyquil.quil.Program.resolve_label_placeholders` to resolve the label placeholders inserted by ``while_do``.
 
 .. testcode:: control-flow
 
@@ -294,6 +338,9 @@ classical register.  There are several classical commands that can be used in th
 - ``IOR`` which operates on two classical bits
 - ``MOVE`` which moves the value of a classical bit at one classical address into another
 - ``EXCHANGE`` which swaps the value of two classical bits
+
+If, then
+========
 
 In this next example, we show how to do conditional branching in the
 form of the traditional ``if`` construct as in many programming
@@ -378,8 +425,9 @@ We can run this program a few times to see what we get in the readout register `
      [0]]
 
 
+**********************
 Pauli Operator Algebra
-~~~~~~~~~~~~~~~~~~~~~~
+**********************
 
 Many algorithms require manipulating sums of Pauli combinations, such as
 :math:`\sigma = \frac{1}{2}I - \frac{3}{4}X_0Y_1Z_3 + (5-2i)Z_1X_2,` where
@@ -481,5 +529,4 @@ To take it one step further, you can use :ref:`parametric_compilation` with ``ex
     prog = Program()
     theta = prog.declare('theta', 'REAL')
     prog += exponential_map(ham)(theta)
-
 
