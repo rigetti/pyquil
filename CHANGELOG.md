@@ -62,7 +62,7 @@ installation, perform diagnostics checks, and return a summary.
 - `percolate_declares` is a no-op and will be removed in future versions. `Program` now “percolates” declares automatically.
 - `merge_programs` continues to work, but will be removed in future versions, use `Program` addition instead.
 - The `format_parameter` function continues to work, but will be removed in future versions.
-- The `WaveformReference` and `TemplateWaveform` classes continue to work, but will be removed in future versions. The new `WaveformInvocation` should be used instead.
+- The `WaveformReference` class continues to work, but will be removed in future versions. The new `WaveformInvocation` should be used instead.
 
 ## 3.5.4
 
