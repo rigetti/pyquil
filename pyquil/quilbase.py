@@ -219,6 +219,8 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     if isinstance(instr, quil_rs.Delay):
         return Delay._from_rs_delay(instr)
     if isinstance(instr, quil_rs.Fence):
+        if len(instr.qubits) == 0:
+            return FenceAll()
         return Fence._from_rs_fence(instr)
     if isinstance(instr, quil_rs.FrameDefinition):
         return DefFrame._from_rs_frame_definition(instr)
@@ -2352,7 +2354,6 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
 
     @parameters.setter
     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
-
         quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined] # noqa
 
     @property  # type: ignore[override]
