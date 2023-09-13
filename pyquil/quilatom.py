@@ -1018,8 +1018,8 @@ def _template_waveform_property(
                 return parameter
             if not isinstance(parameter, complex):
                 raise TypeError(
-                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found "
-                    "instead"
+                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was "
+                    "found instead"
                 )
             if parameter.imag != 0.0:
                 raise ValueError(
