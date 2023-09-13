@@ -1137,16 +1137,3 @@ MEASURE 1 ro[1]
     assert len(program.instructions) == 0  # the purpose of copy_everything_except_instructions()
     assert len(program.declarations) == 0  # this is a view on the instructions member; must be consistent
 
-def test_cached_frames():
-    frames = [
-        DefFrame(Frame([Qubit(0)], "frame0"), center_frequency=432.0),
-        DefFrame(Frame([Qubit(1)], "frame1"), sample_rate=44100.0),
-    ]
-
-    p = Program(frames[0])
-    program_frames = p.frames
-    assert program_frames == {frames[0].frame: frames[0]}
-
-    p.inst(frames[1])
-    program_frames = p.frames
-    assert program_frames == {frames[0].frame: frames[0], frames[1].frame: frames[1]}

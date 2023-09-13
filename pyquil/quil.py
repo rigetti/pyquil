@@ -105,24 +105,6 @@ InstructionDesignator = Union[
 RetType = TypeVar("RetType")
 
 
-def _invalidates_cached_properties(func: Callable[..., RetType]) -> Callable[..., RetType]:
-    @functools.wraps(func)
-    def wrapper(self: "Program", *args: Any, **kwargs: Any) -> RetType:
-        result = func(self, *args, **kwargs)
-        cls = type(self)
-        cached = {
-            attr
-            for attr in list(self.__dict__.keys())
-            if (descriptor := getattr(cls, attr, None))
-            if isinstance(descriptor, functools.cached_property)
-        }
-        for attr in cached:
-            del self.__dict__[attr]
-        return result
-
-    return wrapper
-
-
 class Program:
     """
     A list of pyQuil instructions that comprise a quantum program.
@@ -225,7 +207,6 @@ class Program:
         new_program.inst(instructions)
         self._program = new_program._program
 
-    @_invalidates_cached_properties
     def inst(self, *instructions: Union[InstructionDesignator, RSProgram]) -> "Program":
         """
         Mutates the Program object by appending new instructions.
@@ -288,7 +269,6 @@ class Program:
 
         return self
 
-    @_invalidates_cached_properties
     def resolve_placeholders(self) -> None:
         """
         Resolve all label and qubit placeholders in the program using a default resolver that will generate
@@ -296,7 +276,6 @@ class Program:
         """
         self._program.resolve_placeholders()
 
-    @_invalidates_cached_properties
     def resolve_placeholders_with_custom_resolvers(
         self,
         *,
@@ -331,14 +310,12 @@ class Program:
             target_resolver=rs_label_resolver, qubit_resolver=rs_qubit_resolver
         )
 
-    @_invalidates_cached_properties
     def resolve_qubit_placeholders(self) -> None:
         """
         Resolve all qubit placeholders in the program.
         """
         self._program.resolve_placeholders_with_custom_resolvers(target_resolver=lambda _: None)
 
-    @_invalidates_cached_properties
     def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, int]) -> None:
         """
         Resolve all qubit placeholders in the program using a mapping of ``QubitPlaceholder``\\s to
@@ -355,7 +332,6 @@ class Program:
             qubit_resolver=qubit_resolver, target_resolver=label_resolver
         )
 
-    @_invalidates_cached_properties
     def resolve_label_placeholders(self) -> None:
         """
         Resolve all label placeholders in the program.
