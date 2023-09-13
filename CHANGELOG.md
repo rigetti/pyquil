@@ -34,6 +34,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - The `pyquil.quil.get_default_qubit_mapping` function for getting a mapping of `QubitPlaceholders` to resolved indices has been removed. Generating a default mapping is handled automatically by the placeholder resolving methods.
 - The `JumpConditional` base class has been removed, use `JumpWhen` and/or `JumpUnless` directly instead.
 - The `Program` class automatically sorts `DECLARE` instructions to the top of the Program when converting to Quil.
+- `FenceAll` is now a subclass of `Fence`. This can be impactful if you are doing something like `isinstance(instruction, Fence)` since that will now match `Fence` and `FenceAll`. If the difference between the two is important, check for `FenceAll` first. You can also check if the `qubits` property is empty, which implies a `FenceAll` instruction.
 
 ### Features
 
@@ -62,7 +63,7 @@ installation, perform diagnostics checks, and return a summary.
 - `percolate_declares` is a no-op and will be removed in future versions. `Program` now “percolates” declares automatically.
 - `merge_programs` continues to work, but will be removed in future versions, use `Program` addition instead.
 - The `format_parameter` function continues to work, but will be removed in future versions.
-- The `WaveformReference` and `TemplateWaveform` classes continue to work, but will be removed in future versions. The new `WaveformInvocation` should be used instead.
+- The `WaveformReference` class continues to work, but will be removed in future versions. The new `WaveformInvocation` should be used instead.
 
 ## 3.5.4
 

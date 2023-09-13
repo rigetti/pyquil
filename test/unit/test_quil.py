@@ -1136,3 +1136,4 @@ MEASURE 1 ro[1]
     program = program.copy_everything_except_instructions()
     assert len(program.instructions) == 0  # the purpose of copy_everything_except_instructions()
     assert len(program.declarations) == 0  # this is a view on the instructions member; must be consistent
+

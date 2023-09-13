@@ -31,6 +31,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    TypeVar,
     Union,
     cast,
 )
@@ -98,6 +99,9 @@ InstructionDesignator = Union[
     str,  # required to be a pyquil program
     Generator[Any, Any, Any],
 ]
+
+
+RetType = TypeVar("RetType")
 
 
 class Program:
