@@ -17,6 +17,7 @@
 Module for creating and defining Quil programs.
 """
 import types
+import functools
 from collections import defaultdict
 from copy import deepcopy
 from typing import (
@@ -31,6 +32,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    TypeVar,
     Union,
     cast,
 )
@@ -99,7 +101,6 @@ InstructionDesignator = Union[
     Generator[Any, Any, Any],
 ]
 
-
 class Program:
     """
     A list of pyQuil instructions that comprise a quantum program.
@@ -120,12 +121,12 @@ class Program:
 
         self.native_quil_metadata: Optional[NativeQuilMetadata] = None
 
-    @property
+    @functools.cached_property
     def calibrations(self) -> List[DefCalibration]:
         """A list of Quil-T calibration definitions."""
         return [DefCalibration._from_rs_calibration(cal) for cal in self._program.calibrations.calibrations]
 
-    @property
+    @functools.cached_property
     def measure_calibrations(self) -> List[DefMeasureCalibration]:
         """A list of measure calibrations"""
         return [
@@ -133,7 +134,7 @@ class Program:
             for cal in self._program.calibrations.measure_calibrations
         ]
 
-    @property
+    @functools.cached_property
     def waveforms(self) -> Dict[str, DefWaveform]:
         """A mapping from waveform names to their corresponding definitions."""
         return {
@@ -141,7 +142,7 @@ class Program:
             for name, waveform in self._program.waveforms.items()
         }
 
-    @property
+    @functools.cached_property
     def frames(self) -> Dict[Frame, DefFrame]:
         """A mapping from Quil-T frames to their definitions."""
         return {
@@ -149,7 +150,7 @@ class Program:
             for frame, attributes in self._program.frames.get_all_frames().items()
         }
 
-    @property
+    @functools.cached_property
     def declarations(self) -> Dict[str, Declare]:
         """A mapping from declared region names to their declarations."""
         return {name: Declare._from_rs_declaration(inst) for name, inst in self._program.declarations.items()}
@@ -182,7 +183,7 @@ class Program:
         new_program.num_shots = self.num_shots
         return new_program
 
-    @property
+    @functools.cached_property
     def defined_gates(self) -> List[DefGate]:
         """
         A list of defined gates on the program.
@@ -202,6 +203,7 @@ class Program:
         new_program.inst(instructions)
         self._program = new_program._program
 
+    @invalidates_cached_properties
     def inst(self, *instructions: Union[InstructionDesignator, RSProgram]) -> "Program":
         """
         Mutates the Program object by appending new instructions.
@@ -264,6 +266,7 @@ class Program:
 
         return self
 
+    @invalidates_cached_properties
     def resolve_placeholders(self) -> None:
         """
         Resolve all label and qubit placeholders in the program using a default resolver that will generate
@@ -271,6 +274,7 @@ class Program:
         """
         self._program.resolve_placeholders()
 
+    @invalidates_cached_properties
     def resolve_placeholders_with_custom_resolvers(
         self,
         *,
@@ -305,12 +309,14 @@ class Program:
             target_resolver=rs_label_resolver, qubit_resolver=rs_qubit_resolver
         )
 
+    @invalidates_cached_properties
     def resolve_qubit_placeholders(self) -> None:
         """
         Resolve all qubit placeholders in the program.
         """
         self._program.resolve_placeholders_with_custom_resolvers(target_resolver=lambda _: None)
 
+    @invalidates_cached_properties
     def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, int]) -> None:
         """
         Resolve all qubit placeholders in the program using a mapping of ``QubitPlaceholder``\\s to
@@ -327,6 +333,7 @@ class Program:
             qubit_resolver=qubit_resolver, target_resolver=label_resolver
         )
 
+    @invalidates_cached_properties
     def resolve_label_placeholders(self) -> None:
         """
         Resolve all label placeholders in the program.
@@ -1054,6 +1061,24 @@ def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[Abst
             result.append(instr)
 
     return result
+
+RetType = TypeVar("RetType")
+def invalidates_cached_properties(func: Callable[..., RetType]) -> Callable[..., RetType]:
+    @functools.wraps(func)
+    def wrapper(self: "Program", *args: Any, **kwargs: Any) -> RetType:
+        result = func(self, *args, **kwargs)
+        cls = type(self)
+        cached = {
+            attr
+            for attr in list(self.__dict__.keys())
+            if (descriptor := getattr(cls, attr, None))
+            if isinstance(descriptor, functools.cached_property)
+        }
+        for attr in cached:
+            del self.__dict__[attr]
+        return result
+
+    return wrapper
 
 
 @deprecated(
