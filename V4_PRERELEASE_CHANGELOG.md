@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.5.5-rc.2
+
+### Fixes
+
+- Corrected the ryy gate definition (#1603)
+- Return `FenceAll` when appropriate, `TemplateWaveform`s should no longer raise `ValueError`s when being constructed from certain `quil` instructions.  (#1654)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
 ## 3.5.5-rc.1
 
 ### Fixes
