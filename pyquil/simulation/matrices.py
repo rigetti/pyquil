@@ -94,6 +94,16 @@ Currently includes:
     PHASEDFSIM(:math:`\theta, \zeta, \chi, \gamma, \phi`) - XX+YY interaction with conditonal phase on \|11\>
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\ e^{-i(\gamma+\zeta)}\cos(\frac{\theta}{2})&ie^{-i(\gamma-\chi)}\sin(\frac{\theta}{2})&0 \\ 0&ie^{-i(\gamma+\chi)}\sin(\frac{\theta}{2})&e^{-i(\gamma-\zeta)}\cos(\frac{\theta}{2})&0 \\  0&0&0&e^{ i\phi - 2i\gamma} \end{pmatrix}`
 
+    RXX(:math:`\phi`) - XX-interaction
+    :math:`\begin{pmatrix} \cos(\phi/2)&0&0&-i\sin(\phi/2) \\ 0&\cos(\phi/2)&-i\sin(\phi/2)&0 \\ 0&-i\sin(\phi/2)&\cos(\phi/2)&0 \\  -i\sin(\phi/2)&0&0&cos(\phi/2) \end{pmatrix}`
+
+    RYY(:math:`\phi`) - YY-interaction
+    :math:`\begin{pmatrix} \cos(\phi/2)&0&0&i\sin(\phi/2) \\ 0&\cos(\phi/2)&-i\sin(\phi/2)&0 \\ 0&-i\sin(\phi/2)&\cos(\phi/2)&0 \\  i\sin(\phi/2)&0&0&cos(\phi/2) \end{pmatrix}`
+
+    RZZ(:math:`\phi`) - ZZ-interaction
+    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\phi/2)&-i\sin(\phi/2)&0 \\ 0&-i\sin(\phi/2)&\cos(\phi/2)&0 \\  0&0&0&1 \end{pmatrix}`
+
+
 Specialized gates / internal utility gates:
     BARENCO(:math:`\alpha, \phi, \theta`) - Barenco gate
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&1&0&0 \\ 0&0&e^{i\phi} \cos\theta & -i e^{i(\alpha-\phi)} \sin\theta \\ 0&0&-i e^{i(\alpha+\phi)} \sin\theta & e^{i\alpha} \cos\theta \end{pmatrix}`
@@ -278,10 +288,10 @@ def RXX(phi: float) -> np.ndarray:
 def RYY(phi: float) -> np.ndarray:
     return np.array(
         [
-            [np.cos(phi / 2), 0, 0, -1j * np.sin(phi / 2)],
-            [0, np.cos(phi / 2), +1j * np.sin(phi / 2), 0],
-            [0, +1j * np.sin(phi / 2), np.cos(phi / 2), 0],
-            [-1j * np.sin(phi / 2), 0, 0, np.cos(phi / 2)],
+            [np.cos(phi / 2), 0, 0, +1j * np.sin(phi / 2)],
+            [0, np.cos(phi / 2), -1j * np.sin(phi / 2), 0],
+            [0, -1j * np.sin(phi / 2), np.cos(phi / 2), 0],
+            [+1j * np.sin(phi / 2), 0, 0, np.cos(phi / 2)],
         ]
     )
 
