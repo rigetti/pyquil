@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.0.0-rc.58
+
+### Breaking Changes
+
+- merging master reset version
+
+### Fixes
+
+- Corrected the ryy gate definition (#1603)
+- Return `FenceAll` when appropriate, `TemplateWaveform`s should no longer raise `ValueError`s when being constructed from certain `quil` instructions.  (#1654)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
 ## 4.0.0-rc.57
 
 ### Breaking Changes
