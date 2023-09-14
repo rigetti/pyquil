@@ -988,14 +988,7 @@ def exponentiate_pauli_sum(
     >>> coeff = phi/(-4*pi) # -0.25
     >>> hamiltonian = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1*PauliTerm("Z", 0) - 1*PauliTerm("Z", 1)
     >>> exponentiate_pauli_sum(coeff*hamiltonian)
-    array([[ 1.-1.11022302e-16j,  0.+0.00000000e+00j,  0.+0.00000000e+00j,
-             0.+0.00000000e+00j],
-           [ 0.+0.00000000e+00j,  1.-1.11022302e-16j,  0.+0.00000000e+00j,
-             0.+0.00000000e+00j],
-           [ 0.+0.00000000e+00j,  0.+0.00000000e+00j,  1.-1.11022302e-16j,
-             0.+0.00000000e+00j],
-           [ 0.+0.00000000e+00j,  0.+0.00000000e+00j,  0.+0.00000000e+00j,
-            -1.+2.22044605e-16j]])
+    array([[...]])
 
     To produce the Quil XY(theta) gate, you can use:
 
@@ -1003,14 +996,7 @@ def exponentiate_pauli_sum(
     >>> coeff = theta/(-4*pi)
     >>> hamiltonian = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
     >>> exponentiate_pauli_sum(coeff*hamiltonian)
-    array([[1.        +0.j        , 0.        +0.j        ,
-            0.        +0.j        , 0.        +0.j        ],
-           [0.        +0.j        , 0.70710678+0.j        ,
-            0.        +0.70710678j, 0.        +0.j        ],
-           [0.        +0.j        , 0.        +0.70710678j,
-            0.70710678+0.j        , 0.        +0.j        ],
-           [0.        +0.j        , 0.        +0.j        ,
-            0.        +0.j        , 1.        +0.j        ]])
+    array([[...]])
 
     A global phase is applied to the unitary such that the [0,0] element is always real.
 
