@@ -55,7 +55,6 @@ from pyquil.quilbase import (
     Jump,
     Pragma,
     Declare,
-    RawInstr,
     DefGateByPaulis,
     DefPermutationGate,
 )
@@ -451,9 +450,6 @@ class PyQVM(QAM["PyQVM"]):
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
             self.defined_gates[instruction.name] = instruction.matrix
             self.program_counter += 1
-
-        elif isinstance(instruction, RawInstr):
-            raise NotImplementedError("PyQVM does not support raw instructions. Parse your program")
 
         elif isinstance(instruction, Halt):
             return True

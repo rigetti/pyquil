@@ -37,7 +37,6 @@ from pyquil.quilbase import (
     ClassicalLoad,
     ClassicalStore,
     ClassicalComparison,
-    RawInstr,
     Measurement,
     Gate,
     Pragma,
@@ -108,7 +107,6 @@ UNSUPPORTED_INSTRUCTION_CLASSES = (
     ClassicalLoad,
     ClassicalStore,
     ClassicalComparison,
-    RawInstr,
 )
 
 
