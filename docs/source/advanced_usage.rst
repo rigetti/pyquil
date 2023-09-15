@@ -220,7 +220,7 @@ This method accepts any function that takes a placeholder as an argument, and re
     q0 = QubitPlaceholder()
     q1 = QubitPlaceholder()
     p = Program(H(q0), CNOT(q0, q1))
-    qc = get_qc("Aspen-M-3")
+    qc = get_qc("2q-qvm")
 
     def qubit_resolver(placeholder: QubitPlaceholder) -> Optional[int]:
         if placeholder == q0:
