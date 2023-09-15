@@ -103,7 +103,10 @@ class AbstractCompiler(ABC):
         """
         Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
-        result = self._compile_with_quilc(program.out(calibrations=False), options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout))
+        result = self._compile_with_quilc(
+            program.out(calibrations=False),
+            options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout),
+        )
 
         native_program = program.copy_everything_except_instructions()
         native_program.native_quil_metadata = result.native_quil_metadata
@@ -111,7 +114,7 @@ class AbstractCompiler(ABC):
 
         return native_program
 
-    def _compile_with_quilc(self, input: str, options: Optional[CompilerOpts]=None) -> CompilationResult:
+    def _compile_with_quilc(self, input: str, options: Optional[CompilerOpts] = None) -> CompilationResult:
         self._connect()
 
         # convert the pyquil ``TargetDevice`` to the qcs_sdk ``TargetDevice``
