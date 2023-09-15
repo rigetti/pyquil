@@ -35,7 +35,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - The `JumpConditional` base class has been removed, use `JumpWhen` and/or `JumpUnless` directly instead.
 - The `Program` class automatically sorts `DECLARE` instructions to the top of the Program when converting to Quil.
 - `FenceAll` is now a subclass of `Fence`. This can be impactful if you are doing something like `isinstance(instruction, Fence)` since that will now match `Fence` and `FenceAll`. If the difference between the two is important, check for `FenceAll` first. You can also check if the `qubits` property is empty, which implies a `FenceAll` instruction.
-- The `RawInstr` class has been removed. All Quil instructions should be supported by either parsing them through a program or constructing them with an instruction class. If you were using `RawInstr` for QASM2.0 transpilation, use the new `transpile_qasm_2` method on `AbstractCompiler`.
+- The `RawInstr` class has been removed. All Quil instructions should be supported by either parsing them with the `Program` class, or constructing them with an instruction class. If you were using `RawInstr` for QASM2.0 transpilation, use the new `transpile_qasm_2` method on `AbstractCompiler`.
 
 ### Features
 
@@ -55,7 +55,7 @@ installation, perform diagnostics checks, and return a summary.
    	- The `Include` class for `INCLUDE` instructions.
    	- The `DefCircuit` class `DEFCIRCUIT` instructions.
 - The `Program.copy` method now performs a deep copy.
-- The `AbstractCompiler` class now has a method `transpile_qasm_2` method for transpiling QASM2.0 to Quil.
+- The `AbstractCompiler` class now has a method `transpile_qasm_2` method for transpiling QASM2.0 programs to Quil.
 
 ### Deprecations
 
