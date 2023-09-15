@@ -55,7 +55,7 @@ installation, perform diagnostics checks, and return a summary.
    	- The `Include` class for `INCLUDE` instructions.
    	- The `DefCircuit` class `DEFCIRCUIT` instructions.
 - The `Program.copy` method now performs a deep copy.
-- The `AbstractCompiler` class now has a method `transpile_qasm_2` method for transpiling QASM2.0 programs to Quil.
+- The `AbstractCompiler` class now has a new `transpile_qasm_2` method for transpiling QASM2.0 programs to Quil.
 
 ### Deprecations
 
