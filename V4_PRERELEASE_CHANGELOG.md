@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.0.0-rc.59
+
+### Breaking Changes
+
+- merging master reset version
+
+### Features
+
+- Update `qcs-sdk-python`, add `transpile_qasm_2` method to `AbstractCompiler`. (#1655)
+
+### Fixes
+
+- Corrected the ryy gate definition (#1603)
+- Return `FenceAll` when appropriate, `TemplateWaveform`s should no longer raise `ValueError`s when being constructed from certain `quil` instructions.  (#1654)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
 ## 4.0.0-rc.58
 
 ### Breaking Changes
