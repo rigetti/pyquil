@@ -210,7 +210,8 @@ This method accepts any function that takes a placeholder as an argument, and re
 
 .. testsetup:: placeholders
 
-    from pyquil import Program
+    from typing import Optional
+    from pyquil import Program, get_qc
     from pyquil.gates import H, CNOT
     from pyquil.quilatom import QubitPlaceholder
 
@@ -219,7 +220,7 @@ This method accepts any function that takes a placeholder as an argument, and re
     q0 = QubitPlaceholder()
     q1 = QubitPlaceholder()
     p = Program(H(q0), CNOT(q0, q1))
-    qc = qc.get_qc("Aspen-M-3")
+    qc = get_qc("Aspen-M-3")
 
     def qubit_resolver(placeholder: QubitPlaceholder) -> Optional[int]:
         if placeholder == q0:
@@ -227,13 +228,13 @@ This method accepts any function that takes a placeholder as an argument, and re
         if placeholder == q1:
             return None
 
-    p.resolve_qubit_placeholders_with_custom_resolvers(qubit_resolver=qubit_resolver)
+    p.resolve_placeholders_with_custom_resolvers(qubit_resolver=qubit_resolver)
     print(p)
 
 .. testoutput:: placeholders
 
    H 0
-   CNOT 0 QubitPlaceholder(...)
+   CNOT 0 Placeholder(...)
 
 Requesting a register of qubit placeholders
 ===========================================
