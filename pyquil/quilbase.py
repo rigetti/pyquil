@@ -1652,23 +1652,6 @@ class Include(quil_rs.Include, AbstractInstruction):
         return super().to_quil_or_debug()
 
 
-class RawInstr(AbstractInstruction):
-    """
-    A raw instruction represented as a string.
-    """
-
-    def __init__(self, instr_str: str):
-        if not isinstance(instr_str, str):
-            raise TypeError("Raw instructions require a string.")
-        self.instr = instr_str
-
-    def out(self) -> str:
-        return self.instr
-
-    def __repr__(self) -> str:
-        return "<RawInstr {}>".format(self.instr)
-
-
 class Pulse(quil_rs.Pulse, AbstractInstruction):
     def __new__(cls, frame: Frame, waveform: Waveform, nonblocking: bool = False) -> Self:
         return super().__new__(cls, not nonblocking, frame, waveform)

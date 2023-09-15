@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import json
 
 from qcs_sdk import QCSClient
-from qcs_sdk.compiler.quilc import compile_program, TargetDevice, CompilerOpts, QuilcClient
+from qcs_sdk.compiler.quilc import compile_program, TargetDevice, CompilerOpts, QuilcClient, CompilationResult
 
 from pyquil._version import pyquil_version
 from pyquil.api._compiler_client import CompilerClient
@@ -103,17 +103,8 @@ class AbstractCompiler(ABC):
         """
         Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
-        self._connect()
-
-        # convert the pyquil ``TargetDevice`` to the qcs_sdk ``TargetDevice``
-        compiler_isa = self.quantum_processor.to_compiler_isa()
-        target_device_json = json.dumps(compiler_isa_to_target_quantum_processor(compiler_isa).asdict())  # type: ignore
-        target_device = TargetDevice.from_json(target_device_json)
-
-        result = compile_program(
-            quil=program.out(calibrations=False),
-            target=target_device,
-            client=self._compiler_client.quilc_client,
+        result = self._compile_with_quilc(
+            program.out(calibrations=False),
             options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout),
         )
 
@@ -122,6 +113,21 @@ class AbstractCompiler(ABC):
         native_program.inst(result.program)
 
         return native_program
+
+    def _compile_with_quilc(self, input: str, options: Optional[CompilerOpts] = None) -> CompilationResult:
+        self._connect()
+
+        # convert the pyquil ``TargetDevice`` to the qcs_sdk ``TargetDevice``
+        compiler_isa = self.quantum_processor.to_compiler_isa()
+        target_device_json = json.dumps(compiler_isa_to_target_quantum_processor(compiler_isa).asdict())  # type: ignore
+        target_device = TargetDevice.from_json(target_device_json)
+
+        return compile_program(
+            quil=input,
+            target=target_device,
+            client=self._compiler_client.quilc_client,
+            options=options,
+        )
 
     def _connect(self) -> None:
         try:
@@ -133,6 +139,11 @@ class AbstractCompiler(ABC):
                 "responding slowly. See the Troubleshooting Guide: "
                 "{DOCS_URL}/troubleshooting.html"
             )
+
+    def transpile_qasm_2(self, qasm: str) -> Program:
+        """Transpile a QASM 2.0 program string to Quil, returning the result as a :py:class:~`pyquil.quil.Program`"""
+        result = self._compile_with_quilc(qasm, options=CompilerOpts(timeout=self._compiler_client.timeout))
+        return Program(result.program)
 
     @abstractmethod
     def native_quil_to_executable(self, nq_program: Program, **kwargs: Any) -> QuantumExecutable:
