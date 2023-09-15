@@ -13,8 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-
 from fractions import Fraction
+import inspect
 from numbers import Number
 from typing import (
     Any,
@@ -1014,10 +1014,12 @@ def _template_waveform_property(
             return parameter
 
         if dtype is int or dtype is float:
+            if isinstance(parameter, dtype):
+                return parameter
             if not isinstance(parameter, complex):
                 raise TypeError(
-                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was found"
-                    "instead"
+                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was "
+                    "found instead"
                 )
             if parameter.imag != 0.0:
                 raise ValueError(
@@ -1036,11 +1038,9 @@ def _template_waveform_property(
     return property(fget, fset, fdel, doc)
 
 
-@deprecated(
-    version="4.0",
-    reason="The TemplateWaveform class will be removed, consider using WaveformInvocation instead.",
-)
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
+    NAME: ClassVar[str]
+
     def __new__(
         cls,
         name: str,
@@ -1102,6 +1102,42 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
 
     @classmethod
     def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
+        """
+        The ``quil`` package has no equivalent to ``TemplateWaveform``s, this function checks the name and
+        properties of a ``quil`` ``WaveformInvocation`` to see if they potentially match a subclass of
+        ``TemplateWaveform``. If a match is found and construction succeeds, then that type is returned.
+        Otherwise, a generic ``WaveformInvocation`` is returned.
+        """
+        from pyquil.quiltwaveforms import (
+            FlatWaveform,
+            GaussianWaveform,
+            DragGaussianWaveform,
+            HrmGaussianWaveform,
+            ErfSquareWaveform,
+            BoxcarAveragerKernel,
+        )
+
+        template: Type["TemplateWaveform"]  # mypy needs a type annotation here to understand this.
+        for template in [
+            FlatWaveform,
+            GaussianWaveform,
+            DragGaussianWaveform,
+            HrmGaussianWaveform,
+            ErfSquareWaveform,
+            BoxcarAveragerKernel,
+        ]:
+            if template.NAME != waveform.name:
+                continue
+            parameter_names = [
+                parameter[0] for parameter in inspect.getmembers(template, lambda a: isinstance(a, property))
+            ]
+            if set(waveform.parameters.keys()).issubset(parameter_names):
+                try:
+                    parameters = {key: _convert_to_py_expression(value) for key, value in waveform.parameters.items()}
+                    return template(**parameters)  # type: ignore[arg-type]
+                except TypeError:
+                    break
+
         return super().__new__(cls, waveform.name, waveform.parameters)
 
     def __str__(self) -> str:

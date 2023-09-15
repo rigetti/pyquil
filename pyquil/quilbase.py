@@ -219,6 +219,8 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     if isinstance(instr, quil_rs.Delay):
         return Delay._from_rs_delay(instr)
     if isinstance(instr, quil_rs.Fence):
+        if len(instr.qubits) == 0:
+            return FenceAll()
         return Fence._from_rs_fence(instr)
     if isinstance(instr, quil_rs.FrameDefinition):
         return DefFrame._from_rs_frame_definition(instr)
@@ -1650,23 +1652,6 @@ class Include(quil_rs.Include, AbstractInstruction):
         return super().to_quil_or_debug()
 
 
-class RawInstr(AbstractInstruction):
-    """
-    A raw instruction represented as a string.
-    """
-
-    def __init__(self, instr_str: str):
-        if not isinstance(instr_str, str):
-            raise TypeError("Raw instructions require a string.")
-        self.instr = instr_str
-
-    def out(self) -> str:
-        return self.instr
-
-    def __repr__(self) -> str:
-        return "<RawInstr {}>".format(self.instr)
-
-
 class Pulse(quil_rs.Pulse, AbstractInstruction):
     def __new__(cls, frame: Frame, waveform: Waveform, nonblocking: bool = False) -> Self:
         return super().__new__(cls, not nonblocking, frame, waveform)
@@ -2352,7 +2337,6 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
 
     @parameters.setter
     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
-
         quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined] # noqa
 
     @property  # type: ignore[override]

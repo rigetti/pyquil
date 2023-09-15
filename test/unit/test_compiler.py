@@ -1,5 +1,7 @@
 import math
 
+from syrupy.assertion import SnapshotAssertion
+
 from pyquil import Program
 from pyquil.api._compiler import QPUCompiler
 from pyquil.gates import RX, MEASURE, RZ
@@ -25,3 +27,8 @@ def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
     assert compilation_result.calibrations == cals
     assert program.calibrations == cals
     assert compilation_result == program
+
+def test_transpile_qasm_2(compiler: QPUCompiler, snapshot: SnapshotAssertion):
+    qasm = 'OPENQASM 2.0;\nqreg q[3];\ncreg ro[2];\nmeasure q[0] -> ro[0];\nmeasure q[1] -> ro[1];'
+    program = compiler.transpile_qasm_2(qasm)
+    assert program.out() == snapshot

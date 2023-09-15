@@ -1,5 +1,80 @@
 # Changelog
 
+## 4.0.0-rc.58
+
+### Breaking Changes
+
+- merging master reset version
+
+### Fixes
+
+- Corrected the ryy gate definition (#1603)
+- Return `FenceAll` when appropriate, `TemplateWaveform`s should no longer raise `ValueError`s when being constructed from certain `quil` instructions.  (#1654)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
+## 4.0.0-rc.57
+
+### Breaking Changes
+
+- merging master reset version
+
+### Fixes
+
+- Corrected the ryy gate definition (#1603)
+- Return `FenceAll` when appropriate, `TemplateWaveform`s should no longer raise `ValueError`s when being constructed from certain `quil` instructions.  (#1654)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
+## 3.5.5-rc.2
+
+### Fixes
+
+- Corrected the ryy gate definition (#1603)
+- Return `FenceAll` when appropriate, `TemplateWaveform`s should no longer raise `ValueError`s when being constructed from certain `quil` instructions.  (#1654)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
+## 3.5.5-rc.1
+
+### Fixes
+
+- Corrected the ryy gate definition (#1603)
+- Return `FenceAll` when appropriate, `TemplateWaveform`s should no longer raise `ValueError`s when being constructed from certain `quil` instructions.  (#1654)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
+## 4.0.0-rc.56
+
+### Breaking Changes
+
+- Revamp the QuantumComputer and the WavefunctionSimulator sections. (#1643)
+
+### Features
+
+- Quilc clients support (#1638)
+- Implement `__iadd__` on `Program` (#1648)
+
+### Fixes
+
+- Return `FenceAll` when appropriate, `TemplateWaveform`s should no longer raise `ValueError`s when being constructed from certain `quil` instructions.  (#1654)
+- Attempt to reconstruct `TemplateWaveform`s from `quil_rs.WaveformInvocation`s (#1650)
+- Program#calibrate now returns the original instruction if there was no match (#1646)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
+## 4.0.0-rc.55
+
+### Breaking Changes
+
+- Revamp the QuantumComputer and the WavefunctionSimulator sections. (#1643)
+
+### Features
+
+- Quilc clients support (#1638)
+- Implement `__iadd__` on `Program` (#1648)
+
+### Fixes
+
+- Attempt to reconstruct `TemplateWaveform`s from `quil_rs.WaveformInvocation`s (#1650)
+- Program#calibrate now returns the original instruction if there was no match (#1646)
+- Program declarations should be empty after copy_everything_except_instructions (#1614)
+
 ## 4.0.0-rc.54
 
 ### Breaking Changes

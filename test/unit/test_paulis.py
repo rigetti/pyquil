@@ -30,6 +30,7 @@ from pyquil.paulis import (
     PauliSum,
     exponential_map,
     exponentiate_commuting_pauli_sum,
+    exponentiate_pauli_sum,
     ID,
     exponentiate,
     trotterize,
@@ -45,7 +46,8 @@ from pyquil.paulis import (
     is_identity,
 )
 from pyquil.quil import Program
-from pyquil.simulation.tools import program_unitary
+from pyquil.simulation.tools import program_unitary, unitary_equal
+from pyquil.simulation import matrices
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
@@ -395,6 +397,56 @@ def test_exponentiate_prog():
     result_prog = Program(RZ(2.0, 0))
     prog = exponentiate(ham)
     assert prog.out() == result_prog.out()
+
+
+def test_exponentiate_pauli_sum_rxx():
+    """Test that exponentiate_exponentiate_pauli_sum generates the RXX gate"""
+    generators = PauliTerm("X", 0) * PauliTerm("X", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.RXX(2 * np.pi * angle))
+
+
+def test_exponentiate_pauli_sum_ryy():
+    """Test that exponentiate_exponentiate_pauli_sum generates the RYY gate"""
+    generators = PauliTerm("Y", 0) * PauliTerm("Y", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.RYY(2 * np.pi * angle))
+
+
+def test_exponentiate_pauli_sum_rzz():
+    """Test that exponentiate_exponentiate_pauli_sum generates the RZZ gate"""
+    generators = PauliTerm("Z", 0) * PauliTerm("Z", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.RZZ(2 * np.pi * angle))
+
+
+def test_exponentiate_pauli_sum_cphase():
+    """Test that exponentiate_exponentiate_pauli_sum generates the CZ gate"""
+    generators = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.CPHASE(2 * np.pi * (-2 * angle)))
+
+
+def test_exponentiate_pauli_sum_xy():
+    """Test that exponentiate_exponentiate_pauli_sum generates the XY gate"""
+    generators = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
+    for angle in np.linspace(-0.5, 0.5):
+        generated_unitary = exponentiate_pauli_sum(generators * angle)
+        assert unitary_equal(generated_unitary, matrices.XY(2 * np.pi * (-2 * angle)))
+
+
+def test_exponentiate_pauli_sum_fsim():
+    """Test that exponentiate_exponentiate_pauli_sum generates the FSIM gate"""
+    xy_generators = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
+    cphase_generators = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
+    for theta in np.linspace(-0.5, 0.5):
+        for phi in np.linspace(-0.5, 0.5):
+            generated_unitary = exponentiate_pauli_sum(xy_generators * theta + cphase_generators * phi)
+            assert unitary_equal(generated_unitary, matrices.FSIM(2 * np.pi * (-2 * theta), 2 * np.pi * (-2 * phi)))
 
 
 def test_exponentiate_identity():
