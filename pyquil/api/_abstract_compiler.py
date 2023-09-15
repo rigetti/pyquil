@@ -141,6 +141,7 @@ class AbstractCompiler(ABC):
             )
 
     def transpile_qasm_2(self, qasm: str) -> Program:
+        """Transpile a QASM 2.0 program string to Quil, returning the result as a :py:class:~`pyquil.quil.Program`"""
         result = self._compile_with_quilc(qasm, options=CompilerOpts(timeout=self._compiler_client.timeout))
         return Program(result.program)
 
