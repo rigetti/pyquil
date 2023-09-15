@@ -1,15 +1,15 @@
 .. _noise:
 
-Noise and Quantum Computation
+=============================
+Noise and quantum computation
 =============================
 
-Modeling Noisy Quantum Gates
-----------------------------
+****************************
+Modeling noisy quantum gates
+****************************
 
-.. begin import from GateNoiseModels.ipynb
-
-Pure States vs. Mixed States
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Pure states vs. mixed states
+============================
 
 Errors in quantum computing can introduce classical uncertainty in what the underlying state is. When this happens we
 sometimes need to consider not only wavefunctions but also probabilistic sums of wavefunctions when we are uncertain as
@@ -54,7 +54,7 @@ more about density matrices here [DensityMatrix]_.
 .. [DensityMatrix] https://en.wikipedia.org/wiki/Density_matrix
 
 Quantum Gate Errors
-~~~~~~~~~~~~~~~~~~~
+===================
 
 For a quantum gate given by its unitary operator :math:`U`, a "quantum gate error" describes the scenario in which the
 actually induced transformation deviates from :math:`\ket{\psi} \mapsto U\ket{\psi}`. There are two basic types of
@@ -87,8 +87,8 @@ quantum gate errors:
 In a way, coherent errors are *in principle* amendable by more precisely
 calibrated control. Incoherent errors are more tricky.
 
-Why Do Incoherent Errors Happen?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Why do incoherent errors happen?
+================================
 
 When a quantum system (e.g., the qubits on a quantum processor) is not
 perfectly isolated from its environment it generally co-evolves with the
@@ -121,8 +121,8 @@ by the Schrödinger equation
 
 the final state will generally not admit such a factorization.
 
-A Toy Model
-~~~~~~~~~~~
+A toy model
+===========
 
 **In this (somewhat technical) section we show how environment
 interaction can corrupt an identity gate and derive its Kraus map.** For
@@ -189,10 +189,11 @@ cases with little complication and a very similar argument is used to
 derive the `Lindblad master
 equation <https://en.wikipedia.org/wiki/Lindblad_equation>`__.
 
-Noisy Gates on the Rigetti QVM
-------------------------------
+**********************
+Noisy gates on the QVM
+**********************
 
-As of today, users of our Forest SDK can annotate their Quil programs by
+As of today, users of the Quil SDK can annotate their Quil programs by
 certain pragma statements that inform the QVM that a particular gate on
 specific target qubits should be replaced by an imperfect realization
 given by a Kraus map.
@@ -247,8 +248,9 @@ which proves our claim. **The consequence is that noisy gate simulations
 must generally be repeated many times to obtain representative
 results**.
 
-Getting Started
-~~~~~~~~~~~~~~~
+***************
+Getting started
+***************
 
 1. Come up with a good model for your noise. We will provide some
    examples below and may add more such examples to our public
@@ -289,8 +291,9 @@ Getting Started
     qc = get_qc('2q-qvm')
 
 
-Example 1: Amplitude Damping
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+****************************
+Example 1: Amplitude damping
+****************************
 
 Amplitude damping channels are imperfect identity maps with Kraus
 operators
@@ -411,8 +414,9 @@ state decays to the :math:`\ket{0}` state.
 .. image:: images/GateNoiseModels_14_1.png
 
 
+***************************
 Example 2: Dephased CZ-gate
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***************************
 
 Dephasing is usually characterized through a qubit's :math:`T_2` time.
 For a single qubit the dephasing Kraus operators are
@@ -572,9 +576,9 @@ good starting point.**
 
 .. end import from GateNoiseModel.ipynb
 
-
+************************
 Adding Decoherence Noise
-------------------------
+************************
 
 In this example, we investigate how a program might behave on a
 near-term device that is subject to *T1*- and *T2*-type noise using the convenience function
@@ -594,7 +598,7 @@ gate.
     import numpy as np
 
 The Task
-~~~~~~~~
+========
 
 We want to prepare :math:`e^{i \theta XY}` and measure it in the
 :math:`Z` basis.
@@ -605,8 +609,8 @@ We want to prepare :math:`e^{i \theta XY}` and measure it in the
     theta = pi/3
     xy = PauliTerm('X', 0) * PauliTerm('Y', 1)
 
-The Idiomatic pyQuil Program
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The idiomatic pyQuil program
+============================
 
 .. testcode:: decoherence
 
@@ -625,8 +629,8 @@ The Idiomatic pyQuil Program
     RX(-1.5707963267948966) 1
 
 
-The Compiled Program
-~~~~~~~~~~~~~~~~~~~~
+The compiled program
+====================
 
 To run on a real device, we must compile each program to the native gate
 set for the device. The high-level noise model is similarly constrained
@@ -661,8 +665,8 @@ will want to use a compiler to do this step for you.
             RZ(-pi/2, 1),
         ])
 
-Scan Over Noise Parameters
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Scan over noise parameters
+==========================
 
 We perform a scan over three levels of noise, each at 20 theta points.
 
@@ -719,8 +723,8 @@ gate noise, respectively.
             }
             records += [record]
 
-Plot the Results
-~~~~~~~~~~~~~~~~
+Plot the results
+================
 
 Note that to run the code below you will need to install the `pandas` and `seaborn` packages.
 
@@ -753,8 +757,9 @@ Note that to run the code below you will need to install the `pandas` and `seabo
 
 .. image:: images/NoiseInvestigation_14_0.png
 
-Modeling Readout Noise
-----------------------
+**********************
+Modeling readout noise
+**********************
 
 Qubit-Readout can be corrupted in a variety of ways. The two most
 relevant error mechanisms on the Rigetti QPU right now are:
@@ -774,8 +779,8 @@ relevant error mechanisms on the Rigetti QPU right now are:
    can try to reduce the readout pulse length, or increase the T1 time
    or both.
 
-Qubit Measurements
-~~~~~~~~~~~~~~~~~~
+Qubit measurements
+==================
 
 This section provides the necessary theoretical foundation for
 accurately modeling noisy quantum measurements on superconducting
@@ -794,8 +799,8 @@ the measurement outcome.
 Here the *outcome* is understood as classical information that has been
 extracted from the quantum system.
 
-Projective, Ideal Measurement
-_____________________________
+Projective, ideal measurement
+=============================
 
 The simplest case that is usually taught in introductory quantum
 mechanics and quantum information courses are Born's rule and the
@@ -844,7 +849,7 @@ ensures that :math:`\rho_{\text{post measurement}}` is a positive
 (semi-)definite operator.
 
 Classical Readout Bit-Flip Error
-________________________________
+================================
 
 Consider now the ideal measurement as above, but where the outcome
 :math:`x` is transmitted across a noisy classical channel that produces
@@ -915,8 +920,8 @@ nor valid projection operators, but they naturally arise in this
 scenario. This is not yet the most general type of measurement, but it
 will get us pretty far.
 
-How to Model :math:`T_1` Error
-______________________________
+How to model :math:`T_1` error
+==============================
 
 T1 type errors fall outside our framework so far as they involve a
 scenario in which the *quantum state itself* is corrupted during the
@@ -928,14 +933,15 @@ relatively simple description, we propose describing this by a T1
 damping Kraus map followed by the noisy readout process as described
 above.
 
-Further Reading
-_______________
+Further reading
+===============
 
 Chapter 3 of John Preskill's lecture notes
 http://www.theory.caltech.edu/people/preskill/ph229/notes/chap3.pdf
 
-Working with Readout Noise
---------------------------
+**************************
+Working with readout noise
+**************************
 
 1. Come up with a good guess for your readout noise parameters
    :math:`p(0|0)` and :math:`p(1|1)`; the off-diagonals then follow from
@@ -971,8 +977,8 @@ Working with Readout Noise
 
     qc = get_qc("1q-qvm")
 
-Example 1: Rabi Sequence with Noisy Readout
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example 1: Rabi sequence with noisy readout
+===========================================
 
 .. testcode:: readout-noise
 
@@ -1029,8 +1035,8 @@ Example 1: Rabi Sequence with Noisy Readout
 
 .. image:: images/ReadoutNoise_10_1.png
 
-Example 2: Estimate the Assignment Probabilities
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example 2: Estimate the assignment probabilities
+================================================
 
 Here we will estimate :math:`P_{x'|x}` ourselves!
 You can run some simple experiments to estimate the assignment
@@ -1084,10 +1090,10 @@ probability matrix directly from a QPU.
      [ 0.09952  0.85012]]
 
 Example 3: Correct for Noisy Readout
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+====================================
 
-3a) Correcting the Rabi Signal from Above
-_________________________________________
+Correcting the rabi signal from above
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. testcode:: readout-noise
 
@@ -1122,8 +1128,8 @@ We find that the corrected signal is fairly noisy (and sometimes
 exceeds the allowed interval :math:`[0,1]`) due to the overall very
 small number of samples :math:`n=200`.
 
-3b) Corrupting and Correcting GHZ State Correlations
-____________________________________________________
+Corrupting and correcting GHZ state correlations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this example we will create a GHZ state
 :math:`\frac{1}{\sqrt{2}}\left[\left|000\right\rangle + \left|111\right\rangle \right]` and
@@ -1177,7 +1183,7 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
     MEASURE 2 ro[2]
 
 Uncorrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=============================================================================================
 
 .. testsetup:: readout-noise
 
@@ -1201,7 +1207,7 @@ As expected the outcomes ``000`` and ``111`` each have roughly
 probability :math:`1/2`.
 
 Corrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===========================================================================================
 
 .. testcode:: readout-noise
 
@@ -1221,7 +1227,7 @@ The noise-corrupted outcome probabilities deviate significantly from
 their ideal values!
 
 Corrected probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===========================================================================================
 
 .. testsetup:: readout-noise
 
@@ -1244,7 +1250,7 @@ Corrected probability for :math:`\left|000\right\rangle` and :math:`\left|111\ri
 The corrected outcome probabilities are much closer to the ideal value.
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 010, 001` from non-noisy data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+============================================================================================================
 
 *We expect these to all be very small*
 
@@ -1267,7 +1273,7 @@ Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 0
     0.0083999999999999631 0.0083999999999999631 0.0083999999999999631
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 011, 101` from non-noisy data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+============================================================================================================
 
 *We expect these to all be close to 1.*
 
@@ -1280,7 +1286,7 @@ Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 0
     1.0 1.0 1.0
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 010, 001` from noise-corrected data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==================================================================================================================
 
 .. testcode:: readout-noise
 
@@ -1297,7 +1303,7 @@ Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 0
     0.0071476770049732075 -0.0078641261685578612 0.0088462563282706852
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 011, 101` from noise-corrected data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==================================================================================================================
 
 .. testcode:: readout-noise
 
@@ -1318,9 +1324,9 @@ This effect is reduced the more samples we take.
 
 
 Alternative: A global Pauli error model
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=======================================
 
-The Rigetti QVM has support for emulating certain types of noise models.
+The QVM has support for emulating certain types of noise models.
 One such model is *parametric Pauli noise*, which is defined by a
 set of 6 probabilities:
 

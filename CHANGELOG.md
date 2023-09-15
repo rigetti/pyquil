@@ -10,7 +10,7 @@ The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest 
 - Removed the `compatibility.v2` sub-package.
 - Removed the `EngagementManager` class as RPCQ is no longer used.
 - Python 3.7 is no longer supported.
-- The environment variable overrides for `quilc` and `QVM` URLs have been renamed to `QCS_APPLICATIONS_QUILC_URL` and `QCS_APPLICATIONS_QVM_URL`, respectively.
+- The environment variable overrides for `quilc` and `QVM` URLs have been renamed to `QCS_SETTINGS_APPLICATIONS_QUILC_URL` and `QCS_SETTINGS_APPLICATIONS_QVM_URL`, respectively.
 - The `QuantumComputer`'s `run` method now takes an optional `memory_map` parameter. This mapping takes memory region names to a list of values to use for a run. This replaces the ability to use `write_memory` on `Program`s.
 - `Program` and instructions have been re-written using the `quil` package. Much of the API remains the same, with the following exceptions:
 	- `SwapPhase` has been renamed to `SwapPhases`
@@ -55,7 +55,7 @@ installation, perform diagnostics checks, and return a summary.
    	- The `Include` class for `INCLUDE` instructions.
    	- The `DefCircuit` class `DEFCIRCUIT` instructions.
 - The `Program.copy` method now performs a deep copy.
-- The `AbstractCompiler` class now has a method `transpile_qasm_2` method for transpiling QASM2.0 programs to Quil.
+- The `AbstractCompiler` class now has a new `transpile_qasm_2` method for transpiling QASM2.0 programs to Quil.
 
 ### Deprecations
 
