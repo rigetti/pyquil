@@ -8,10 +8,6 @@ The 4.0 major release of pyQuil moves the foundation of program parsing, manipul
 
 As a first step, read through the :doc:`changes` to get an overview of what's new. Pay special attention to the breaking changes you may need to accommodate. In the rest of this introduction, we'll expand on some of the key changes and new features.
 
-.. note::
-
-   pyQuil v4 is currently pre-release software. If using ``pip``, be sure to install it with the ``--pre`` flag: ``pip install --pre pyquil``
-
 *******************
 Parameters & memory
 *******************
