@@ -1,6 +1,19 @@
 name: Release Dry Run
 
-on: push
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      type:
+        description: Runs knope with the --dry-run flag to see what the next release would look like.
+        required: true
+        default: prerelease
+        options:
+          - prerelease
+          - release
 
 jobs:
   release-dry-run:
@@ -14,5 +27,9 @@ jobs:
       uses: knope-dev/action@v1
       with:
         version: 0.7.2 # Test before updating, breaking changes likely: https://github.com/knope-dev/action#install-latest-version
-    - name: Display Pending Prerelease
+    - name: Prepare Prerelease
       run: knope prerelease --dry-run
+      if: github.event_name == 'push'
+    - name: Prepare Release
+      run: knope ${{ inputs.type }} --dry-run
+      if: github.event_name == 'workflow_dispatch'
