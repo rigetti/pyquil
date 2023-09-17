@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
+from pyquil.quilatom import quil_cos
 from pyquil.gates import X
 from pyquil.quil import Program
 from pyquil.quilbase import (
@@ -162,7 +163,7 @@ class TestGate:
     ("name", "matrix", "parameters"),
     [
         ("NoParamGate", np.eye(4), []),
-        ("ParameterizedGate", np.diag([Parameter("X")] * 4), [Parameter("X")]),
+        ("ParameterizedGate", np.diag([quil_cos(Parameter("X"))] * 4), [Parameter("X")]),
     ],
     ids=("No-Params", "Params"),
 )
