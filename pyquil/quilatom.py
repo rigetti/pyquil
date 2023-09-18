@@ -449,6 +449,19 @@ def _convert_to_py_expression(
             return BinaryExp._from_rs_infix_expression(expression.to_infix())
         if expression.is_address():
             return MemoryReference._from_rs_memory_reference(expression.to_address())
+        if expression.is_function_call():
+            fc = expression.to_function_call()
+            parameter = _convert_to_py_expression(fc.expression)
+            if fc.function == quil_rs_expr.ExpressionFunction.Cis:
+                return quil_cis(parameter)
+            if fc.function == quil_rs_expr.ExpressionFunction.Cosine:
+                return quil_cos(parameter)
+            if fc.function == quil_rs_expr.ExpressionFunction.Exponent:
+                return quil_exp(parameter)
+            if fc.function == quil_rs_expr.ExpressionFunction.Sine:
+                return quil_sin(parameter)
+            if fc.function == quil_rs_expr.ExpressionFunction.SquareRoot:
+                return quil_sqrt(parameter)
         if expression.is_prefix():
             prefix = expression.to_prefix()
             py_expression = _convert_to_py_expression(prefix.expression)

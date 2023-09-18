@@ -240,10 +240,10 @@
 # name: TestDefGate.test_out[Params]
   '''
   DEFGATE ParameterizedGate(%X) AS MATRIX:
-  	%X, 0, 0, 0
-  	0, %X, 0, 0
-  	0, 0, %X, 0
-  	0, 0, 0, %X
+  	cos(%X), 0, 0, 0
+  	0, cos(%X), 0, 0
+  	0, 0, cos(%X), 0
+  	0, 0, 0, cos(%X)
   
   '''
 # ---
@@ -260,10 +260,10 @@
 # name: TestDefGate.test_str[Params]
   '''
   DEFGATE ParameterizedGate(%X) AS MATRIX:
-  	%X, 0, 0, 0
-  	0, %X, 0, 0
-  	0, 0, %X, 0
-  	0, 0, 0, %X
+  	cos(%X), 0, 0, 0
+  	0, cos(%X), 0, 0
+  	0, 0, cos(%X), 0
+  	0, 0, 0, cos(%X)
   
   '''
 # ---
