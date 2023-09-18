@@ -2320,63 +2320,63 @@ cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
 name = "qcs-sdk-python"
-version = "0.12.1"
+version = "0.12.2"
 description = "Python interface for the QCS Rust SDK"
 optional = false
 python-versions = "*"
 files = [
-    {file = "qcs_sdk_python-0.12.1-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:d2facf4eac841ccd68a2a55298159fec7b65bf7ed4cda679e4b7ae0d6fec2b92"},
-    {file = "qcs_sdk_python-0.12.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:34c5589b2550abd8a91ab6b27a127be719143a8d636ab10c066d5c123aaed3e2"},
-    {file = "qcs_sdk_python-0.12.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f23840734305ff5f7767e9e602b82fcaba35f2f667d05b28b2b80c76cc864a34"},
-    {file = "qcs_sdk_python-0.12.1-cp310-none-win32.whl", hash = "sha256:5f533dac6d5be30e86dbee39f3cbb8eae88d8ef9b92ee041edcdd3ccb1c36d84"},
-    {file = "qcs_sdk_python-0.12.1-cp310-none-win_amd64.whl", hash = "sha256:fd959ab1e509d9a6e7dc98aa60fc0820844824b85486afcb472da09371b1bfce"},
-    {file = "qcs_sdk_python-0.12.1-cp311-cp311-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:d946883d3d5965a7b0ad7a7a3f0c60aa9432c5b21b23c16bcf3e68a171a9b9a3"},
-    {file = "qcs_sdk_python-0.12.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a9b549f7f1da90d0bb3a0a6448899843b2108f1dfa885c147a69813374c900c1"},
-    {file = "qcs_sdk_python-0.12.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:058a085bbce2dcd386feac9cfdbdc4db2ce65b383a9abd119f14f8a8bf57a4e9"},
-    {file = "qcs_sdk_python-0.12.1-cp311-none-win32.whl", hash = "sha256:3c47d1723619e92b0a1fd81f3ab425047bac96720a71620b2b04be7286bcebc3"},
-    {file = "qcs_sdk_python-0.12.1-cp311-none-win_amd64.whl", hash = "sha256:ec185f6b4eeb5a2f9de2372b7e9ecd9f5de0c5ce997cabf8793b09f10aae2480"},
-    {file = "qcs_sdk_python-0.12.1-cp38-cp38-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:a2d4906f30f4f9773673a51400d20123e34fbe85d0d962efc4c8901735060b59"},
-    {file = "qcs_sdk_python-0.12.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5324a05784948fbe9ab1a254659fe158e9e97e87f31c3ddeb81baee81dc421e1"},
-    {file = "qcs_sdk_python-0.12.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d7caebc3a96cf7d39613a51f48d94759fd232f60c24fd987a0206a3a4a2476a5"},
-    {file = "qcs_sdk_python-0.12.1-cp38-none-win32.whl", hash = "sha256:20611718cb2e02ef4a34ceb79551e6914031f8dd3a248c027aa5d45ab28d0c2b"},
-    {file = "qcs_sdk_python-0.12.1-cp38-none-win_amd64.whl", hash = "sha256:6f959ec176b7686c7e359712f74432f6f694573ded8e30309112dae0091fcfde"},
-    {file = "qcs_sdk_python-0.12.1-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:5c02d1791501176a305ab496e86544028085cd0e7d7671c047764adb77b3fffa"},
-    {file = "qcs_sdk_python-0.12.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1d63a78950c620aa3b9c6476162f06a959e3549ef4fc18fbf3ac81f63597058d"},
-    {file = "qcs_sdk_python-0.12.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ae8e4ee5e4d7279adaa20443e269712be70af91f0fc5e6c8940792c60e1f906e"},
-    {file = "qcs_sdk_python-0.12.1-cp39-none-win32.whl", hash = "sha256:68ff2ffaa223db42894c79174af0a2636774187baade3e2e383983a5c7cb0a07"},
-    {file = "qcs_sdk_python-0.12.1-cp39-none-win_amd64.whl", hash = "sha256:0b59c676ea51ac0865683875a539428302aa3c5b094ee40592c5f0b4ca2256d4"},
+    {file = "qcs_sdk_python-0.12.2-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:722edb79261b89a5745667521d4c74c6a3f98df3d92da7abeadad8703bbd0b54"},
+    {file = "qcs_sdk_python-0.12.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e9086b951337119b4b0e171b466acde48432617377787c98716efe6e7573ca43"},
+    {file = "qcs_sdk_python-0.12.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4bb7192ff61ff99d4437d81f2c26a0a0588ec7533f9a52bbed52f5b2a9c49bb4"},
+    {file = "qcs_sdk_python-0.12.2-cp310-none-win32.whl", hash = "sha256:157721c750993556150e94fbb1c0c6199af0b3d121302933a0d0d07957ebe716"},
+    {file = "qcs_sdk_python-0.12.2-cp310-none-win_amd64.whl", hash = "sha256:e6536627a5f273ae1b863938b23c6d085208772964344eccbd8d4a039f409df4"},
+    {file = "qcs_sdk_python-0.12.2-cp311-cp311-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:0001a419d39694b866862fec5807120e5de36ca4eacc48d815fce0c8f40f4e4a"},
+    {file = "qcs_sdk_python-0.12.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f1af0c137001de0150893d44afccb3a9b38fe859ef5b2c64f447b451024a2a2d"},
+    {file = "qcs_sdk_python-0.12.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d98637deb73ab5d70efab5d4c284bbd2cace9a1226d3f8d063b1dec8ac1503d6"},
+    {file = "qcs_sdk_python-0.12.2-cp311-none-win32.whl", hash = "sha256:4508ffd7492320acf2afe320fb5cea05325e409ba3c6450928b461918f8732e4"},
+    {file = "qcs_sdk_python-0.12.2-cp311-none-win_amd64.whl", hash = "sha256:31e4e6c1d2714d73a6c584dc893c042de9a951354eab0cd80d4978bcc5c7b956"},
+    {file = "qcs_sdk_python-0.12.2-cp38-cp38-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:1aa93ebff3227b744e4694e2668b27f2bdc6305aacca5ae90166d70f46d48c22"},
+    {file = "qcs_sdk_python-0.12.2-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:88057a691ad06632ffcd4c0d61f2300a7548e4931a2e6fce57357ca60d8140bb"},
+    {file = "qcs_sdk_python-0.12.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8333fb1b9fcbca36f8c23e6bcdde7dc162d4951c5b78859e14a4413b971b6922"},
+    {file = "qcs_sdk_python-0.12.2-cp38-none-win32.whl", hash = "sha256:555ea272175718ec820d0d61721ca03e5ab2b991a8b7b7325cb27c76f504fb20"},
+    {file = "qcs_sdk_python-0.12.2-cp38-none-win_amd64.whl", hash = "sha256:d14e99a82537b8ab0b9f7e7a0f4653462cab37d3a769ac0eac55dad9974a18f6"},
+    {file = "qcs_sdk_python-0.12.2-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:75063b527f5e205d7bfea51a69c7c78a9e7f02af924251194833dc63a9355397"},
+    {file = "qcs_sdk_python-0.12.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b1fa93bbaf36a6d01ee2130ae90dee062563d1929b7ecff01f4c7f4dd673543c"},
+    {file = "qcs_sdk_python-0.12.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9ed4b1953b3aa2f6d552e6fe486a1e1d5add64f10cae54a5e26fef0c8e9e2c0b"},
+    {file = "qcs_sdk_python-0.12.2-cp39-none-win32.whl", hash = "sha256:5d91687040805b3c2c2038ddb2dc347d9662bcee149a06fabe78d93f967dfef9"},
+    {file = "qcs_sdk_python-0.12.2-cp39-none-win_amd64.whl", hash = "sha256:6414a14b737a389d9adb1d944a31363e7012eed1b29c53938779192f46528ef1"},
 ]
 
 [package.dependencies]
-quil = "0.5.2"
+quil = "0.5.3"
 
 [[package]]
 name = "quil"
-version = "0.5.2"
+version = "0.5.3"
 description = "A Python package for building and parsing Quil programs."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "quil-0.5.2-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:dbc5fe317f815e3b5a0a9bd536b29bf5859a190fd8d1651feb24422cfd253914"},
-    {file = "quil-0.5.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:12534b98b3ce09953dc31d13fc60e7c0bc69dfe34378e46ccb04f4d01324eac0"},
-    {file = "quil-0.5.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:02e91a155c438bbf0c8c4e7e7e15f5936461cb9077a486fdd02cac9fa86f3b29"},
-    {file = "quil-0.5.2-cp310-none-win32.whl", hash = "sha256:68acfb3cc0f81607525a2385ef3f61a8ed1f9d952bf5db2f5df198dfecac7da8"},
-    {file = "quil-0.5.2-cp310-none-win_amd64.whl", hash = "sha256:be1bdc1a7eda8e8bf46ed9909c02eb76165d749b8e15c3947fed6e79c074f6e4"},
-    {file = "quil-0.5.2-cp311-cp311-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:959083d4412cf81c4743b7c29ce9c0c690b622d84e7d1d619cad081a06045003"},
-    {file = "quil-0.5.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:54457d58ef90d366f3b60996e7380984cb602977404ebd16ab32e4ba678b4a98"},
-    {file = "quil-0.5.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a876aa8f8e925856224f383ea3072c50657f78cdcee2f08215fa10ced326f0f7"},
-    {file = "quil-0.5.2-cp311-none-win32.whl", hash = "sha256:07f5f61cc9944a54f84ebeb1269d8f3362d4c39b62d8d50ac4eb56ea3cc0e844"},
-    {file = "quil-0.5.2-cp311-none-win_amd64.whl", hash = "sha256:ba6bc259a844f80e708fda03f57ece4cbc8c2034c66806919a8d8c4570cf415a"},
-    {file = "quil-0.5.2-cp38-cp38-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:c991e77e3c6331e2bd1231fcda07ab9ef5a23363d57e035d8e2e7aaa7ca4c0d5"},
-    {file = "quil-0.5.2-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4a7d0bb9025ab0a0f20fd547faf247c59c58398a9e6e5682bd360fd459639bdc"},
-    {file = "quil-0.5.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b942d91004187306859685cf7103d9bbc44d681f7e74930f2204f9cebc843c72"},
-    {file = "quil-0.5.2-cp38-none-win32.whl", hash = "sha256:34979a3a592a2a887837cdb9cd59d304cec003813a35bf8fb0147b96d39762bd"},
-    {file = "quil-0.5.2-cp38-none-win_amd64.whl", hash = "sha256:88d894b0a5fe42fe31fb045a464a83e329cb4df2b785f5b29ab01a379f55c81b"},
-    {file = "quil-0.5.2-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:f8d439b3b2702d2a897d1c045bf25c46cc99485f3a91a7ba6ec90ea991a7ac6f"},
-    {file = "quil-0.5.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2d0f2b84bf310b74628b727085157292427fb43f1cd7045709440161698bc44f"},
-    {file = "quil-0.5.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:47da2ce232b37e91ad854e7c0108bd2544757ec927353a4a38d2de35c4901ffe"},
-    {file = "quil-0.5.2-cp39-none-win32.whl", hash = "sha256:94fa93db55d2133199e81f49c99b21fa69a6b0ab33602cd24efbb10fa69aaf4e"},
-    {file = "quil-0.5.2-cp39-none-win_amd64.whl", hash = "sha256:4e2d300bd87118f95123001531ff483f1541da8a02d85da027b25c3618bbd8ee"},
+    {file = "quil-0.5.3-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:409e9ad11ddd19dbf8f2f2629191521ade596db592e129d8a5307e25c1357d5f"},
+    {file = "quil-0.5.3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:af38b83c284fc1ff1f49fb2fef4c8a08f598413d731206dae517994ba12d22bc"},
+    {file = "quil-0.5.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:80158edf51d01786f628cc28e3299a4e8cb83602908eb17a0f0e77147cacb9a4"},
+    {file = "quil-0.5.3-cp310-none-win32.whl", hash = "sha256:d1d3c0e77a64911f420c3397ad88f3cd12361e4409c4e3a5951b8afaf2d05445"},
+    {file = "quil-0.5.3-cp310-none-win_amd64.whl", hash = "sha256:e1ac738fdde4803dc0bb0eef67e6697fcc673c66afab68951bfc642cef5e96e0"},
+    {file = "quil-0.5.3-cp311-cp311-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:1b1c2d6182c26a6e6f35119058e1f75a14762b40d2bdade94569965e6179b3e5"},
+    {file = "quil-0.5.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:998254053ae651d62e1e67e60ad270f7cf1dcc31e23cb1698e9c1807cba62f55"},
+    {file = "quil-0.5.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:aa55681cbf837cf00989eead6c01b9ae84b3f33c9c4c99fdd5ac816a8dacae2b"},
+    {file = "quil-0.5.3-cp311-none-win32.whl", hash = "sha256:b2f763db4847daae640ff486a3cdf1ec4f8aeb0dc1a7fc3565c558d487610970"},
+    {file = "quil-0.5.3-cp311-none-win_amd64.whl", hash = "sha256:9f63ade0f2b652de7475030e6c6c8055358911ec5ae06757cad78c7234269234"},
+    {file = "quil-0.5.3-cp38-cp38-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:71e1e70659cfb75dc26af328ddaaac338e059aa625d51b878fafad3dd80c2d58"},
+    {file = "quil-0.5.3-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:677101ee4218b3ae7d658bdfdf5708f9b5435ffe175f60106fbab220c66921e0"},
+    {file = "quil-0.5.3-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5fdeb24e7fcb12edb897406f317809527843cb686d43d56ed5c82f37fd587921"},
+    {file = "quil-0.5.3-cp38-none-win32.whl", hash = "sha256:d22a919f25441b63c086666ed857cdbb130189ec13de94c1c7186a164b7d6e8a"},
+    {file = "quil-0.5.3-cp38-none-win_amd64.whl", hash = "sha256:5d1f6c5d85942349370c804faea10fda12c57c84ddd5b87471e37a0f9564e039"},
+    {file = "quil-0.5.3-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:609ccb2c8c2acceaec44c69499828c33ba869632673d78e3aafbe53f3125bc27"},
+    {file = "quil-0.5.3-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b51f84623c27c25c3b5bda5fcbdee46f3a68158aeb24eb274b180a11f6becb4d"},
+    {file = "quil-0.5.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:14efc48fdbcb620a1b8b490a30522efd5da773ccb7a38d59da3ed9e0d55d3ac3"},
+    {file = "quil-0.5.3-cp39-none-win32.whl", hash = "sha256:821dd83a72ef0e319ca33747740b2cf22f5faba88656efe7091db8afa74efaf7"},
+    {file = "quil-0.5.3-cp39-none-win_amd64.whl", hash = "sha256:05a8bf9122d2e3dd87077f5fed8ab4e1dfe30e09063129dc32a7dfeb66097794"},
 ]
 
 [[package]]
@@ -3211,4 +3211,4 @@ latex = ["ipython"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8,<4.0"
-content-hash = "e801f052cb41f43da6d95646371b0fc45e552881b9d3fe138e6169ca790c2597"
+content-hash = "50dd75d102801e89600dca6a7b8f5b8ea54e9cfbeb617fc550b54158cedc5223"
