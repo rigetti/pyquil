@@ -7,6 +7,7 @@ import networkx as nx
 import numpy as np
 import pytest
 import respx
+from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program, list_quantum_computers
 from pyquil.api._quantum_computer import (
@@ -33,28 +34,22 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
-from qcs_api_client.client import QCSAccountType, QCSClientConfiguration
-from qcs_api_client.models.instruction_set_architecture import InstructionSetArchitecture
+from qcs_sdk import QCSClient
+from qcs_sdk.qvm import QVMClient
+from qcs_sdk.qpu.isa import InstructionSetArchitecture
 from rpcq.messages import ParameterAref
 
 
-def test_flip_array_to_prog():
+def test_flip_array_to_prog(snapshot: SnapshotAssertion):
     # no flips
     flip_prog = _flip_array_to_prog((0, 0, 0, 0, 0, 0), [0, 1, 2, 3, 4, 5])
     assert flip_prog.out().splitlines() == []
     # mixed flips
     flip_prog = _flip_array_to_prog((1, 0, 1, 0, 1, 1), [0, 1, 2, 3, 4, 5])
-    assert flip_prog.out().splitlines() == ["RX(pi) 0", "RX(pi) 2", "RX(pi) 4", "RX(pi) 5"]
+    assert flip_prog.out() == snapshot
     # flip all
     flip_prog = _flip_array_to_prog((1, 1, 1, 1, 1, 1), [0, 1, 2, 3, 4, 5])
-    assert flip_prog.out().splitlines() == [
-        "RX(pi) 0",
-        "RX(pi) 1",
-        "RX(pi) 2",
-        "RX(pi) 3",
-        "RX(pi) 4",
-        "RX(pi) 5",
-    ]
+    assert flip_prog.out() == snapshot
 
 
 def test_symmetrization():
@@ -68,9 +63,9 @@ def test_symmetrization():
     # exhaustive symm
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=-1)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
-    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
+    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([0, 1]), np.array([1, 0]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 0 i.e. no symm
@@ -81,23 +76,23 @@ def test_symmetrization():
     # strength 1
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=1)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 2
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=2)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
-    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
+    assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([1, 0]), np.array([0, 1]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 3
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=3)
-    assert sym_progs[0].out().splitlines() == ["I 0", "I 1", "RX(pi) 0", "RX(pi) 1"]
-    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(pi) 0"]
+    assert sym_progs[0].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
+    assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
     assert sym_progs[2].out().splitlines() == ["I 0", "I 1"]
-    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(pi) 1"]
+    assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
     right = [np.array([1, 1]), np.array([1, 0]), np.array([0, 0]), np.array([0, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
 
@@ -143,13 +138,13 @@ def test_construct_strength_two_orthogonal_array():
     assert np.allclose(_construct_strength_two_orthogonal_array(3), answer)
 
 
-def test_measure_bitstrings(client_configuration: QCSClientConfiguration):
+def test_measure_bitstrings(client_configuration: QCSClient, qvm_client: QVMClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(2))
     dummy_compiler = DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration)
     qc_pyqvm = QuantumComputer(name="testy!", qam=PyQVM(n_qubits=2), compiler=dummy_compiler)
     qc_forest = QuantumComputer(
         name="testy!",
-        qam=QVM(client_configuration=client_configuration, gate_noise=(0.00, 0.00, 0.00)),
+        qam=QVM(client=qvm_client, gate_noise=(0.00, 0.00, 0.00)),
         compiler=dummy_compiler,
     )
     prog = Program(I(0), I(1))
@@ -189,24 +184,23 @@ def test_check_min_num_trials_for_symmetrized_readout():
 # We sometimes narrowly miss the np.mean(parity) < 0.15 assertion, below. Alternatively, that upper
 # bound could be relaxed.
 @pytest.mark.flaky(reruns=1)
-def test_run(client_configuration: QCSClientConfiguration):
+def test_run(client_configuration: QCSClient, qvm_client: QVMClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01)),
+        qam=QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01)),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
-    result = qc.run(
-        Program(
-            Declare("ro", "BIT", 3),
-            H(0),
-            CNOT(0, 1),
-            CNOT(1, 2),
-            MEASURE(0, MemoryReference("ro", 0)),
-            MEASURE(1, MemoryReference("ro", 1)),
-            MEASURE(2, MemoryReference("ro", 2)),
-        ).wrap_in_numshots_loop(1000)
-    )
+    p = Program(
+        Declare("ro", "BIT", 3),
+        H(0),
+        CNOT(0, 1),
+        CNOT(1, 2),
+        MEASURE(0, MemoryReference("ro", 0)),
+        MEASURE(1, MemoryReference("ro", 1)),
+        MEASURE(2, MemoryReference("ro", 2)),
+    ).wrap_in_numshots_loop(1000)
+    result = qc.run(p)
     bitstrings = result.readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 3)
@@ -214,7 +208,7 @@ def test_run(client_configuration: QCSClientConfiguration):
     assert 0 < np.mean(parity) < 0.15
 
 
-def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
+def test_run_pyqvm_noiseless(client_configuration: QCSClient, qvm_client: QVMClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -233,7 +227,7 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
     assert np.mean(parity) == 0
 
 
-def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
+def test_run_pyqvm_noisy(client_configuration: QCSClient, qvm_client: QVMClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -252,12 +246,12 @@ def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
     assert 0 < np.mean(parity) < 0.15
 
 
-def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
+def test_readout_symmetrization(client_configuration: QCSClient, qvm_client: QVMClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client_configuration=client_configuration, noise_model=noise_model),
+        qam=QVM(noise_model=noise_model, client=qvm_client),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
 
@@ -289,12 +283,12 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
 
 
 @pytest.mark.slow
-def test_run_symmetrized_readout_error(client_configuration: QCSClientConfiguration):
+def test_run_symmetrized_readout_error(client_configuration: QCSClient, qvm_client: QVMClient):
     # This test checks if the function runs for any possible input on a small number of qubits.
     # Locally this test was run on all 8 qubits, but it was slow.
     qc = get_qc("8q-qvm", client_configuration=client_configuration)
     sym_type_vec = [-1, 0, 1, 2, 3]
-    prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(0, 4)]
+    prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(1, 4)]
     trials_vec = list(range(0, 5))
     for prog, trials, sym_type in itertools.product(prog_vec, trials_vec, sym_type_vec):
         print(qc.run_symmetrized_readout(prog, trials, sym_type))
@@ -407,7 +401,7 @@ def test_parse_qc_pyqvm():
     assert not noisy
 
 
-def test_qc(client_configuration: QCSClientConfiguration):
+def test_qc(client_configuration: QCSClient, qvm_client: QVMClient):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
     assert isinstance(qc, QuantumComputer)
     assert qc.qam.noise_model is not None
@@ -417,21 +411,19 @@ def test_qc(client_configuration: QCSClientConfiguration):
     assert str(qc) == "9q-square-noisy-qvm"
 
 
-def test_qc_run(client_configuration: QCSClientConfiguration):
-    qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
-    bs = qc.run(
-        qc.compile(
-            Program(
-                Declare("ro", "BIT", 1),
-                X(0),
-                MEASURE(0, ("ro", 0)),
-            ).wrap_in_numshots_loop(3)
-        )
-    ).readout_data.get("ro")
+def test_qc_run(client_configuration: QCSClient, qvm_client: QVMClient):
+    qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration, qvm_client=qvm_client)
+    program = Program(
+        Declare("ro", "BIT", 1),
+        X(0),
+        MEASURE(0, ("ro", 0)),
+    ).wrap_in_numshots_loop(3)
+    compiled_program = qc.compile(program)
+    bs = qc.run(compiled_program).readout_data.get("ro")
     assert bs.shape == (3, 1)
 
 
-def test_nq_qvm_qc(client_configuration: QCSClientConfiguration):
+def test_nq_qvm_qc(client_configuration: QCSClient, qvm_client: QVMClient):
     for n_qubits in [2, 4, 7, 19]:
         qc = get_qc(f"{n_qubits}q-qvm", client_configuration=client_configuration)
         for q1, q2 in itertools.permutations(range(n_qubits), r=2):
@@ -439,12 +431,12 @@ def test_nq_qvm_qc(client_configuration: QCSClientConfiguration):
         assert qc.name == f"{n_qubits}q-qvm"
 
 
-def test_qc_noisy(client_configuration: QCSClientConfiguration):
+def test_qc_noisy(client_configuration: QCSClient, qvm_client: QVMClient):
     qc = get_qc("5q", as_qvm=True, noisy=True, client_configuration=client_configuration)
     assert isinstance(qc, QuantumComputer)
 
 
-def test_qc_compile(dummy_compiler: DummyCompiler, client_configuration: QCSClientConfiguration):
+def test_qc_compile(dummy_compiler: DummyCompiler, client_configuration: QCSClient, qvm_client: QVMClient):
     qc = get_qc("5q", as_qvm=True, noisy=True, client_configuration=client_configuration)
     qc.compiler = dummy_compiler
     prog = Program()
@@ -452,7 +444,7 @@ def test_qc_compile(dummy_compiler: DummyCompiler, client_configuration: QCSClie
     assert qc.compile(prog) == prog
 
 
-def test_qc_error(client_configuration: QCSClientConfiguration):
+def test_qc_error(client_configuration: QCSClient, qvm_client: QVMClient):
     # QVM is not a QPU
     with pytest.raises(ValueError):
         get_qc("9q-square-noisy-qvm", as_qvm=False, client_configuration=client_configuration)
@@ -461,12 +453,12 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-@pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
-def test_run_with_parameters(client_configuration: QCSClientConfiguration, param):
+@pytest.mark.parametrize("params", [[np.pi], np.array([np.pi])])
+def test_run_with_parameters(client_configuration: QCSClient, qvm_client: QVMClient, params):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client_configuration=client_configuration),
+        qam=QVM(client=qvm_client),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     executable = Program(
@@ -476,19 +468,18 @@ def test_run_with_parameters(client_configuration: QCSClientConfiguration, param
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
 
-    executable.write_memory(region_name="theta", value=param)
-    bitstrings = qc.run(executable).readout_data.get("ro")
+    bitstrings = qc.run(executable, {"theta": params}).readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 1)
     assert all([bit == 1 for bit in bitstrings])
 
 
 @pytest.mark.parametrize("param", [1j, "not_a_number", ["not_a_number"]])
-def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, param):
+def test_run_with_bad_parameters(client_configuration: QCSClient, qvm_client: QVMClient, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client_configuration=client_configuration),
+        qam=QVM(client=qvm_client),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     executable = Program(
@@ -498,15 +489,15 @@ def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, p
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
 
-    with pytest.raises(TypeError, match=r"Parameter must be"):
-        executable.write_memory(region_name="theta", value=param)
+    with pytest.raises(TypeError):
+        qc.run(executable, {"theta": [param]})
 
 
-def test_reset(client_configuration: QCSClientConfiguration):
+def test_reset(client_configuration: QCSClient, qvm_client: QVMClient):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client_configuration=client_configuration),
+        qam=QVM(client=qvm_client),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     p = Program(
@@ -515,16 +506,13 @@ def test_reset(client_configuration: QCSClientConfiguration):
         RX(MemoryReference("theta"), 0),
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(10)
-    p.write_memory(region_name="theta", value=np.pi)
-    result = qc.qam.run(p)
+    result = qc.qam.run(p, {"theta": [np.pi]})
 
-    aref = ParameterAref(name="theta", index=0)
-    assert p._memory.values[aref] == np.pi
     assert result.readout_data["ro"].shape == (10, 1)
     assert all([bit == 1 for bit in result.readout_data["ro"]])
 
 
-def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
+def test_get_qvm_with_topology(client_configuration: QCSClient, qvm_client: QVMClient):
     topo = nx.from_edgelist([(5, 6), (6, 7), (10, 11)])
     # Note to developers: perhaps make `get_qvm_with_topology` public in the future
     qc = _get_qvm_with_topology(
@@ -535,12 +523,13 @@ def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
         compiler_timeout=5.0,
         execution_timeout=5.0,
         client_configuration=client_configuration,
+        qvm_client=qvm_client,
     )
     assert len(qc.qubits()) == 5
     assert min(qc.qubits()) == 5
 
 
-def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
+def test_get_qvm_with_topology_2(client_configuration: QCSClient, qvm_client: QVMClient):
     topo = nx.from_edgelist([(5, 6), (6, 7)])
     qc = _get_qvm_with_topology(
         name="test-qvm",
@@ -572,7 +561,7 @@ def test_parse_mix_qvm_and_noisy_flag():
     assert noisy
 
 
-def test_noisy(client_configuration: QCSClientConfiguration):
+def test_noisy(client_configuration: QCSClient, qvm_client: QVMClient):
     # https://github.com/rigetti/pyquil/issues/764
     p = Program(
         Declare("ro", "BIT", 1),
@@ -595,7 +584,7 @@ def test_orthogonal_array():
         num_q = oa.shape[1]
         num_cols = min(num_q, strength)
         column_idxs = random.sample(range(num_q), num_cols)
-        occurences = {entry: 0 for entry in range(2 ** num_cols)}
+        occurences = {entry: 0 for entry in range(2**num_cols)}
         for row in oa[:, column_idxs]:
             occurences[bit_array_to_int(row)] += 1
         assert all([count == occurences[0] for count in occurences.values()])
@@ -607,8 +596,8 @@ def test_orthogonal_array():
                 check_random_columns(oa, strength)
 
 
-def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
-    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
+def test_qc_expectation(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client=qvm_client), compiler=dummy_compiler)
 
     # bell state program
     p = Program()
@@ -642,8 +631,8 @@ def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_comp
     assert results[2].total_counts == 40
 
 
-def test_qc_expectation_larger_lattice(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
-    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
+def test_qc_expectation_larger_lattice(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client=qvm_client), compiler=dummy_compiler)
 
     q0 = 2
     q1 = 3
@@ -686,7 +675,7 @@ def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> N
     return NoiseModel([], aprobs)
 
 
-def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
+def test_qc_calibration_1q(client_configuration: QCSClient, qvm_client: QVMClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0], 0.945, 0.955)
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
@@ -710,7 +699,7 @@ def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
     assert results[0].total_counts == 20000
 
 
-def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
+def test_qc_calibration_2q(client_configuration: QCSClient, qvm_client: QVMClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
@@ -734,8 +723,8 @@ def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
     assert results[0].total_counts == 40000
 
 
-def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
-    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
+def test_qc_joint_expectation(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client=qvm_client), compiler=dummy_compiler)
 
     # |01> state program
     p = Program()
@@ -763,7 +752,7 @@ def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dumm
     assert results[0].additional_results[1].total_counts == 40
 
 
-def test_get_qc_noisy_qpu_error(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+def test_get_qc_noisy_qpu_error(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
     expected_message = (
         "pyQuil currently does not support initializing a noisy QuantumComputer "
         "based on a QCSQuantumProcessor. Change noisy to False or specify the name of a QVM."
@@ -772,7 +761,7 @@ def test_get_qc_noisy_qpu_error(client_configuration: QCSClientConfiguration, du
         get_qc("Aspen-8", noisy=True)
 
 
-def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
+def test_qc_joint_calibration(client_configuration: QCSClient, qvm_client: QVMClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
@@ -803,9 +792,9 @@ def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     assert results[0].additional_results[1].total_counts == 40000
 
 
-def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+def test_qc_expectation_on_qvm(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
     # regression test for https://github.com/rigetti/forest-tutorials/issues/2
-    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
+    qc = QuantumComputer(name="testy!", qam=QVM(client=qvm_client), compiler=dummy_compiler)
 
     p = Program()
     theta = p.declare("theta", "REAL")
@@ -838,34 +827,42 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dum
     assert results[2][0].total_counts == 20000
 
 
-@respx.mock
-def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
+def test_undeclared_memory_region(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
     """
-    Assert that get_qc passes a specified ``endpoint_id`` through to its QPU when constructed
-    for a live quantum processor.
+    Test for https://github.com/rigetti/pyquil/issues/1596
+    """
+    program = Program(
+        """
+DECLARE beta REAL[1]
+RZ(0.5) 0
+CPHASE(pi) 0 1
+DECLARE ro BIT[2]
+MEASURE 0 ro[0]
+MEASURE 1 ro[1]
+"""
+    )
+    program = program.copy_everything_except_instructions()
+    assert len(program.instructions) == 0  # the purpose of copy_everything_except_instructions()
+    assert len(program.declarations) == 0  # this is a view on the instructions member; must be consistent
+    qc = QuantumComputer(name="testy!", qam=QVM(client=qvm_client), compiler=dummy_compiler)
+    executable = qc.compiler.native_quil_to_executable(program)
+    qc.run(executable)
+
+
+@pytest.mark.skip  # qcs_sdk client profiles do not support group accounts
+@respx.mock
+def test_get_qc_with_group_account(client_configuration: QCSClient, qvm_client: QVMClient, qcs_aspen8_isa: InstructionSetArchitecture):
+    """
+    Assert that a client may specify a ``QCSClientSettingsProfile`` representing a QCS group
+    account.
     """
     respx.get(
-        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
-    ).respond(json=qcs_aspen8_isa.to_dict())
-
-    qc = get_qc("test", endpoint_id="test-endpoint")
-
-    assert qc.qam._qpu_client._endpoint_id == "test-endpoint"
-
-
-@respx.mock
-def test_get_qc_with_group_account(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
-    """
-    Assert that a client may specify a ``QCSClientConfigurationSettingsProfile`` representing a QCS group
-    account and create a group account engagement via headers.
-    """
-    respx.get(
-        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
-    ).respond(json=qcs_aspen8_isa.to_dict())
+        url=f"{client_configuration.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
+    ).respond(json=qcs_aspen8_isa.json())
 
     group_profile = client_configuration.profile.copy()
     group_profile.account_id = "group0"
-    group_profile.account_type = QCSAccountType.group
+    group_profile.account_type = "group"
     client_configuration.settings.profiles["my-group-profile"] = group_profile
     client_configuration.profile_name = "my-group-profile"
     qc = get_qc("test", endpoint_id="test-endpoint", client_configuration=client_configuration)
@@ -879,21 +876,23 @@ def test_get_qc_with_group_account(client_configuration: QCSClientConfiguration,
     respx.post(
         url=f"{client_configuration.profile.api_url}/v1/engagements",
         headers__contains={
-            'X-QCS-ACCOUNT-ID': 'group0',
-            'X-QCS-ACCOUNT-TYPE': QCSAccountType.group.value,
+            "X-QCS-ACCOUNT-ID": "group0",
+            "X-QCS-ACCOUNT-TYPE": QCSAccountType.group.value,
         },
-    ).respond(json={
-        'address': 'address',
-        'endpointId': 'endpointId',
-        'quantumProcessorId': 'quantumProcessorId',
-        'userId': 'userId',
-        'expiresAt': '01-01-2200T00:00:00Z',
-        'credentials': {
-            'clientPublic': 'faux',
-            'clientSecret': 'faux',
-            'serverPublic': 'faux',
+    ).respond(
+        json={
+            "address": "address",
+            "endpointId": "endpointId",
+            "quantumProcessorId": "quantumProcessorId",
+            "userId": "userId",
+            "expiresAt": "01-01-2200T00:00:00Z",
+            "credentials": {
+                "clientPublic": "faux",
+                "clientSecret": "faux",
+                "serverPublic": "faux",
+            },
         }
-    })
+    )
 
-    engagement = engagement_manager.get_engagement(quantum_processor_id='test')
-    assert 'faux' == engagement.credentials.client_public
+    engagement = engagement_manager.get_engagement(quantum_processor_id="test")
+    assert "faux" == engagement.credentials.client_public

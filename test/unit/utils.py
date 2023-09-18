@@ -2,11 +2,10 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from pytest_mock import MockerFixture
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_sdk import QCSClient
 
 from pyquil import Program
 from pyquil.api._abstract_compiler import AbstractCompiler
-from pyquil.parser import parse
 from pyquil.quantum_processor import AbstractQuantumProcessor
 
 # Valid, sample Z85-encoded keys specified by zmq curve for testing:
@@ -40,12 +39,12 @@ def patch_rpcq_client(*, mocker: MockerFixture, return_value: Any) -> MagicMock:
 
 def parse_equals(quil_string, *instructions):
     expected = list(instructions)
-    actual = parse(quil_string)
+    actual = Program(quil_string).instructions
     assert expected == actual
 
 
 class DummyCompiler(AbstractCompiler):
-    def __init__(self, quantum_processor: AbstractQuantumProcessor, client_configuration: QCSClientConfiguration):
+    def __init__(self, quantum_processor: AbstractQuantumProcessor, client_configuration: QCSClient):
         super().__init__(quantum_processor=quantum_processor, timeout=10, client_configuration=client_configuration)
 
     def get_version_info(self):

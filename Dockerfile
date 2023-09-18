@@ -1,7 +1,7 @@
 # use multi-stage builds to independently pull dependency versions
 ARG quilc_version=1.20.0
 ARG qvm_version=1.17.1
-ARG python_version=3.7
+ARG python_version=3.8
 
 # use multi-stage builds to independently pull dependency versions
 FROM rigetti/quilc:$quilc_version as quilc

@@ -15,12 +15,14 @@
 ##############################################################################
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Sequence, Type, Union
+from typing import Dict, List, Optional, Sequence, Type, Union, Any
 
 import numpy as np
 from numpy.random.mtrand import RandomState
+from qcs_sdk import ResultData, ExecutionData, RegisterData
+from qcs_sdk.qvm import QVMResultData
 
-from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult
+from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
 from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
@@ -30,7 +32,6 @@ from pyquil.quilbase import (
     ResetQubit,
     DefGate,
     JumpTarget,
-    JumpConditional,
     JumpWhen,
     JumpUnless,
     Halt,
@@ -54,7 +55,6 @@ from pyquil.quilbase import (
     Jump,
     Pragma,
     Declare,
-    RawInstr,
     DefGateByPaulis,
     DefPermutationGate,
 )
@@ -66,7 +66,7 @@ QUIL_TO_NUMPY_DTYPE = {"INT": np.int_, "REAL": np.float_, "BIT": np.int8, "OCTET
 
 class AbstractQuantumSimulator(ABC):
     @abstractmethod
-    def __init__(self, n_qubits: int, rs: RandomState):
+    def __init__(self, n_qubits: int, rs: Optional[RandomState]):
         """
         Initialize.
 
@@ -192,7 +192,7 @@ class PyQVM(QAM["PyQVM"]):
                 quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
-        self.ram: Dict[str, np.ndarray] = {}
+        self.ram: Dict[str, List[Union[float, int]]] = {}
 
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
@@ -221,12 +221,7 @@ class PyQVM(QAM["PyQVM"]):
                 raise NotImplementedError("PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM.")
             self.defined_gates[dg.name] = dg.matrix
 
-    def write_memory(self, *, region_name: str, offset: int = 0, value: int = 0) -> "PyQVM":
-        assert region_name != "ro"
-        self.ram[region_name][offset] = value
-        return self
-
-    def execute(self, executable: QuantumExecutable) -> "PyQVM":
+    def execute(self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **__: Any) -> "PyQVM":
         """
         Execute a program on the PyQVM. Note that the state of the instance is reset on each
         call to ``execute``.
@@ -240,6 +235,9 @@ class PyQVM(QAM["PyQVM"]):
         self._memory_results = {}
 
         self.ram = {}
+        if memory_map:
+            self.ram.update(*memory_map)
+
         self.wf_simulator.reset()
 
         # grab the gate definitions for future use
@@ -266,8 +264,14 @@ class PyQVM(QAM["PyQVM"]):
         unused because the PyQVM, unlike other QAM's, is itself stateful.
         """
         assert self.program is not None
+        result_data = QVMResultData.from_memory_map(
+            {key: RegisterData(matrix.tolist()) for key, matrix in self._memory_results.items()}
+        )
+        result_data = ResultData(result_data)
+        data = ExecutionData(result_data=result_data, duration=None)
         return QAMExecutionResult(
-            executable=self.program.copy(), readout_data={k: v for k, v in self._memory_results.items()}
+            executable=self.program.copy(),
+            data=data,
         )
 
     def read_memory(self, *, region_name: str) -> np.ndarray:
@@ -304,23 +308,22 @@ class PyQVM(QAM["PyQVM"]):
         instruction = self.program[self.program_counter]
 
         if isinstance(instruction, Gate):
+            qubits = instruction.get_qubit_indices()
             if instruction.name in self.defined_gates:
                 self.wf_simulator.do_gate_matrix(
                     matrix=self.defined_gates[instruction.name],
-                    qubits=[q.index for q in instruction.qubits],
+                    qubits=qubits,
                 )
             else:
                 self.wf_simulator.do_gate(gate=instruction)
 
             for noise_type, noise_prob in self.post_gate_noise_probabilities.items():
-                self.wf_simulator.do_post_gate_noise(
-                    noise_type, noise_prob, qubits=[q.index for q in instruction.qubits]
-                )
+                self.wf_simulator.do_post_gate_noise(noise_type, noise_prob, qubits=qubits)
 
             self.program_counter += 1
 
         elif isinstance(instruction, Measurement):
-            measured_val = self.wf_simulator.do_measurement(qubit=instruction.qubit.index)
+            measured_val = self.wf_simulator.do_measurement(qubit=instruction.get_qubit_indices().pop())
             meas_reg: Optional[MemoryReference] = instruction.classical_reg
             assert meas_reg is not None
             self.ram[meas_reg.name][meas_reg.offset] = measured_val
@@ -330,8 +333,8 @@ class PyQVM(QAM["PyQVM"]):
             if instruction.shared_region is not None:
                 raise NotImplementedError("SHARING is not (yet) implemented.")
 
-            self.ram[instruction.name] = np.zeros(
-                instruction.memory_size, dtype=QUIL_TO_NUMPY_DTYPE[instruction.memory_type]
+            self.ram[instruction.name] = list(
+                np.zeros(instruction.memory_size, dtype=QUIL_TO_NUMPY_DTYPE[instruction.memory_type])
             )
             self.program_counter += 1
 
@@ -347,26 +350,26 @@ class PyQVM(QAM["PyQVM"]):
             # Label; pass straight over
             self.program_counter += 1
 
-        elif isinstance(instruction, JumpConditional):
-            # JumpConditional; check classical reg
+        elif isinstance(instruction, (JumpWhen, JumpUnless)):
+            # JumpWhen/Unless; check classical reg
             jump_reg: Optional[MemoryReference] = instruction.condition
             assert jump_reg is not None
             cond = self.ram[jump_reg.name][jump_reg.offset]
-            if not isinstance(cond, (bool, np.bool_, np.int8)):
-                raise ValueError("{} requires a data type of BIT; not {}".format(instruction.op, type(cond)))
+            if not isinstance(cond, (bool, np.bool_, np.int8, int)):
+                raise ValueError("{} requires a data type of BIT; not {}".format(type(instruction), type(cond)))
             dest_index = self.find_label(instruction.target)
             if isinstance(instruction, JumpWhen):
                 jump_if_cond = True
             elif isinstance(instruction, JumpUnless):
                 jump_if_cond = False
             else:
-                raise TypeError("Invalid JumpConditional")
+                raise TypeError(f"Invalid {type(instruction)}")
 
             if not (cond ^ jump_if_cond):
                 # jumping: set prog counter to JumpTarget
                 self.program_counter = dest_index
             else:
-                # not jumping: hop over this JumpConditional
+                # not jumping: hop over this instruction
                 self.program_counter += 1
 
         elif isinstance(instruction, UnaryClassicalInstruction):
@@ -447,9 +450,6 @@ class PyQVM(QAM["PyQVM"]):
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
             self.defined_gates[instruction.name] = instruction.matrix
             self.program_counter += 1
-
-        elif isinstance(instruction, RawInstr):
-            raise NotImplementedError("PyQVM does not support raw instructions. Parse your program")
 
         elif isinstance(instruction, Halt):
             return True

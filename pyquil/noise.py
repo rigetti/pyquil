@@ -60,14 +60,14 @@ class KrausModel(_KrausModel):
             (as nested lists) representing the element-wise real and imaginary part of m.
         :return: A complex square numpy array representing the Kraus operator.
         """
-        m = np.asarray(m, dtype=complex)
-        if m.ndim == 3:
-            m = m[0] + 1j * m[1]
-        if not m.ndim == 2:  # pragma no coverage
+        matrix = np.asarray(m, dtype=complex)
+        if matrix.ndim == 3:
+            matrix = matrix[0] + 1j * matrix[1]
+        if not matrix.ndim == 2:  # pragma no coverage
             raise ValueError("Need 2d array.")
-        if not m.shape[0] == m.shape[1]:  # pragma no coverage
+        if not matrix.shape[0] == matrix.shape[1]:  # pragma no coverage
             raise ValueError("Need square matrix.")
-        return m
+        return matrix
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -281,7 +281,7 @@ def damping_kraus_map(p: float = 0.10) -> List[np.ndarray]:
     """
     damping_op = np.sqrt(p) * np.array([[0, 1], [0, 0]])
 
-    residual_kraus = np.diag([1, np.sqrt(1 - p)])  # type: ignore
+    residual_kraus = np.diag([1, np.sqrt(1 - p)])
     return [residual_kraus, damping_op]
 
 
@@ -293,7 +293,7 @@ def dephasing_kraus_map(p: float = 0.10) -> List[np.ndarray]:
     :return: A list [k1, k2] of the Kraus operators that parametrize the map.
     :rtype: list
     """
-    return [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * np.diag([1, -1])]  # type: ignore
+    return [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * np.diag([1, -1])]
 
 
 def tensor_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.ndarray]:
@@ -305,7 +305,7 @@ def tensor_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.nda
     :param k2: The Kraus operators for the second qubit.
     :return: A list of tensored Kraus operators.
     """
-    return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]  # type: ignore
+    return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]
 
 
 def combine_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.ndarray]:
@@ -318,7 +318,7 @@ def combine_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.nd
     :param k2: The list of Kraus operators that are applied first.
     :return: A combinatorially generated list of composed Kraus operators.
     """
-    return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]  # type: ignore
+    return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]
 
 
 def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> List[np.ndarray]:
@@ -391,7 +391,7 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tup
             return np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180"
     elif gate_name == "CZ":
         assert params == ()
-        return np.diag([1, 1, 1, -1]), "NOISY-CZ"  # type: ignore
+        return np.diag([1, 1, 1, -1]), "NOISY-CZ"
 
     raise NoisyGateUndefined(
         "Undefined gate and params: {}{}\n"
@@ -443,7 +443,7 @@ def _decoherence_noise_model(
         :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
     :return: A NoiseModel with the appropriate Kraus operators defined.
     """
-    all_qubits = set(sum(([t.index for t in g.qubits] for g in gates), []))
+    all_qubits = set(sum((g.get_qubit_indices() for g in gates), []))
     if isinstance(T1, dict):
         all_qubits.update(T1.keys())
     if isinstance(T2, dict):
@@ -468,7 +468,7 @@ def _decoherence_noise_model(
     }
     kraus_maps = []
     for g in gates:
-        targets = tuple(t.index for t in g.qubits)
+        targets = tuple(g.get_qubit_indices())
         if g.name in NO_NOISE:
             continue
         matrix, _ = get_noisy_gate(g.name, g.params)
@@ -532,7 +532,6 @@ def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
     p = Program()
     defgates: Set[str] = set()
     for k in noise_model.gates:
-
         # obtain ideal gate matrix and new, noisy name by looking it up in the NOISY_GATES dict
         try:
             ideal_gate, new_name = get_noisy_gate(k.gate, tuple(k.params))
@@ -664,7 +663,7 @@ def estimate_bitstring_probs(results: np.ndarray) -> np.ndarray:
     """
     nshots, nq = np.shape(results)
     outcomes = np.array([int("".join(map(str, r)), 2) for r in results])
-    probs = np.histogram(outcomes, bins=np.arange(-0.5, 2**nq, 1))[0] / float(nshots)  # type: ignore
+    probs = np.histogram(outcomes, bins=np.arange(-0.5, 2**nq, 1))[0] / float(nshots)
     return _bitstring_probs_by_qubit(probs)
 
 
@@ -746,7 +745,7 @@ def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.nda
         the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
         ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
     """
-    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))  # type: ignore
+    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))
 
 
 def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:

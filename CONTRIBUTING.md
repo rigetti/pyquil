@@ -166,6 +166,12 @@ To skip [slow tests](#slow-tests), you may run:
 make test-fast
 ```
 
+You can run documentation tests with:
+
+```bash
+make doctest
+```
+
 You can run end-to-end tests with:
 
 ```bash
@@ -181,6 +187,51 @@ make test-all TEST_QUANTUM_PROCESSOR=<quantum processor ID>
 > **Note:** for `TEST_QUANTUM_PROCESSOR`, supply a value similar to what you would supply to
 > `get_qc()`. End-to-end tests are most useful against a real QPU, but they can also be run
 > against a QVM (e.g. `make e2e TEST_QUANTUM_PROCESSOR=2q-qvm`).
+
+#### Documentation Tests
+
+We utilize doctests to validate the examples in both our docstrings and Sphinx documentation. This
+ensures that they are correct and remain up to date.
+
+When contributing, consider adding an example to illustrate to users how pyQuil should be used.
+
+To add an example to a docstring, we use Python's [doctest module](https://docs.python.org/3/library/doctest.html#module-doctest).
+As a quick primer, you can add a doctest to a docstring by pre-pending your example code with `>>> `
+and following it with the expected output. For example:
+
+```py
+def hello_world():
+    """Prints Hello World!
+    >>> hello_world()
+    Hello World!
+    """
+    print("Hello World!")
+```
+
+To customize how output is validated, take a look at [the available option flags](https://docs.python.org/3/library/doctest.html#option-flags).
+
+If you want to add an example to Sphinx, here's a quick guide. Your example will be split between a hidden `testsetup` block 
+and a visible `testcode` block. Your expected output will go in a `testoutput` block. Each block shares a test name to tell 
+Sphinx that they are related. Building off the previous hello world example:
+
+```rst
+.. testsetup:: hello_world
+   # Code in the `testsetup` block doesn't appear in the documentation.
+   # Put any code that your example might need, but would unnecessarily
+   # clutter the documentation here.
+   from foo import hello_world
+
+.. testcode:: hello_world
+   # Code in the `testcode` block will appear in the documentation.
+   # Include code needed to illustrate your example here
+   hello_world()
+
+.. testoutput:: hello_world
+   Hello World!
+```
+
+In many cases, this simple structure will suffice, but consider reading the [Sphinx doctest documentation](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html)
+for more details on how to use it for more complex examples.
 
 #### Slow Tests
 

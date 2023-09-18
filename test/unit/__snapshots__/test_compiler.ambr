@@ -1,0 +1,9 @@
+# name: test_transpile_qasm_2
+  '''
+  DECLARE ro BIT[2]
+  MEASURE 0 ro[0]
+  MEASURE 1 ro[1]
+  HALT
+  
+  '''
+# ---

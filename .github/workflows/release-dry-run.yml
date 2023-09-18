@@ -1,23 +1,33 @@
 name: Release Dry Run
 
-on: push
+on:
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      type:
+        description: Runs knope with the --dry-run flag to see what the next release would look like.
+        required: true
+        default: prerelease
+        options:
+          - prerelease
+          - release
 
 jobs:
   release-dry-run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.PAT }}
-      - name: Install Knope
-        run: |
-          wget https://github.com/knope-dev/knope/releases/download/$KNOPE_VERSION/knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
-          tar -xvf knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
-          cp knope-x86_64-unknown-linux-musl-$KNOPE_VERSION/knope $HOME/.cargo/bin
-        env:
-          KNOPE_VERSION: v0.4.1
-      - name: Display Pending Release
-        run: knope release --dry-run
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.PAT }}
+    - name: Install Knope
+      uses: knope-dev/action@v2.0.0
+      with:
+        version: 0.11.0 # Test before updating, breaking changes likely: https://github.com/knope-dev/action#install-latest-version
+    - name: Prepare Prerelease
+      run: knope prerelease --dry-run
+      if: github.event_name == 'pull_request'
+    - name: Prepare Release
+      run: knope ${{ inputs.type }} --dry-run
+      if: github.event_name == 'workflow_dispatch'

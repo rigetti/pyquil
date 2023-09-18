@@ -43,6 +43,12 @@ docs:
 	poetry install --extras docs --extras latex
 	make -C docs clean html
 
+.PHONY: doctest
+doctest:
+	poetry install --extras docs --extras latex
+	pytest -v --cov=pyquil --doctest-modules pyquil
+	make -C docs clean doctest
+
 .PHONY: docker
 docker: Dockerfile
 	docker build -t $(DOCKER_TAG) .
@@ -63,19 +69,19 @@ install:
 .PHONY: test
 test:
 	poetry install --extras latex
-	pytest -n auto -v --runslow --cov=pyquil test/unit
+	pytest -v --runslow --cov=pyquil --cov-report xml:coverage.xml test/unit
 
 .PHONY: test-fast
 test-fast:
 	poetry install --extras latex
-	pytest -n auto -v --cov=pyquil test/unit
+	pytest -v --cov=pyquil test/unit
 
 .PHONY: e2e
 e2e:
 	pytest -n 1 -v --cov=pyquil test/e2e
 
 .PHONY: test-all
-test-all: test e2e
+test-all: doctest test e2e
 
 docs/quil/grammars/Quil.g4:
 	git submodule init

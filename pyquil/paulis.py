@@ -32,6 +32,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -41,12 +42,18 @@ from functools import reduce
 from scipy.linalg import expm
 
 from pyquil.quilatom import (
+    Qubit,
     QubitPlaceholder,
     FormalArgument,
     Expression,
     ExpressionDesignator,
     MemoryReference,
+    _convert_to_py_expression,
+    _convert_to_rs_expression,
+    _convert_to_py_qubits,
 )
+
+import quil.instructions as quil_rs
 
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
@@ -54,7 +61,7 @@ from numbers import Number, Complex
 from collections import OrderedDict
 import warnings
 
-PauliTargetDesignator = Union[int, FormalArgument, QubitPlaceholder]
+PauliTargetDesignator = Union[int, FormalArgument, Qubit, QubitPlaceholder]
 PauliDesignator = Union["PauliTerm", "PauliSum"]
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
@@ -106,10 +113,6 @@ PAULI_COEFF = {
 
 class UnequalLengthWarning(Warning):
     def __init__(self, *args: object, **kwargs: object):
-        # TODO: remove this "type: ignore" comment once mypy is upgraded to a version with a more
-        # recent typeshed that contains the following fix:
-        # https://github.com/python/typeshed/pull/1704
-        # https://github.com/python/mypy/pull/8139
         super().__init__(*args, **kwargs)
 
 
@@ -161,6 +164,17 @@ class PauliTerm(object):
             self.coefficient: Union[complex, Expression] = complex(coefficient)
         else:
             self.coefficient = coefficient
+
+    @classmethod
+    def _from_rs_pauli_term(cls, term: quil_rs.PauliTerm) -> "PauliTerm":
+        term_list = [(str(gate), FormalArgument(arg)) for (gate, arg) in term.arguments]
+        coefficient = _convert_to_py_expression(term.expression.into_simplified())
+
+        return cls.from_list(term_list, coefficient)
+
+    def _to_rs_pauli_term(self) -> quil_rs.PauliTerm:
+        arguments = [(quil_rs.PauliGate.parse(gate), str(arg)) for arg, gate in self._ops.items()]
+        return quil_rs.PauliTerm(arguments, _convert_to_rs_expression(self.coefficient))
 
     def id(self, sort_ops: bool = True) -> str:
         """
@@ -379,14 +393,16 @@ class PauliTerm(object):
 
         >>> term = 2.0 * sX(1)* sZ(2)
         >>> str(term)
-        >>> '2.0*X1*X2'
+        '(2+0j)*X1*Z2'
         >>> term.compact_str()
-        >>> '2.0*X1X2'
+        '(2+0j)*X1Z2'
         """
         return f"{self.coefficient}*{self.id(sort_ops=False)}"
 
     @classmethod
-    def from_list(cls, terms_list: List[Tuple[str, int]], coefficient: float = 1.0) -> "PauliTerm":
+    def from_list(
+        cls, terms_list: Sequence[Tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
+    ) -> "PauliTerm":
         """
         Allocates a Pauli Term from a list of operators and indices. This is more efficient than
         multiplying together individual terms.
@@ -461,7 +477,7 @@ class PauliTerm(object):
         assert isinstance(op, PauliTerm)
         return op
 
-    def pauli_string(self, qubits: Iterable[int]) -> str:
+    def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
         """
         Return a string representation of this PauliTerm without its coefficient and with
         implicit qubit indices.
@@ -471,16 +487,18 @@ class PauliTerm(object):
 
         >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
         >>> p.pauli_string()
-        "XY"
+        'XY'
         >>> p.pauli_string(qubits=[0])
-        "X"
+        'X'
         >>> p.pauli_string(qubits=[0, 2])
-        "XI"
+        'XI'
 
         :param iterable of qubits: The iterable of qubits to represent, given as ints.
         :return: The string representation of this PauliTerm, sans coefficient
         """
 
+        if qubits is None:
+            return "".join(self._ops.values())
         return "".join(self[q] for q in qubits)
 
 
@@ -571,6 +589,22 @@ class PauliSum(object):
             self.terms = [0.0 * ID()]
         else:
             self.terms = terms
+
+    @classmethod
+    def _from_rs_pauli_sum(cls, pauli_sum: quil_rs.PauliSum) -> "PauliSum":
+        return cls([PauliTerm._from_rs_pauli_term(term) for term in pauli_sum.terms])
+
+    def _to_rs_pauli_sum(self, arguments: Optional[List[PauliTargetDesignator]] = None) -> quil_rs.PauliSum:
+        rs_arguments: List[str]
+        if arguments is None:
+            argument_set: Dict[str, None] = {}
+            for term_arguments in [term.get_qubits() for term in self.terms]:
+                argument_set.update({str(arg): None for arg in term_arguments})
+            rs_arguments = list(argument_set.keys())
+        else:
+            rs_arguments = [str(arg) for arg in arguments]
+        terms = [term._to_rs_pauli_term() for term in self.terms]
+        return quil_rs.PauliSum(rs_arguments, terms)
 
     def __eq__(self, other: object) -> bool:
         """Equality testing to see if two PauliSum's are equivalent.
@@ -680,8 +714,10 @@ class PauliSum(object):
             other_sum = PauliSum([other])
         elif isinstance(other, (Expression, Number, complex)):
             other_sum = PauliSum([other * ID()])
-        else:
+        elif isinstance(other, PauliSum):
             other_sum = other
+        else:
+            raise TypeError(f"{type(other)} is not a valid PauliDesignator or ExpressionDesignator")
         new_terms = [term.copy() for term in self.terms]
         new_terms.extend(other_sum.terms)
         new_sum = PauliSum(new_terms)
@@ -724,10 +760,10 @@ class PauliSum(object):
 
         :returns: A list of all the qubits in the sum of terms.
         """
-        all_qubits = []
+        all_qubits: Set[PauliTargetDesignator] = set()
         for term in self.terms:
-            all_qubits.extend(term.get_qubits())
-        return list(set(all_qubits))
+            all_qubits.update(term.get_qubits())
+        return _convert_to_py_qubits(set(all_qubits))
 
     def simplify(self) -> "PauliSum":
         """
@@ -751,9 +787,9 @@ class PauliSum(object):
 
         >>> pauli_sum = 2.0 * sX(1)* sZ(2) + 1.5 * sY(2)
         >>> str(pauli_sum)
-        >>> '2.0*X1*X2 + 1.5*Y2'
+        '(2+0j)*X1*Z2 + (1.5+0j)*Y2'
         >>> pauli_sum.compact_str()
-        >>> '2.0*X1X2+1.5*Y2'
+        '(2+0j)*X1Z2+(1.5+0j)*Y2'
         """
         return "+".join([term.compact_str() for term in self.terms])
 
@@ -947,16 +983,20 @@ def exponentiate_pauli_sum(
 
     To produce a CZ gate:
 
+    >>> from numpy import pi
     >>> phi = pi
     >>> coeff = phi/(-4*pi) # -0.25
     >>> hamiltonian = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1*PauliTerm("Z", 0) - 1*PauliTerm("Z", 1)
     >>> exponentiate_pauli_sum(coeff*hamiltonian)
+    array([[...]])
 
     To produce the Quil XY(theta) gate, you can use:
 
+    >>> theta = pi/2
     >>> coeff = theta/(-4*pi)
     >>> hamiltonian = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
     >>> exponentiate_pauli_sum(coeff*hamiltonian)
+    array([[...]])
 
     A global phase is applied to the unitary such that the [0,0] element is always real.
 
@@ -987,7 +1027,7 @@ def exponentiate_pauli_sum(
         matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis])  # type: ignore
         matrices.append(matrix)
     generated_unitary = expm(-1j * np.pi * sum(matrices))
-    phase = np.exp(-1j * np.angle(generated_unitary[0, 0]))  # type: ignore
+    phase = np.exp(-1j * np.angle(generated_unitary[0, 0]))
     return np.asarray(phase * generated_unitary, dtype=np.complex_)
 
 

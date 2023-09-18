@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ master, rc ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, rc ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.8'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -33,10 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.8'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -52,10 +52,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.8'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -71,10 +71,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.8'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -85,12 +85,37 @@ jobs:
           . scripts/ci_install_deps
           poetry run make check-types
 
+  test-doctest:
+    name: Run Doctests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
+      - name: Test Unit (Python ${{ matrix.python-version }})
+        run: |
+          sudo apt update
+          . scripts/ci_install_deps
+          sudo apt install pandoc
+          docker run --rm -itd -p 5555:5555 rigetti/quilc -R
+          docker run --rm -itd -p 5000:5000 rigetti/qvm -S
+          poetry run make doctest
+
   test-unit:
     name: Test Unit
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -108,13 +133,49 @@ jobs:
           docker run --rm -itd -p 5555:5555 rigetti/quilc -R
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
           poetry run make test
+      - name: Report Coverage
+        if: matrix.python-version == '3.11' && github.event_name == "pull_request"
+        uses: orgoro/coverage@v3.1
+        with:
+          coverageFile: coverage.xml
+          thresholdAll: 0.87
+          thresholdNew: 0.9
+          token:  ${{ secrets.PAT }}
+
+  check-docker-image:
+    name: Check types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
+      - name: Check types
+        run: |
+          sudo apt update
+          pip wheel . -w wheels
+      - name: Build and Test
+        uses: docker/build-push-action@v4
+        with:
+          file: Dockerfile.test
+          context: .
+          load: true
+          tags: test
+      - name: Test Image
+        run: |
+          docker run --rm test python -c "from pyquil import get_qc"
 
   test-e2e:
     name: Test e2e QVM
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}

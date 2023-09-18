@@ -13,26 +13,33 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-
-from dataclasses import dataclass
 from fractions import Fraction
-from numbers import Complex
+import inspect
+from numbers import Number
 from typing import (
     Any,
     Callable,
     ClassVar,
+    Dict,
     List,
+    Iterable,
     Mapping,
     NoReturn,
     Optional,
     Set,
     Sequence,
     Tuple,
+    Type,
     Union,
     cast,
 )
+from typing_extensions import Self
+from deprecated.sphinx import deprecated
 
 import numpy as np
+
+import quil.instructions as quil_rs
+import quil.expression as quil_rs_expr
 
 
 class QuilAtom(object):
@@ -116,6 +123,33 @@ class FormalArgument(QuilAtom):
 
 
 class QubitPlaceholder(QuilAtom):
+    def __init__(self, placeholder: Optional[quil_rs.QubitPlaceholder] = None):
+        if placeholder is not None:
+            self._placeholder = placeholder
+        else:
+            self._placeholder = quil_rs.QubitPlaceholder()
+
+    @staticmethod
+    def register(n: int) -> List["QubitPlaceholder"]:
+        """Return a 'register' of ``n`` QubitPlaceholders.
+
+        >>> from pyquil import Program
+        >>> from pyquil.gates import H
+        >>> from pyquil.quil import address_qubits
+        >>> from pyquil.quilatom import QubitPlaceholder
+        >>> qs = QubitPlaceholder.register(8) # a qubyte
+        >>> prog = Program(H(q) for q in qs)
+        >>> address_qubits(prog).out()
+        'H 0\\nH 1\\nH 2\\nH 3\\nH 4\\nH 5\\nH 6\\nH 7\\n'
+        >>>
+
+        The returned register is a Python list of QubitPlaceholder objects, so all
+        normal list semantics apply.
+
+        :param n: The number of qubits in the register
+        """
+        return [QubitPlaceholder() for _ in range(n)]
+
     def out(self) -> str:
         raise RuntimeError("Qubit {} has not been assigned an index".format(self))
 
@@ -124,38 +158,65 @@ class QubitPlaceholder(QuilAtom):
         raise RuntimeError("Qubit {} has not been assigned an index".format(self))
 
     def __str__(self) -> str:
-        return "q{}".format(id(self))
+        return f"q{id(self)}"
 
     def __repr__(self) -> str:
-        return "<QubitPlaceholder {}>".format(id(self))
+        return f"q{id(self)}"
 
     def __hash__(self) -> int:
-        return hash(id(self))
+        return hash(self._placeholder)
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, QubitPlaceholder) and id(other) == id(self)
+        if isinstance(other, quil_rs.QubitPlaceholder):
+            return self._placeholder == other
+        if isinstance(other, QubitPlaceholder):
+            return self._placeholder == other._placeholder
+        return False
 
-    @classmethod
-    def register(cls, n: int) -> List["QubitPlaceholder"]:
-        """Return a 'register' of ``n`` QubitPlaceholders.
-
-        >>> qs = QubitPlaceholder.register(8) # a qubyte
-        >>> prog = Program(H(q) for q in qs)
-        >>> address_qubits(prog).out()
-        H 0
-        H 1
-        ...
-        >>>
-
-        The returned register is a Python list of QubitPlaceholder objects, so all
-        normal list semantics apply.
-
-        :param n: The number of qubits in the register
-        """
-        return [cls() for _ in range(n)]
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, quil_rs.QubitPlaceholder):
+            return self._placeholder < other
+        if isinstance(other, QubitPlaceholder):
+            return self._placeholder < other._placeholder
+        raise TypeError(f"Comparison between LabelPlaceholder and {type(other)} is not supported.")
 
 
 QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
+
+
+def _convert_to_rs_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, QubitPlaceholder]) -> quil_rs.Qubit:
+    if isinstance(qubit, quil_rs.Qubit):
+        return qubit
+    if isinstance(qubit, Qubit):
+        return quil_rs.Qubit.from_fixed(qubit.index)
+    if isinstance(qubit, QubitPlaceholder):
+        return quil_rs.Qubit.from_placeholder(qubit._placeholder)
+    if isinstance(qubit, FormalArgument):
+        return quil_rs.Qubit.from_variable(qubit.name)
+    if isinstance(qubit, int):
+        return quil_rs.Qubit.from_fixed(qubit)
+    raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
+
+
+def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[quil_rs.Qubit]:
+    return [_convert_to_rs_qubit(qubit) for qubit in qubits]
+
+
+def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, quil_rs.QubitPlaceholder]) -> QubitDesignator:
+    if isinstance(qubit, quil_rs.Qubit):
+        if qubit.is_fixed():
+            return Qubit(qubit.to_fixed())
+        if qubit.is_variable():
+            return FormalArgument(qubit.to_variable())
+        if qubit.is_placeholder():
+            return QubitPlaceholder(placeholder=qubit.to_placeholder())
+    if isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument, Parameter, int)):
+        return qubit
+    raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
+
+
+def _convert_to_py_qubits(qubits: Iterable[Union[QubitDesignator, quil_rs.Qubit]]) -> List[QubitDesignator]:
+    return [_convert_to_py_qubit(qubit) for qubit in qubits]
 
 
 def unpack_qubit(qubit: Union[QubitDesignator, FormalArgument]) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
@@ -196,7 +257,7 @@ def qubit_index(qubit: QubitDesignator) -> int:
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
 # List[Any] here.
-MemoryReferenceDesignator = Union["MemoryReference", Tuple[str, int], List[Any], str]
+MemoryReferenceDesignator = Union["MemoryReference", quil_rs.MemoryReference, Tuple[str, int], List[Any], str]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
@@ -233,47 +294,93 @@ class Label(QuilAtom):
     """
 
     def __init__(self, label_name: str):
-        self.name = label_name
+        self.target = quil_rs.Target.from_fixed(label_name)
+
+    @staticmethod
+    def _from_rs_target(target: quil_rs.Target) -> "Label":
+        return Label(target.to_fixed())
 
     def out(self) -> str:
-        return "@{name}".format(name=self.name)
+        return self.target.to_quil()
+
+    @property
+    def name(self) -> str:
+        return self.target.to_fixed()
+
+    @name.setter
+    def name(self, label_name: str) -> None:
+        self.target = quil_rs.Target.from_fixed(label_name)
 
     def __str__(self) -> str:
-        return "@{name}".format(name=self.name)
+        return self.target.to_quil_or_debug()
 
     def __repr__(self) -> str:
-        return "<Label {0}>".format(repr(self.name))
+        return repr(self.target)
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Label) and other.name == self.name
+        if isinstance(other, Label):
+            return self.target == other.target
+        return False
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        return hash(self.target)
 
 
 class LabelPlaceholder(QuilAtom):
-    def __init__(self, prefix: str = "L"):
-        self.prefix = prefix
+    def __init__(self, prefix: str = "L", *, placeholder: Optional[quil_rs.TargetPlaceholder] = None):
+        if placeholder:
+            self.target = quil_rs.Target.from_placeholder(placeholder)
+        else:
+            self.target = quil_rs.Target.from_placeholder(quil_rs.TargetPlaceholder(prefix))
+
+    @staticmethod
+    def _from_rs_target(target: quil_rs.Target) -> "LabelPlaceholder":
+        return LabelPlaceholder(placeholder=target.to_placeholder())
+
+    @property
+    def prefix(self) -> str:
+        return self.target.to_placeholder().base_label
 
     def out(self) -> str:
         raise RuntimeError("Label has not been assigned a name")
 
     def __str__(self) -> str:
-        return repr(self)
+        return self.target.to_quil_or_debug()
 
     def __repr__(self) -> str:
-        return "<LabelPlaceholder {} {}>".format(self.prefix, id(self))
+        return repr(self.target)
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, LabelPlaceholder) and id(other) == id(self)
+        if isinstance(other, LabelPlaceholder):
+            return self.target == other.target
+        return False
 
     def __hash__(self) -> int:
-        return hash(id(self))
+        return hash(self.target)
 
 
-ParameterDesignator = Union["Expression", "MemoryReference", np.int_, int, float, complex]
+ParameterDesignator = Union["Expression", "MemoryReference", int, float, complex, np.number]
 
 
+def _convert_to_rs_expression(
+    parameter: Union[ParameterDesignator, quil_rs_expr.Expression]
+) -> quil_rs_expr.Expression:
+    if isinstance(parameter, quil_rs_expr.Expression):
+        return parameter
+    elif isinstance(parameter, (int, float, complex, np.number)):
+        return quil_rs_expr.Expression.from_number(complex(parameter))
+    elif isinstance(parameter, (Expression, MemoryReference)):
+        return quil_rs_expr.Expression.parse(str(parameter))
+    raise ValueError(f"{type(parameter)} is not a valid ParameterDesignator")
+
+
+def _convert_to_rs_expressions(
+    parameters: Sequence[Union[ParameterDesignator, quil_rs_expr.Expression]]
+) -> List[quil_rs_expr.Expression]:
+    return [_convert_to_rs_expression(parameter) for parameter in parameters]
+
+
+@deprecated(version="4.0", reason="This function has been superseded by the `quil` package and will be removed soon.")
 def format_parameter(element: ParameterDesignator) -> str:
     """
     Formats a particular parameter. Essentially the same as built-in formatting except using 'i'
@@ -281,7 +388,7 @@ def format_parameter(element: ParameterDesignator) -> str:
 
     :param element: The parameter to format for Quil output.
     """
-    if isinstance(element, int) or isinstance(element, np.int_):
+    if isinstance(element, (int, np.integer)):
         return repr(element)
     elif isinstance(element, float):
         return _check_for_pi(element)
@@ -318,6 +425,59 @@ def format_parameter(element: ParameterDesignator) -> str:
 
 ExpressionValueDesignator = Union[int, float, complex]
 ExpressionDesignator = Union["Expression", ExpressionValueDesignator]
+
+
+def _convert_to_py_expression(
+    expression: Union[
+        ParameterDesignator,
+        ExpressionDesignator,
+        ExpressionValueDesignator,
+        quil_rs_expr.Expression,
+        quil_rs.MemoryReference,
+    ]
+) -> ExpressionDesignator:
+    if isinstance(expression, (Expression, Number)):
+        return expression
+    if isinstance(expression, quil_rs_expr.Expression):
+        if expression.is_pi():
+            return np.pi
+        if expression.is_number():
+            return expression.to_number()
+        if expression.is_variable():
+            return Parameter(expression.to_variable())
+        if expression.is_infix():
+            return BinaryExp._from_rs_infix_expression(expression.to_infix())
+        if expression.is_address():
+            return MemoryReference._from_rs_memory_reference(expression.to_address())
+        if expression.is_function_call():
+            fc = expression.to_function_call()
+            parameter = _convert_to_py_expression(fc.expression)
+            if fc.function == quil_rs_expr.ExpressionFunction.Cis:
+                return quil_cis(parameter)
+            if fc.function == quil_rs_expr.ExpressionFunction.Cosine:
+                return quil_cos(parameter)
+            if fc.function == quil_rs_expr.ExpressionFunction.Exponent:
+                return quil_exp(parameter)
+            if fc.function == quil_rs_expr.ExpressionFunction.Sine:
+                return quil_sin(parameter)
+            if fc.function == quil_rs_expr.ExpressionFunction.SquareRoot:
+                return quil_sqrt(parameter)
+        if expression.is_prefix():
+            prefix = expression.to_prefix()
+            py_expression = _convert_to_py_expression(prefix.expression)
+            if prefix == quil_rs_expr.PrefixOperator.Plus:
+                return py_expression
+            elif isinstance(py_expression, (int, float, complex, Expression)):
+                return -py_expression
+    raise TypeError(f"{type(expression)} is not a valid ExpressionDesignator")
+
+
+def _convert_to_py_expressions(
+    expressions: Sequence[
+        Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
+    ]
+) -> Sequence[ExpressionDesignator]:
+    return [_convert_to_py_expression(expression) for expression in expressions]
 
 
 class Expression(object):
@@ -447,6 +607,19 @@ class Function(Expression):
         self.expression = expression
         self.fn = fn
 
+    @classmethod
+    def _from_rs_function_call(cls, function_call: quil_rs_expr.FunctionCallExpression) -> "Function":
+        expression = _convert_to_py_expression(function_call.expression)
+        if function_call.function == quil_rs_expr.ExpressionFunction.Cis:
+            return quil_cis(expression)
+        if function_call.function == quil_rs_expr.ExpressionFunction.Cosine:
+            return quil_cos(expression)
+        if function_call.function == quil_rs_expr.ExpressionFunction.Exponent:
+            return quil_exp(expression)
+        if function_call.function == quil_rs_expr.ExpressionFunction.Sine:
+            return quil_sin(expression)
+        return quil_sqrt(expression)
+
     def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["Function", ExpressionValueDesignator]:
         sop = substitute(self.expression, d)
         if isinstance(sop, Expression):
@@ -497,6 +670,24 @@ class BinaryExp(Expression):
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         self.op1 = op1
         self.op2 = op2
+
+    @classmethod
+    def _from_rs_infix_expression(
+        cls, infix_expression: quil_rs_expr.InfixExpression
+    ) -> Union["BinaryExp", ExpressionValueDesignator]:
+        left = _convert_to_py_expression(infix_expression.left)
+        right = _convert_to_py_expression(infix_expression.right)
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Plus:
+            return Add.fn(left, right)
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Minus:
+            return Sub.fn(left, right)
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Slash:
+            return Div.fn(left, right)
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Star:
+            return Mul.fn(left, right)
+        if infix_expression.operator == quil_rs_expr.InfixOperator.Caret:
+            return Pow.fn(left, right)
+        raise ValueError(f"{type(infix_expression)} is not a valid InfixExpression")
 
     def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
         sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
@@ -676,6 +867,20 @@ class MemoryReference(QuilAtom, Expression):
         self.offset = offset
         self.declared_size = declared_size
 
+    @classmethod
+    def _from_rs_memory_reference(cls, memory_reference: quil_rs.MemoryReference) -> "MemoryReference":
+        return cls(memory_reference.name, memory_reference.index)
+
+    @classmethod
+    def _from_parameter_str(cls, memory_reference_str: str) -> "MemoryReference":
+        expression = quil_rs_expr.Expression.parse(memory_reference_str)
+        if expression.is_address():
+            return cls._from_rs_memory_reference(expression.to_address())
+        raise ValueError(f"{memory_reference_str} is not a memory reference")
+
+    def _to_rs_memory_reference(self) -> quil_rs.MemoryReference:
+        return quil_rs.MemoryReference(self.name, self.offset)
+
     def out(self) -> str:
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:
             return "{}".format(self.name)
@@ -736,50 +941,148 @@ def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
         return set()
 
 
-@dataclass(eq=True, frozen=True)
-class Frame(QuilAtom):
+class Frame(quil_rs.FrameIdentifier):
     """
     Representation of a frame descriptor.
     """
 
-    qubits: Tuple[Union[Qubit, FormalArgument], ...]
-    """ A tuple of qubits on which the frame exists. """
+    def __new__(cls, qubits: Sequence[QubitDesignator], name: str) -> Self:
+        return super().__new__(cls, name, _convert_to_rs_qubits(qubits))
 
-    name: str
-    """ The name of the frame. """
+    @classmethod
+    def _from_rs_frame_identifier(cls, frame: quil_rs.FrameIdentifier) -> "Frame":
+        return super().__new__(cls, frame.name, frame.qubits)
 
-    def __init__(self, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str):
-        qubits = tuple(Qubit(q) if isinstance(q, int) else q for q in qubits)
-        object.__setattr__(self, "qubits", qubits)
-        object.__setattr__(self, "name", name)
+    @property  # type: ignore[override]
+    def qubits(self) -> Tuple[QubitDesignator, ...]:
+        return tuple(_convert_to_py_qubits(super().qubits))
 
-    def __str__(self) -> str:
-        return self.out()
+    @qubits.setter
+    def qubits(self, qubits: Tuple[Qubit, FormalArgument]) -> None:
+        quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
     def out(self) -> str:
-        return " ".join([q.out() for q in self.qubits]) + f' "{self.name}"'
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
-@dataclass
-class WaveformReference(QuilAtom):
+class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
+    def __new__(cls, name: str, parameters: Optional[Dict[str, ParameterDesignator]] = None) -> Self:
+        if parameters is None:
+            parameters = {}
+        rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
+        return super().__new__(cls, name, rs_parameters)
+
+    @property  # type: ignore[override]
+    def parameters(self) -> Dict[str, ParameterDesignator]:
+        return {key: _convert_to_py_expression(value) for key, value in super().parameters.items()}
+
+    @parameters.setter
+    def parameters(self, parameters: Dict[str, ParameterDesignator]) -> None:
+        rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
+        quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
+
+    def out(self) -> str:
+        return self.to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
+
+@deprecated(
+    version="4.0",
+    reason="The WaveformReference class will be removed, consider using WaveformInvocation instead.",
+)
+class WaveformReference(WaveformInvocation):
     """
     Representation of a Waveform reference.
     """
 
-    name: str
-    """ The name of the waveform. """
+    def __new__(cls, name: str) -> Self:
+        return super().__new__(cls, name, {})
+
+
+def _template_waveform_property(
+    name: str, *, dtype: Optional[Union[Type[int], Type[float]]] = None, doc: Optional[str] = None
+) -> property:
+    """
+    Helper method for initializing getters, setters, and deleters for
+    parameters on a ``TemplateWaveform``. Should only be used inside of
+    ``TemplateWaveform`` or one its base classes.
+
+    Parameters:
+        name - The name of the property
+        dtype - `dtype` is an optional parameter that takes the int or float type, and attempts
+            to convert the underlying complex value by casting the real part to `dtype`. If set, this
+            function will raise an error if the complex number has a non-zero imaginary part.
+        doc - Docstring for the property.
+
+    """
+
+    def fget(self: "TemplateWaveform") -> Optional[ParameterDesignator]:
+        parameter = self.get_parameter(name)
+        if parameter is None or dtype is None:
+            return parameter
+
+        if dtype is int or dtype is float:
+            if isinstance(parameter, dtype):
+                return parameter
+            if not isinstance(parameter, complex):
+                raise TypeError(
+                    f"Requested float for parameter {name}, but a non-numeric value of type {type(parameter)} was "
+                    "found instead"
+                )
+            if parameter.imag != 0.0:
+                raise ValueError(
+                    f"Requested float for parameter {name}, but a complex number with a non-zero imaginary part was "
+                    "found"
+                )
+            return dtype(parameter.real)
+        raise TypeError(f"TemplateWaveform is not compatible with dtype {dtype}")
+
+    def fset(self: "TemplateWaveform", value: ParameterDesignator) -> None:
+        self.set_parameter(name, value)
+
+    def fdel(self: "TemplateWaveform") -> None:
+        self.set_parameter(name, None)
+
+    return property(fget, fset, fdel, doc)
+
+
+class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
+    NAME: ClassVar[str]
+
+    def __new__(
+        cls,
+        name: str,
+        *,
+        duration: float,
+        **kwargs: Union[Optional[ParameterDesignator], Optional[ExpressionDesignator]],
+    ) -> Self:
+        rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
+        rs_parameters["duration"] = _convert_to_rs_expression(duration)
+        return super().__new__(cls, name, rs_parameters)
 
     def out(self) -> str:
-        return self.name
+        return str(self)
 
-    def __str__(self) -> str:
-        return self.out()
+    def get_parameter(self, name: str) -> Optional[ParameterDesignator]:
+        parameter = super().parameters.get(name, None)
+        if parameter is None:
+            return None
+        return _convert_to_py_expression(parameter)
 
+    def set_parameter(self, name: str, value: Optional[ParameterDesignator]) -> None:
+        parameters = super().parameters
+        if value is None:
+            parameters.pop(name, None)
+        else:
+            parameters[name] = _convert_to_rs_expression(value)
+        quil_rs.WaveformInvocation.parameters.__set__(self, parameters)  # type: ignore[attr-defined]
 
-@dataclass
-class TemplateWaveform(QuilAtom):
-    duration: float
-    """ The duration [seconds] of the waveform. """
+    duration = _template_waveform_property("duration", dtype=float)
 
     def num_samples(self, rate: float) -> int:
         """The number of samples in the reference implementation of the waveform.
@@ -791,7 +1094,10 @@ class TemplateWaveform(QuilAtom):
         :return: The number of samples.
 
         """
-        return int(np.ceil(self.duration * rate))
+        duration = self.duration.real
+        if self.duration.imag != 0.0:
+            raise ValueError("Can't calculate number of samples with a complex duration")
+        return int(np.ceil(duration * rate))
 
     def samples(self, rate: float) -> np.ndarray:
         """A reference implementation of waveform sample generation.
@@ -806,6 +1112,49 @@ class TemplateWaveform(QuilAtom):
 
         """
         raise NotImplementedError()
+
+    @classmethod
+    def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
+        """
+        The ``quil`` package has no equivalent to ``TemplateWaveform``s, this function checks the name and
+        properties of a ``quil`` ``WaveformInvocation`` to see if they potentially match a subclass of
+        ``TemplateWaveform``. If a match is found and construction succeeds, then that type is returned.
+        Otherwise, a generic ``WaveformInvocation`` is returned.
+        """
+        from pyquil.quiltwaveforms import (
+            FlatWaveform,
+            GaussianWaveform,
+            DragGaussianWaveform,
+            HrmGaussianWaveform,
+            ErfSquareWaveform,
+            BoxcarAveragerKernel,
+        )
+
+        template: Type["TemplateWaveform"]  # mypy needs a type annotation here to understand this.
+        for template in [
+            FlatWaveform,
+            GaussianWaveform,
+            DragGaussianWaveform,
+            HrmGaussianWaveform,
+            ErfSquareWaveform,
+            BoxcarAveragerKernel,
+        ]:
+            if template.NAME != waveform.name:
+                continue
+            parameter_names = [
+                parameter[0] for parameter in inspect.getmembers(template, lambda a: isinstance(a, property))
+            ]
+            if set(waveform.parameters.keys()).issubset(parameter_names):
+                try:
+                    parameters = {key: _convert_to_py_expression(value) for key, value in waveform.parameters.items()}
+                    return template(**parameters)  # type: ignore[arg-type]
+                except TypeError:
+                    break
+
+        return super().__new__(cls, waveform.name, waveform.parameters)
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
 
 
 def _update_envelope(
@@ -839,9 +1188,10 @@ def _update_envelope(
 Waveform = Union[WaveformReference, TemplateWaveform]
 
 
-def _complex_str(iq: Any) -> str:
-    """Convert a number to a string."""
-    if isinstance(iq, Complex):
-        return f"{iq.real}" if iq.imag == 0.0 else f"{iq.real} + ({iq.imag})*i"
-    else:
-        return str(iq)
+def _convert_to_py_waveform(waveform: quil_rs.WaveformInvocation) -> Waveform:
+    if not isinstance(waveform, quil_rs.WaveformInvocation):
+        raise TypeError(f"{type(waveform)} is not a WaveformInvocation")
+    if len(waveform.parameters) == 0:
+        return WaveformReference(waveform.name)
+
+    return TemplateWaveform._from_rs_waveform_invocation(waveform)

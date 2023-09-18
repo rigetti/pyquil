@@ -1,5 +1,72 @@
 # Changelog
 
+## 4.0.0
+
+The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest generation of Rust SDKs. With this comes access to new features, improved performance, stronger type safety, and better error messages. While this is a significant change for the internals of pyQuil, we've attempted to keep breaking changes to a minimum. Unless necessary, we've chosen to only remove redundant or lesser used features that aren't likely to bother most users.
+
+### Breaking Changes
+
+- Replaced the `qcs-api-client` dependency with `qcs-sdk-python`. Consequentially, the former's `QCSClientConfiguration` has been replaced by the latter’s `QCSClient`. The `QCSClient` class can be imported from the `api` module.
+- Removed the `compatibility.v2` sub-package.
+- Removed the `EngagementManager` class as RPCQ is no longer used.
+- Python 3.7 is no longer supported.
+- The environment variable overrides for `quilc` and `QVM` URLs have been renamed to `QCS_SETTINGS_APPLICATIONS_QUILC_URL` and `QCS_SETTINGS_APPLICATIONS_QVM_URL`, respectively.
+- The `QuantumComputer`'s `run` method now takes an optional `memory_map` parameter. This mapping takes memory region names to a list of values to use for a run. This replaces the ability to use `write_memory` on `Program`s.
+- `Program` and instructions have been re-written using the `quil` package. Much of the API remains the same, with the following exceptions:
+	- `SwapPhase` has been renamed to `SwapPhases`
+	- `TemplateWaveform` and its subclasses are no longer `@dataclass`es.
+	- `DefFrame` and `Frame` are no longer `@dataclass`es.
+	- The `pop` method has been removed from `Program`.
+	- A `Program` that uses `QubitPlaceholder`s or `LabelPlaceholder`s can no longer be pickled
+	- `DefMeasureCalibration` now requires a `MemoryReference`.
+	- `fill_placeholders` has been removed since it is no longer needed to expand calibrations.
+	- The `get_qubits` method on `Gate` now returns a `list` so that ordering is guaranteed.
+	- Setting the `offsets` property on `Declare` will raise a `ValueError` if no `shared_region` is set.
+    - When converting to Quil, a `Program` automatically places `DECLARE`s at the top of the program.
+    - The `Program#calibrations` property no longer returns measure calibrations, instead use the new `measure_calibrations` property.
+- The `parser` module has been removed. Parsing now happens by initializing a `Program` with the program string you want to be parsed.
+- `PRAGMA` instructions can no longer have a directive that conflicts with a Quil keyword. If you were using directives like `DELAY` or `FENCE`, consider using the respective Quil-T instructions instead.
+- `QubitPlaceholders` can no longer be used in `PRAGMA` instructions.
+- `DefGate` and the other gate definition instructions will no longer accept names that conflict with Quil keywords.
+- `Program#get_qubits()` will raise a `TypeError` if any of the qubits in the program are not a fixed index.
+- A `Program`s `LabelPlaceholder`s are no longer resolved automatically when getting its instructions. Use the `resolve_label_placeholders` method to do it explicitly. Note that the `if_then` and `while_do` methods will add `LabelPlaceholder`s to your program.
+- There may be some minor differences in how instructions are converted to a Quil string. These differences should only be cosmetic and should not affect the behavior of a program. However, they may break unit tests or other code that rely on specific formatting of programs.
+- The `pyquil.quil.get_default_qubit_mapping` function for getting a mapping of `QubitPlaceholders` to resolved indices has been removed. Generating a default mapping is handled automatically by the placeholder resolving methods.
+- The `JumpConditional` base class has been removed, use `JumpWhen` and/or `JumpUnless` directly instead.
+- The `Program` class automatically sorts `DECLARE` instructions to the top of the Program when converting to Quil.
+- `FenceAll` is now a subclass of `Fence`. This can be impactful if you are doing something like `isinstance(instruction, Fence)` since that will now match `Fence` and `FenceAll`. If the difference between the two is important, check for `FenceAll` first. You can also check if the `qubits` property is empty, which implies a `FenceAll` instruction.
+- The `RawInstr` class has been removed. All Quil instructions should be supported by either parsing them with the `Program` class, or constructing them with an instruction class. If you were using `RawInstr` for QASM2.0 transpilation, use the new `transpile_qasm_2` method on `AbstractCompiler`.
+
+### Features
+
+- pyQuil now uses `qcs-sdk-python` (bindings to the [QCS Rust SDK](https://github.com/rigetti/qcs-sdk-rust/)) for compiling and executing programs.
+- With the exception of requests to a `quilc` server, RPCQ has been removed in favor of OpenAPI and gRPC calls. This enables:
+	- Better performance
+	- Better error messages when a request fails
+- The improved Rust backend allows on-demand access to a QPU.
+- The new `QPUCompilerAPIOptions` class provides can now be used to customize how a program is compiled against a QPU.
+- The `diagnostics` module has been introduced with a `get_report` function that will gather information on the currently running pyQuil
+installation, perform diagnostics checks, and return a summary.
+- `Program` has new methods for resolving Qubit and Label Placeholders in a program.
+- `QubitPlaceholders` can now be used in programs that also use fixed or variable qubits.
+- `QAMExecutionResult` now has a `raw_readout_data` property that can be used to get the raw form of readout data returned from the executor.
+- `WaveformInvocation` has been added as a simpler, more flexible class for invoking waveforms.
+- Added two new instruction classes:
+   	- The `Include` class for `INCLUDE` instructions.
+   	- The `DefCircuit` class `DEFCIRCUIT` instructions.
+- The `Program.copy` method now performs a deep copy.
+- The `AbstractCompiler` class now has a new `transpile_qasm_2` method for transpiling QASM2.0 programs to Quil.
+
+### Deprecations
+
+- The `QAMExecutionResult` `readout_data` property has been deprecated to avoid confusion with the new `raw_readout_data` property. Use the `register_map` property instead.
+- The `indices` flag on the `get_qubits` method on `Program`s and instruction classes continues to work, but will be removed in future versions. A separate `get_qubit_indices` method has been added to get indices. In future versions, `get_qubits` will only return a list of `QubitDesignator`s.
+- The `is_protoquil`, `is_supported_on_qpu` methods on `Program` and the `validate_supported_quil` function will always return `True`. These methods were never reliable as they were implemented as client-side checks that don't necessarily reflect the latest available features on Rigetti compilers or QPUs. It's safe to stop using these functions and rely on the API to tell you if a program isn't supported.
+- `percolate_declares` is a no-op and will be removed in future versions. `Program` now “percolates” declares automatically.
+- `merge_programs` continues to work, but will be removed in future versions, use `Program` addition instead.
+- The `format_parameter` function continues to work, but will be removed in future versions.
+- The `WaveformReference` class continues to work, but will be removed in future versions. The new `WaveformInvocation` should be used instead.
+
 ## 3.5.4
 
 ### Fixes

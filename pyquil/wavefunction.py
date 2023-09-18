@@ -48,7 +48,7 @@ class Wavefunction(object):
         if len(amplitude_vector) == 0 or len(amplitude_vector) & (len(amplitude_vector) - 1) != 0:
             raise TypeError("Amplitude vector must have a length that is a power of two")
 
-        self.amplitudes = np.asarray(amplitude_vector)
+        self.amplitudes: np.ndarray = np.asarray(amplitude_vector)
         sumprob = np.sum(self.probabilities())
         if not np.isclose(sumprob, 1.0):
             raise ValueError(
@@ -94,7 +94,7 @@ class Wavefunction(object):
 
     def probabilities(self) -> np.ndarray:
         """Returns an array of probabilities in lexicographical order"""
-        return np.abs(self.amplitudes) ** 2
+        return np.abs(self.amplitudes) ** 2  # type: ignore
 
     def get_outcome_probs(self) -> Dict[str, float]:
         """

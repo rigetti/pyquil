@@ -1,15 +1,15 @@
 .. _noise:
 
-Noise and Quantum Computation
+=============================
+Noise and quantum computation
 =============================
 
-Modeling Noisy Quantum Gates
-----------------------------
+****************************
+Modeling noisy quantum gates
+****************************
 
-.. begin import from GateNoiseModels.ipynb
-
-Pure States vs. Mixed States
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Pure states vs. mixed states
+============================
 
 Errors in quantum computing can introduce classical uncertainty in what the underlying state is. When this happens we
 sometimes need to consider not only wavefunctions but also probabilistic sums of wavefunctions when we are uncertain as
@@ -54,7 +54,7 @@ more about density matrices here [DensityMatrix]_.
 .. [DensityMatrix] https://en.wikipedia.org/wiki/Density_matrix
 
 Quantum Gate Errors
-~~~~~~~~~~~~~~~~~~~
+===================
 
 For a quantum gate given by its unitary operator :math:`U`, a "quantum gate error" describes the scenario in which the
 actually induced transformation deviates from :math:`\ket{\psi} \mapsto U\ket{\psi}`. There are two basic types of
@@ -87,8 +87,8 @@ quantum gate errors:
 In a way, coherent errors are *in principle* amendable by more precisely
 calibrated control. Incoherent errors are more tricky.
 
-Why Do Incoherent Errors Happen?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Why do incoherent errors happen?
+================================
 
 When a quantum system (e.g., the qubits on a quantum processor) is not
 perfectly isolated from its environment it generally co-evolves with the
@@ -121,8 +121,8 @@ by the Schrödinger equation
 
 the final state will generally not admit such a factorization.
 
-A Toy Model
-~~~~~~~~~~~
+A toy model
+===========
 
 **In this (somewhat technical) section we show how environment
 interaction can corrupt an identity gate and derive its Kraus map.** For
@@ -189,10 +189,11 @@ cases with little complication and a very similar argument is used to
 derive the `Lindblad master
 equation <https://en.wikipedia.org/wiki/Lindblad_equation>`__.
 
-Noisy Gates on the Rigetti QVM
-------------------------------
+**********************
+Noisy gates on the QVM
+**********************
 
-As of today, users of our Forest SDK can annotate their Quil programs by
+As of today, users of the Quil SDK can annotate their Quil programs by
 certain pragma statements that inform the QVM that a particular gate on
 specific target qubits should be replaced by an imperfect realization
 given by a Kraus map.
@@ -247,8 +248,9 @@ which proves our claim. **The consequence is that noisy gate simulations
 must generally be repeated many times to obtain representative
 results**.
 
-Getting Started
-~~~~~~~~~~~~~~~
+***************
+Getting started
+***************
 
 1. Come up with a good model for your noise. We will provide some
    examples below and may add more such examples to our public
@@ -270,30 +272,28 @@ Getting Started
 
 **Scroll down for some examples!**
 
-.. code:: python
+.. testcode:: damping
 
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from scipy.stats import binom
     import matplotlib.colors as colors
-    %matplotlib inline
-
-.. code:: python
+    import matplotlib.pyplot as plt
+    import numpy as np
 
     from pyquil import Program, get_qc
     from pyquil.gates import CZ, H, I, X, MEASURE
     from pyquil.quilbase import Declare
     from scipy.linalg import expm
+    from scipy.stats import binom
 
-.. code:: python
+.. testcode:: damping
 
     # We could ask for "2q-noisy-qvm" but we will be specifying
     # our noise model as PRAGMAs on the Program itself.
     qc = get_qc('2q-qvm')
 
 
-Example 1: Amplitude Damping
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+****************************
+Example 1: Amplitude damping
+****************************
 
 Amplitude damping channels are imperfect identity maps with Kraus
 operators
@@ -313,7 +313,7 @@ operators
 where :math:`p` is the probability that a qubit in the :math:`\ket{1}`
 state decays to the :math:`\ket{0}` state.
 
-.. code:: python
+.. testcode:: damping
 
     def damping_channel(damp_prob=.1):
         """
@@ -353,9 +353,7 @@ state decays to the :math:`\ket{0}` state.
         """
         return append_kraus_to_gate(damping_channel(damp_prob), gate)
 
-.. code:: python
-
-    %%time
+.. testcode:: damping
 
     # single step damping probability
     damping_per_I = 0.02
@@ -366,9 +364,6 @@ state decays to the :math:`\ket{0}` state.
     results_damping = []
     lengths = np.arange(0, 201, 10, dtype=int)
     for jj, num_I in enumerate(lengths):
-        print("\r{}/{}, ".format(jj, len(lengths)), end="")
-
-
         p = Program(
             Declare("ro", "BIT", 1),
             X(0),
@@ -386,21 +381,20 @@ state decays to the :math:`\ket{0}` state.
 
     results_damping = np.array(results_damping)
 
-
-.. code:: python
+.. testcode:: damping
 
     dense_lengths = np.arange(0, lengths.max()+1, .2)
     survival_probs = (1-damping_per_I)**dense_lengths
     logpmf = binom.logpmf(np.arange(trials+1)[np.newaxis, :], trials, survival_probs[:, np.newaxis])/np.log(10)
 
-.. code:: python
+.. testcode:: damping
 
     DARK_TEAL = '#48737F'
     FUSCHIA = "#D6619E"
     BEIGE = '#EAE8C6'
     cm = colors.LinearSegmentedColormap.from_list('anglemap', ["white", FUSCHIA, BEIGE], N=256, gamma=1.5)
 
-.. code:: python
+.. testcode:: damping
 
     plt.figure(figsize=(14, 6))
     plt.pcolor(dense_lengths, np.arange(trials+1)/trials, logpmf.T, cmap=cm, vmin=-4, vmax=logpmf.max())
@@ -420,8 +414,9 @@ state decays to the :math:`\ket{0}` state.
 .. image:: images/GateNoiseModels_14_1.png
 
 
+***************************
 Example 2: Dephased CZ-gate
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***************************
 
 Dephasing is usually characterized through a qubit's :math:`T_2` time.
 For a single qubit the dephasing Kraus operators are
@@ -478,7 +473,7 @@ achieved through non-diagonal interaction Hamiltonians! However, for
 sufficiently small dephasing probabilities it should always provide a
 good starting point.**
 
-.. code:: python
+.. testcode:: damping
 
     def dephasing_kraus_map(p=.1):
         """
@@ -501,10 +496,14 @@ good starting point.**
         """
         return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]
 
+.. 
+   Here and elsewhere in this file had Jupyter Notebook directives, which appeared in code blocks as 
+   plain text and were removed. See commit 8e31f989f6951a08e39daa728f4c4e8918f5e9bd on master 
+   for what those directives were. We may be able to integrate Binder to get interactive notebook
+   behavior in the docs.
 
-.. code:: python
+.. testcode:: damping
 
-    %%time
     # single step damping probabilities
     ps = np.linspace(.001, .5, 200)
 
@@ -521,9 +520,6 @@ good starting point.**
             dephasing_kraus_map(p)
         ),
         np.diag([1, 1, 1, -1]))
-
-
-        print("\r{}/{}, ".format(jj, len(ps)), end="")
 
         # make Bell-state
         p = Program(
@@ -546,7 +542,7 @@ good starting point.**
 
     results = np.array(results)
 
-.. code:: python
+.. testcode:: damping
 
     Z1s = (2*results[:,:,0]-1.)
     Z2s = (2*results[:,:,1]-1.)
@@ -556,7 +552,7 @@ good starting point.**
     Z2m = np.mean(Z2s, axis=1)
     Z1Z2m = np.mean(Z1Z2s, axis=1)
 
-.. code:: python
+.. testcode:: damping
 
     plt.figure(figsize=(14, 6))
     plt.axhline(y=1.0, color=FUSCHIA, alpha=.5, label="Bell state")
@@ -580,9 +576,9 @@ good starting point.**
 
 .. end import from GateNoiseModel.ipynb
 
-
+************************
 Adding Decoherence Noise
-------------------------
+************************
 
 In this example, we investigate how a program might behave on a
 near-term device that is subject to *T1*- and *T2*-type noise using the convenience function
@@ -593,7 +589,7 @@ functions to define your own types of noise models, e.g.,
 :py:func:`pyquil.noise.append_kraus_to_gate` which allows appending a noise process to a unitary
 gate.
 
-.. code:: python
+.. testcode:: decoherence
 
     from pyquil.quil import Program
     from pyquil.paulis import PauliSum, PauliTerm, exponentiate, exponential_map, trotterize
@@ -602,39 +598,39 @@ gate.
     import numpy as np
 
 The Task
-~~~~~~~~
+========
 
 We want to prepare :math:`e^{i \theta XY}` and measure it in the
 :math:`Z` basis.
 
-.. code:: python
+.. testcode:: decoherence
 
     from numpy import pi
     theta = pi/3
     xy = PauliTerm('X', 0) * PauliTerm('Y', 1)
 
-The Idiomatic pyQuil Program
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The idiomatic pyQuil program
+============================
 
-.. code:: python
+.. testcode:: decoherence
 
     prog = exponential_map(xy)(theta)
     print(prog)
 
 
-.. parsed-literal::
+.. testoutput:: decoherence
 
     H 0
-    RX(pi/2) 1
+    RX(1.5707963267948966) 1
     CNOT 0 1
-    RZ(2*pi/3) 1
+    RZ(2.0943951023931953) 1
     CNOT 0 1
     H 0
-    RX(-pi/2) 1
+    RX(-1.5707963267948966) 1
 
 
-The Compiled Program
-~~~~~~~~~~~~~~~~~~~~
+The compiled program
+====================
 
 To run on a real device, we must compile each program to the native gate
 set for the device. The high-level noise model is similarly constrained
@@ -648,7 +644,7 @@ to use a small, native gate set. In particular, we can use
 For simplicity, the compiled program is given below but generally you
 will want to use a compiler to do this step for you.
 
-.. code:: python
+.. testcode:: decoherence
 
     def get_compiled_prog(theta):
         return Program([
@@ -669,8 +665,8 @@ will want to use a compiler to do this step for you.
             RZ(-pi/2, 1),
         ])
 
-Scan Over Noise Parameters
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Scan over noise parameters
+==========================
 
 We perform a scan over three levels of noise, each at 20 theta points.
 
@@ -681,31 +677,31 @@ In alignment with the device, :math:`I` and parametric :math:`RZ` are
 noiseless while :math:`RX` and :math:`CZ` gates experience 1q and 2q
 gate noise, respectively.
 
-.. code:: python
+.. testcode:: decoherence
 
     from pyquil import get_qc
     qc = get_qc("2q-qvm")
 
-.. code:: python
+.. testcode:: decoherence
 
     t1s = np.logspace(-6, -5, num=3)
     thetas = np.linspace(-pi, pi, num=20)
-    t1s * 1e6 # us
+    print(t1s * 1e6) # us
 
 
-.. parsed-literal::
+.. testoutput:: decoherence
 
-    array([  1.        ,   3.16227766,  10.        ])
+    [  1.          3.16227766 10.        ]
 
 
-.. code:: python
+.. testcode:: decoherence
 
     from pyquil.noise import add_decoherence_noise
     records = []
     for theta in thetas:
         for t1 in t1s:
             prog = get_compiled_prog(theta)
-            noisy = add_decoherence_noise(prog, T1=t1).inst([
+            noisy = add_decoherence_noise(prog, T1=t1, T2=t1/2).inst([
                 Declare("ro", "BIT", 2),
                 MEASURE(0, ("ro", 0)),
                 MEASURE(1, ("ro", 1)),
@@ -727,19 +723,18 @@ gate noise, respectively.
             }
             records += [record]
 
-Plot the Results
-~~~~~~~~~~~~~~~~
+Plot the results
+================
 
 Note that to run the code below you will need to install the `pandas` and `seaborn` packages.
 
-.. code:: python
+.. testcode:: decoherence
 
-    %matplotlib inline
     from matplotlib import pyplot as plt
     import seaborn as sns
     sns.set(style='ticks', palette='colorblind')
 
-.. code:: python
+.. testcode:: decoherence
 
     import pandas as pd
     df_all = pd.DataFrame(records)
@@ -762,8 +757,9 @@ Note that to run the code below you will need to install the `pandas` and `seabo
 
 .. image:: images/NoiseInvestigation_14_0.png
 
-Modeling Readout Noise
-----------------------
+**********************
+Modeling readout noise
+**********************
 
 Qubit-Readout can be corrupted in a variety of ways. The two most
 relevant error mechanisms on the Rigetti QPU right now are:
@@ -783,8 +779,8 @@ relevant error mechanisms on the Rigetti QPU right now are:
    can try to reduce the readout pulse length, or increase the T1 time
    or both.
 
-Qubit Measurements
-~~~~~~~~~~~~~~~~~~
+Qubit measurements
+==================
 
 This section provides the necessary theoretical foundation for
 accurately modeling noisy quantum measurements on superconducting
@@ -803,8 +799,8 @@ the measurement outcome.
 Here the *outcome* is understood as classical information that has been
 extracted from the quantum system.
 
-Projective, Ideal Measurement
-_____________________________
+Projective, ideal measurement
+=============================
 
 The simplest case that is usually taught in introductory quantum
 mechanics and quantum information courses are Born's rule and the
@@ -853,7 +849,7 @@ ensures that :math:`\rho_{\text{post measurement}}` is a positive
 (semi-)definite operator.
 
 Classical Readout Bit-Flip Error
-________________________________
+================================
 
 Consider now the ideal measurement as above, but where the outcome
 :math:`x` is transmitted across a noisy classical channel that produces
@@ -924,8 +920,8 @@ nor valid projection operators, but they naturally arise in this
 scenario. This is not yet the most general type of measurement, but it
 will get us pretty far.
 
-How to Model :math:`T_1` Error
-______________________________
+How to model :math:`T_1` error
+==============================
 
 T1 type errors fall outside our framework so far as they involve a
 scenario in which the *quantum state itself* is corrupted during the
@@ -937,14 +933,15 @@ relatively simple description, we propose describing this by a T1
 damping Kraus map followed by the noisy readout process as described
 above.
 
-Further Reading
-_______________
+Further reading
+===============
 
 Chapter 3 of John Preskill's lecture notes
 http://www.theory.caltech.edu/people/preskill/ph229/notes/chap3.pdf
 
-Working with Readout Noise
---------------------------
+**************************
+Working with readout noise
+**************************
 
 1. Come up with a good guess for your readout noise parameters
    :math:`p(0|0)` and :math:`p(1|1)`; the off-diagonals then follow from
@@ -963,11 +960,10 @@ Working with Readout Noise
 
 **Scroll down for some examples!**
 
-.. code:: python
+.. testcode:: readout-noise
 
     import numpy as np
     import matplotlib.pyplot as plt
-    %matplotlib inline
 
     from pyquil import get_qc
     from pyquil.quil import Program, MEASURE, Pragma
@@ -981,12 +977,10 @@ Working with Readout Noise
 
     qc = get_qc("1q-qvm")
 
-Example 1: Rabi Sequence with Noisy Readout
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example 1: Rabi sequence with noisy readout
+===========================================
 
-.. code:: python
-
-    %%time
+.. testcode:: readout-noise
 
     # number of angles
     num_theta = 101
@@ -1002,7 +996,7 @@ Example 1: Rabi Sequence with Noisy Readout
 
     for jj, theta in enumerate(thetas):
         for kk, p00 in enumerate(p00s):
-            qc.qam.random_seed = hash((jj, kk))
+            qc.qam.random_seed = 1
             p = Program(RX(theta, 0)).wrap_in_numshots_loop(trials)
             # assume symmetric noise p11 = p00
             p.define_noisy_readout(0, p00=p00, p11=p00)
@@ -1016,7 +1010,7 @@ Example 1: Rabi Sequence with Noisy Readout
     CPU times: user 1.2 s, sys: 73.6 ms, total: 1.27 s
     Wall time: 3.97 s
 
-.. code:: python
+.. testcode:: readout-noise
 
     plt.figure(figsize=(14, 6))
     for jj, (p00, c) in enumerate(zip(p00s, [DARK_TEAL, FUSCHIA, "k", "gray"])):
@@ -1028,6 +1022,12 @@ Example 1: Rabi Sequence with Noisy Readout
     plt.xlabel(r"RX angle $\theta$ [radian]", size=16)
     plt.ylabel(r"Excited state fraction $n_1/n_{\rm trials}$", size=16)
     plt.title("Effect of classical readout noise on Rabi contrast.", size=18)
+    print(plt)
+
+.. testoutput:: readout-noise
+   :hide:
+
+    <...matplotlib...>
 
 .. parsed-literal::
 
@@ -1035,8 +1035,8 @@ Example 1: Rabi Sequence with Noisy Readout
 
 .. image:: images/ReadoutNoise_10_1.png
 
-Example 2: Estimate the Assignment Probabilities
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example 2: Estimate the assignment probabilities
+================================================
 
 Here we will estimate :math:`P_{x'|x}` ourselves!
 You can run some simple experiments to estimate the assignment
@@ -1044,33 +1044,43 @@ probability matrix directly from a QPU.
 
 **On a perfect quantum computer**
 
-.. code:: python
+.. testcode:: readout-noise
 
-    estimate_assignment_probs(0, 1000, qc)
+    print(estimate_assignment_probs(0, 1000, qc))
 
-.. parsed-literal::
+.. testoutput:: readout-noise
 
-    array([[ 1.,  0.],
-           [ 0.,  1.]])
+    [[1. 0.]
+     [0. 1.]]
 
 **On an imperfect quantum computer**
 
-.. code:: python
+.. testcode:: readout-noise
 
     qc.qam.random_seed = None
     header0 = Program().define_noisy_readout(0, .85, .95)
     header1 = Program().define_noisy_readout(1, .8, .9)
     header2 = Program().define_noisy_readout(2, .9, .85)
 
-    ap0 = estimate_assignment_probs(0, 100000, qc, header0)
-    ap1 = estimate_assignment_probs(1, 100000, qc, header1)
-    ap2 = estimate_assignment_probs(2, 100000, qc, header2)
+    ap0 = estimate_assignment_probs(0, 10000, qc, header0)
+    ap1 = estimate_assignment_probs(1, 10000, qc, header1)
+    ap2 = estimate_assignment_probs(2, 10000, qc, header2)
 
-.. code:: python
+.. testcode:: readout-noise
 
     print(ap0, ap1, ap2, sep="\n")
 
-.. parsed-literal::
+.. testoutput:: readout-noise
+    :hide:
+
+    [[... ...]
+     [... ...]]
+    [[... ...]
+     [... ...]]
+    [[... ...]
+     [... ...]]
+
+.. parsed-literal:: readout-noise
 
     [[ 0.84967  0.04941]
      [ 0.15033  0.95059]]
@@ -1080,18 +1090,18 @@ probability matrix directly from a QPU.
      [ 0.09952  0.85012]]
 
 Example 3: Correct for Noisy Readout
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+====================================
 
-3a) Correcting the Rabi Signal from Above
-_________________________________________
+Correcting the rabi signal from above
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code:: python
+.. testcode:: readout-noise
 
     ap_last = np.array([[p00s[-1], 1 - p00s[-1]],
                         [1 - p00s[-1], p00s[-1]]])
     corrected_last_result = [correct_bitstring_probs([1-p, p], [ap_last])[1] for p in results_rabi[:, -1] / trials]
 
-.. code:: python
+.. testcode:: readout-noise
 
     plt.figure(figsize=(14, 6))
     for jj, (p00, c) in enumerate(zip(p00s, [DARK_TEAL, FUSCHIA, "k", "gray"])):
@@ -1106,10 +1116,11 @@ _________________________________________
     plt.xlabel(r"RX angle $\theta$ [radian]", size=16)
     plt.ylabel(r"Excited state fraction $n_1/n_{\rm trials}$", size=16)
     plt.title("Corrected contrast", size=18)
+    print(plt)
 
-.. parsed-literal::
+.. testoutput:: readout-noise
 
-    <matplotlib.text.Text at 0x1055e7310>
+    <module 'matplotlib.pyplot' from ...>
 
 .. image:: images/ReadoutNoise_19_1.png
 
@@ -1117,15 +1128,19 @@ We find that the corrected signal is fairly noisy (and sometimes
 exceeds the allowed interval :math:`[0,1]`) due to the overall very
 small number of samples :math:`n=200`.
 
-3b) Corrupting and Correcting GHZ State Correlations
-____________________________________________________
+Corrupting and correcting GHZ state correlations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this example we will create a GHZ state
 :math:`\frac{1}{\sqrt{2}}\left[\left|000\right\rangle + \left|111\right\rangle \right]` and
 measure its outcome probabilities with and without the above noise model. We will then see how the
 Pauli-Z moments that indicate the qubit correlations are corrupted (and corrected) using our API.
 
-.. code:: python
+.. testsetup:: readout-noise
+
+    from pyquil.quilbase import Declare
+
+.. testcode:: readout-noise
 
     ghz_prog = Program(
         Declare("ro", "BIT", 3),
@@ -1136,7 +1151,7 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
     print(ghz_prog)
     results = qc.run(ghz_prog).readout_data.get("ro")
 
-.. parsed-literal::
+.. testoutput:: readout-noise
 
     DECLARE ro BIT[3]
     H 0
@@ -1146,7 +1161,7 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
     MEASURE 1 ro[1]
     MEASURE 2 ro[2]
 
-.. code:: python
+.. testcode:: readout-noise
 
     header = header0 + header1 + header2
     noisy_ghz = header + ghz_prog
@@ -1154,12 +1169,12 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
     print(noisy_ghz)
     noisy_results = qc.run(noisy_ghz).readout_data.get("ro")
 
-.. parsed-literal::
+.. testoutput:: readout-noise
 
+    DECLARE ro BIT[3]
     PRAGMA READOUT-POVM 0 "(0.85 0.050000000000000044 0.15000000000000002 0.95)"
     PRAGMA READOUT-POVM 1 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
     PRAGMA READOUT-POVM 2 "(0.9 0.15000000000000002 0.09999999999999998 0.85)"
-    DECLARE ro BIT[3]
     H 0
     CNOT 0 1
     CNOT 1 2
@@ -1168,99 +1183,140 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
     MEASURE 2 ro[2]
 
 Uncorrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=============================================================================================
 
-.. code:: python
+.. testsetup:: readout-noise
+
+    from pyquil.noise import estimate_bitstring_probs
+
+.. testcode:: readout-noise
 
     probs = estimate_bitstring_probs(results)
-    probs[0, 0, 0], probs[1, 1, 1]
+    print(probs[0, 0, 0], probs[1, 1, 1])
+
+.. testoutput:: readout-noise
+    :hide:
+
+    ... ...
 
 .. parsed-literal::
 
-    (0.50419999999999998, 0.49580000000000002)
+    0.50419999999999998 0.49580000000000002
 
 As expected the outcomes ``000`` and ``111`` each have roughly
 probability :math:`1/2`.
 
 Corrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===========================================================================================
 
-.. code:: python
+.. testcode:: readout-noise
 
     noisy_probs = estimate_bitstring_probs(noisy_results)
-    noisy_probs[0, 0, 0], noisy_probs[1, 1, 1]
+    print(noisy_probs[0, 0, 0], noisy_probs[1, 1, 1])
+
+.. testoutput:: readout-noise
+    :hide:
+
+    ... ...
 
 .. parsed-literal::
 
-    (0.30869999999999997, 0.3644)
+    0.30869999999999997 0.3644
 
 The noise-corrupted outcome probabilities deviate significantly from
 their ideal values!
 
 Corrected probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===========================================================================================
 
-.. code:: python
+.. testsetup:: readout-noise
+
+    from pyquil.noise import correct_bitstring_probs
+
+.. testcode:: readout-noise
 
     corrected_probs = correct_bitstring_probs(noisy_probs, [ap0, ap1, ap2])
-    corrected_probs[0, 0, 0], corrected_probs[1, 1, 1]
+    print(corrected_probs[0, 0, 0], corrected_probs[1, 1, 1])
+
+.. testoutput:: readout-noise
+    :hide:
+
+    ... ...
 
 .. parsed-literal::
 
-    (0.50397601453064977, 0.49866843912900716)
+    0.50397601453064977 0.49866843912900716
 
 The corrected outcome probabilities are much closer to the ideal value.
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 010, 001` from non-noisy data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+============================================================================================================
 
 *We expect these to all be very small*
 
-.. code:: python
+.. testsetup:: readout-noise
+
+    from pyquil.noise import bitstring_probs_to_z_moments
+
+.. testcode:: readout-noise
 
     zmoments = bitstring_probs_to_z_moments(probs)
-    zmoments[1, 0, 0], zmoments[0, 1, 0], zmoments[0, 0, 1]
+    print(zmoments[1, 0, 0], zmoments[0, 1, 0], zmoments[0, 0, 1])
+
+.. testoutput:: readout-noise
+    :hide:
+
+    ... ... ...
 
 .. parsed-literal::
 
-    (0.0083999999999999631, 0.0083999999999999631, 0.0083999999999999631)
+    0.0083999999999999631 0.0083999999999999631 0.0083999999999999631
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 011, 101` from non-noisy data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+============================================================================================================
 
 *We expect these to all be close to 1.*
 
-.. code:: python
+.. testcode:: readout-noise
 
-    zmoments[1, 1, 0], zmoments[0, 1, 1], zmoments[1, 0, 1]
+    print(zmoments[1, 1, 0], zmoments[0, 1, 1], zmoments[1, 0, 1])
 
-.. parsed-literal::
+.. testoutput:: readout-noise
 
-    (1.0, 1.0, 1.0)
+    1.0 1.0 1.0
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 010, 001` from noise-corrected data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==================================================================================================================
 
-.. code:: python
+.. testcode:: readout-noise
 
     zmoments_corr = bitstring_probs_to_z_moments(corrected_probs)
-    zmoments_corr[1, 0, 0], zmoments_corr[0, 1, 0], zmoments_corr[0, 0, 1]
+    print(zmoments_corr[1, 0, 0], zmoments_corr[0, 1, 0], zmoments_corr[0, 0, 1])
+
+.. testoutput:: readout-noise
+    :hide:
+
+    ... ... ...
 
 .. parsed-literal::
 
-    (0.0071476770049732075, -0.0078641261685578612, 0.0088462563282706852)
+    0.0071476770049732075 -0.0078641261685578612 0.0088462563282706852
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 011, 101` from noise-corrected data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==================================================================================================================
 
-.. code:: python
+.. testcode:: readout-noise
 
+    print(zmoments_corr[1, 1, 0], zmoments_corr[0, 1, 1], zmoments_corr[1, 0, 1])
 
-    zmoments_corr[1, 1, 0], zmoments_corr[0, 1, 1], zmoments_corr[1, 0, 1]
+.. testoutput:: readout-noise
+    :hide:
+
+    ... ... ...
 
 .. parsed-literal::
 
-    (0.99477496902638118, 1.0008376440216553, 1.0149652015905912)
+    0.99477496902638118 1.0008376440216553 1.0149652015905912
 
 Overall the correction can restore the contrast in our multi-qubit observables,
 though we also see that the correction can lead to slightly non-physical expectations.
@@ -1268,9 +1324,9 @@ This effect is reduced the more samples we take.
 
 
 Alternative: A global Pauli error model
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=======================================
 
-The Rigetti QVM has support for emulating certain types of noise models.
+The QVM has support for emulating certain types of noise models.
 One such model is *parametric Pauli noise*, which is defined by a
 set of 6 probabilities:
 
@@ -1288,7 +1344,11 @@ set of 6 probabilities:
 
 We can instantiate a QVM, then specify these probabilities.
 
-.. code:: python
+.. testsetup:: global-error
+
+    from pyquil.api import get_qc
+
+.. testcode:: global-error
 
     # 20% chance of a X gate being applied after gate applications and before measurements.
     noisy_qc = get_qc("1q-qvm")
@@ -1298,7 +1358,13 @@ We can instantiate a QVM, then specify these probabilities.
 We can test this by applying an :math:`X`-gate and measuring. Nominally,
 we should always measure ``1``.
 
-.. code:: python
+.. testsetup:: global-error
+
+    from pyquil import Program
+    from pyquil.gates import MEASURE, X
+    from pyquil.quilbase import Declare
+
+.. testcode:: global-error
 
     p = Program(
         Declare("ro", "BIT", 1),
@@ -1306,10 +1372,37 @@ we should always measure ``1``.
         MEASURE(0, ("ro", 0)),
     ).wrap_in_numshots_loop(10)
 
+    qc = get_qc("1q-qvm")
     print("Without Noise:")
     print(qc.run(p).readout_data.get("ro"))
     print("With Noise:")
     print(noisy_qc.run(p).readout_data.get("ro"))
+
+.. testoutput:: global-error
+    :hide:
+
+    Without Noise:
+    [[1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]]
+    With Noise:
+    [[...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]
+     [...]]
 
 .. parsed-literal::
 

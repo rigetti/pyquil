@@ -152,7 +152,7 @@ def _get_gate_tensor_and_qubits(gate: Gate) -> Tuple[np.ndarray, List[int]]:
     else:
         matrix = QUANTUM_GATES[gate.name]
 
-    qubit_inds = [q.index for q in gate.qubits]
+    qubit_inds = gate.get_qubit_indices()
 
     # e.g. 2-qubit matrix is 4x4; turns into (2,2,2,2) tensor.
     tensor = np.reshape(matrix, (2,) * len(qubit_inds) * 2)
@@ -191,7 +191,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
-        super().__init__(n_qubits=n_qubits, rs=rs)  # type: ignore
+        super().__init__(n_qubits=n_qubits, rs=rs)
 
         self.n_qubits = n_qubits
         self.rs = rs
@@ -220,7 +220,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         probabilities = np.abs(self.wf.reshape(-1)) ** 2
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2**self.n_qubits, n_samples, p=probabilities)
-        return possible_bitstrings[inds, :]  # type: ignore
+        return possible_bitstrings[inds, :]
 
     def do_measurement(self, qubit: int) -> int:
         """

@@ -15,14 +15,15 @@
 ##############################################################################
 from typing import List, Optional, Sequence, cast
 
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_sdk import QCSClient
+from qcs_sdk.compiler.quilc import (
+    PauliTerm as QuilcPauliTerm,
+    RandomizedBenchmarkingRequest,
+    ConjugateByCliffordRequest,
+)
 
 from pyquil.api._abstract_compiler import AbstractBenchmarker
-from pyquil.api._compiler_client import (
-    GenerateRandomizedBenchmarkingSequenceRequest,
-    ConjugatePauliByCliffordRequest,
-    CompilerClient,
-)
+from pyquil.api._compiler_client import CompilerClient
 
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
@@ -34,7 +35,7 @@ class BenchmarkConnection(AbstractBenchmarker):
     Represents a connection to a server that generates benchmarking data.
     """
 
-    def __init__(self, *, timeout: float = 10.0, client_configuration: Optional[QCSClientConfiguration] = None):
+    def __init__(self, *, timeout: float = 10.0, client_configuration: Optional[QCSClient] = None):
         """
         Client to communicate with the benchmarking data endpoint.
 
@@ -43,7 +44,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         """
 
         self._compiler_client = CompilerClient(
-            client_configuration=client_configuration or QCSClientConfiguration.load(),
+            client_configuration=client_configuration or QCSClient.load(),
             request_timeout=timeout,
         )
 
@@ -65,14 +66,16 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
 
-        request = ConjugatePauliByCliffordRequest(
-            pauli_indices=list(indices_and_terms[0]),
-            pauli_symbols=list(indices_and_terms[1]),
+        request = ConjugateByCliffordRequest(
+            pauli=QuilcPauliTerm(
+                indices=list(indices_and_terms[0]),
+                symbols=list(indices_and_terms[1]),
+            ),
             clifford=clifford.out(calibrations=False),
         )
         response = self._compiler_client.conjugate_pauli_by_clifford(request)
 
-        phase_factor, paulis = response.phase_factor, response.pauli
+        phase_factor, paulis = response.phase, response.pauli
 
         pauli_out = PauliTerm("I", 0, 1.0j**phase_factor)
         clifford_qubits = clifford.get_qubits()
@@ -133,9 +136,9 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
 
-        request = GenerateRandomizedBenchmarkingSequenceRequest(
+        request = RandomizedBenchmarkingRequest(
             depth=depth,
-            num_qubits=qubits,
+            qubits=qubits,
             gateset=gateset_for_api,
             seed=seed,
             interleaver=interleaver_out,
@@ -146,7 +149,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         for clifford in response.sequence:
             clifford_program = Program()
             if interleaver:
-                clifford_program._calibrations = interleaver.calibrations
+                clifford_program += interleaver.calibrations
             # Like below, we reversed the order because the API currently hands back the Clifford
             # decomposition right-to-left.
             for index in reversed(clifford):

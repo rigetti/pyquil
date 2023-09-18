@@ -21,16 +21,18 @@ __all__ = [
     "AbstractCompiler",
     "BenchmarkConnection",
     "EncryptedProgram",
-    "EngagementManager",
+    "ExecutionOptions",
     "get_qc",
     "list_quantum_computers",
     "local_forest_runtime",
+    "MemoryMap",
     "QAM",
     "QAMExecutionResult",
-    "QCSClientConfiguration",
+    "QCSClient",
     "QCSQuantumProcessor",
     "QPU",
     "QPUCompiler",
+    "QPUCompilerAPIOptions",
     "QuantumComputer",
     "QuantumExecutable",
     "QVM",
@@ -38,12 +40,21 @@ __all__ = [
     "WavefunctionSimulator",
 ]
 
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_sdk import QCSClient, RegisterMatrixConversionError
+from qcs_sdk.qpu.api import ExecutionOptions, ExecutionOptionsBuilder, ConnectionStrategy
+from qcs_sdk.qpu import RawQPUReadoutData
+from qcs_sdk.qvm import RawQVMReadoutData
 
 from pyquil.api._benchmark import BenchmarkConnection
-from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram, AbstractCompiler
-from pyquil.api._engagement_manager import EngagementManager
-from pyquil.api._qam import QAM, QAMExecutionResult
+from pyquil.api._compiler import (
+    QVMCompiler,
+    QPUCompiler,
+    QuantumExecutable,
+    EncryptedProgram,
+    AbstractCompiler,
+    QPUCompilerAPIOptions,
+)
+from pyquil.api._qam import QAM, QAMExecutionResult, MemoryMap
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
     QuantumComputer,

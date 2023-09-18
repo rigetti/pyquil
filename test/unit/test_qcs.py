@@ -4,7 +4,7 @@ from pyquil.quantum_processor import QCSQuantumProcessor
 from pyquil.quantum_processor.transformers import qcs_isa_to_compiler_isa
 from pyquil.noise import NoiseModel
 from pyquil.external.rpcq import CompilerISA
-from qcs_api_client.models import InstructionSetArchitecture
+from qcs_sdk.qpu.isa import InstructionSetArchitecture
 
 
 def test_qcs_isa_to_compiler_isa(qcs_aspen8_isa: InstructionSetArchitecture, aspen8_compiler_isa: CompilerISA):
