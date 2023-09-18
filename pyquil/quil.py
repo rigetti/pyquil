@@ -19,6 +19,7 @@ Module for creating and defining Quil programs.
 import types
 from collections import defaultdict
 from copy import deepcopy
+import functools
 from typing import (
     Any,
     Callable,
@@ -104,6 +105,30 @@ InstructionDesignator = Union[
 RetType = TypeVar("RetType")
 
 
+def _invalidates_cached_properties(func: Callable[..., RetType]) -> Callable[..., RetType]:
+    """A decorator that will check a class for any cached properties and clear them.
+
+    This should be used on any `Program` method that changes the internal state of the program
+    so that the next call to proprety rebuilds the cache.
+    """
+
+    @functools.wraps(func)
+    def wrapper(self: "Program", *args: Any, **kwargs: Any) -> RetType:
+        result = func(self, *args, **kwargs)
+        cls = type(self)
+        cached = {
+            attr
+            for attr in list(self.__dict__.keys())
+            if (descriptor := getattr(cls, attr, None))
+            if isinstance(descriptor, functools.cached_property)
+        }
+        for attr in cached:
+            del self.__dict__[attr]
+        return result
+
+    return wrapper
+
+
 class Program:
     """
     A list of pyQuil instructions that comprise a quantum program.
@@ -124,12 +149,16 @@ class Program:
 
         self.native_quil_metadata: Optional[NativeQuilMetadata] = None
 
-    @property
+    # The following properties are cached on the first call and won't be re-built unless cleared.
+    # Any method that mutates the state program should use the `@_invalidates_cached_properties`
+    # decorator to clear these caches.
+
+    @functools.cached_property
     def calibrations(self) -> List[DefCalibration]:
         """A list of Quil-T calibration definitions."""
         return [DefCalibration._from_rs_calibration(cal) for cal in self._program.calibrations.calibrations]
 
-    @property
+    @functools.cached_property
     def measure_calibrations(self) -> List[DefMeasureCalibration]:
         """A list of measure calibrations"""
         return [
@@ -137,7 +166,7 @@ class Program:
             for cal in self._program.calibrations.measure_calibrations
         ]
 
-    @property
+    @functools.cached_property
     def waveforms(self) -> Dict[str, DefWaveform]:
         """A mapping from waveform names to their corresponding definitions."""
         return {
@@ -145,7 +174,7 @@ class Program:
             for name, waveform in self._program.waveforms.items()
         }
 
-    @property
+    @functools.cached_property
     def frames(self) -> Dict[Frame, DefFrame]:
         """A mapping from Quil-T frames to their definitions."""
         return {
@@ -153,7 +182,7 @@ class Program:
             for frame, attributes in self._program.frames.get_all_frames().items()
         }
 
-    @property
+    @functools.cached_property
     def declarations(self) -> Dict[str, Declare]:
         """A mapping from declared region names to their declarations."""
         return {name: Declare._from_rs_declaration(inst) for name, inst in self._program.declarations.items()}
@@ -206,6 +235,7 @@ class Program:
         new_program.inst(instructions)
         self._program = new_program._program
 
+    @_invalidates_cached_properties
     def inst(self, *instructions: Union[InstructionDesignator, RSProgram]) -> "Program":
         """
         Mutates the Program object by appending new instructions.
@@ -268,6 +298,7 @@ class Program:
 
         return self
 
+    @_invalidates_cached_properties
     def resolve_placeholders(self) -> None:
         """
         Resolve all label and qubit placeholders in the program using a default resolver that will generate
@@ -309,12 +340,14 @@ class Program:
             target_resolver=rs_label_resolver, qubit_resolver=rs_qubit_resolver
         )
 
+    @_invalidates_cached_properties
     def resolve_qubit_placeholders(self) -> None:
         """
         Resolve all qubit placeholders in the program.
         """
         self._program.resolve_placeholders_with_custom_resolvers(target_resolver=lambda _: None)
 
+    @_invalidates_cached_properties
     def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, int]) -> None:
         """
         Resolve all qubit placeholders in the program using a mapping of ``QubitPlaceholder``\\s to
@@ -331,6 +364,7 @@ class Program:
             qubit_resolver=qubit_resolver, target_resolver=label_resolver
         )
 
+    @_invalidates_cached_properties
     def resolve_label_placeholders(self) -> None:
         """
         Resolve all label placeholders in the program.
