@@ -60,11 +60,7 @@ def _extract_memory_regions(
     ro_sources: Dict[MemoryReference, str],
     buffers: Dict[str, np.ndarray],
 ) -> Dict[str, np.ndarray]:
-    # hack to extract num_shots indirectly from the shape of the returned data
-    first, *rest = buffers.values()
-    num_shots = first.shape[0]
-
-    def alloc(spec: ParameterSpec) -> np.ndarray:
+    def alloc(spec: ParameterSpec, num_shots: int) -> np.ndarray:
         dtype = {
             "BIT": np.int64,
             "INTEGER": np.int64,
@@ -78,31 +74,45 @@ def _extract_memory_regions(
 
     regions: Dict[str, np.ndarray] = {}
 
+    # filter out the ro_sources to only get the ones that are used and group
+    # mrefs by their name
+    sources = {mem_desc: defaultdict(list) for mem_desc in memory_descriptors}
     for mref, key in ro_sources.items():
-        # Translation sometimes introduces ro_sources that the user didn't ask for.
-        # That's fine, we just ignore them.
-        if mref.name not in memory_descriptors:
+        # Translation sometimes introduces ro_sources that the user didn't
+        # ask for. That's fine, we just ignore them.
+        if mref.name not in sources:
             continue
-        elif mref.name not in regions:
-            regions[mref.name] = alloc(memory_descriptors[mref.name])
+        sources[mref.name][key].append(mref)
 
-        buf = buffers[key]
-        if buf.ndim == 1:
-            buf = buf.reshape((num_shots, 1))
+    # hack to extract the number of shots
+    # the number of shots is the length of the buffer
+    # divided by how many sources are in that buffer
+    # it should be the same for all buffers
+    mref_name = next(iter(sources))
+    buf_key = next(iter(sources[mref_name]))
+    num_shots = buffers[buf_key].shape[0] // len(sources[mref_name][buf_key])
 
-        if np.iscomplexobj(buf):
-            buf = np.column_stack((buf.real, buf.imag))
-        _, width = buf.shape
-
-        end = mref.offset + width
-        region_width = memory_descriptors[mref.name].length
-        if end > region_width:
-            raise ValueError(
-                f"Attempted to fill {mref.name}[{mref.offset}, {end})"
-                f"but the declared region has width {region_width}."
-            )
-
-        regions[mref.name][:, mref.offset : end] = buf
+    for mref_name, mref_dict in sources.items():
+        regions[mref_name] = alloc(memory_descriptors[mref_name], num_shots)
+        region_width = memory_descriptors[mref_name].length
+        for key, mref_list in mref_dict.items():
+            num_lanes = len(mref_list)
+            # sort the items in the mref_list by their offset
+            sorted_mref = [mref for _, mref in sorted(zip((m.offset for m in mref_list), mref_list))]
+            buf = buffers[key]
+            if buf.ndim == 1:
+                buf = buf[:, None]
+            if np.iscomplexobj(buf):
+                buf = np.column_stack((buf.real, buf.imag))
+            _, width = buf.shape
+            for i, mref in enumerate(sorted_mref):
+                end = mref.offset + width
+                if end > region_width:
+                    raise ValueError(
+                        f"Attempted to fill {mref_name}[{mref.offset}, {end})"
+                        f"but the declared region has width {region_width}."
+                    )
+                regions[mref_name][:, mref.offset : end] = buf[i::num_lanes, :]
 
     return regions
 
