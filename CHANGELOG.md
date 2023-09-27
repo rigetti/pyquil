@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.1 (2023-09-27)
+
+### Fixes
+
+#### `Gate`s should no longer compare as equal and not equal. (#1671)
+
 ## 4.0.1-rc.0 (2023-09-27)
 
 ### Fixes
