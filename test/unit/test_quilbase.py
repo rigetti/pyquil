@@ -152,6 +152,12 @@ class TestGate:
     def test_repr(self, gate: Gate, snapshot: SnapshotAssertion):
         assert repr(gate) == snapshot
 
+    def test_eq(self, gate: Gate, name: str, params: List[ParameterDesignator], qubits: List[Qubit]):
+        assert gate == Gate(name, params, qubits)
+        not_eq_gate = Gate(f"not-{name}", params, qubits)
+        assert not (gate == not_eq_gate)
+        assert gate != not_eq_gate
+
     def test_compile(self, program: Program, compiler: QPUCompiler):
         try:
             compiler.quil_to_native_quil(program)
