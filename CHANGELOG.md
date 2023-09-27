@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.1-rc.0 (2023-09-27)
+
+### Fixes
+
+#### `Gate`s should no longer compare as equal and not equal. (#1671)
+
 ## 4.0.0
 
 The 4.0 release of pyQuil migrates its core functionality into Rigetti's latest generation of Rust SDKs. With this comes access to new features, improved performance, stronger type safety, and better error messages. While this is a significant change for the internals of pyQuil, we've attempted to keep breaking changes to a minimum. Unless necessary, we've chosen to only remove redundant or lesser used features that aren't likely to bother most users.
