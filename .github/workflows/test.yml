@@ -134,7 +134,7 @@ jobs:
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
           poetry run make test
       - name: Report Coverage
-        if: matrix.python-version == '3.11' && github.event_name == pull_request
+        if: matrix.python-version == '3.11' && github.event_name == 'pull_request'
         uses: orgoro/coverage@v3.1
         with:
           coverageFile: coverage.xml
