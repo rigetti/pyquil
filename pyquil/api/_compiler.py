@@ -106,10 +106,20 @@ class QPUCompiler(AbstractCompiler):
 
         If `api_options` is provided, it overrides the options set on `self`.
         """
-        rewrite_response = rewrite_arithmetic(nq_program.out())
+        program = nq_program.out()
+        recalculation_table = []
+        # NOTE: There is an incompatibility between backends v1 and v2: v1 expects
+        # arithmetic to have been rewritten by the client, while v2 expects
+        # arithmetic _not_ to have been rewritten by the client. Since Aspen-M-3
+        # is the last of our QPUs that requires backend v1, we only rewrite arithmetic
+        # for that particular QPU. Once Aspen-M-3 is EOL, we can remove this.
+        if self.quantum_processor_id == "Aspen-M-3":
+            rewrite_response = rewrite_arithmetic(nq_program.out())
+            program = rewrite_response.program
+            recalculation_table = list(rewrite_response.recalculation_table)
 
         translated_program = translate(
-            native_quil=rewrite_response.program,
+            native_quil=program,
             num_shots=nq_program.num_shots,
             quantum_processor_id=self.quantum_processor_id,
             translation_options=api_options or self.api_options,
@@ -121,7 +131,7 @@ class QPUCompiler(AbstractCompiler):
             program=translated_program.program,
             memory_descriptors=_collect_memory_descriptors(nq_program),
             ro_sources={parse_mref(mref): source for mref, source in ro_sources.items() or []},
-            recalculation_table=list(rewrite_response.recalculation_table),
+            recalculation_table=recalculation_table,
         )
 
     def _fetch_calibration_program(self) -> Program:
