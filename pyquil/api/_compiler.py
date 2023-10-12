@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from typing import Any, Dict, Optional
+from warnings import warn
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
@@ -21,6 +22,7 @@ from qcs_sdk.qpu.translation import (
     get_quilt_calibrations,
     translate,
     TranslationOptions as QPUCompilerAPIOptions,
+    Backend,
 )
 from qcs_sdk.compiler.quilc import QuilcClient
 from rpcq.messages import ParameterSpec
@@ -98,6 +100,7 @@ class QPUCompiler(AbstractCompiler):
         self.quantum_processor_id = quantum_processor_id
         self._calibration_program: Optional[Program] = None
 
+
     def native_quil_to_executable(
         self, nq_program: Program, *, api_options: Optional[QPUCompilerAPIOptions] = None, **kwargs: Any
     ) -> QuantumExecutable:
@@ -113,7 +116,9 @@ class QPUCompiler(AbstractCompiler):
         # arithmetic _not_ to have been rewritten by the client. Since Aspen-M-3
         # is the last of our QPUs that requires backend v1, we only rewrite arithmetic
         # for that particular QPU. Once Aspen-M-3 is EOL, we can remove this.
-        if self.quantum_processor_id == "Aspen-M-3":
+
+        backend = validate_backend_for_quantum_processor_id(self.quantum_processor_id, api_options)
+        if backend is Backend.V1:
             rewrite_response = rewrite_arithmetic(nq_program.out())
             program = rewrite_response.program
             recalculation_table = list(rewrite_response.recalculation_table)
@@ -201,3 +206,33 @@ class QVMCompiler(AbstractCompiler):
 
     def native_quil_to_executable(self, nq_program: Program, **kwargs: Any) -> QuantumExecutable:
         return nq_program
+
+
+class IncompatibleBackendForQuantumProcessorIDWarning(Warning):
+    pass
+
+
+def validate_backend_for_quantum_processor_id(quantum_processor_id: str, backend: Optional[Backend]) -> Backend:
+    """
+    Check that the translation backend is supported for the quantum processor.
+
+    If the translation backend is not supported by the quantum processor, a supported
+    translation backend is returned.
+
+    Aspen processors only support the V1 backend. Later processors support V2.
+    """
+    if backend is None:
+        if quantum_processor_id.startswith("Aspen"):
+            return Backend.V1
+        else:
+            return Backend.V2
+
+    if backend is Backend.V2 and quantum_processor_id.startswith("Aspen"):
+        warn("Backend V2 is not supported for Aspen processors. Backend has been changed to V1.", IncompatibleBackendForQuantumProcessorIDWarning)
+        return Backend.V1
+
+    if backend is Backend.V1 and not quantum_processor_id.startswith("Aspen"):
+        warn("Backend V1 is only supported for Aspen processors. Backend has been changed to V2.", IncompatibleBackendForQuantumProcessorIDWarning)
+        return Backend.V2
+
+    return backend
