@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.2-rc.0 (2023-10-16)
+
+### Fixes
+
+#### update qcs-sdk-rust and quil-rs to pull in fixes (#1680)
+
 ## 4.0.1 (2023-09-27)
 
 ### Fixes
