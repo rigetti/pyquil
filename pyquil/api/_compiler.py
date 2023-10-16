@@ -114,7 +114,7 @@ class QPUCompiler(AbstractCompiler):
         # NOTE: There is an incompatibility between backends v1 and v2: v1 expects
         # arithmetic to have been rewritten by the client, while v2 expects
         # arithmetic _not_ to have been rewritten by the client. Since Aspen-M-3
-        # is the last of our QPUs that requires backend v1, we only rewrite arithmetic
+        # is the last of our QPUs that is compatible withbackend v1, we only rewrite arithmetic
         # for that particular QPU. Once Aspen-M-3 is EOL, we can remove this.
 
         backend = validate_backend_for_quantum_processor_id(self.quantum_processor_id, api_options)
