@@ -10,7 +10,7 @@ from pyquil.gates import RX, MEASURE, RZ
 from pyquil.quilatom import FormalArgument
 from pyquil.quilbase import DefCalibration
 from pyquil.api._compiler import validate_backend_for_quantum_processor_id, IncompatibleBackendForQuantumProcessorIDWarning
-from qcs_sdk.qpu.translation import Backend
+from qcs_sdk.qpu.translation import TranslationBackend
 
 
 def simple_program():
@@ -42,15 +42,15 @@ def test_transpile_qasm_2(compiler: QPUCompiler, snapshot: SnapshotAssertion):
 @pytest.mark.parametrize(
     "quantum_processor_id,backend,expected,warns",
     [
-        ("Aspen-M-3", None, Backend.V1, False),
-        ("Aspen-M-3", Backend.V1, Backend.V1, False),
-        ("Aspen-M-3", Backend.V2, Backend.V1, True),
-        ("Not-Aspen", None, Backend.V2, False),
-        ("Not-Aspen", Backend.V1, Backend.V2, True),
-        ("Not-Aspen", Backend.V2, Backend.V2, False),
+        ("Aspen-M-3", None, TranslationBackend.V1, False),
+        ("Aspen-M-3", TranslationBackend.V1, TranslationBackend.V1, False),
+        ("Aspen-M-3", TranslationBackend.V2, TranslationBackend.V1, True),
+        ("Not-Aspen", None, TranslationBackend.V2, False),
+        ("Not-Aspen", TranslationBackend.V1, TranslationBackend.V2, True),
+        ("Not-Aspen", TranslationBackend.V2, TranslationBackend.V2, False),
     ]
 )
-def test_translation_backend_validation(quantum_processor_id: str, backend: Optional[Backend], expected: Backend, warns: bool):
+def test_translation_backend_validation(quantum_processor_id: str, backend: Optional[TranslationBackend], expected: TranslationBackend, warns: bool):
     if warns:
         with pytest.warns(IncompatibleBackendForQuantumProcessorIDWarning):
             actual = validate_backend_for_quantum_processor_id(quantum_processor_id, backend)
