@@ -117,9 +117,7 @@ class QPUCompiler(AbstractCompiler):
         # for that particular QPU. Once Aspen-M-3 is EOL, we can remove this.
 
         backend = api_options.backend if api_options is not None else None
-        backend = validate_backend_for_quantum_processor_id(
-            self.quantum_processor_id, backend
-        )
+        backend = validate_backend_for_quantum_processor_id(self.quantum_processor_id, backend)
         if backend is TranslationBackend.V1:
             rewrite_response = rewrite_arithmetic(nq_program.out())
             program = rewrite_response.program
