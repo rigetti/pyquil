@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0.3-rc.0 (2023-10-18)
+
+### Fixes
+
+#### only rewrite arithmetic when targeting Aspen processors (#1679)
+
 ## 4.0.2 (2023-10-16)
 
 ### Fixes
