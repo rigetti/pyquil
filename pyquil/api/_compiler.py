@@ -110,14 +110,8 @@ class QPUCompiler(AbstractCompiler):
         """
         program = nq_program.out()
         recalculation_table = []
-        # NOTE: There is an incompatibility between backends v1 and v2: v1 expects
-        # arithmetic to have been rewritten by the client, while v2 expects
-        # arithmetic _not_ to have been rewritten by the client. Since Aspen-M-3
-        # is the last of our QPUs that is compatible withbackend v1, we only rewrite arithmetic
-        # for that particular QPU. Once Aspen-M-3 is EOL, we can remove this.
-
         backend = api_options.backend if api_options is not None else None
-        backend = validate_backend_for_quantum_processor_id(self.quantum_processor_id, backend)
+        backend = select_backend_for_quantum_processor_id(self.quantum_processor_id, backend)
         if backend is TranslationBackend.V1:
             rewrite_response = rewrite_arithmetic(nq_program.out())
             program = rewrite_response.program
@@ -212,7 +206,7 @@ class IncompatibleBackendForQuantumProcessorIDWarning(Warning):
     pass
 
 
-def validate_backend_for_quantum_processor_id(
+def select_backend_for_quantum_processor_id(
     quantum_processor_id: str, backend: Optional[TranslationBackend]
 ) -> TranslationBackend:
     """
@@ -222,9 +216,12 @@ def validate_backend_for_quantum_processor_id(
     translation backend is returned.
 
     Aspen processors only support the V1 backend. Later processors support V2.
+
+    Once Aspen-M-3 is EOL, this function can be removed as `TranslationBackend.V2`
+    will be the only supported backend.
     """
     if backend is None:
-        if quantum_processor_id.startswith("Aspen"):
+        if quantum_processor_id.startswith("Aspen-"):
             return TranslationBackend.V1
         else:
             return TranslationBackend.V2

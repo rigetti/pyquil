@@ -9,7 +9,7 @@ from pyquil.api._compiler import QPUCompiler
 from pyquil.gates import RX, MEASURE, RZ
 from pyquil.quilatom import FormalArgument
 from pyquil.quilbase import DefCalibration
-from pyquil.api._compiler import validate_backend_for_quantum_processor_id, IncompatibleBackendForQuantumProcessorIDWarning
+from pyquil.api._compiler import select_backend_for_quantum_processor_id, IncompatibleBackendForQuantumProcessorIDWarning
 from qcs_sdk.qpu.translation import TranslationBackend
 
 
@@ -53,8 +53,8 @@ def test_transpile_qasm_2(compiler: QPUCompiler, snapshot: SnapshotAssertion):
 def test_translation_backend_validation(quantum_processor_id: str, backend: Optional[TranslationBackend], expected: TranslationBackend, warns: bool):
     if warns:
         with pytest.warns(IncompatibleBackendForQuantumProcessorIDWarning):
-            actual = validate_backend_for_quantum_processor_id(quantum_processor_id, backend)
+            actual = select_backend_for_quantum_processor_id(quantum_processor_id, backend)
     else:
-        actual = validate_backend_for_quantum_processor_id(quantum_processor_id, backend)
+        actual = select_backend_for_quantum_processor_id(quantum_processor_id, backend)
     assert actual == expected
     
