@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from typing import Any, Dict, Optional
+from warnings import warn
 
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
@@ -21,6 +22,7 @@ from qcs_sdk.qpu.translation import (
     get_quilt_calibrations,
     translate,
     TranslationOptions as QPUCompilerAPIOptions,
+    TranslationBackend,
 )
 from qcs_sdk.compiler.quilc import QuilcClient
 from rpcq.messages import ParameterSpec
@@ -106,10 +108,17 @@ class QPUCompiler(AbstractCompiler):
 
         If `api_options` is provided, it overrides the options set on `self`.
         """
-        rewrite_response = rewrite_arithmetic(nq_program.out())
+        program = nq_program.out()
+        recalculation_table = []
+        backend = api_options.backend if api_options is not None else None
+        backend = select_backend_for_quantum_processor_id(self.quantum_processor_id, backend)
+        if backend is TranslationBackend.V1:
+            rewrite_response = rewrite_arithmetic(nq_program.out())
+            program = rewrite_response.program
+            recalculation_table = list(rewrite_response.recalculation_table)
 
         translated_program = translate(
-            native_quil=rewrite_response.program,
+            native_quil=program,
             num_shots=nq_program.num_shots,
             quantum_processor_id=self.quantum_processor_id,
             translation_options=api_options or self.api_options,
@@ -121,7 +130,7 @@ class QPUCompiler(AbstractCompiler):
             program=translated_program.program,
             memory_descriptors=_collect_memory_descriptors(nq_program),
             ro_sources={parse_mref(mref): source for mref, source in ro_sources.items() or []},
-            recalculation_table=list(rewrite_response.recalculation_table),
+            recalculation_table=recalculation_table,
         )
 
     def _fetch_calibration_program(self) -> Program:
@@ -191,3 +200,44 @@ class QVMCompiler(AbstractCompiler):
 
     def native_quil_to_executable(self, nq_program: Program, **kwargs: Any) -> QuantumExecutable:
         return nq_program
+
+
+class IncompatibleBackendForQuantumProcessorIDWarning(Warning):
+    pass
+
+
+def select_backend_for_quantum_processor_id(
+    quantum_processor_id: str, backend: Optional[TranslationBackend]
+) -> TranslationBackend:
+    """
+    Check that the translation backend is supported for the quantum processor.
+
+    If the translation backend is not supported by the quantum processor, a supported
+    translation backend is returned.
+
+    Aspen processors only support the V1 backend. Later processors support V2.
+
+    Once Aspen-M-3 is EOL, this function can be removed as `TranslationBackend.V2`
+    will be the only supported backend.
+    """
+    if backend is None:
+        if quantum_processor_id.startswith("Aspen-"):
+            return TranslationBackend.V1
+        else:
+            return TranslationBackend.V2
+
+    if backend is TranslationBackend.V2 and quantum_processor_id.startswith("Aspen"):
+        warn(
+            "Backend V2 is not supported for Aspen processors. Backend has been changed to V1.",
+            IncompatibleBackendForQuantumProcessorIDWarning,
+        )
+        return TranslationBackend.V1
+
+    if backend is TranslationBackend.V1 and not quantum_processor_id.startswith("Aspen"):
+        warn(
+            "Backend V1 is only supported for Aspen processors. Backend has been changed to V2.",
+            IncompatibleBackendForQuantumProcessorIDWarning,
+        )
+        return TranslationBackend.V2
+
+    return backend
