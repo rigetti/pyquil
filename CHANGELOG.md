@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.1.0-rc.0 (2023-10-27)
+
+### Features
+
+#### update qcs-sdk-rust (#1683)
+
 ## 4.0.3 (2023-10-18)
 
 ### Fixes
