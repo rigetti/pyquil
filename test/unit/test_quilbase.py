@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quilatom import quil_cos
+from pyquil.quilatom import quil_cos, quil_sin
 from pyquil.gates import X
 from pyquil.quil import Program
 from pyquil.quilbase import (
@@ -171,8 +171,18 @@ class TestGate:
     [
         ("NoParamGate", np.eye(4), []),
         ("ParameterizedGate", np.diag([quil_cos(Parameter("X"))] * 4), [Parameter("X")]),
+        (
+            "MixedTypes",
+            np.array(
+                [
+                    [0, quil_sin(Parameter("X"))],
+                    [0, 0],
+                ]
+            ),
+            [Parameter("X")],
+        ),
     ],
-    ids=("No-Params", "Params"),
+    ids=("No-Params", "Params", "MixedTypes"),
 )
 class TestDefGate:
     @pytest.fixture
