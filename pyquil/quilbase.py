@@ -627,7 +627,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     def _convert_to_matrix_specification(
         matrix: Union[List[List[Expression]], np.ndarray, np.matrix]
     ) -> quil_rs.GateSpecification:
-        to_rs_matrix = np.vectorize(_convert_to_rs_expression)
+        to_rs_matrix = np.vectorize(_convert_to_rs_expression, otypes=["O"])
         return quil_rs.GateSpecification.from_matrix(to_rs_matrix(np.asarray(matrix)))
 
     @staticmethod
@@ -678,7 +678,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
 
     @property
     def matrix(self) -> np.ndarray:
-        to_py_matrix = np.vectorize(_convert_to_py_expression)
+        to_py_matrix = np.vectorize(_convert_to_py_expression, otypes=["O"])
         return to_py_matrix(np.asarray(super().specification.to_matrix()))  # type: ignore[no-any-return]
 
     @matrix.setter

@@ -220,7 +220,7 @@ def test_defgate():
     p += U_test(1, 0)
     qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
     qam.execute(p)
-    wf1 = qam.wf_simulator.wf
+    wf1 = qam.wf_simulator.wf.astype(np.complex128)
     should_be = np.zeros((2, 2), dtype=np.complex128)
     one_over_sqrt2 = 1 / np.sqrt(2)
     should_be[0, 1] = one_over_sqrt2
