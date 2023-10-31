@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.1.0-rc.1 (2023-10-31)
+
+### Features
+
+#### update qcs-sdk-rust (#1683)
+
+### Fixes
+
+#### The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. (#1685)
+
+## 4.1.0-rc.0 (2023-10-27)
+
+### Features
+
+#### update qcs-sdk-rust (#1683)
+
 ## 4.0.3 (2023-10-18)
 
 ### Fixes
