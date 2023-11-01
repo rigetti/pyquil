@@ -64,7 +64,7 @@ The ``QuantumComputer``
 
 The :py:class:`~pyquil.api.QuantumComputer` abstraction offered by pyQuil provides an easy access point to the most
 critical objects used in pyQuil for building and executing your quantum programs. We will cover the main methods and attributes
-on this page. The `QuantumComputer API Reference <apidocs/quantum_computer.html>`_ provides a reference for all of its methods
+on this page. The `QuantumComputer API Reference <apidocs/pyquil.api.html#pyquil.api.QuantumComputer>`_ provides a reference for all of its methods
 and options.
 
 At a high level, the :py:class:`~pyquil.api.QuantumComputer` wraps around our favorite quantum computing tools:
@@ -86,11 +86,9 @@ you need more fine grained controls for your work, you might try exploring what 
 
 For more information on each of the above, check out the following pages:
 
- - `Compiler API Reference <apidocs/compilers.html>`_
  - :ref:`Quil Compiler docs <compiler>`
- - `Quantum Processor API Reference <apidocs/quantum_processors.html>`_
  - :ref:`new_topology`
- - `Quantum abstract machine (QAM) API Reference <apidocs/qam.html>`_
+ - `Quantum abstract machine (QAM) API Reference <apidocs/pyquil.api.html#pyquil.api.QAM>`_
  - `The Quil Whitepaper <https://arxiv.org/abs/1608.03355>`_ which describes the QAM
 
 Instantiation
