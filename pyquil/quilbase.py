@@ -430,6 +430,12 @@ class Gate(quil_rs.Gate, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Gate":
+        return Gate._from_rs_gate(super().__deepcopy__(memo))
+
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
     """
@@ -536,6 +542,12 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Measurement":
+        return Measurement._from_rs_measurement(super().__deepcopy__(memo))
+
 
 class Reset(quil_rs.Reset, AbstractInstruction):
     """
@@ -586,6 +598,14 @@ class Reset(quil_rs.Reset, AbstractInstruction):
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Reset":
+        copy = Reset._from_rs_reset(super().__deepcopy__(memo))
+        copy.__class__ = self.__class__
+        return copy
 
 
 class ResetQubit(Reset):
@@ -699,6 +719,12 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "DefGate":
+        return DefGate._from_rs_gate_definition(super().__deepcopy__(memo))
+
 
 class DefPermutationGate(DefGate):
     def __new__(cls, name: str, permutation: Union[List[int], np.ndarray]) -> Self:
@@ -808,6 +834,12 @@ class JumpTarget(quil_rs.Label, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "JumpTarget":
+        return JumpTarget._from_rs_label(super().__deepcopy__(memo))
+
 
 class JumpWhen(quil_rs.JumpWhen, AbstractInstruction):
     """
@@ -844,6 +876,12 @@ class JumpWhen(quil_rs.JumpWhen, AbstractInstruction):
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "JumpWhen":
+        return JumpWhen._from_rs_jump_when(super().__deepcopy__(memo))
 
 
 class JumpUnless(quil_rs.JumpUnless, AbstractInstruction):
@@ -882,6 +920,12 @@ class JumpUnless(quil_rs.JumpUnless, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "JumpUnless":
+        return JumpUnless._from_rs_jump_unless(super().__deepcopy__(memo))
+
 
 class SimpleInstruction(AbstractInstruction):
     """
@@ -895,6 +939,12 @@ class SimpleInstruction(AbstractInstruction):
 
     def __str__(self) -> str:
         return self.out()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "SimpleInstruction":
+        return self
 
 
 class Halt(SimpleInstruction):
@@ -931,6 +981,10 @@ class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
     def __new__(cls, target: MemoryReference) -> "UnaryClassicalInstruction":
         return super().__new__(cls, cls.op, target._to_rs_memory_reference())
 
+    @classmethod
+    def _from_rs_unary_logic(cls, unary_logic: quil_rs.UnaryLogic) -> Self:
+        return super().__new__(cls, unary_logic.operator, unary_logic.operand)
+
     @property
     def target(self) -> MemoryReference:
         return MemoryReference._from_rs_memory_reference(super().operand)
@@ -944,6 +998,14 @@ class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "UnaryClassicalInstruction":
+        copy = UnaryClassicalInstruction._from_rs_unary_logic(super().__deepcopy__(memo))
+        copy.__class__ = self.__class__
+        return copy
 
 
 class ClassicalNeg(UnaryClassicalInstruction):
@@ -972,6 +1034,10 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int]) -> Self:
         operands = cls._to_rs_binary_operands(left, right)
         return super().__new__(cls, cls.op, operands)
+
+    @classmethod
+    def _from_rs_binary_logic(cls, binary_logic: quil_rs.BinaryLogic) -> "LogicalBinaryOp":
+        return super().__new__(cls, binary_logic.operator, binary_logic.operands)
 
     @staticmethod
     def _to_rs_binary_operand(operand: Union[MemoryReference, int]) -> quil_rs.BinaryOperand:
@@ -1017,6 +1083,14 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "LogicalBinaryOp":
+        copy = LogicalBinaryOp._from_rs_binary_logic(super().__deepcopy__(memo))
+        copy.__class__ = self.__class__
+        return copy
+
 
 class ClassicalAnd(LogicalBinaryOp):
     """
@@ -1054,6 +1128,10 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
         right_operand = _to_rs_arithmetic_operand(right)
         return super().__new__(cls, cls.op, left_operand, right_operand)
 
+    @classmethod
+    def _from_rs_arithmetic(cls, arithmetic: quil_rs.Arithmetic) -> "ArithmeticBinaryOp":
+        return super().__new__(cls, arithmetic.operator, arithmetic.destination, arithmetic.source)
+
     @property
     def left(self) -> MemoryReference:
         return MemoryReference._from_rs_memory_reference(super().destination.to_memory_reference())
@@ -1077,6 +1155,14 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ArithmeticBinaryOp":
+        copy = ArithmeticBinaryOp._from_rs_arithmetic(super().__deepcopy__(memo))
+        copy.__class__ = self.__class__
+        return copy
 
 
 class ClassicalAdd(ArithmeticBinaryOp):
@@ -1145,6 +1231,12 @@ class ClassicalMove(quil_rs.Move, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ClassicalMove":
+        return ClassicalMove._from_rs_move(super().__deepcopy__(memo))
+
 
 class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
     """
@@ -1157,6 +1249,10 @@ class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
         right: MemoryReference,
     ) -> "ClassicalExchange":
         return super().__new__(cls, left._to_rs_memory_reference(), right._to_rs_memory_reference())
+
+    @classmethod
+    def _from_rs_exchange(cls, exchange: quil_rs.Exchange) -> Self:
+        return super().__new__(cls, exchange.left, exchange.right)
 
     @property  # type: ignore[override]
     def left(self) -> MemoryReference:
@@ -1180,6 +1276,12 @@ class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ClassicalExchange":
+        return ClassicalExchange._from_rs_exchange(super().__deepcopy__(memo))
+
 
 class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
     """
@@ -1188,6 +1290,10 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
 
     def __new__(cls, left: MemoryReference, right: MemoryReference) -> "ClassicalConvert":
         return super().__new__(cls, left._to_rs_memory_reference(), right._to_rs_memory_reference())
+
+    @classmethod
+    def _from_rs_convert(cls, convert: quil_rs.Convert) -> Self:
+        return super().__new__(cls, convert.destination, convert.source)
 
     @property
     def left(self) -> MemoryReference:
@@ -1211,6 +1317,12 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ClassicalConvert":
+        return ClassicalConvert._from_rs_convert(super().__deepcopy__(memo))
+
 
 class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     """
@@ -1219,6 +1331,10 @@ class ClassicalLoad(quil_rs.Load, AbstractInstruction):
 
     def __new__(cls, target: MemoryReference, left: str, right: MemoryReference) -> "ClassicalLoad":
         return super().__new__(cls, target._to_rs_memory_reference(), left, right._to_rs_memory_reference())
+
+    @classmethod
+    def _from_rs_load(cls, load: quil_rs.Load) -> Self:
+        return super().__new__(cls, load.destination, load.source, load.offset)
 
     @property
     def target(self) -> MemoryReference:
@@ -1250,6 +1366,12 @@ class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ClassicalLoad":
+        return ClassicalLoad._from_rs_load(super().__deepcopy__(memo))
+
 
 def _to_rs_arithmetic_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ArithmeticOperand:
     if isinstance(operand, MemoryReference):
@@ -1278,6 +1400,10 @@ class ClassicalStore(quil_rs.Store, AbstractInstruction):
     def __new__(cls, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalStore":
         rs_right = _to_rs_arithmetic_operand(right)
         return super().__new__(cls, target, left._to_rs_memory_reference(), rs_right)
+
+    @classmethod
+    def _from_rs_store(cls, store: quil_rs.Store) -> Self:
+        return super().__new__(cls, store.destination, store.offset, store.source)
 
     @property
     def target(self) -> str:
@@ -1309,6 +1435,12 @@ class ClassicalStore(quil_rs.Store, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ClassicalStore":
+        return ClassicalStore._from_rs_store(super().__deepcopy__(memo))
+
 
 class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
     """
@@ -1325,6 +1457,10 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
     ) -> "ClassicalComparison":
         operands = (target._to_rs_memory_reference(), left._to_rs_memory_reference(), cls._to_comparison_operand(right))
         return super().__new__(cls, cls.op, operands)
+
+    @classmethod
+    def _from_rs_comparison(cls, comparison: quil_rs.Comparison) -> Self:
+        return super().__new__(cls, comparison.operator, comparison.operands)
 
     @staticmethod
     def _to_comparison_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ComparisonOperand:
@@ -1380,6 +1516,14 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ClassicalComparison":
+        copy = ClassicalComparison._from_rs_comparison(super().__deepcopy__(memo))
+        copy.__class__ = self.__class__
+        return copy
 
 
 class ClassicalEqual(ClassicalComparison):
@@ -1449,6 +1593,12 @@ class Jump(quil_rs.Jump, AbstractInstruction):
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Jump":
+        return Jump._from_rs_jump(super().__deepcopy__(memo))
 
 
 class Pragma(quil_rs.Pragma, AbstractInstruction):
@@ -1527,6 +1677,12 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
     @freeform_string.setter
     def freeform_string(self, freeform_string: str) -> None:
         quil_rs.Pragma.data.__set__(self, freeform_string)  # type: ignore[attr-defined]
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Pragma":
+        return Pragma._from_rs_pragma(super().__deepcopy__(memo))
 
 
 class Declare(quil_rs.Declaration, AbstractInstruction):
@@ -1643,13 +1799,29 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Declare":
+        return Declare._from_rs_declaration(super().__deepcopy__(memo))
+
 
 class Include(quil_rs.Include, AbstractInstruction):
     def out(self) -> str:
         return super().to_quil()
 
+    @classmethod
+    def _from_rs_include(cls, include: quil_rs.Include) -> "Include":
+        return super().__new__(cls, include.filename)
+
     def __str__(self) -> str:
         return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Include":
+        return Include._from_rs_include(super().__deepcopy__(memo))
 
 
 class Pulse(quil_rs.Pulse, AbstractInstruction):
@@ -1703,6 +1875,12 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
     def nonblocking(self, nonblocking: bool) -> None:
         quil_rs.Pulse.blocking.__set__(self, not nonblocking)  # type: ignore[attr-defined]
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Pulse":
+        return Pulse._from_rs_pulse(super().__deepcopy__(memo))
+
 
 class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
     def __new__(cls, frame: Frame, freq: ParameterDesignator) -> Self:
@@ -1745,6 +1923,12 @@ class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
 
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.to_fixed() for qubit in super().frame.qubits}
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "SetFrequency":
+        return SetFrequency._from_rs_set_frequency(super().__deepcopy__(memo))
 
 
 class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
@@ -1789,6 +1973,12 @@ class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.to_fixed() for qubit in super().frame.qubits}
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ShiftFrequency":
+        return ShiftFrequency._from_rs_shift_frequency(super().__deepcopy__(memo))
+
 
 class SetPhase(quil_rs.SetPhase, AbstractInstruction):
     def __new__(cls, frame: Frame, phase: ParameterDesignator) -> Self:
@@ -1831,6 +2021,12 @@ class SetPhase(quil_rs.SetPhase, AbstractInstruction):
 
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.to_fixed() for qubit in super().frame.qubits}
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "SetPhase":
+        return SetPhase._from_rs_set_phase(super().__deepcopy__(memo))
 
 
 class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
@@ -1875,6 +2071,12 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.to_fixed() for qubit in super().frame.qubits}
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "ShiftPhase":
+        return ShiftPhase._from_rs_shift_phase(super().__deepcopy__(memo))
+
 
 class SwapPhases(quil_rs.SwapPhases, AbstractInstruction):
     def __new__(cls, frameA: Frame, frameB: Frame) -> Self:
@@ -1918,6 +2120,12 @@ class SwapPhases(quil_rs.SwapPhases, AbstractInstruction):
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.to_fixed() for qubit in super().frame_1.qubits + super().frame_2.qubits}
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "SwapPhases":
+        return SwapPhases._from_rs_swap_phases(super().__deepcopy__(memo))
+
 
 class SetScale(quil_rs.SetScale, AbstractInstruction):
     def __new__(cls, frame: Frame, scale: ParameterDesignator) -> Self:
@@ -1960,6 +2168,12 @@ class SetScale(quil_rs.SetScale, AbstractInstruction):
 
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.to_fixed() for qubit in super().frame.qubits}
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "SetScale":
+        return SetScale._from_rs_set_scale(super().__deepcopy__(memo))
 
 
 class Capture(quil_rs.Capture, AbstractInstruction):
@@ -2028,6 +2242,12 @@ class Capture(quil_rs.Capture, AbstractInstruction):
 
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.to_fixed() for qubit in super().frame.qubits}
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Capture":
+        return Capture._from_rs_capture(super().__deepcopy__(memo))
 
 
 class RawCapture(quil_rs.RawCapture, AbstractInstruction):
@@ -2101,6 +2321,12 @@ class RawCapture(quil_rs.RawCapture, AbstractInstruction):
     def get_qubit_indices(self) -> Set[int]:
         return {qubit.to_fixed() for qubit in super().frame.qubits}
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "RawCapture":
+        return RawCapture._from_rs_raw_capture(super().__deepcopy__(memo))
+
 
 class Delay(quil_rs.Delay, AbstractInstruction):
     def __new__(cls, frames: List[Frame], qubits: Sequence[Union[int, Qubit, FormalArgument]], duration: float) -> Self:
@@ -2156,6 +2382,14 @@ class Delay(quil_rs.Delay, AbstractInstruction):
         expression = quil_rs_expr.Expression.from_number(complex(duration))
         quil_rs.Delay.duration.__set__(self, expression)  # type: ignore[attr-defined]
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Delay":
+        copy = Delay._from_rs_delay(super().__deepcopy__(memo))
+        copy.__class__ = self.__class__
+        return copy
+
 
 class DelayFrames(Delay):
     def __new__(cls, frames: List[Frame], duration: float) -> Self:
@@ -2188,6 +2422,12 @@ class Fence(quil_rs.Fence, AbstractInstruction):
     @qubits.setter
     def qubits(self, qubits: List[Union[Qubit, FormalArgument]]) -> None:
         quil_rs.Fence.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "Fence":
+        return Fence._from_rs_fence(super().__deepcopy__(memo))
 
 
 class FenceAll(Fence):
@@ -2243,6 +2483,12 @@ class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
         waveform = super().definition
         waveform.matrix = _convert_to_rs_expressions(entries)
         quil_rs.WaveformDefinition.definition.__set__(self, waveform)  # type: ignore[attr-defined]
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "DefWaveform":
+        return DefWaveform._from_rs_waveform_definition(super().__deepcopy__(memo))
 
 
 class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
@@ -2300,6 +2546,12 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
     def instructions(self, instructions: List[AbstractInstruction]) -> None:
         rs_instructions = _convert_to_rs_instructions(instructions)
         quil_rs.CircuitDefinition.instructions.__set__(self, rs_instructions)  # type: ignore[attr-defined]
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "DefCircuit":
+        return DefCircuit._from_rs_circuit_definition(super().__deepcopy__(memo))
 
 
 class DefCalibration(quil_rs.Calibration, AbstractInstruction):
@@ -2361,6 +2613,12 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     def __str__(self) -> str:
         return super().to_quil_or_debug()
 
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "DefCalibration":
+        return DefCalibration._from_rs_calibration(super().__deepcopy__(memo))
+
 
 class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstruction):
     def __new__(
@@ -2415,6 +2673,12 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "DefMeasureCalibration":
+        return DefMeasureCalibration._from_rs_measure_calibration_definition(super().__deepcopy__(memo))
 
 
 class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
@@ -2548,3 +2812,9 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
     def center_frequency(self, center_frequency: float) -> None:
         self._set_attribute("CENTER-FREQUENCY", center_frequency)
         self._set_attribute("CENTER-FREQUENCY", center_frequency)
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "DefFrame":
+        return DefFrame._from_rs_frame_definition(super().__deepcopy__(memo))

@@ -1,3 +1,4 @@
+import copy
 from math import pi
 from typing import Any, List, Optional, Iterable, Tuple, Union
 from numbers import Complex, Number
@@ -159,6 +160,10 @@ class TestGate:
         assert not (gate == not_eq_gate)
         assert gate != not_eq_gate
 
+    def test_copy(self, gate: Gate):
+        assert isinstance(copy.copy(gate), Gate)
+        assert isinstance(copy.deepcopy(gate), Gate)
+
     def test_compile(self, program: Program, compiler: QPUCompiler):
         try:
             compiler.quil_to_native_quil(program)
@@ -224,6 +229,10 @@ class TestDefGate:
         assert def_gate.parameters == parameters
         def_gate.parameters = [Parameter("brand_new_param")]
         assert def_gate.parameters == [Parameter("brand_new_param")]
+
+    def test_copy(self, def_gate: DefGate):
+        assert isinstance(copy.copy(def_gate), DefGate)
+        assert isinstance(copy.deepcopy(def_gate), DefGate)
 
 
 @pytest.mark.parametrize(
@@ -386,6 +395,10 @@ class TestDefCalibration:
         calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
         assert calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]
 
+    def test_copy(self, calibration: DefCalibration):
+        assert isinstance(copy.copy(calibration), DefCalibration)
+        assert isinstance(copy.deepcopy(calibration), DefCalibration)
+
 
 @pytest.mark.parametrize(
     ("qubit", "memory_reference", "instrs"),
@@ -415,6 +428,10 @@ class TestDefMeasureCalibration:
         assert measure_calibration.instrs == instrs
         measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
         assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]
+
+    def test_copy(self, measure_calibration: DefMeasureCalibration):
+        assert isinstance(copy.copy(measure_calibration), DefMeasureCalibration)
+        assert isinstance(copy.deepcopy(measure_calibration), DefMeasureCalibration)
 
 
 @pytest.mark.parametrize(
@@ -450,6 +467,10 @@ class TestMeasurement:
         assert measurement.classical_reg == classical_reg
         measurement.classical_reg = MemoryReference("new_mem_ref")
         assert measurement.classical_reg == MemoryReference("new_mem_ref")
+
+    def test_copy(self, measurement: Measurement):
+        assert isinstance(copy.copy(measurement), Measurement)
+        assert isinstance(copy.deepcopy(measurement), Measurement)
 
 
 @pytest.mark.parametrize(
@@ -521,6 +542,10 @@ class TestDefFrame:
         def_frame.center_frequency = 432.0
         assert def_frame.center_frequency == 432.0
 
+    def test_copy(self, def_frame: DefFrame):
+        assert isinstance(copy.copy(def_frame), DefFrame)
+        assert isinstance(copy.deepcopy(def_frame), DefFrame)
+
 
 @pytest.mark.parametrize(
     ("name", "memory_type", "memory_size", "shared_region", "offsets"),
@@ -583,6 +608,10 @@ class TestDeclare:
             declare.offsets = [(1, "BIT"), (2, "INTEGER")]
             assert declare.offsets == [(1, "BIT"), (2, "INTEGER")]
 
+    def test_copy(self, declare: Declare):
+        assert isinstance(copy.copy(declare), Declare)
+        assert isinstance(copy.deepcopy(declare), Declare)
+
 
 @pytest.mark.parametrize(
     ("command", "args", "freeform_string"),
@@ -619,6 +648,10 @@ class TestPragma:
         assert pragma.freeform_string == freeform_string
         pragma.freeform_string = "new string"
         assert pragma.freeform_string == "new string"
+
+    def test_copy(self, pragma: Pragma):
+        assert isinstance(copy.copy(pragma), Pragma)
+        assert isinstance(copy.deepcopy(pragma), Pragma)
 
 
 @pytest.mark.parametrize(
@@ -659,6 +692,10 @@ class TestReset:
             if isinstance(qubit, Qubit):
                 assert reset_qubit.get_qubit_indices() == {qubit.index}
 
+    def test_copy(self, reset_qubit: Union[Reset, ResetQubit]):
+        assert isinstance(copy.copy(reset_qubit), type(reset_qubit))
+        assert isinstance(copy.deepcopy(reset_qubit), type(reset_qubit))
+
 
 @pytest.mark.parametrize(
     ("frames", "duration"),
@@ -683,6 +720,10 @@ class TestDelayFrames:
         assert delay_frames.duration == duration
         delay_frames.duration = 3.14
         assert delay_frames.duration == 3.14
+
+    def test_copy(self, delay_frames: DelayFrames):
+        assert isinstance(copy.copy(delay_frames), DelayFrames)
+        assert isinstance(copy.deepcopy(delay_frames), DelayFrames)
 
 
 @pytest.mark.parametrize(
@@ -711,6 +752,10 @@ class TestDelayQubits:
         delay_qubits.duration = 3.14
         assert delay_qubits.duration == 3.14
 
+    def test_copy(self, delay_qubits: DelayQubits):
+        assert isinstance(copy.copy(delay_qubits), DelayQubits)
+        assert isinstance(copy.deepcopy(delay_qubits), DelayQubits)
+
 
 @pytest.mark.parametrize(
     ("qubits"),
@@ -732,6 +777,10 @@ class TestFence:
         assert fence.qubits == qubits
         fence.qubits = [Qubit(123)]  # type: ignore
         assert fence.qubits == [Qubit(123)]
+
+    def test_copy(self, fence: Fence):
+        assert isinstance(copy.copy(fence), Fence)
+        assert isinstance(copy.deepcopy(fence), Fence)
 
 
 def test_fence_all():
@@ -775,6 +824,10 @@ class TestDefWaveform:
         assert def_waveform.entries == entries
         def_waveform.entries = [Parameter("z")]  # type: ignore
         assert def_waveform.entries == [Parameter("z")]
+
+    def test_copy(self, def_waveform: DefWaveform):
+        assert isinstance(copy.copy(def_waveform), DefWaveform)
+        assert isinstance(copy.deepcopy(def_waveform), DefWaveform)
 
 
 @pytest.mark.parametrize(
@@ -828,6 +881,10 @@ class TestDefCircuit:
         def_circuit.instructions = [Gate("new_gate", [], [Qubit(0)], [])]
         assert def_circuit.instructions == [Gate("new_gate", [], [Qubit(0)], [])]
 
+    def test_copy(self, def_circuit: DefCircuit):
+        assert isinstance(copy.copy(def_circuit), DefCircuit)
+        assert isinstance(copy.deepcopy(def_circuit), DefCircuit)
+
 
 @pytest.mark.parametrize(
     ("frame", "kernel", "memory_region", "nonblocking"),
@@ -880,6 +937,10 @@ class TestCapture:
         assert capture.nonblocking == nonblocking
         capture.nonblocking = not nonblocking
         assert capture.nonblocking == (not nonblocking)
+
+    def test_copy(self, capture: Capture):
+        assert isinstance(copy.copy(capture), Capture)
+        assert isinstance(copy.deepcopy(capture), Capture)
 
 
 @pytest.mark.parametrize(
@@ -963,6 +1024,10 @@ class TestPulse:
         pulse.nonblocking = not nonblocking
         assert pulse.nonblocking == (not nonblocking)
 
+    def test_copy(self, pulse: Pulse):
+        assert isinstance(copy.copy(pulse), Pulse)
+        assert isinstance(copy.deepcopy(pulse), Pulse)
+
 
 @pytest.mark.parametrize(
     ("frame", "duration", "memory_region", "nonblocking"),
@@ -1015,6 +1080,10 @@ class TestRawCapture:
         assert raw_capture.nonblocking == nonblocking
         raw_capture.nonblocking = not nonblocking
         assert raw_capture.nonblocking == (not nonblocking)
+
+    def test_copy(self, raw_capture: RawCapture):
+        assert isinstance(copy.copy(raw_capture), RawCapture)
+        assert isinstance(copy.deepcopy(raw_capture), RawCapture)
 
 
 @pytest.mark.parametrize(
@@ -1073,6 +1142,11 @@ class TestFrameMutations:
             setattr(instr, expression_name, 3.14)
             assert getattr(instr, expression_name) == 3.14
 
+    def test_copy(self, frame_mutation_instructions):
+        for instr in frame_mutation_instructions:
+            assert isinstance(copy.copy(instr), type(instr))
+            assert isinstance(copy.deepcopy(instr), type(instr))
+
 
 @pytest.mark.parametrize(
     ("frame_a", "frame_b"),
@@ -1098,6 +1172,10 @@ class TestSwapPhases:
         expected_qubits = set(frame_a.qubits + frame_b.qubits)
         assert swap_phase.get_qubits() == set([q.index for q in expected_qubits if isinstance(q, Qubit)])
         assert swap_phase.get_qubits(False) == expected_qubits
+
+    def test_copy(self, swap_phase: SwapPhases):
+        assert isinstance(copy.copy(swap_phase), SwapPhases)
+        assert isinstance(copy.deepcopy(swap_phase), SwapPhases)
 
 
 @pytest.mark.parametrize(
@@ -1126,6 +1204,10 @@ class TestClassicalMove:
         move.right = MemoryReference("new-memory-reference")
         assert move.right == MemoryReference("new-memory-reference")
 
+    def test_copy(self, move: ClassicalMove):
+        assert isinstance(copy.copy(move), ClassicalMove)
+        assert isinstance(copy.deepcopy(move), ClassicalMove)
+
 
 @pytest.mark.parametrize(
     ("left", "right"),
@@ -1149,6 +1231,10 @@ class TestClassicalExchange:
         exchange.right = MemoryReference("new-memory-reference")
         assert exchange.right == MemoryReference("new-memory-reference")
 
+    def test_copy(self, exchange: ClassicalExchange):
+        assert isinstance(copy.copy(exchange), ClassicalExchange)
+        assert isinstance(copy.deepcopy(exchange), ClassicalExchange)
+
 
 @pytest.mark.parametrize(
     ("left", "right"),
@@ -1171,6 +1257,10 @@ class TestClassicalConvert:
         assert convert.right == right
         convert.right = MemoryReference("new-memory-reference")
         assert convert.right == MemoryReference("new-memory-reference")
+
+    def test_copy(self, convert: ClassicalConvert):
+        assert isinstance(copy.copy(convert), ClassicalConvert)
+        assert isinstance(copy.deepcopy(convert), ClassicalConvert)
 
 
 @pytest.mark.parametrize(
@@ -1199,6 +1289,10 @@ class TestClassicalLoad:
         assert load.right == right
         load.right = MemoryReference("new-memory-reference")
         assert load.right == MemoryReference("new-memory-reference")
+
+    def test_copy(self, load: ClassicalLoad):
+        assert isinstance(copy.copy(load), ClassicalLoad)
+        assert isinstance(copy.deepcopy(load), ClassicalLoad)
 
 
 @pytest.mark.parametrize(
@@ -1231,6 +1325,10 @@ class TestClassicalStore:
         assert load.right == right
         load.right = MemoryReference("new-memory-reference")
         assert load.right == MemoryReference("new-memory-reference")
+
+    def test_copy(self, load: ClassicalStore):
+        assert isinstance(copy.copy(load), ClassicalStore)
+        assert isinstance(copy.deepcopy(load), ClassicalStore)
 
 
 @pytest.mark.parametrize(
@@ -1276,6 +1374,10 @@ class TestClassicalComparison:
         comparison.right = MemoryReference("new-memory-reference")
         assert comparison.right == MemoryReference("new-memory-reference")
 
+    def test_copy(self, comparison: ClassicalComparison):
+        assert isinstance(copy.copy(comparison), type(comparison))
+        assert isinstance(copy.deepcopy(comparison), type(comparison))
+
 
 @pytest.mark.parametrize(
     ("op", "target"),
@@ -1299,6 +1401,10 @@ class TestUnaryClassicalInstruction:
         assert unary.target == target
         unary.target = MemoryReference("new-memory-reference")
         assert unary.target == MemoryReference("new-memory-reference")
+
+    def test_copy(self, unary: UnaryClassicalInstruction):
+        assert isinstance(copy.copy(unary), type(unary))
+        assert isinstance(copy.deepcopy(unary), type(unary))
 
 
 @pytest.mark.parametrize(
@@ -1336,6 +1442,10 @@ class TestArithmeticBinaryOp:
         arithmetic.right = 3.14
         assert arithmetic.right == 3.14
 
+    def test_copy(self, arithmetic: ArithmeticBinaryOp):
+        assert isinstance(copy.copy(arithmetic), type(arithmetic))
+        assert isinstance(copy.deepcopy(arithmetic), type(arithmetic))
+
 
 @pytest.mark.parametrize(
     ("op", "left", "right"),
@@ -1366,6 +1476,10 @@ class TestLogicalBinaryOp:
         assert logical.right == right
         logical.right = 3
         assert logical.right == 3
+
+    def test_copy(self, logical: LogicalBinaryOp):
+        assert isinstance(copy.copy(logical), type(logical))
+        assert isinstance(copy.deepcopy(logical), type(logical))
 
 
 def test_include():
