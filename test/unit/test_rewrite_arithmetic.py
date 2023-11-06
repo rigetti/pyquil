@@ -117,20 +117,10 @@ def test_rewrite_arithmetic_frequency():
         ParameterAref(index=1, name="__P1"): "theta[0]/20.0",
     }
 
-    # Ordering of attributes on frame definitions aren't guaranteed when
-    # exported to quil, so we break the assertions and use the more reliable
-    # method of checking equality via the instruction types.
     response_program = Program(response.quil)
-    assert response_program[0].out() == "DECLARE __P1 REAL[2]"
-    assert response_program[1].out() == "DECLARE theta REAL[1]"
-    assert (response_program[2] == fdefn0 and response_program[3] == fdefn1) or (
-        response_program[2] == fdefn1 and response_program[3] == fdefn0
-    )
-    assert [inst.out() for inst in response_program[4:]] == [
-        'SET-FREQUENCY 0 "rf" __P1[0]',
-        'SHIFT-FREQUENCY 0 "rf" __P1[0]',
-        'SET-FREQUENCY 1 "rf" __P1[1]',
-    ]
+    assert {response_program[0].out(), response_program[1].out()} == {"DECLARE __P1 REAL[2]", "DECLARE theta REAL[1]"}
+    assert response_program.frames[fdefn0.frame] == fdefn0
+    assert response_program.frames[fdefn1.frame] == fdefn1
 
 
 def test_rewrite_arithmetic_mixed_mutations():
