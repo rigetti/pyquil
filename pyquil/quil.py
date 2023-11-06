@@ -78,7 +78,6 @@ from pyquil.quilbase import (
     DefWaveform,
     _convert_to_rs_instruction,
     _convert_to_rs_instructions,
-    _convert_to_py_instruction,
     _convert_to_py_instructions,
     _convert_to_py_qubits,
 )
@@ -911,11 +910,7 @@ class Program:
         :param index: The action at the specified index.
         :return:
         """
-        return (
-            Program(self._program.to_instructions()[index])
-            if isinstance(index, slice)
-            else _convert_to_py_instruction(self._program.to_instructions()[index])
-        )
+        return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
 
     def __iter__(self) -> Iterator[AbstractInstruction]:
         """
@@ -931,7 +926,7 @@ class Program:
         return False
 
     def __len__(self) -> int:
-        return len(self._program.to_instructions())
+        return len(self.instructions)
 
     def __hash__(self) -> int:
         return hash(self.out())

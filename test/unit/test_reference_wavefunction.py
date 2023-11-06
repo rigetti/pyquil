@@ -620,6 +620,7 @@ def test_if_then():
     branch_b = Program()
     prog.if_then(creg, branch_a, branch_b)
     prog += MEASURE(0, creg)
+    prog.resolve_placeholders()
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     qam.execute(prog)
     assert qam.ram["creg"][0] == 0
@@ -634,6 +635,7 @@ def test_if_then_2():
     branch_b = Program()
     prog.if_then(creg, branch_a, branch_b)
     prog += MEASURE(0, creg)
+    prog.resolve_placeholders()
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     qam.execute(prog)
     assert qam.ram["creg"][0] == 1
@@ -649,6 +651,7 @@ def test_while():
     # Put it all together in a loop program:
     loop_prog = init_register.while_do(classical_flag_register, loop_body)
 
+    loop_prog.resolve_placeholders()
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     qam.execute(loop_prog)
     assert qam.ram[classical_flag_register.name][0] == 0
