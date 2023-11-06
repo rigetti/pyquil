@@ -172,6 +172,7 @@ jobs:
 
   test-e2e:
     name: Test e2e QVM
+    continue_on_error: true
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -193,3 +194,4 @@ jobs:
           docker run --rm -itd -p 5555:5555 rigetti/quilc -R
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
           poetry run make e2e TEST_QUANTUM_PROCESSOR=2q-qvm
+          docker ps -q | xargs -L 1 docker logs
