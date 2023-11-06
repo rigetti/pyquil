@@ -172,7 +172,6 @@ jobs:
 
   test-e2e:
     name: Test e2e QVM
-    continue_on_error: true
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -188,6 +187,7 @@ jobs:
           path: .venv
           key: poetry-${{ hashFiles('poetry.lock') }}
       - name: Test e2e QVM (Python ${{ matrix.python-version }})
+        continue_on_error: true
         run: |
           sudo apt update
           . scripts/ci_install_deps
