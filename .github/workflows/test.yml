@@ -187,7 +187,7 @@ jobs:
           path: .venv
           key: poetry-${{ hashFiles('poetry.lock') }}
       - name: Test e2e QVM (Python ${{ matrix.python-version }})
-        continue_on_error: true
+        continue-on-error: true
         run: |
           sudo apt update
           . scripts/ci_install_deps
