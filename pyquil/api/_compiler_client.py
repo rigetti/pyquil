@@ -103,8 +103,6 @@ class CompilerClient:
     Client for making requests to a Quil compiler.
     """
 
-    _client_configuration: QCSClient
-
     def __init__(
         self,
         *,
