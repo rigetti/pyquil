@@ -78,7 +78,6 @@ from pyquil.quilbase import (
     DefWaveform,
     _convert_to_rs_instruction,
     _convert_to_rs_instructions,
-    _convert_to_py_instruction,
     _convert_to_py_instructions,
     _convert_to_py_qubits,
 )
@@ -197,6 +196,7 @@ class Program:
             list(self.frames.values()),
             list(self.waveforms.values()),
             self.calibrations,
+            self.defined_gates,
             self.measure_calibrations,
         )
         if self.native_quil_metadata is not None:
@@ -220,7 +220,7 @@ class Program:
         """
         A list of defined gates on the program.
         """
-        return [DefGate._from_rs_gate_definition(gate) for gate in self._program.defined_gates]
+        return [DefGate._from_rs_gate_definition(gate) for gate in self._program.gate_definitions.values()]
 
     @property
     def instructions(self) -> List[AbstractInstruction]:
@@ -377,33 +377,7 @@ class Program:
         For backwards compatibility, it also prevents duplicate calibration, measurement, and gate definitions from
         being added. Users of ``Program`` should use ``inst`` or ``Program`` addition instead.
         """
-        if instruction.is_gate_definition():
-            defgate = instruction.to_gate_definition()
-            # If the gate definition differs from the current one, print a warning and replace it.
-            idx, existing_defgate = next(
-                (
-                    (i, gate)
-                    for i, gate in enumerate(
-                        map(lambda inst: inst.as_gate_definition(), self._program.body_instructions)
-                    )
-                    if gate and gate.name == defgate.name
-                ),
-                (0, None),
-            )
-
-            if existing_defgate is None:
-                self._program.add_instruction(instruction)
-            elif (
-                existing_defgate.specification != defgate.specification
-                or existing_defgate.specification.inner() != existing_defgate.specification.inner()
-            ):
-                warnings.warn("Redefining gate {}".format(defgate.name))
-                new_instructions = (
-                    self._program.body_instructions[:idx] + [instruction] + self._program.body_instructions[idx + 1 :]
-                )
-                self._program = self._program.clone_without_body_instructions()
-                self._program.add_instructions(new_instructions)
-        elif instruction.is_calibration_definition():
+        if instruction.is_calibration_definition():
             defcal = instruction.to_calibration_definition()
             idx, existing_calibration = next(
                 (
@@ -936,11 +910,7 @@ class Program:
         :param index: The action at the specified index.
         :return:
         """
-        return (
-            Program(self._program.to_instructions()[index])
-            if isinstance(index, slice)
-            else _convert_to_py_instruction(self._program.to_instructions()[index])
-        )
+        return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
 
     def __iter__(self) -> Iterator[AbstractInstruction]:
         """
