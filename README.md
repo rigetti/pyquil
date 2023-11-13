@@ -79,7 +79,7 @@ p += MEASURE(0, ro[0])
 p += MEASURE(1, ro[1])
 p.wrap_in_numshots_loop(10)
 
-qvm.run(p).readout_data['ro'].tolist()
+qvm.run(p).get_register_map()['ro'].tolist()
 ```
 
 The output of the above program should look something like the following,
