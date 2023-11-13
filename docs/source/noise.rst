@@ -376,7 +376,7 @@ state decays to the :math:`\ket{0}` state.
         p.define_noisy_gate("I", [0], append_damping_to_gate(np.eye(2), damping_per_I))
         p.wrap_in_numshots_loop(trials)
         qc.qam.random_seed = int(num_I)
-        res = qc.run(p).readout_data.get("ro")
+        res = qc.run(p).get_register_map().get("ro")
         results_damping.append([np.mean(res), np.std(res) / np.sqrt(trials)])
 
     results_damping = np.array(results_damping)
@@ -537,7 +537,7 @@ good starting point.**
         p.define_noisy_gate("CZ", [0, 1], corrupted_CZ)
         p.wrap_in_numshots_loop(trials)
         qc.qam.random_seed = jj
-        res = qc.run(p).readout_data.get("ro")
+        res = qc.run(p).get_register_map().get("ro")
         results.append(res)
 
     results = np.array(results)
@@ -706,7 +706,7 @@ gate noise, respectively.
                 MEASURE(0, ("ro", 0)),
                 MEASURE(1, ("ro", 1)),
             ])
-            bitstrings = qc.run(noisy).readout_data.get("ro")
+            bitstrings = qc.run(noisy).get_register_map().get("ro")
 
             # Expectation of Z0 and Z1
             z0, z1 = 1 - 2*np.mean(bitstrings, axis=0)
@@ -1002,7 +1002,7 @@ Example 1: Rabi sequence with noisy readout
             p.define_noisy_readout(0, p00=p00, p11=p00)
             ro = p.declare("ro", "BIT", 1)
             p.measure(0, ro[0])
-            res = qc.run(p).readout_data.get("ro")
+            res = qc.run(p).get_register_map().get("ro")
             results_rabi[jj, kk] = np.sum(res)
 
 .. parsed-literal::
@@ -1149,7 +1149,7 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
     )
     ghz_prog.wrap_in_numshots_loop(10000)
     print(ghz_prog)
-    results = qc.run(ghz_prog).readout_data.get("ro")
+    results = qc.run(ghz_prog).get_register_map().get("ro")
 
 .. testoutput:: readout-noise
 
@@ -1167,7 +1167,7 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
     noisy_ghz = header + ghz_prog
     noisy_ghz.wrap_in_numshots_loop(10000)
     print(noisy_ghz)
-    noisy_results = qc.run(noisy_ghz).readout_data.get("ro")
+    noisy_results = qc.run(noisy_ghz).get_register_map().get("ro")
 
 .. testoutput:: readout-noise
 
@@ -1374,9 +1374,9 @@ we should always measure ``1``.
 
     qc = get_qc("1q-qvm")
     print("Without Noise:")
-    print(qc.run(p).readout_data.get("ro"))
+    print(qc.run(p).get_register_map().get("ro"))
     print("With Noise:")
-    print(noisy_qc.run(p).readout_data.get("ro"))
+    print(noisy_qc.run(p).get_register_map().get("ro"))
 
 .. testoutput:: global-error
     :hide:

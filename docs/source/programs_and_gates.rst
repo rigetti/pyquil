@@ -84,7 +84,7 @@ program on the Quantum Virtual Machine (QVM). We just have to add a few lines to
     qc = get_qc('1q-qvm')  # You can make any 'nq-qvm' this way for any reasonable 'n'
     executable = qc.compile(p)
     result = qc.run(executable)
-    bitstrings = result.readout_data.get('ro')
+    bitstrings = result.get_register_map().get('ro')
     print(bitstrings)
 
 Congratulations! You just ran your program on the QVM. The returned value should be:
@@ -310,7 +310,7 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
         memory_map = {"theta": [theta]}
 
         # Get the results of the run with the value we want to execute with
-        bitstrings = qc.run(executable, memory_map=memory_map).readout_data.get("ro")
+        bitstrings = qc.run(executable, memory_map=memory_map).get_register_map().get("ro")
 
         # Store our results
         parametric_measurements.append(bitstrings)
