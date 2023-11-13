@@ -1,5 +1,19 @@
 # Changelog
 
+## 4.1.0-rc.5 (2023-11-13)
+
+### Features
+
+#### update qcs-sdk-rust (#1683)
+
+### Fixes
+
+#### The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. (#1685)
+
+#### Instruction types no longer return a superclass instance when using `copy.deepcopy` (#1689)
+
+#### DefGate's no longer appear in the instructions list (#1688)
+
 ## 4.1.0-rc.4 (2023-11-09)
 
 ### Features
