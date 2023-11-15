@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 
 import numpy as np
 
-from pyquil.api import ConnectionStrategy, ExecutionOptions, RegisterMatrixConversionError
+from pyquil.api import ConnectionStrategy, ExecutionOptions, RegisterMatrixConversionError, ExecutionOptionsBuilder
 from pyquil.api._qpu import QPU
 from pyquil.api._abstract_compiler import EncryptedProgram
 from pyquil.quil import Program
@@ -105,3 +105,77 @@ def test_qpu_execute_jagged_results(
 
     assert raw_readout_data.mappings == {"ro[0]": "q0", "ro[1]": "q1"}
     assert raw_readout_data.readout_values == {"q0": [1, 1], "q1": [1, 1, 1, 1]}
+
+
+class TestQPUExecutionOptions:
+    @patch("pyquil.api._qpu.retrieve_results")
+    @patch("pyquil.api._qpu.submit")
+    def test_submit_with_class_options(
+        self, mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
+    ):
+        """
+        Asserts that a ``QPU``'s execution_options property is used for submission, appears in the returned
+        ``QPUExecuteResponse``, and is used for retrieval of results when execution options are not provided to
+        ``QPU.execute``.
+        """
+        qpu = QPU(quantum_processor_id="test")
+        execution_options_builder = ExecutionOptionsBuilder()
+        execution_options_builder.timeout_seconds = 10.0
+        execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id("some-endpoint-id")
+        execution_options = execution_options_builder.build()
+        qpu.execution_options = execution_options
+
+        mock_submit.return_value = "some-job-id"
+        execute_response = qpu.execute(mock_encrypted_program)
+        assert execute_response.execution_options == qpu.execution_options
+
+        mock_retrieve_results.return_value = ExecutionResults(
+            {
+                "q0": ExecutionResult.from_register(Register.from_i32([1, 1])),
+                "q1": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
+            }
+        )
+
+        qpu.get_result(execute_response)
+
+        mock_retrieve_results.assert_called_once_with(
+            job_id="some-job-id",
+            quantum_processor_id="test",
+            client=qpu._client_configuration,
+            execution_options=qpu.execution_options,
+        )
+
+    @patch("pyquil.api._qpu.retrieve_results")
+    @patch("pyquil.api._qpu.submit")
+    def test_submit_with_options(
+        self, mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
+    ):
+        """
+        Asserts that execution_options provided to ``QPU.execute`` are used for submission, appear in the returned
+        ``QPUExecuteResponse``, and are used for retrieval of results.
+        """
+        qpu = QPU(quantum_processor_id="test")
+
+        mock_submit.return_value = "some-job-id"
+        execution_options_builder = ExecutionOptionsBuilder()
+        execution_options_builder.timeout_seconds = 10.0
+        execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id("some-endpoint-id")
+        execution_options = execution_options_builder.build()
+        execute_response = qpu.execute(mock_encrypted_program, execution_options=execution_options)
+        assert execute_response.execution_options == execution_options
+
+        mock_retrieve_results.return_value = ExecutionResults(
+            {
+                "q0": ExecutionResult.from_register(Register.from_i32([1, 1])),
+                "q1": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
+            }
+        )
+
+        qpu.get_result(execute_response)
+
+        mock_retrieve_results.assert_called_once_with(
+            job_id="some-job-id",
+            quantum_processor_id="test",
+            client=qpu._client_configuration,
+            execution_options=execution_options,
+        )
