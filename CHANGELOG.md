@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.1.1-rc.0 (2023-11-15)
+
+### Fixes
+
+#### The ``execution_options`` property is now used for retrieving results if no overriding options were provided to the ``execute`` method. (#1694)
+
 ## 4.1.0 (2023-11-13)
 
 ### Features
