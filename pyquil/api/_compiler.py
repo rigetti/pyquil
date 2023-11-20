@@ -94,6 +94,7 @@ class QPUCompiler(AbstractCompiler):
             quantum_processor=quantum_processor,
             timeout=timeout,
             client_configuration=client_configuration,
+            quilc_client=quilc_client,
         )
 
         self.api_options = api_options
