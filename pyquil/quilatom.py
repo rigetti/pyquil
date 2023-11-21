@@ -482,13 +482,16 @@ def _convert_to_py_expressions(
 
 class Expression(object):
     """
-    Expression involving some unbound parameters. Parameters in Quil are represented as a label
-    like '%x' for the parameter named 'x'. An example expression therefore may be '%x*(%y/4)'.
+    Expression that may involve unbound parameters or the Quil constant "pi".
+    Parameters in Quil are represented as a label like '%x' for the parameter named 'x'.
+    An example expression therefore may be '%x*(%y/4)'.
 
     Expressions may also have function calls, supported functions in Quil are sin, cos, sqrt, exp,
     and cis.
 
-    This class overrides all the Python operators that are supported by Quil.
+    This class overrides all the Python operators that are supported by Quil. Casts to integer,
+    floats, and complex numbers are also supported. These are all implemented by simplifying the
+    expression and returning the result, if the expression contains no unbound parameters.
     """
 
     def __str__(self) -> str:
@@ -537,6 +540,37 @@ class Expression(object):
     def _substitute(self, d: Any) -> ExpressionDesignator:
         return self
 
+    def _simplify(self) -> quil_rs_expr.Expression:
+        rs_expression = _convert_to_rs_expression(self)
+        rs_expression.simplify()
+        return rs_expression
+
+    def __int__(self) -> int:
+        return int(float(self))
+
+    def __float__(self) -> float:
+        expr = self._simplify()
+        if expr.is_number():
+            n = expr.to_number()
+            if n.imag == 0:
+                return float(n.real)
+            else:
+                raise TypeError(f"Expression {self} simplifies to a complex number with a non-zero imaginary part, can't cast to a float.")
+        if expr.is_pi():
+            return np.pi
+        raise ValueError(f"Expression {self} contains unbound parameters, can't cast to a float.")
+
+    def __complex__(self) -> complex:
+        expr = self._simplify()
+        if expr.is_number():
+            return expr.to_number()
+        if expr.is_pi():
+            return complex(np.pi)
+        raise ValueError(f"Expression {self} contains unbound parameters, can't cast to a float.")
+
+    def __array__(self, dtype: Optional[type] = None):
+        return np.asarray(float(self), dtype=dtype)
+
 
 ParameterSubstitutionsMapDesignator = Mapping[Union["Parameter", "MemoryReference"], ExpressionValueDesignator]
 
@@ -566,6 +600,12 @@ def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParameterSub
     """
     a = np.asarray(a, order="C")
     return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)
+
+
+class Pi(Expression):
+    """
+    Represents the Quil constant "pi".
+    """
 
 
 class Parameter(QuilAtom, Expression):
@@ -800,6 +840,8 @@ def _expression_to_string(expression: ExpressionDesignator) -> str:
         return expression.name + "(" + _expression_to_string(expression.expression) + ")"
     elif isinstance(expression, Parameter):
         return str(expression)
+    elif isinstance(expression, Pi):
+        return "pi"
     else:
         return format_parameter(expression)
 
