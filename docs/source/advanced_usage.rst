@@ -69,7 +69,7 @@ Below is an example that demonstrates how to use pyQuil in a multithreading scen
 
 
     def run(program: Program):
-        return qc.run(qc.compile(program)).readout_data.get("ro")
+        return qc.run(qc.compile(program)).get_register_map().get("ro")
 
 
     programs = [
@@ -445,7 +445,7 @@ We can run this program a few times to see what we get in the readout register `
     qc = get_qc("2q-qvm")
     branching_prog.wrap_in_numshots_loop(10)
     result = qc.run(branching_prog)
-    print(result.readout_data['test_register'])
+    print(result.get_register_map()['test_register'])
 
 .. testoutput:: control-flow
     :hide:

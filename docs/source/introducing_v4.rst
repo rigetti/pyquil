@@ -106,7 +106,7 @@ you should use the ``get_raw_readout_data`` method to access the raw data and bu
    result = qc.run(exe)
 
    try:
-        matrix = result.readout_data
+        matrix = result.get_register_map()
     except RegisterMatrixConversionError:
         matrix = process_raw_data(result.get_raw_readout_data())
 

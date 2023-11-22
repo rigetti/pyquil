@@ -188,16 +188,17 @@ class QPU(QAM[QPUExecuteResponse]):
 
         memory_map = memory_map or {}
         patch_values = build_patch_values(executable.recalculation_table, memory_map)
+        effective_execution_options = execution_options or self.execution_options
 
         job_id = submit(
             program=executable.program,
             patch_values=patch_values,
             quantum_processor_id=self.quantum_processor_id,
             client=self._client_configuration,
-            execution_options=execution_options or self.execution_options,
+            execution_options=effective_execution_options,
         )
 
-        return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=execution_options)
+        return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=effective_execution_options)
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """

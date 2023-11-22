@@ -133,7 +133,7 @@ an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Fi
 
     # run the program on a QVM
     qc = get_qc('9q-square-qvm')
-    result = qc.run(qc.compile(p)).readout_data.get("ro")
+    result = qc.run(qc.compile(p)).get_register_map().get("ro")
     print(result[0])
     print(result[1])
 
@@ -182,7 +182,7 @@ the terminal windows where your servers are running, you should see output print
 
         with local_forest_runtime():
             qvm = get_qc('9q-square-qvm')
-            bitstrings = qvm.run(qvm.compile(prog)).readout_data.get("ro")
+            bitstrings = qvm.run(qvm.compile(prog)).get_register_map().get("ro")
 
 In the following sections, we'll cover gates, program construction & execution, and go into detail about our Quantum
 Virtual Machine, our QPUs, noise models and more. Let's start with the :ref:`basics`.
