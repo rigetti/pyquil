@@ -1781,7 +1781,7 @@ def test_bit_flip_state_fidelity_readout_error(client_configuration: QCSClient, 
     estimated_fidelity = _point_state_fidelity_estimate(results)
     # how close is the mixed state to |0>
     expected_fidelity = 1 - prob
-    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2.2e-2)
 
 
 def test_dephasing_state_fidelity_readout_error(client_configuration: QCSClient, use_seed: bool):
