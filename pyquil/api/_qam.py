@@ -21,7 +21,7 @@ from datetime import timedelta
 from deprecated import deprecated
 import numpy as np
 from qcs_sdk import ExecutionData
-from qcs_sdk.qpu import RawQPUReadoutData
+from qcs_sdk.qpu import RawQPUReadoutData, MemoryValues
 from qcs_sdk.qvm import RawQVMReadoutData
 
 from pyquil.api._abstract_compiler import QuantumExecutable
@@ -50,21 +50,6 @@ class QAMExecutionResult:
     to get at the data in a more convenient format.
     """
 
-    def get_raw_readout_data(self) -> Union[RawQVMReadoutData, RawQPUReadoutData]:
-        """
-        Get the raw result data. This will be a flattened structure derived
-        from :class:`qcs_sdk.qvm.QVMResultData` or :class:`qcs_sdk.qpu.QPUResultData`
-        depending on where the job was run. See their respective documentation
-        for more information on the data format.
-
-        This property should be used when running programs that use features like
-        mid-circuit measurement and dynamic control flow on a QPU, since they can
-        produce irregular result shapes that don't necessarily fit in a
-        rectangular matrix. If the program was run on a QVM, or doesn't use those
-        features, consider using the ``register_map`` property instead.
-        """
-        return self.data.result_data.to_raw_readout_data()
-
     def get_register_map(self) -> Dict[str, Optional[np.ndarray]]:
         """
         A mapping of a register name (ie. "ro") to a ``np.ndarray`` containing the values for the
@@ -89,6 +74,33 @@ class QAMExecutionResult:
         """
         register_map = self.data.result_data.to_register_map()
         return {key: matrix.to_ndarray() for key, matrix in register_map.items()}
+
+    def get_raw_readout_data(self) -> Union[RawQVMReadoutData, RawQPUReadoutData]:
+        """
+        Get the raw result data. This will be a flattened structure derived
+        from :class:`qcs_sdk.qvm.QVMResultData` or :class:`qcs_sdk.qpu.QPUResultData`
+        depending on where the job was run. See their respective documentation
+        for more information on the data format.
+
+        This property should be used when running programs that use features like
+        mid-circuit measurement and dynamic control flow on a QPU, since they can
+        produce irregular result shapes that don't necessarily fit in a
+        rectangular matrix. If the program was run on a QVM, or doesn't use those
+        features, consider using the ``register_map`` property instead.
+        """
+        return self.data.result_data.to_raw_readout_data()
+
+    def get_memory_values(self) -> Mapping[str, Optional[MemoryValues]]:
+        """
+        Get the final memory values for any memory region that was both read from
+        and written to during execution. This method will only return the final
+        value in memory after the job has completed. Because of this, memory
+        values should not be used to get readout data. Instead, use `get_register_map()`
+        or `get_raw_readout_data()`.
+        """
+        if self.data.result_data.is_qpu():
+            return self.data.result_data.to_qpu().memory_values
+        return {}
 
     @property
     @deprecated(
