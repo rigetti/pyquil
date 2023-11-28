@@ -218,7 +218,7 @@ class QPU(QAM[QPUExecuteResponse]):
             for mref, readout_name in execute_response._executable.ro_sources.items()
             if mref.name in execute_response._executable.memory_descriptors
         }
-        result_data = QPUResultData(mappings=mappings, readout_values=readout_values)
+        result_data = QPUResultData(mappings=mappings, readout_values=readout_values, memory_values=results.memory)
         result_data = ResultData(result_data)
         duration = None
         if results.execution_duration_microseconds is not None:
