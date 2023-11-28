@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.2.0-rc.1 (2023-11-28)
+
+### Features
+
+#### Support Python 3.12 (#1696)
+
+#### Final memory values are now available on QAMExecutionResults (#1703)
+
 ## 4.2.0-rc.0 (2023-11-28)
 
 ### Features
