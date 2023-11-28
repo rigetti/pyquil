@@ -90,7 +90,7 @@ class QAMExecutionResult:
         """
         return self.data.result_data.to_raw_readout_data()
 
-    def get_memory_values(self) -> Mapping[str, Optional[MemoryValues]]:
+    def get_memory_values(self) -> Mapping[str, MemoryValues]:
         """
         Get the final memory values for any memory region that was both read from
         and written to during execution. This method will only return the final

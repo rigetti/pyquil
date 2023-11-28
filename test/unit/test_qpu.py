@@ -72,14 +72,22 @@ def test_qpu_execute(
             "q0": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
             "q1": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
         },
-        {"stash": MemoryValues.from_binary([0, 1, 0, 1])},
+        {
+            "binary": MemoryValues.from_binary([0, 1, 0, 1]),
+            "int": MemoryValues.from_integer([2, 3, 4]),
+            "real": MemoryValues.from_real([5.0, 6.0, 7.0]),
+        },
     )
 
     result = qpu.get_result(execute_response)
 
     assert np.all(result.get_register_map()["ro"] == np.array([[1, 1], [1, 1], [1, 1], [1, 1]]))
     assert np.all(result.get_register_map()["ro"] == result.readout_data["ro"])
-    assert result.get_memory_values() == {"stash": MemoryValues.from_binary([0, 1, 0, 1])}
+    assert result.get_memory_values() == {
+        "binary": MemoryValues.from_binary([0, 1, 0, 1]),
+        "int": MemoryValues.from_integer([2, 3, 4]),
+        "real": MemoryValues.from_real([5.0, 6.0, 7.0]),
+    }
 
 
 @patch("pyquil.api._qpu.retrieve_results")
@@ -97,7 +105,11 @@ def test_qpu_execute_jagged_results(
             "q0": ExecutionResult.from_register(Register.from_i32([1, 1])),
             "q1": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
         },
-        {"stash": MemoryValues.from_binary([0, 1, 0, 1])},
+        {
+            "binary": MemoryValues.from_binary([0, 1, 0, 1]),
+            "int": MemoryValues.from_integer([2, 3, 4]),
+            "real": MemoryValues.from_real([5.0, 6.0, 7.0]),
+        },
     )
 
     result = qpu.get_result(execute_response)
@@ -109,7 +121,11 @@ def test_qpu_execute_jagged_results(
 
     assert raw_readout_data.mappings == {"ro[0]": "q0", "ro[1]": "q1"}
     assert raw_readout_data.readout_values == {"q0": [1, 1], "q1": [1, 1, 1, 1]}
-    assert raw_readout_data.memory_values == {"stash": [0, 1, 0, 1]}
+    assert raw_readout_data.memory_values == {
+        "binary": [0, 1, 0, 1],
+        "int": [2, 3, 4],
+        "real": [5.0, 6.0, 7.0],
+    }
 
 
 class TestQPUExecutionOptions:
