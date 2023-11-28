@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "4.1.1"
+version = "4.2.0-rc.0"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = ["Rigetti Computing <softapps@rigetti.com>"]
 readme = "README.md"
@@ -19,9 +19,15 @@ packages = [{ include = "pyquil" }]
 exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
-python = "^3.8,<4.0"
-numpy = "^1.22"
-scipy = "^1.7.3"
+python = "^3.8,<=3.12"
+numpy = [
+  { version = "^1.22", python = "3.8" },
+  { version = "^1.26", python = ">=3.9" },
+]
+scipy = [
+  { version = "^1.7.3", python = "3.8" },
+  { version = "^1.10.0", python = ">=3.9" },
+]
 lark = "^0.11.1"
 rpcq = "^3.10.0"
 pydantic = "^1.10.7"
