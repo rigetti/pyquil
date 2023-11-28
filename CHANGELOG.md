@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.0-rc.0 (2023-11-28)
+
+### Features
+
+#### Support Python 3.12 (#1696)
+
 ## 4.1.1 (2023-11-15)
 
 ### Fixes
