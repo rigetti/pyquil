@@ -2396,12 +2396,32 @@ cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
 name = "qcs-sdk-python"
-version = "0.15.0rc0"
+version = "0.16.0"
 description = "Python interface for the QCS Rust SDK"
 optional = false
 python-versions = "*"
 files = [
-    {file = "qcs_sdk_python-0.15.0rc0.tar.gz", hash = "sha256:16bf9b2815e934b9f281f1fe502bfa44b8dc3bbd75e30df6d661d39fc5f48a76"},
+    {file = "qcs_sdk_python-0.16.0-cp310-cp310-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:38f5dd0238fe0b7bd2551ac861bf852d36bec6fa6ea2f75cce0e1f28da14cc3a"},
+    {file = "qcs_sdk_python-0.16.0-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:6f1d1c95bb0b8b2127657919df03308d7ae6753347a223c617a0b9c48630146f"},
+    {file = "qcs_sdk_python-0.16.0-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:0e8744c5430b6648e0746e79f696eb9d83861bbab86343fa517851db8bd353ec"},
+    {file = "qcs_sdk_python-0.16.0-cp310-none-win_amd64.whl", hash = "sha256:66e90b054966d702deff0db32f0d6ade8dc672f04ce79bedac8bc381dddd02d4"},
+    {file = "qcs_sdk_python-0.16.0-cp311-cp311-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:42b3113e0f09a10b3e2e81f0b44da789425cfcfef1ec1f7ce858fed3f1177440"},
+    {file = "qcs_sdk_python-0.16.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:4f6316612ff00f982526073d5ca55dca2936eed305de1dd257a0d3d95b02b6cd"},
+    {file = "qcs_sdk_python-0.16.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:70ec957d2dcdbbfa8ed286c8c244ccbd2111375ee4e92beb2050ae1025528e43"},
+    {file = "qcs_sdk_python-0.16.0-cp311-none-win_amd64.whl", hash = "sha256:27e8b77ce4667e648ab0e9420ba4360a713d0bee57ad094f69711d9dda7bf212"},
+    {file = "qcs_sdk_python-0.16.0-cp312-cp312-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:6545385e5cc79ad5c6c32b3a96d209bd28eccdc13938cb2774124c5d21a71aff"},
+    {file = "qcs_sdk_python-0.16.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:a6eacc8a4ab5879e78cccb2370b5fe3d453ea30c44df7acf30c2886eb28f7716"},
+    {file = "qcs_sdk_python-0.16.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:7b634b3f2af6c624af4a405c6557f9df4b856e24b68dd2f8216c6c6cd894c31c"},
+    {file = "qcs_sdk_python-0.16.0-cp312-none-win_amd64.whl", hash = "sha256:6bdb00343f26e2ad9c9b728182da39b8924e94e8d116402a19deb6f8f02915c6"},
+    {file = "qcs_sdk_python-0.16.0-cp38-cp38-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:8bb94a3fa605013c5761568766c28689c1bc0788ae5ab7cc7fc8148ffe81b311"},
+    {file = "qcs_sdk_python-0.16.0-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:909a2fd065949e325fbaa5c83df55e4c57154982a9aed67219977c49b306b644"},
+    {file = "qcs_sdk_python-0.16.0-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:16718c249783957a00e89c075fc1caa46ae4cc6a67a7dc4720c76ba4acbe0f4d"},
+    {file = "qcs_sdk_python-0.16.0-cp38-none-win_amd64.whl", hash = "sha256:5bad7d0b89d64ed2170307d26e0a09e6376c42121700848e796b4828231b00db"},
+    {file = "qcs_sdk_python-0.16.0-cp39-cp39-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:8735ce7fba256e4abaf0c66c83f9a3caeabb5056c2ffd258d15d100ce1d0061f"},
+    {file = "qcs_sdk_python-0.16.0-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:1af7e14031242a526da3c698ffcb2cadb23100dfac85794f0ddcb93dcb4de1b3"},
+    {file = "qcs_sdk_python-0.16.0-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:696e519f52f3f236a8b165e5eccefb1b9e2da0f75608ad724e408dfa6a59f365"},
+    {file = "qcs_sdk_python-0.16.0-cp39-none-win_amd64.whl", hash = "sha256:847fc8e17d099b8de49d80cbd50700cb845cbe6f9932004ddcef56129a5cc543"},
+    {file = "qcs_sdk_python-0.16.0.tar.gz", hash = "sha256:6a5e7bac2d143b845444fc7a182ebbfc12def55df398ea58f6cc41d18de62af3"},
 ]
 
 [package.dependencies]
@@ -3320,4 +3340,4 @@ latex = ["ipython"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8,<=3.12"
-content-hash = "ef656b9e3e860e0cbeec9d4039f6433ebf43372fc6cd77de8f9f085dbd2a543b"
+content-hash = "424a073fd3699723db4b95ed3a3d1726b97a148686b8464508f726bd1c2f9e0c"
