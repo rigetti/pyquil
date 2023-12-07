@@ -34,6 +34,11 @@ from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
 
 QPUCompilerAPIOptions = _TranslationOptions
+"""
+An alias of `qcs-sdk-python`'s `TranslationOptions` class.
+
+See `TranslationOptions in qcs-sdk-python <https://github.com/rigetti/qcs-sdk-rust/blob/760df515ff9c88c1739fd69aeb00d8d38884345d/crates/python/qcs_sdk/qpu/translation.pyi#L139>`_
+"""
 
 
 class QPUCompilerNotRunning(Exception):
