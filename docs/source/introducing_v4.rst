@@ -21,7 +21,7 @@ Here is an example of how you might use a memory map in practice:
     from pyquil.gates import RZ
     from pyquil.quil import Program
 
-    qc = get_qc("Ankaa-1")
+    qc = get_qc("Ankaa-9Q-1")
     program = Program()
     theta = program.declare("theta", "REAL")
     program += RZ(theta, 0)
@@ -50,7 +50,7 @@ In pyQuil v4, Gateway is enabled by default and it is generally recommended to k
     from pyquil.api import get_qc, ExecutionOptionsBuilder, ConnectionStrategy
     from pyquil.quil import Program
 
-    qc = get_qc("Ankaa-1")
+    qc = get_qc("Ankaa-9Q-1")
     program = Program()
     exe = qc.compile(program)
 
@@ -114,7 +114,7 @@ you should use the ``get_raw_readout_data`` method to access the raw data and bu
 Using the new QPU Compiler Backend
 ----------------------------------
 
-Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This new backend is still in development, so while it will eventually become the default, it is currently in limited access. If you have access, you can configure your compiler to use it using the new ``QPUCompilerAPIOptions`` class:
+Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This backend is required for Ankaa based QPUs and can be configured with the new :py:class:`~pyquil.api.QPUCompilerAPIOptions` class.
 
 .. code:: python
 
@@ -122,10 +122,13 @@ Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This new
     from pyquil.quil import Program
 
     program = Program()
-    qc = get_qc("Ankaa-1")
+    qc = get_qc("Ankaa-9Q-1")
 
     api_options = QPUCompilerAPIOptions()
-    api_options.use_backend_v2()
+    api_options.v2(
+        # See API docs for QPUCompilerAPIOptions for more information on these parameters
+       passive_reset_delay_seconds=0.0002 
+    )
 
     # Option 1: Apply to all compiled programs
     qc.compiler.api_options = api_options
