@@ -21,7 +21,7 @@ from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
 from qcs_sdk.qpu.translation import (
     get_quilt_calibrations,
     translate,
-    TranslationOptions as QPUCompilerAPIOptions,
+    TranslationOptions as _TranslationOptions,
     TranslationBackend,
 )
 from qcs_sdk.compiler.quilc import QuilcClient
@@ -32,6 +32,8 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
+
+QPUCompilerAPIOptions = _TranslationOptions
 
 
 class QPUCompilerNotRunning(Exception):
