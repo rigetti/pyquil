@@ -126,7 +126,7 @@ Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This bac
 
     api_options = QPUCompilerAPIOptions()
     api_options.v2(
-        # See API docs for QPUCompilerAPIOptions for more information on these parameters
+        # See API docs for QPUCompilerAPIOptions for more information on this and other parameters
        passive_reset_delay_seconds=0.0002 
     )
 
