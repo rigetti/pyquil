@@ -72,7 +72,7 @@ syrupy = "^3.0.6"
 
 [tool.poetry.extras]
 latex = ["ipython"]
-docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc", "matplotlib", "seaborn", "toml", "sphinx-toolbox"]
+docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc", "matplotlib", "seaborn", "toml"]
 
 [tool.poetry.group.dev.dependencies]
 setuptools = {version = "^69.0.2", python = ">=3.12"}
