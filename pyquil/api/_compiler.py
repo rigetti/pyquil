@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TypeAlias
 from warnings import warn
 
 from qcs_sdk import QCSClient
@@ -33,12 +33,12 @@ from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
 
-QPUCompilerAPIOptions = _TranslationOptions
+QPUCompilerAPIOptions: TypeAlias = _TranslationOptions
 """
 An alias of `qcs-sdk-python`'s `TranslationOptions` class.
 
 See `TranslationOptions in qcs-sdk-python <https://github.com/rigetti/qcs-sdk-rust/blob/760df515ff9c88c1739fd69aeb00d8d38884345d/crates/python/qcs_sdk/qpu/translation.pyi#L139>`_
-"""
+"""  # noqa: E501
 
 
 class QPUCompilerNotRunning(Exception):
