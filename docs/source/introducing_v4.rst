@@ -114,7 +114,10 @@ you should use the ``get_raw_readout_data`` method to access the raw data and bu
 Using the new QPU Compiler Backend
 ----------------------------------
 
-Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This backend is required for Ankaa-family QPUs and can be configured with the new :py:class:`~pyquil.api.QPUCompilerAPIOptions` class.
+Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This backend is required for Ankaa-family QPUs and can be configured with the new :py:class:`~pyquil.api.QPUCompilerAPIOptions` class. This class
+is a type alias of ``qcs-sdk-python``'s ``TranslationOptions``. See its `API documentation <https://github.com/rigetti/qcs-sdk-rust/blob/760df515ff9c88c1739fd69aeb00d8d38884345d/crates/python/qcs_sdk/qpu/translation.pyi#L139>`_ for more information on all the available parameters.
+
+.. TODO: When qcs-sdk-python has live documentation, we should setup intersphinx so it can be linked to directly.
 
 .. code:: python
 
@@ -126,7 +129,6 @@ Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This bac
 
     api_options = QPUCompilerAPIOptions()
     api_options.v2(
-        # See API docs for QPUCompilerAPIOptions for more information on this and other parameters
        passive_reset_delay_seconds=0.0002 
     )
 
