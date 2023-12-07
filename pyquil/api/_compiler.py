@@ -13,7 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Any, Dict, Optional, TypeAlias
+from typing import Any, Dict, Optional
+from typing_extensions import TypeAlias
 from warnings import warn
 
 from qcs_sdk import QCSClient
