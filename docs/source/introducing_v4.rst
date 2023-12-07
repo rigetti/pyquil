@@ -114,7 +114,7 @@ you should use the ``get_raw_readout_data`` method to access the raw data and bu
 Using the new QPU Compiler Backend
 ----------------------------------
 
-Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This backend is required for Ankaa based QPUs and can be configured with the new :py:class:`~pyquil.api.QPUCompilerAPIOptions` class.
+Rigetti's next-generation QPU compiler is accessible through pyQuil v4. This backend is required for Ankaa-family QPUs and can be configured with the new :py:class:`~pyquil.api.QPUCompilerAPIOptions` class.
 
 .. code:: python
 
