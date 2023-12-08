@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from typing import Any, Dict, Optional
+from typing_extensions import TypeAlias
 from warnings import warn
 
 from qcs_sdk import QCSClient
@@ -21,7 +22,7 @@ from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
 from qcs_sdk.qpu.translation import (
     get_quilt_calibrations,
     translate,
-    TranslationOptions as QPUCompilerAPIOptions,
+    TranslationOptions as _TranslationOptions,
     TranslationBackend,
 )
 from qcs_sdk.compiler.quilc import QuilcClient
@@ -32,6 +33,13 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
+
+QPUCompilerAPIOptions: TypeAlias = _TranslationOptions
+"""
+An alias of `qcs-sdk-python`'s `TranslationOptions` class.
+
+See `TranslationOptions in qcs-sdk-python <https://github.com/rigetti/qcs-sdk-rust/blob/760df515ff9c88c1739fd69aeb00d8d38884345d/crates/python/qcs_sdk/qpu/translation.pyi#L139>`_
+"""  # noqa: E501
 
 
 class QPUCompilerNotRunning(Exception):
