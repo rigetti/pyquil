@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.3.0 (2023-12-08)
+
+### Features
+
+#### update qcs_sdk to add ability to modify TranslationOptions (#1706)
+
 ## 4.3.0-rc.1 (2023-12-08)
 
 ### Features
