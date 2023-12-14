@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.3.1-rc.0 (2023-12-14)
+
+### Fixes
+
+#### Relax numpy and scipy requirements (#1713)
+
 ## 4.3.0 (2023-12-08)
 
 ### Features
