@@ -277,8 +277,24 @@ class Program:
             elif isinstance(instruction, tuple):
                 if len(instruction) == 0:
                     raise ValueError("tuple should have at least one element")
+                elif len(instruction) == 1:
+                    self.inst(instruction[0])
                 else:
-                    self.inst(" ".join(map(str, instruction)))
+                    op = instruction[0]
+                    if op == "MEASURE":
+                        if len(instruction) == 2:
+                            self.measure(instruction[1], None)
+                        else:
+                            self.measure(instruction[1], instruction[2])
+                    else:
+                        params: List[ParameterDesignator] = []
+                        possible_params = instruction[1]
+                        rest: Sequence[Any] = instruction[2:]
+                        if isinstance(possible_params, list):
+                            params = possible_params
+                        else:
+                            rest = [possible_params] + list(rest)
+                        self.gate(op, params, rest)
             elif isinstance(instruction, str):
                 self.inst(RSProgram.parse(instruction.strip()))
             elif isinstance(instruction, Program):
