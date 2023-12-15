@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.4.0-rc.0 (2023-12-15)
+
+### Features
+
+#### Add `get_attribute`, `set_attribute` `__getitem__` and `__setitem__` methods to `DefFrame` (#1714)
+
+### Fixes
+
+#### Relax numpy and scipy requirements (#1713)
+
+#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
+
 ## 4.3.1-rc.1 (2023-12-15)
 
 ### Fixes
