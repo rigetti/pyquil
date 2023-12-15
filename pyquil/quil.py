@@ -457,7 +457,8 @@ class Program:
         """
         Return a new ``Program`` containing only the instructions for which ``predicate`` returns ``True``.
 
-        :param predicate: A function that takes an instruction and returns ``True`` if the instruction should not be removed from the program, ``False`` otherwise.
+        :param predicate: A function that takes an instruction and returns ``True`` if the instruction should not be
+        removed from the program, ``False`` otherwise.
         :return: A new ``Program`` object with the filtered instructions.
         """
 
