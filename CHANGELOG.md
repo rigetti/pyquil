@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.3.1-rc.1 (2023-12-15)
+
+### Fixes
+
+#### Relax numpy and scipy requirements (#1713)
+
+#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
+
 ## 4.3.1-rc.0 (2023-12-14)
 
 ### Fixes

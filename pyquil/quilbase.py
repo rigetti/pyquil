@@ -17,7 +17,6 @@
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import abc
-import json
 
 from typing import (
     Any,
@@ -2693,14 +2692,6 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
         enable_raw_capture: Optional[str] = None,
         channel_delay: Optional[float] = None,
     ) -> Self:
-        # The quil spec doesn't outline anything for JSON support
-        # but it can be used for the hardware_object field.
-        # This generates a properly escaped json string
-        # then peels off the outer quotation marks, since they
-        # are already added to string values on output.
-        if hardware_object is not None:
-            hardware_object = json.dumps(hardware_object)
-            hardware_object = hardware_object[1:-1]
         attributes = {
             key: DefFrame._to_attribute_value(value)
             for key, value in zip(
