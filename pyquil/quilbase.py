@@ -2763,13 +2763,17 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
             return value.to_string()
         return value.to_expression().to_number().real
 
-    def __get_attribute__(self, name: str) -> Union[str, float]:
+    def __getitem__(self, name: str) -> Union[str, float]:
+        if not isinstance(name, str):
+            raise TypeError("Frame attribute keys must be strings")
         value = self.get_attribute(name)
         if value is None:
             raise AttributeError(f"Attribute {name} not found")
         return value
 
-    def __set_attribute__(self, name: str, value: Union[str, float]) -> None:
+    def __setitem__(self, name: str, value: Union[str, float]) -> None:
+        if not isinstance(name, str):
+            raise TypeError("Frame attribute keys must be strings")
         self.set_attribute(name, value)
 
     @property
