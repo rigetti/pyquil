@@ -151,9 +151,15 @@ class QPUCompiler(AbstractCompiler):
         """
         Get the Quil-T calibration program associated with the underlying QPU.
 
-        This will return a cached copy of the calibration program if present.
+        This will return a cached reference of the calibration program if present.
         Otherwise (or if forcing a refresh), it will fetch and store the
         calibration program from the QCS API.
+
+        Note that the returned program is a reference, meaning if you modify
+        it directly, you will be updating the cached version, and future calls
+        to this function will return your modified reference. If you want to
+        update the program without impacting the cached version, you should
+        make a copy of the returned program using `Program.copy()`
 
         A calibration program contains a number of DEFCAL, DEFWAVEFORM, and
         DEFFRAME instructions. In sum, those instructions describe how a Quil-T
