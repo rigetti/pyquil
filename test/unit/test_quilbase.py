@@ -532,6 +532,11 @@ class TestDefFrame:
         def_frame.hardware_object = "bfg"
         assert def_frame.hardware_object == "bfg"
 
+    def test_hardware_object(self, def_frame: DefFrame, hardware_object: Optional[str]):
+        assert def_frame.hardware_object == hardware_object
+        def_frame.hardware_object = '{"string": "str", "int": 1, "float": 3.14}'
+        assert def_frame.hardware_object == '{"string": "str", "int": 1, "float": 3.14}'
+
     def test_sample_rate(self, def_frame: DefFrame, sample_rate: Optional[float]):
         assert def_frame.sample_rate == sample_rate
         def_frame.sample_rate = 96.0
