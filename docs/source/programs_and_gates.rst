@@ -644,9 +644,10 @@ any other instruction:
    dynamically by checking the ``qam`` property on your requested :py:class:`~pyquil.api.QuantumComputer`:
 
    .. testcode:: remove-quil-t
+
     from pyquil.quil import Program
-    from pyquil.gates import DELAY
-    from pyquil.api import QVM
+    from pyquil.gates import DELAY, H
+    from pyquil.api import QVM, get_qc
 
     qc = get_qc("2q-qvm")
     p = Program(H(0))
