@@ -79,6 +79,7 @@ from pyquil.quilbase import (
     _convert_to_rs_instruction,
     _convert_to_rs_instructions,
     _convert_to_py_instructions,
+    _convert_to_py_instruction,
     _convert_to_py_qubits,
 )
 from pyquil.quiltcalibrations import (
@@ -451,6 +452,29 @@ class Program:
                 self._program.calibrations = new_calibrations
         else:
             self._program.add_instruction(instruction)
+
+    def filter_instructions(self, predicate: Callable[[AbstractInstruction], bool]) -> "Program":
+        """
+        Return a new ``Program`` containing only the instructions for which ``predicate`` returns ``True``.
+
+        :param predicate: A function that takes an instruction and returns ``True`` if the instruction should not be removed from the program, ``False`` otherwise.
+        :return: A new ``Program`` object with the filtered instructions.
+        """
+
+        def rs_predicate(inst: quil_rs.Instruction) -> bool:
+            return predicate(_convert_to_py_instruction(inst))
+
+        filtered_program = Program(self._program.filter_instructions(rs_predicate))
+        filtered_program.num_shots = self.num_shots
+        return filtered_program
+
+    def remove_quil_t_instructions(self) -> "Program":
+        """
+        Return a copy of the program with all Quil-T instructions removed.
+        """
+        filtered_program = Program(self._program.filter_instructions(lambda inst: not inst.is_quil_t()))
+        filtered_program.num_shots = self.num_shots
+        return filtered_program
 
     def gate(
         self,
