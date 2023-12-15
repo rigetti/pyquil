@@ -2763,6 +2763,15 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
             return value.to_string()
         return value.to_expression().to_number().real
 
+    def __get_attribute__(self, name: str) -> Union[str, float]:
+        value = self.get_attribute(name)
+        if value is None:
+            raise AttributeError(f"Attribute {name} not found")
+        return value
+
+    def __set_attribute__(self, name: str, value: Union[str, float]) -> None:
+        self.set_attribute(name, value)
+
     @property
     @deprecated(
         version="4.0",
