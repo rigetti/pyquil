@@ -1,6 +1,9 @@
 import numpy as np
+from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program
+from pyquil.quilatom import Label
+from pyquil.quilbase import MemoryReference
 from pyquil.experiment._program import (
     measure_qubits,
     parameterized_single_qubit_measurement_basis,
@@ -84,3 +87,31 @@ RX(pi/2) 33
     p_all = p1 + p2
     assert str(p1) == str(original_p1)
     assert p1.calibrations != p_all.calibrations
+
+
+def test_apply_numshots_loop(snapshot: SnapshotAssertion):
+    p = Program(
+        """DECLARE ro BIT
+DECLARE shot_count INTEGER
+MEASURE q ro
+JUMP-UNLESS @end-reset ro
+X q
+LABEL @end-reset
+
+DEFCAL I 0:
+    DELAY 0 1.0
+DEFFRAME 0 \"rx\":
+    HARDWARE-OBJECT: \"hardware\"
+DEFWAVEFORM custom:
+    1,2
+I 0
+"""
+    )
+    p.wrap_in_numshots_loop(100)
+    p_copy = p.copy()
+
+    looped = p.apply_numshots_loop(MemoryReference("shot_count"), Label("end-loop"), Label("start-loop"))
+
+    assert p_copy == p
+    assert looped.out() == snapshot
+    assert looped.num_shots == 1
