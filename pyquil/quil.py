@@ -253,8 +253,6 @@ class Program:
             Program { ... }
             >>> p.inst(H(i) for i in range(4)) # A generator of instructions
             Program { ... }
-            >>> p.inst(("H", 1)) # A tuple representing an instruction
-            Program { ... }
             >>> p.inst("H 0") # A string representing an instruction
             Program { ... }
             >>> q = Program()
@@ -275,10 +273,33 @@ class Program:
             elif isinstance(instruction, types.GeneratorType):
                 self.inst(*instruction)
             elif isinstance(instruction, tuple):
+                warnings.warn(
+                    "Adding instructions to a program by specifying them as tuples is deprecated. Consider building "
+                    "the instruction you need using classes from the `pyquil.gates` or `pyquil.quilbase` modules and "
+                    "passing those to Program.inst() instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 if len(instruction) == 0:
                     raise ValueError("tuple should have at least one element")
+                elif len(instruction) == 1:
+                    self.inst(instruction[0])
                 else:
-                    self.inst(" ".join(map(str, instruction)))
+                    op = instruction[0]
+                    if op == "MEASURE":
+                        if len(instruction) == 2:
+                            self.measure(instruction[1], None)
+                        else:
+                            self.measure(instruction[1], instruction[2])
+                    else:
+                        params: List[ParameterDesignator] = []
+                        possible_params = instruction[1]
+                        rest: Sequence[Any] = instruction[2:]
+                        if isinstance(possible_params, list):
+                            params = possible_params
+                        else:
+                            rest = [possible_params] + list(rest)
+                        self.gate(op, params, rest)
             elif isinstance(instruction, str):
                 self.inst(RSProgram.parse(instruction.strip()))
             elif isinstance(instruction, Program):
