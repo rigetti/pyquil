@@ -1,0 +1,23 @@
+# name: test_apply_numshots_loop
+  '''
+  DECLARE ro BIT[1]
+  DECLARE shot_count INTEGER[1]
+  DEFFRAME 0 "rx":
+  	HARDWARE-OBJECT: "hardware"
+  DEFWAVEFORM custom:
+  	1, 2
+  DEFCAL I 0:
+  	DELAY 0 1
+  MOVE shot_count[0] 100
+  LABEL @end-loop
+  MEASURE q ro[0]
+  JUMP-UNLESS @end-reset ro[0]
+  X q
+  LABEL @end-reset
+  I 0
+  SUB shot_count[0] 1
+  JUMP-UNLESS @start-loop shot_count[0]
+  JUMP @end-loop
+  
+  '''
+# ---
