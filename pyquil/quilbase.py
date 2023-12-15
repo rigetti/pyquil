@@ -2750,12 +2750,12 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
     def frame(self, frame: Frame) -> None:
         quil_rs.FrameDefinition.identifier.__set__(self, frame)  # type: ignore[attr-defined]
 
-    def _set_attribute(self, name: str, value: Union[str, float]) -> None:
+    def set_attribute(self, name: str, value: Union[str, float]) -> None:
         updated = super().attributes
         updated.update({name: DefFrame._to_attribute_value(value)})
         quil_rs.FrameDefinition.attributes.__set__(self, updated)  # type: ignore[attr-defined]
 
-    def _get_attribute(self, name: str) -> Optional[Union[str, float]]:
+    def get_attribute(self, name: str) -> Optional[Union[str, float]]:
         value = super().attributes.get(name, None)
         if value is None:
             return None
@@ -2763,46 +2763,98 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
             return value.to_string()
         return value.to_expression().to_number().real
 
+    def __getitem__(self, name: str) -> Union[str, float]:
+        if not isinstance(name, str):
+            raise TypeError("Frame attribute keys must be strings")
+        value = self.get_attribute(name)
+        if value is None:
+            raise AttributeError(f"Attribute {name} not found")
+        return value
+
+    def __setitem__(self, name: str, value: Union[str, float]) -> None:
+        if not isinstance(name, str):
+            raise TypeError("Frame attribute keys must be strings")
+        self.set_attribute(name, value)
+
     @property
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use get_attribute('DIRECTION') instead.",
+    )
     def direction(self) -> Optional[str]:
-        return self._get_attribute("DIRECTION")  # type: ignore
+        return self.get_attribute("DIRECTION")  # type: ignore
 
     @direction.setter
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use set_attribute('DIRECTION') instead.",
+    )
     def direction(self, direction: str) -> None:
-        self._set_attribute("DIRECTION", direction)
+        self.set_attribute("DIRECTION", direction)
 
     @property
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use set_attribute('INITIAL-FREQUENCY') instead.",  # noqa: E501
+    )
     def initial_frequency(self) -> Optional[float]:
-        return self._get_attribute("INITIAL-FREQUENCY")  # type: ignore
+        return self.get_attribute("INITIAL-FREQUENCY")  # type: ignore
 
     @initial_frequency.setter
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use set_attribute('INITIAL-FREQUENCY') instead.",  # noqa: E501
+    )
     def initial_frequency(self, initial_frequency: float) -> None:
-        self._set_attribute("INITIAL-FREQUENCY", initial_frequency)
+        self.set_attribute("INITIAL-FREQUENCY", initial_frequency)
 
     @property
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use get_attribute('HARDWARE-OBJECT') instead.",
+    )
     def hardware_object(self) -> Optional[str]:
-        return self._get_attribute("HARDWARE-OBJECT")  # type: ignore
+        return self.get_attribute("HARDWARE-OBJECT")  # type: ignore
 
     @hardware_object.setter
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use set_attribute('HARDWARE-OBJECT') instead.",
+    )
     def hardware_object(self, hardware_object: str) -> None:
-        self._set_attribute("HARDWARE-OBJECT", hardware_object)
+        self.set_attribute("HARDWARE-OBJECT", hardware_object)
 
     @property
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use get_attribute('SAMPLE-RATE') instead.",
+    )
     def sample_rate(self) -> Frame:
-        return self._get_attribute("SAMPLE-RATE")  # type: ignore
+        return self.get_attribute("SAMPLE-RATE")  # type: ignore
 
     @sample_rate.setter
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use set_attribute('SAMPLE-RATE') instead.",
+    )
     def sample_rate(self, sample_rate: float) -> None:
-        self._set_attribute("SAMPLE-RATE", sample_rate)
+        self.set_attribute("SAMPLE-RATE", sample_rate)
 
     @property
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use get_attribute('CENTER-FREQUENCY') instead.",
+    )
     def center_frequency(self) -> Frame:
-        return self._get_attribute("CENTER-FREQUENCY")  # type: ignore
+        return self.get_attribute("CENTER-FREQUENCY")  # type: ignore
 
     @center_frequency.setter
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use set_attribute('CENTER-FREQUENCY') instead.",
+    )
     def center_frequency(self, center_frequency: float) -> None:
-        self._set_attribute("CENTER-FREQUENCY", center_frequency)
-        self._set_attribute("CENTER-FREQUENCY", center_frequency)
+        self.set_attribute("CENTER-FREQUENCY", center_frequency)
 
     def __copy__(self) -> Self:
         return self
