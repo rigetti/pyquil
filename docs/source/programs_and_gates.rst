@@ -213,6 +213,8 @@ use the compiler to :ref:`re-index <rewiring>` your qubits):
     for i, q in enumerate(qubits):
         p += MEASURE(q, ro[i])
 
+.. _specifying_trials:
+
 Specifying the number of trials
 ===============================
 
@@ -239,6 +241,61 @@ program should be executed 1000 times:
 
     The word “shot” comes from experimental physics where an experiment is
     performed many times, and each result is called a shot.
+
+.. _applying_a_numshots_loop:
+
+Applying a numshots loop
+------------------------
+
+Specifying trials with :py:meth:`~pyquil.quil.Program.wrap_in_numshots_loop` doesn't modify the Quil in your program in
+any way. Instead, the number of shots you specify is included in your job request and tells the executor how many times
+to run your program. However, with Quil's :ref:`classical_control_flow`, instructions it is possible to write a program
+that itself defines a loop over a number of shots. The :py:meth:`~pyquil.quil.Program.apply_numshots_loop` method will
+help you do just that. It wraps the body of your program in a loop over the number of shots you specified with ``wrap_in_numshots_loop`` and returns the looped program with its ``num_shots`` property set to 1.
+
+Let's see an example, we'll construct a classic bell state program and measure it 1000 times by applying a numshots
+loop.
+
+.. testcode:: apply_numshots_loop
+
+    from pyquil import Program
+    from pyquil.quilatom import Label
+    from pyquil.gates import H, CNOT
+
+    # Setup the bell state program
+    p = Program(
+        H(0),
+        CNOT(0, 1),
+    )
+    ro = p.declare("ro", "BIT", 2)
+    p.measure(0, ro[0])
+    p.measure(1, ro[1])
+
+    # Declare a memory region to hold the number of shots
+    shot_count = p.declare("shot_count", "INTEGER")
+    p.wrap_in_numshots_loop(1000)
+
+    # Apply the numshots loop by passing in the MemoryReference for the shot_count and two
+    # labels to mark the beginning and end of the loop.
+    looped_program = p.apply_numshots_loop(shot_count, Label("start-loop"), Label("end-loop"))
+    print(looped_program.out())
+    print(looped_program.num_shots)
+
+.. testoutput:: apply_numshots_loop
+
+    DECLARE ro BIT[2]
+    DECLARE shot_count INTEGER[1]
+    MOVE shot_count[0] 1000
+    LABEL @start-loop
+    H 0
+    CNOT 0 1
+    MEASURE 0 ro[0]
+    MEASURE 1 ro[1]
+    SUB shot_count[0] 1
+    JUMP-UNLESS @end-loop shot_count[0]
+    JUMP @start-loop
+
+    1
 
 
 .. _parametric_compilation:

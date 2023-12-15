@@ -268,6 +268,8 @@ register of qubits to build your program.
     H 12
     H 14
 
+.. _classical_control_flow: 
+
 **********************
 Classical control flow
 **********************
@@ -339,6 +341,13 @@ classical register.  There are several classical commands that can be used in th
 - ``IOR`` which operates on two classical bits
 - ``MOVE`` which moves the value of a classical bit at one classical address into another
 - ``EXCHANGE`` which swaps the value of two classical bits
+
+.. note::
+
+   The approach documented here can be used to construct a "numshots" loop in pure Quil. See the
+   :py:meth:`~pyquil.quil.Program.apply_numshots_loop` method and :ref:`applying_a_numshots_loop` for more
+   information.
+
 
 If, then
 ========
@@ -424,6 +433,10 @@ We can run this program a few times to see what we get in the readout register `
      [1]
      [1]
      [0]]
+
+Applying a numshots loop
+------------------------
+
 
 
 **********************
