@@ -253,7 +253,7 @@ to run your program. However, with Quil's :ref:`classical_control_flow`, instruc
 that itself defines a loop over a number of shots. The :py:meth:`~pyquil.quil.Program.apply_numshots_loop` method will
 help you do just that. It wraps the body of your program in a loop over the number of shots you specified with ``wrap_in_numshots_loop`` and returns the looped program with its ``num_shots`` property set to 1.
 
-Let's see an example, we'll construct a classic bell state program and measure it 1000 times by applying a numshots
+Let's see an example. We'll construct a classic bell state program and measure it 1000 times by applying a numshots
 loop.
 
 .. testcode:: apply_numshots_loop
