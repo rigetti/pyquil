@@ -657,7 +657,7 @@ any other instruction:
     if isinstance(qc.qam, QVM):
         p = p.remove_quil_t_instructions()
     else: # Otherwise, compile to native Quil
-        p = qc.compiler.quil_to_native_quil(p)
+        p = qc.compiler.native_quil_to_executable(p)
 
     qc.run(p)
 
