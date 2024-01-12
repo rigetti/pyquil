@@ -258,7 +258,7 @@ loop.
 
 .. testcode:: apply_numshots_loop
 
-    from pyquil import Program
+    from pyquil import Program, get_qc
     from pyquil.quilatom import Label
     from pyquil.gates import H, CNOT
 
@@ -273,13 +273,17 @@ loop.
 
     # Declare a memory region to hold the number of shots
     shot_count = p.declare("shot_count", "INTEGER")
-    p.wrap_in_numshots_loop(1000)
+    p.wrap_in_numshots_loop(100)
 
     # Apply the numshots loop by passing in the MemoryReference for the shot_count and two
     # labels to mark the beginning and end of the loop.
     looped_program = p.apply_numshots_loop(shot_count, Label("start-loop"), Label("end-loop"))
     print(looped_program.out())
     print(looped_program.num_shots)
+
+    qc = get_qc("2q-qvm")
+    # Specify your desired shot count in the memory map.
+    results = qc.run(looped_program, memory_map={"shot_count": [1000]})
 
 .. testoutput:: apply_numshots_loop
 
