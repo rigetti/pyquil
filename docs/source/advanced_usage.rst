@@ -434,10 +434,6 @@ We can run this program a few times to see what we get in the readout register `
      [1]
      [0]]
 
-Applying a numshots loop
-------------------------
-
-
 
 **********************
 Pauli Operator Algebra
