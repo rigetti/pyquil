@@ -209,6 +209,8 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         if instr.is_wait():
             return Wait()
         return _convert_to_py_instruction(instr.inner())
+    if isinstance(instr, quil_rs.Arithmetic):
+        return ArithmeticBinaryOp._from_rs_arithmetic(instr)
     if isinstance(instr, quil_rs.Capture):
         return Capture._from_rs_capture(instr)
     if isinstance(instr, quil_rs.Calibration):
