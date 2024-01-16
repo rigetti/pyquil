@@ -251,11 +251,11 @@ Specifying trials with :py:meth:`~pyquil.quil.Program.wrap_in_numshots_loop` doe
 any way. Instead, the number of shots you specify is included in your job request and tells the executor how many times
 to run your program. However, with Quil's :ref:`classical_control_flow`, instructions it is possible to write a program
 that itself defines a loop over a number of shots. The :py:meth:`~pyquil.quil.Program.with_loop` method will help you
-do just that. It wraps the body of your program in a loop over a number of iteration you specify and returns the looped
+do just that. It wraps the body of your program in a loop over a number of iterations you specify and returns the looped
 program.
 
-Let's see an example. We'll construct a classic bell state program and measure it 1000 times by applying a numshots
-loop.
+Let's see an example. We'll construct a classic bell state program and measure it 1000 times by wrapping the program in a
+Quil loop.
 
 .. testcode:: with_loop
 
