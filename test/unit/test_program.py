@@ -89,7 +89,7 @@ RX(pi/2) 33
     assert p1.calibrations != p_all.calibrations
 
 
-def test_apply_numshots_loop(snapshot: SnapshotAssertion):
+def test_with_loop(snapshot: SnapshotAssertion):
     p = Program(
         """DECLARE ro BIT
 DECLARE shot_count INTEGER
@@ -107,11 +107,9 @@ DEFWAVEFORM custom:
 I 0
 """
     )
-    p.wrap_in_numshots_loop(100)
     p_copy = p.copy()
 
-    looped = p.apply_numshots_loop(MemoryReference("shot_count"), Label("end-loop"), Label("start-loop"))
+    looped = p.with_loop(100, MemoryReference("shot_count"), Label("start-loop"), Label("end-loop"))
 
     assert p_copy == p
     assert looped.out() == snapshot
-    assert looped.num_shots == 1

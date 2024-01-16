@@ -298,21 +298,24 @@ class Program:
 
         return self
 
-    def apply_numshots_loop(
+    def with_loop(
         self,
-        loop_count_reference: MemoryReference,
+        num_iterations: int,
+        iteration_count_reference: MemoryReference,
         start_label: Union[Label, LabelPlaceholder],
         end_label: Union[Label, LabelPlaceholder],
     ) -> "Program":
         """
-        Return a copy of the ``Program`` wrapped in a Quil loop that will execute ``num_shots`` times,
-        where ``num_shots`` is the value set by calling ``Program.wrap_in_numshots_loop()`` or by setting
-        the ``Program.num_shots`` property directly. Since the loop is implemented in Quil, the returned
-        program will have its own ``num_shots`` property set to 1.
+        Return a copy of the ``Program`` wrapped in a Quil loop that will execute ``num_iterations`` times.
+
+        This loop is implemented with Quil and should not be confused with the ``num_shots`` property set by
+        :py:meth:`~pyquil.quil.Program.wrap_in_numshots_loop`. The latter is metadata on the program that
+        can tell an executor how many times to run the program. In comparison, this method adds Quil
+        instructions to your program to specify a loop in the Quil program itself.
 
         The loop is constructed by wrapping the body of the program in classical Quil instructions.
-        The given ``loop_count_reference`` must refer to an INTEGER memory region. The value at the
-        reference given will be set to ``program.num_shots`` and decremented in the loop. The loop will
+        The given ``iteration_count_reference`` must refer to an INTEGER memory region. The value at the
+        reference given will be set to ``num_iterations`` and decremented in the loop. The loop will
         terminate when the reference reaches 0. For this reason your program should not itself
         modify the value at the reference unless you intend to modify the remaining number of
         iterations (i.e. to break the loop).
@@ -321,8 +324,8 @@ class Program:
         the loop, respectively. You should provide unique ``JumpTarget``\\s that won't be used elsewhere
         in the program.
 
-        If ``num_shots`` is 1, then a copy of the program is returned without any changes. Raises a
-        ``TypeError`` if ``num_shots`` is negative.
+        If ``num_iterations`` is 1, then a copy of the program is returned without any changes. Raises a
+        ``TypeError`` if ``num_iterations`` is negative.
 
         :param loop_count_reference: The memory reference to use as the loop counter.
         :param start_label: The ``JumpTarget`` to use at the start of the loop.
@@ -330,10 +333,9 @@ class Program:
         """
         looped_program = Program(
             self._program.wrap_in_loop(
-                loop_count_reference._to_rs_memory_reference(), start_label.target, end_label.target, self.num_shots
+                iteration_count_reference._to_rs_memory_reference(), start_label.target, end_label.target, num_iterations,
             )
         )
-        looped_program.num_shots = 1
         return looped_program
 
     @_invalidates_cached_properties

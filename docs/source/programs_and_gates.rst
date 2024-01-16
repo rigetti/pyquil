@@ -242,21 +242,22 @@ program should be executed 1000 times:
     The word “shot” comes from experimental physics where an experiment is
     performed many times, and each result is called a shot.
 
-.. _applying_a_numshots_loop:
+.. _build_a_fixed_count_loop:
 
-Applying a numshots loop
-------------------------
+Build a fixed-count loop with Quil
+----------------------------------
 
 Specifying trials with :py:meth:`~pyquil.quil.Program.wrap_in_numshots_loop` doesn't modify the Quil in your program in
 any way. Instead, the number of shots you specify is included in your job request and tells the executor how many times
 to run your program. However, with Quil's :ref:`classical_control_flow`, instructions it is possible to write a program
-that itself defines a loop over a number of shots. The :py:meth:`~pyquil.quil.Program.apply_numshots_loop` method will
-help you do just that. It wraps the body of your program in a loop over the number of shots you specified with ``wrap_in_numshots_loop`` and returns the looped program with its ``num_shots`` property set to 1.
+that itself defines a loop over a number of shots. The :py:meth:`~pyquil.quil.Program.with_loop` method will help you
+do just that. It wraps the body of your program in a loop over a number of iteration you specify and returns the looped
+program.
 
 Let's see an example. We'll construct a classic bell state program and measure it 1000 times by applying a numshots
 loop.
 
-.. testcode:: apply_numshots_loop
+.. testcode:: with_loop
 
     from pyquil import Program, get_qc
     from pyquil.quilatom import Label
@@ -273,19 +274,17 @@ loop.
 
     # Declare a memory region to hold the number of shots
     shot_count = p.declare("shot_count", "INTEGER")
-    p.wrap_in_numshots_loop(100)
 
-    # Apply the numshots loop by passing in the MemoryReference for the shot_count and two
-    # labels to mark the beginning and end of the loop.
-    looped_program = p.apply_numshots_loop(shot_count, Label("start-loop"), Label("end-loop"))
+    # Wrap the program in a loop by specifying the number of iterations, a memory reference to
+    # hold the number of iterations, and two labels to mark the beginning and end of the loop.
+    looped_program = p.with_loop(1000, shot_count, Label("start-loop"), Label("end-loop"))
     print(looped_program.out())
-    print(looped_program.num_shots)
 
     qc = get_qc("2q-qvm")
     # Specify your desired shot count in the memory map.
     results = qc.run(looped_program, memory_map={"shot_count": [1000]})
 
-.. testoutput:: apply_numshots_loop
+.. testoutput:: with_loop
 
     DECLARE ro BIT[2]
     DECLARE shot_count INTEGER[1]
@@ -298,8 +297,7 @@ loop.
     SUB shot_count[0] 1
     JUMP-UNLESS @end-loop shot_count[0]
     JUMP @start-loop
-
-    1
+    LABEL @end-loop
 
 
 .. _parametric_compilation:

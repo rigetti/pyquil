@@ -345,7 +345,7 @@ classical register.  There are several classical commands that can be used in th
 .. note::
 
    The approach documented here can be used to construct a "numshots" loop in pure Quil. See the
-   :py:meth:`~pyquil.quil.Program.apply_numshots_loop` method and :ref:`applying_a_numshots_loop` for more
+   :py:meth:`~pyquil.quil.Program.with_loop` method and :ref:`build_a_fixed_count_loop` for more
    information.
 
 
