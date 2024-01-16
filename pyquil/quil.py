@@ -333,7 +333,10 @@ class Program:
         """
         looped_program = Program(
             self._program.wrap_in_loop(
-                iteration_count_reference._to_rs_memory_reference(), start_label.target, end_label.target, num_iterations,
+                iteration_count_reference._to_rs_memory_reference(),
+                start_label.target,
+                end_label.target,
+                num_iterations,
             )
         )
         return looped_program
