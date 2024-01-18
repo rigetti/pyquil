@@ -1467,6 +1467,13 @@ class TestArithmeticBinaryOp:
         assert isinstance(copy.copy(arithmetic), type(arithmetic))
         assert isinstance(copy.deepcopy(arithmetic), type(arithmetic))
 
+    def valid_in_program(self, arithmetic):
+        try:
+            p = Program(arithmetic)
+            p[0] == arithmetic
+        except Exception:
+            pytest.fail("ArithmeticBinaryOp not valid in Program")
+
 
 @pytest.mark.parametrize(
     ("op", "left", "right"),
