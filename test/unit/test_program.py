@@ -109,6 +109,7 @@ H 0
 CNOT 0 1
 MEASURE 0 ro[0]
 MEASURE 1 ro[0]
+WAIT
 """
     )
 
@@ -134,7 +135,6 @@ SHIFT-FREQUENCY 0 "ro" 6100000000
 SHIFT-PHASE 0 "xy" (-pi)
 SHIFT-PHASE 0 "xy" (%theta*(2/pi))
 SWAP-PHASES 2 3 "xy" 3 4 "xy";
-WAIT
 """
     )
     full_program = non_quil_t_program + quil_t_program
