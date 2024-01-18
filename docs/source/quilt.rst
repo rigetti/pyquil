@@ -26,3 +26,9 @@ as determining `T1`. The hardware is almost at your fingertips.
 
 For examples, see the adjacent notebooks. For more information, see
 the `Quil project homepage <https://github.com/rigetti/quil>`_.
+
+.. warning::
+
+   Quil-T instructions are not supported by `quilc` or the QVM. See
+   :ref:`this note <quil_t_qvm_warning>` for a pattern you can use to
+   dynamically remove them before testing your program against a QVM.
