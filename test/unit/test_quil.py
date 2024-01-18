@@ -200,6 +200,20 @@ def test_inst_tuple(snapshot):
     assert p.out() == snapshot
 
 
+def test_inst_tuple_measure(snapshot):
+    p = Program()
+    p.inst(("MEASURE", 0, ("ro", 1)))
+    assert len(p) == 1
+    assert p.out() == snapshot
+
+
+def test_inst_tuple_multiple_params(snapshot):
+    p = Program()
+    p.inst(("RX", [pi / 2], 0))
+    assert len(p) == 1
+    assert p.out() == snapshot
+
+
 def test_inst_rs_gate(snapshot):
     p = Program()
     q = quil_rs.Qubit.from_fixed(0)

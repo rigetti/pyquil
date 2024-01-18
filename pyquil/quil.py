@@ -79,6 +79,7 @@ from pyquil.quilbase import (
     _convert_to_rs_instruction,
     _convert_to_rs_instructions,
     _convert_to_py_instructions,
+    _convert_to_py_instruction,
     _convert_to_py_qubits,
 )
 from pyquil.quiltcalibrations import (
@@ -253,8 +254,6 @@ class Program:
             Program { ... }
             >>> p.inst(H(i) for i in range(4)) # A generator of instructions
             Program { ... }
-            >>> p.inst(("H", 1)) # A tuple representing an instruction
-            Program { ... }
             >>> p.inst("H 0") # A string representing an instruction
             Program { ... }
             >>> q = Program()
@@ -275,10 +274,33 @@ class Program:
             elif isinstance(instruction, types.GeneratorType):
                 self.inst(*instruction)
             elif isinstance(instruction, tuple):
+                warnings.warn(
+                    "Adding instructions to a program by specifying them as tuples is deprecated. Consider building "
+                    "the instruction you need using classes from the `pyquil.gates` or `pyquil.quilbase` modules and "
+                    "passing those to Program.inst() instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 if len(instruction) == 0:
                     raise ValueError("tuple should have at least one element")
+                elif len(instruction) == 1:
+                    self.inst(instruction[0])
                 else:
-                    self.inst(" ".join(map(str, instruction)))
+                    op = instruction[0]
+                    if op == "MEASURE":
+                        if len(instruction) == 2:
+                            self.measure(instruction[1], None)
+                        else:
+                            self.measure(instruction[1], instruction[2])
+                    else:
+                        params: List[ParameterDesignator] = []
+                        possible_params = instruction[1]
+                        rest: Sequence[Any] = instruction[2:]
+                        if isinstance(possible_params, list):
+                            params = possible_params
+                        else:
+                            rest = [possible_params] + list(rest)
+                        self.gate(op, params, rest)
             elif isinstance(instruction, str):
                 self.inst(RSProgram.parse(instruction.strip()))
             elif isinstance(instruction, Program):
@@ -473,6 +495,30 @@ class Program:
                 self._program.calibrations = new_calibrations
         else:
             self._program.add_instruction(instruction)
+
+    def filter_instructions(self, predicate: Callable[[AbstractInstruction], bool]) -> "Program":
+        """
+        Return a new ``Program`` containing only the instructions for which ``predicate`` returns ``True``.
+
+        :param predicate: A function that takes an instruction and returns ``True`` if the instruction should not be
+            removed from the program, ``False`` otherwise.
+        :return: A new ``Program`` object with the filtered instructions.
+        """
+
+        def rs_predicate(inst: quil_rs.Instruction) -> bool:
+            return predicate(_convert_to_py_instruction(inst))
+
+        filtered_program = Program(self._program.filter_instructions(rs_predicate))
+        filtered_program.num_shots = self.num_shots
+        return filtered_program
+
+    def remove_quil_t_instructions(self) -> "Program":
+        """
+        Return a copy of the program with all Quil-T instructions removed.
+        """
+        filtered_program = Program(self._program.filter_instructions(lambda inst: not inst.is_quil_t()))
+        filtered_program.num_shots = self.num_shots
+        return filtered_program
 
     def gate(
         self,

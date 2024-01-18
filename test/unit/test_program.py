@@ -4,13 +4,14 @@ from syrupy.assertion import SnapshotAssertion
 from pyquil import Program
 from pyquil.quilatom import Label
 from pyquil.quilbase import MemoryReference
+from pyquil.quil import AbstractInstruction, Declare, Measurement
 from pyquil.experiment._program import (
     measure_qubits,
     parameterized_single_qubit_measurement_basis,
     parameterized_single_qubit_state_preparation,
     parameterized_readout_symmetrization,
 )
-from pyquil.gates import MEASURE, RX, RZ
+from pyquil.gates import MEASURE, RX, RZ, H
 
 
 def test_measure_qubits():
@@ -113,3 +114,57 @@ I 0
 
     assert p_copy == p
     assert looped.out() == snapshot
+
+
+def test_filter_program():
+    program = Program(Declare("ro", "BIT", 1), MEASURE(0, MemoryReference("ro", 1)), H(0))
+
+    def predicate(instruction: AbstractInstruction) -> bool:
+        if isinstance(instruction, Declare):
+            return instruction.name != "ro"
+        elif isinstance(instruction, Measurement):
+            return instruction.classical_reg.name != "ro"
+        else:
+            return True
+
+    filtered_program = program.filter_instructions(predicate)
+    assert filtered_program == Program(H(0))
+
+
+def test_filter_quil_t():
+    non_quil_t_program = Program(
+        """DECLARE ro BIT[1]
+H 0
+CNOT 0 1
+MEASURE 0 ro[0]
+MEASURE 1 ro[0]
+WAIT
+"""
+    )
+
+    quil_t_program = Program(
+        """
+DEFCAL I q:
+    DELAY q 4e-08
+DEFFRAME 0 "rf":
+    DIRECTION: "tx"
+DEFCAL MEASURE 0 addr:
+    FENCE 0
+DEFWAVEFORM q44_q45_cphase/sqrtCPHASE:
+    0.0, 0.0, 0.00027685415721916584
+CAPTURE 10 "ro_rx" boxcar_kernel(duration: 1.6e-06, scale: 1.0, phase: 0.0, detuning: 0.0) q10_unclassified[0]
+NONBLOCKING CAPTURE 10 "ro_rx" boxcar_kernel(duration: 1.6e-06, scale: 1.0, phase: 0.0, detuning: 0.0) q10_unclassified[0]
+FENCE 0
+PULSE 0 "rf_f12" gaussian(duration: 6.000000000000001e-08, fwhm: 1.5000000000000002e-08, t0: 3.0000000000000004e-08, scale: 0.16297407445283926, phase: 0.0, detuning: 0)
+RAW-CAPTURE 0 "out" 200000000 iqs[0]
+SET-FREQUENCY 0 "xy" 5400000000
+SET-PHASE 0 "xy" pi
+SET-SCALE 0 "xy" pi
+SHIFT-FREQUENCY 0 "ro" 6100000000
+SHIFT-PHASE 0 "xy" (-pi)
+SHIFT-PHASE 0 "xy" (%theta*(2/pi))
+SWAP-PHASES 2 3 "xy" 3 4 "xy";
+"""
+    )
+    full_program = non_quil_t_program + quil_t_program
+    assert full_program.remove_quil_t_instructions() == non_quil_t_program

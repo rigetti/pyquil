@@ -518,27 +518,48 @@ class TestDefFrame:
         assert def_frame.frame == Frame([Qubit(123)], "new_frame")
 
     def test_direction(self, def_frame: DefFrame, direction: Optional[str]):
-        assert def_frame.direction == direction
+        assert def_frame.direction == direction is None if not direction else def_frame["DIRECTION"]
         def_frame.direction = "tx"
         assert def_frame.direction == "tx"
 
     def test_initial_frequency(self, def_frame: DefFrame, initial_frequency: Optional[float]):
-        assert def_frame.initial_frequency == initial_frequency
+        assert (
+            def_frame.initial_frequency == initial_frequency is None
+            if not initial_frequency
+            else def_frame["INITIAL-FREQUENCY"]
+        )
         def_frame.initial_frequency = 3.14
         assert def_frame.initial_frequency == 3.14
 
     def test_hardware_object(self, def_frame: DefFrame, hardware_object: Optional[str]):
-        assert def_frame.hardware_object == hardware_object
+        assert (
+            def_frame.hardware_object == hardware_object is None
+            if not hardware_object
+            else def_frame["HARDWARE-OBJECT"]
+        )
         def_frame.hardware_object = "bfg"
         assert def_frame.hardware_object == "bfg"
 
+    def test_hardware_object_json(self, def_frame: DefFrame, hardware_object: Optional[str]):
+        assert (
+            def_frame.hardware_object == hardware_object is None
+            if not hardware_object
+            else def_frame["HARDWARE-OBJECT"]
+        )
+        def_frame.hardware_object = '{"string": "str", "int": 1, "float": 3.14}'
+        assert def_frame.hardware_object == '{"string": "str", "int": 1, "float": 3.14}'
+
     def test_sample_rate(self, def_frame: DefFrame, sample_rate: Optional[float]):
-        assert def_frame.sample_rate == sample_rate
+        assert def_frame.sample_rate == sample_rate is None if not sample_rate else def_frame["SAMPLE-RATE"]
         def_frame.sample_rate = 96.0
         assert def_frame.sample_rate == 96.0
 
     def test_center_frequency(self, def_frame: DefFrame, center_frequency: Optional[float]):
-        assert def_frame.center_frequency == center_frequency
+        assert (
+            def_frame.center_frequency == center_frequency is None
+            if not center_frequency
+            else def_frame.center_frequency
+        )
         def_frame.center_frequency = 432.0
         assert def_frame.center_frequency == 432.0
 
@@ -1445,6 +1466,13 @@ class TestArithmeticBinaryOp:
     def test_copy(self, arithmetic: ArithmeticBinaryOp):
         assert isinstance(copy.copy(arithmetic), type(arithmetic))
         assert isinstance(copy.deepcopy(arithmetic), type(arithmetic))
+
+    def valid_in_program(self, arithmetic):
+        try:
+            p = Program(arithmetic)
+            p[0] == arithmetic
+        except Exception:
+            pytest.fail("ArithmeticBinaryOp not valid in Program")
 
 
 @pytest.mark.parametrize(

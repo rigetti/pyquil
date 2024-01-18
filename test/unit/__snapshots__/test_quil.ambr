@@ -190,6 +190,18 @@
   
   '''
 # ---
+# name: test_inst_tuple_measure
+  '''
+  MEASURE 0 ro[1]
+  
+  '''
+# ---
+# name: test_inst_tuple_multiple_params
+  '''
+  RX(1.5707963267948966) 0
+  
+  '''
+# ---
 # name: test_kraus
   '''
   X 0
