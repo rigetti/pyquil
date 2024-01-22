@@ -238,7 +238,10 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     if isinstance(instr, quil_rs.RawCapture):
         return RawCapture._from_rs_raw_capture(instr)
     if isinstance(instr, quil_rs.Reset):
-        return Reset._from_rs_reset(instr)
+        if instr.qubit is None:
+            return Reset._from_rs_reset(instr)
+        else:
+            return ResetQubit._from_rs_reset(instr)
     if isinstance(instr, quil_rs.CircuitDefinition):
         return DefCircuit._from_rs_circuit_definition(instr)
     if isinstance(instr, quil_rs.GateDefinition):
@@ -618,6 +621,10 @@ class ResetQubit(Reset):
         if qubit is None:
             raise TypeError("qubit should not be None")
         return super().__new__(cls, qubit)
+
+    @classmethod
+    def _from_rs_reset(cls, reset: quil_rs.Reset) -> "Reset":
+        return super().__new__(cls, reset.qubit)
 
 
 class DefGate(quil_rs.GateDefinition, AbstractInstruction):
