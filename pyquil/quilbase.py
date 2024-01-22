@@ -623,7 +623,7 @@ class ResetQubit(Reset):
         return super().__new__(cls, qubit)
 
     @classmethod
-    def _from_rs_reset(cls, reset: quil_rs.Reset) -> "Reset":
+    def _from_rs_reset(cls, reset: quil_rs.Reset) -> "ResetQubit":
         return super().__new__(cls, reset.qubit)
 
 
