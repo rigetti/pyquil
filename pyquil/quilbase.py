@@ -624,7 +624,10 @@ class ResetQubit(Reset):
 
     @classmethod
     def _from_rs_reset(cls, reset: quil_rs.Reset) -> "ResetQubit":
-        return super().__new__(cls, reset.qubit)
+        if reset.qubit is not None:
+            return ResetQubit.__new__(cls, _convert_to_py_qubit(reset.qubit))
+        else:
+            return ValueError("ResetQubit cannot be created from a quil.Reset without a qubit.")
 
 
 class DefGate(quil_rs.GateDefinition, AbstractInstruction):
