@@ -558,7 +558,7 @@ class Reset(quil_rs.Reset, AbstractInstruction):
     The RESET instruction.
     """
 
-    def __new__(cls, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument]] = None) -> Self:
+    def __new__(cls, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument, int]] = None) -> Self:
         rs_qubit: Optional[quil_rs.Qubit] = None
         if qubit is not None:
             rs_qubit = _convert_to_rs_qubit(qubit)
@@ -617,7 +617,7 @@ class ResetQubit(Reset):
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    def __new__(cls, qubit: Union[Qubit, QubitPlaceholder, FormalArgument]) -> Self:
+    def __new__(cls, qubit: Union[Qubit, QubitPlaceholder, FormalArgument, int]) -> Self:
         if qubit is None:
             raise TypeError("qubit should not be None")
         return super().__new__(cls, qubit)
@@ -625,9 +625,9 @@ class ResetQubit(Reset):
     @classmethod
     def _from_rs_reset(cls, reset: quil_rs.Reset) -> "ResetQubit":
         if reset.qubit is not None:
-            return ResetQubit.__new__(cls, _convert_to_py_qubit(reset.qubit))
-        else:
-            return ValueError("ResetQubit cannot be created from a quil.Reset without a qubit.")
+            qubit = _convert_to_py_qubit(reset.qubit)
+            return ResetQubit.__new__(cls, qubit)
+        raise ValueError("reset.qubit should not be None")
 
 
 class DefGate(quil_rs.GateDefinition, AbstractInstruction):
