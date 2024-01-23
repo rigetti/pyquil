@@ -282,7 +282,7 @@ Quil loop.
 
     qc = get_qc("2q-qvm")
     # Specify your desired shot count in the memory map.
-    results = qc.run(looped_program, memory_map={"shot_count": [1000]})
+    results = qc.run(looped_program)
 
 .. testoutput:: with_loop
 
