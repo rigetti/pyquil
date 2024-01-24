@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.5.0 (2024-01-24)
+
+### Features
+
+#### Add utility for filtering Programs and a method for removing Quil-T instructions (#1718)
+
+### Fixes
+
+#### Arithmetic instructions will not raise an error when used in Programs (#1723)
+
 ## 4.5.0-rc.0 (2024-01-18)
 
 ### Features
