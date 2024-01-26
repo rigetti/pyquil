@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.6.0-rc.0 (2024-01-26)
+
+### Features
+
+#### qcs-sdk-python version for libquil support, and document libquil usage (#1698)
+
 ## 4.5.0 (2024-01-24)
 
 ### Features
