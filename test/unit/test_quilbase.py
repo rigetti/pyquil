@@ -474,10 +474,10 @@ class TestMeasurement:
 
 
 @pytest.mark.parametrize(
-    ("frame", "direction", "initial_frequency", "hardware_object", "sample_rate", "center_frequency"),
+    ("frame", "direction", "initial_frequency", "hardware_object", "sample_rate", "center_frequency", "channel_delay"),
     [
-        (Frame([Qubit(0)], "frame"), None, None, None, None, None),
-        (Frame([Qubit(1)], "frame"), "direction", 1.39, "hardware_object", 44.1, 440.0),
+        (Frame([Qubit(0)], "frame"), None, None, None, None, None, None),
+        (Frame([Qubit(1)], "frame"), "direction", 1.39, "hardware_object", 44.1, 440.0, 0.0),
     ],
     ids=("Frame-Only", "With-Optionals"),
 )
@@ -491,13 +491,22 @@ class TestDefFrame:
         hardware_object: Optional[str],
         sample_rate: Optional[float],
         center_frequency: Optional[float],
-    ):
-        optional_args = [
-            arg
-            for arg in [direction, initial_frequency, hardware_object, sample_rate, center_frequency]
-            if arg is not None
-        ]
-        return DefFrame(frame, *optional_args)
+        channel_delay: Optional[float],
+    ) -> DefFrame:
+        optional_args = {k: v
+                         for k, v in locals().items()
+                         if k not in["self", "frame"] and v is not None}
+        # optional_args = [
+        #     arg
+        #     for arg in [direction,
+        #                 initial_frequency,
+        #                 hardware_object,
+        #                 sample_rate,
+        #                 center_frequency,
+        #                 channel_delay]:
+        #     if arg is not None
+        # ]
+        return DefFrame(frame, **optional_args)
 
     def test_out(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
         # The ordering of attributes isn't stable and can be printed in different orders across calls.
@@ -509,6 +518,7 @@ class TestDefFrame:
 
     def test_str(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
         quil_lines = str(def_frame).splitlines()
+        print(quil_lines)
         assert quil_lines[0] == snapshot
         assert set(quil_lines[1:]) == snapshot
 
@@ -518,50 +528,39 @@ class TestDefFrame:
         assert def_frame.frame == Frame([Qubit(123)], "new_frame")
 
     def test_direction(self, def_frame: DefFrame, direction: Optional[str]):
-        assert def_frame.direction == direction is None if not direction else def_frame["DIRECTION"]
+        assert def_frame.direction == direction
         def_frame.direction = "tx"
         assert def_frame.direction == "tx"
 
     def test_initial_frequency(self, def_frame: DefFrame, initial_frequency: Optional[float]):
-        assert (
-            def_frame.initial_frequency == initial_frequency is None
-            if not initial_frequency
-            else def_frame["INITIAL-FREQUENCY"]
-        )
+        assert def_frame.initial_frequency == initial_frequency
         def_frame.initial_frequency = 3.14
         assert def_frame.initial_frequency == 3.14
 
     def test_hardware_object(self, def_frame: DefFrame, hardware_object: Optional[str]):
-        assert (
-            def_frame.hardware_object == hardware_object is None
-            if not hardware_object
-            else def_frame["HARDWARE-OBJECT"]
-        )
+        assert def_frame.hardware_object == hardware_object
         def_frame.hardware_object = "bfg"
         assert def_frame.hardware_object == "bfg"
 
     def test_hardware_object_json(self, def_frame: DefFrame, hardware_object: Optional[str]):
-        assert (
-            def_frame.hardware_object == hardware_object is None
-            if not hardware_object
-            else def_frame["HARDWARE-OBJECT"]
-        )
+        assert def_frame.hardware_object == hardware_object
         def_frame.hardware_object = '{"string": "str", "int": 1, "float": 3.14}'
         assert def_frame.hardware_object == '{"string": "str", "int": 1, "float": 3.14}'
 
     def test_sample_rate(self, def_frame: DefFrame, sample_rate: Optional[float]):
-        assert def_frame.sample_rate == sample_rate is None if not sample_rate else def_frame["SAMPLE-RATE"]
+        assert def_frame.sample_rate == sample_rate
         def_frame.sample_rate = 96.0
         assert def_frame.sample_rate == 96.0
 
     def test_center_frequency(self, def_frame: DefFrame, center_frequency: Optional[float]):
-        assert (
-            def_frame.center_frequency == center_frequency is None
-            if not center_frequency
-            else def_frame.center_frequency
-        )
+        assert def_frame.center_frequency == center_frequency
         def_frame.center_frequency = 432.0
         assert def_frame.center_frequency == 432.0
+
+    def test_channel_delay(self, def_frame: DefFrame, channel_delay: Optional[float]):
+        assert def_frame.channel_delay == channel_delay
+        def_frame.channel_delay = 571.0
+        assert def_frame.channel_delay == 571.0
 
     def test_copy(self, def_frame: DefFrame):
         assert isinstance(copy.copy(def_frame), DefFrame)

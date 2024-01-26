@@ -2858,6 +2858,22 @@ class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
     def center_frequency(self, center_frequency: float) -> None:
         self.set_attribute("CENTER-FREQUENCY", center_frequency)
 
+    @property
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use get_attribute('CHANNEL-DELAY') instead.",
+    )
+    def channel_delay(self) -> Frame:
+        return self.get_attribute("CHANNEL-DELAY")  # type: ignore
+
+    @channel_delay.setter
+    @deprecated(
+        version="4.0",
+        reason="Quil now supports generic key/value pairs in DEFFRAMEs. Use set_attribute('CHANNEL-DELAY') instead.",
+    )
+    def channel_delay(self, channel_delay: float) -> None:
+        self.set_attribute("CHANNEL-DELAY", channel_delay)
+
     def __copy__(self) -> Self:
         return self
 
