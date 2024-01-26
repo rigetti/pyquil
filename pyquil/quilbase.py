@@ -218,7 +218,13 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     if isinstance(instr, quil_rs.Declaration):
         return Declare._from_rs_declaration(instr)
     if isinstance(instr, quil_rs.Delay):
-        return Delay._from_rs_delay(instr)
+        print("len(instr.qubits):", len(instr.qubits))
+        print("len(instr.frame_names):", len(instr.frame_names))
+        if len(instr.qubits) > 0 and len(instr.frame_names) > 0:
+            return Delay._from_rs_delay(instr)
+        if len(instr.qubits) > 0:
+            return DelayQubits._from_rs_delay(instr)
+        return DelayFrames._from_rs_delay(instr)
     if isinstance(instr, quil_rs.Fence):
         if len(instr.qubits) == 0:
             return FenceAll()
@@ -2406,10 +2412,18 @@ class DelayFrames(Delay):
     def __new__(cls, frames: List[Frame], duration: float) -> Self:
         return super().__new__(cls, frames, [], duration)
 
+    @classmethod
+    def _from_rs_delay(cls, delay: quil_rs.Delay) -> "DelayFrames":
+        return Delay._from_rs_delay.__func__(cls, delay)
+
 
 class DelayQubits(Delay):
     def __new__(cls, qubits: Sequence[Union[Qubit, FormalArgument]], duration: float) -> Self:
         return super().__new__(cls, [], qubits, duration)
+
+    @classmethod
+    def _from_rs_delay(cls, delay: quil_rs.Delay) -> "DelayQubits":
+        return Delay._from_rs_delay.__func__(cls, delay)
 
 
 class Fence(quil_rs.Fence, AbstractInstruction):

@@ -2,7 +2,7 @@ import numpy as np
 
 from pyquil import Program
 from pyquil.quil import AbstractInstruction, Declare, Measurement, MemoryReference
-from pyquil.quilbase import Reset, ResetQubit
+from pyquil.quilbase import Reset, ResetQubit, Delay, DelayFrames, DelayQubits, Frame
 from pyquil.experiment._program import (
     measure_qubits,
     parameterized_single_qubit_measurement_basis,
@@ -148,9 +148,17 @@ def test_compatibility_layer():
     """
     # Note: `quil` re-orders some instructions in a program (e.g. by shuffling DECLAREs to the top). This isn't a
     # problem for the current set of instructions we're testing, but it's something to keep in mind if we add more.
-    instructions = [ResetQubit(0), Reset()]
+    instructions = [
+        ResetQubit(0),
+        Reset(),
+        Delay([Frame([0], "frame")], [0], 0.01),
+        DelayFrames([Frame([], "frame")], 0.01),
+        DelayQubits([0, 1], 0.01),
+    ]
     program = Program(instructions)
     for (original, transformed) in zip(instructions, program):
         assert isinstance(transformed, AbstractInstruction)
+        print("type(transformed):", type(transformed))
+        print("type(original):", type(original))
         assert isinstance(transformed, type(original))
         assert transformed == original
