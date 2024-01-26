@@ -635,8 +635,31 @@ any other instruction:
 
    ...
 
+.. _quil_t_qvm_warning:
+
 .. warning::
-   `DELAY` and other Quil-T instructions aren't supported by the QVM.
+
+   ``DELAY`` and other Quil-T instructions are not supported by the QVM or ``quilc``. If you want to test the validity
+   of a Quil-T containing program on a QVM you should remove all Quil-T instructions before running it. You can do this 
+   dynamically by checking the ``qam`` property on your requested :py:class:`~pyquil.api.QuantumComputer`:
+
+   .. testcode:: remove-quil-t
+
+    from pyquil.quil import Program
+    from pyquil.gates import DELAY, H
+    from pyquil.api import QVM, get_qc
+
+    qc = get_qc("2q-qvm")
+    p = Program(H(0))
+    p += DELAY(0, 200e-9)
+
+    # If we're using a QVM, remove the Quil-T instructions
+    if isinstance(qc.qam, QVM):
+        p = p.remove_quil_t_instructions()
+    else: # Otherwise, compile to native Quil
+        p = qc.compiler.native_quil_to_executable(p)
+
+    qc.run(p)
 
 .. warning::
    In pyQuil v3 and below, it was common to specify a delay using ``PRAGMA DELAY``. This is no longer supported in v4 because it

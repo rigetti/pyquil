@@ -35,6 +35,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
+    "sphinxcontrib.jquery",
     "nbsphinx",
     "recommonmark",
 ]
@@ -53,6 +54,7 @@ autoclass_content = "both"
 pygments_style = "sphinx"
 todo_include_todos = True
 # intersphinx_mapping = { "python": ("https://docs.python.org/3/", None) }
+autodoc_type_aliases = {"QPUCompilerAPIOptions": "pyquil.api._qpu_compiler.QPUCompilerAPIOptions"}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

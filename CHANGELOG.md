@@ -1,5 +1,125 @@
 # Changelog
 
+## 4.5.0 (2024-01-24)
+
+### Features
+
+#### Add utility for filtering Programs and a method for removing Quil-T instructions (#1718)
+
+### Fixes
+
+#### Arithmetic instructions will not raise an error when used in Programs (#1723)
+
+## 4.5.0-rc.0 (2024-01-18)
+
+### Features
+
+#### Add utility for filtering Programs and a method for removing Quil-T instructions (#1718)
+
+### Fixes
+
+#### Arithmetic instructions will not raise an error when used in Programs (#1723)
+
+## 4.4.1-rc.0 (2024-01-16)
+
+### Fixes
+
+#### Arithmetic instructions will not raise an error when used in Programs (#1723)
+
+## 4.4.0 (2023-12-15)
+
+### Features
+
+#### Add `get_attribute`, `set_attribute` `__getitem__` and `__setitem__` methods to `DefFrame` (#1714)
+
+### Fixes
+
+#### Relax numpy and scipy requirements (#1713)
+
+#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
+
+#### Gate instructions specified as tuples no longer error when using a list of parameters. (#1716)
+
+## 4.4.0-rc.1 (2023-12-15)
+
+### Features
+
+#### Add `get_attribute`, `set_attribute` `__getitem__` and `__setitem__` methods to `DefFrame` (#1714)
+
+### Fixes
+
+#### Relax numpy and scipy requirements (#1713)
+
+#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
+
+#### Gate instructions specified as tuples no longer error when using a list of parameters. (#1716)
+
+## 4.4.0-rc.0 (2023-12-15)
+
+### Features
+
+#### Add `get_attribute`, `set_attribute` `__getitem__` and `__setitem__` methods to `DefFrame` (#1714)
+
+### Fixes
+
+#### Relax numpy and scipy requirements (#1713)
+
+#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
+
+## 4.3.1-rc.1 (2023-12-15)
+
+### Fixes
+
+#### Relax numpy and scipy requirements (#1713)
+
+#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
+
+## 4.3.1-rc.0 (2023-12-14)
+
+### Fixes
+
+#### Relax numpy and scipy requirements (#1713)
+
+## 4.3.0 (2023-12-08)
+
+### Features
+
+#### update qcs_sdk to add ability to modify TranslationOptions (#1706)
+
+## 4.3.0-rc.1 (2023-12-08)
+
+### Features
+
+#### update qcs_sdk to add ability to modify TranslationOptions (#1706)
+
+## 4.3.0-rc.0 (2023-12-06)
+
+### Features
+
+#### update qcs_sdk to add ability to modify TranslationOptions (#1706)
+
+## 4.2.0 (2023-11-28)
+
+### Features
+
+#### Support Python 3.12 (#1696)
+
+#### Final memory values are now available on QAMExecutionResults (#1703)
+
+## 4.2.0-rc.1 (2023-11-28)
+
+### Features
+
+#### Support Python 3.12 (#1696)
+
+#### Final memory values are now available on QAMExecutionResults (#1703)
+
+## 4.2.0-rc.0 (2023-11-28)
+
+### Features
+
+#### Support Python 3.12 (#1696)
+
 ## 4.1.1 (2023-11-15)
 
 ### Fixes
