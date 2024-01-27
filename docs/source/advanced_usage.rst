@@ -533,7 +533,8 @@ that applies an :math:`X` gate to the qubits if either of them measured to 1:
     def reset_bell_state(qubits: Tuple[Qubit, Qubit], measures: MemoryReference) -> Program:
         """Resets the state of the qubits if either of them measured to 1."""
         program = Program()
-        program.if_then(measures[0], Program(X(qubits[0]), X(qubits[1])))
+        program.if_then(measures[0], Program(X(qubits[0])))
+        program.if_then(measures[1], Program(X(qubits[1])))
         return program
 
 Enforcing a sentinel condition
@@ -549,6 +550,11 @@ accept the alternative branch as an argument to our function and pass it in the 
     def enforce_sentinel(mem_ref: MemoryReference, else_program: Program) -> Program:
         """Ends the program if mem_ref is 0, otherwise executes else_program."""
         program = Program()
+        # We use the `if_then` method here to help us construct our branch. As described above,
+        # `if_then` takes a memory reference and two programs. It constructs a branch that
+        # runs the first program if `mem_ref` is 1, otherwise it runs the second program.
+        # Since we want to end the program if `mem_ref` is 0, we pass in our HALTing
+        # program as the second program and the alternative branch as the first.
         program.if_then(mem_ref, else_program, Program(Halt()))
         return program
 
@@ -603,11 +609,36 @@ and run it against a QVM for 1000 shots. We'll use numpy to assert that the meas
     qc = get_qc("2q-qvm")
     program = sentinel_program(qubits)
     program.wrap_in_numshots_loop(1000)
-
+    print(program.out())
     results = qc.run(program)
     measures = results.get_register_map()["measures"] 
 
     assert np.all(measures == 0)
+
+.. testoutput:: sentinel-based-loop
+
+    DECLARE measures BIT[2]
+    LABEL @start-loop
+    H 0
+    CNOT 0 1
+    MEASURE 0 measures[0]
+    MEASURE 1 measures[1]
+    JUMP-WHEN @THEN_0 measures[0]
+    HALT
+    JUMP @END_0
+    LABEL @THEN_0
+    JUMP-WHEN @THEN_1 measures[0]
+    JUMP @END_1
+    LABEL @THEN_1
+    X 0
+    LABEL @END_1
+    JUMP-WHEN @THEN_2 measures[1]
+    JUMP @END_2
+    LABEL @THEN_2
+    X 1
+    LABEL @END_2
+    JUMP @start-loop
+    LABEL @END_0
 
 
 **********************
