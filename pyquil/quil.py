@@ -349,6 +349,7 @@ class Program:
         If ``num_iterations`` is 1, then a copy of the program is returned without any changes. Raises a
         ``TypeError`` if ``num_iterations`` is negative.
 
+        :param num_iterations: The number of times to execute the loop.
         :param loop_count_reference: The memory reference to use as the loop counter.
         :param start_label: The ``JumpTarget`` to use at the start of the loop.
         :param end_label: The ``JumpTarget`` to use to at the end of the loop.
