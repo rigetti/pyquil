@@ -111,6 +111,55 @@ After doing so, for all intents and purposes - compilation, optimization, etc - 
 as when using "default" endpoint for a given quantum processor, except that it will be executed by an
 alternate QCS service, and the results of execution should not be treated as correct or meaningful.
 
+*******************************
+Using libquil for Quilc and QVM
+*******************************
+
+.. note::
+    This feature is experimental and may not work for all platforms.
+
+`libquil <https://github.com/rigetti/libquil>`_ provides the functionality of Quilc and QVM in a library
+that can be used without having to run Quilc and QVM as servers, which can make developing with pyQuil
+easier.
+
+To use ``libquil``, first follow its `installation instructions <https://github.com/rigetti/libquil#libquil>`_.
+Once ``libquil`` and its dependencies are installed, you will need to run the following command to install a compatible
+version of ``qcs-sdk-python``:
+
+.. code::
+
+    poetry run pip install --config-settings=build-args='--features libquil' qcs-sdk-python --force-reinstall --no-binary qcs-sdk-python
+
+You can then check that ``libquil`` is available to pyQuil by executing the following Python code
+
+.. code:: python
+
+    from pyquil.diagnostics import get_report
+    print(get_report())
+
+Towards the end of the output, you will see a ``libquil`` section like below
+
+.. code::
+
+    libquil:
+        available: true
+        quilc version: 1.27.0
+        qvm version: 1.17.2 (077ba23)
+
+If you do not see ``available: true`` then re-try installation. If you continue to have issues, please report them
+on `github <https://github.com/rigetti/pyquil/issues/new/choose>`_.
+
+If installation was successful, you can now use libquil in pyQuil: the ``get_qc`` function provides two keyword parameters ``quilc_client`` and ``qvm_client`` which can be set to use ``libquil``:
+
+.. code:: python
+
+    from pyquil import get_qc
+    from qcs_sdk.compiler.quilc import QuilcClient
+    from qcs_sdk.qvm import QVMClient
+
+    qc = get_qc("8q-qvm", quilc_client=QuilcClient.new_libquil(), qvm_client=QVMClient.new_libquil())
+
+Please report issues on `github <https://github.com/rigetti/pyquil/issues/new/choose>`_.
 
 ************************
 Using qubit placeholders
