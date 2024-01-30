@@ -493,10 +493,15 @@ class TestDefFrame:
         center_frequency: Optional[float],
         channel_delay: Optional[float],
     ) -> DefFrame:
-        optional_args = {k: v
-                         for k, v in locals().items()
-                         if k not in ["self", "frame"] and v is not None}
-        return DefFrame(frame, **optional_args)
+        args = dict(
+            direction=direction,
+            initial_frequency=initial_frequency,
+            hardware_object=hardware_object,
+            sample_rate=sample_rate,
+            center_frequency=center_frequency,
+            channel_delay=channel_delay,
+        )
+        return DefFrame(frame, **{k: v for k, v in args.items() if v is not None})
 
     def test_out(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
         # The ordering of attributes isn't stable and can be printed in different orders across calls.
