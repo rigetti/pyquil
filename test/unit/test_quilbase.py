@@ -495,17 +495,7 @@ class TestDefFrame:
     ) -> DefFrame:
         optional_args = {k: v
                          for k, v in locals().items()
-                         if k not in["self", "frame"] and v is not None}
-        # optional_args = [
-        #     arg
-        #     for arg in [direction,
-        #                 initial_frequency,
-        #                 hardware_object,
-        #                 sample_rate,
-        #                 center_frequency,
-        #                 channel_delay]:
-        #     if arg is not None
-        # ]
+                         if k not in ["self", "frame"] and v is not None}
         return DefFrame(frame, **optional_args)
 
     def test_out(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
@@ -518,7 +508,6 @@ class TestDefFrame:
 
     def test_str(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
         quil_lines = str(def_frame).splitlines()
-        print(quil_lines)
         assert quil_lines[0] == snapshot
         assert set(quil_lines[1:]) == snapshot
 
