@@ -218,7 +218,13 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     if isinstance(instr, quil_rs.Declaration):
         return Declare._from_rs_declaration(instr)
     if isinstance(instr, quil_rs.Delay):
-        return Delay._from_rs_delay(instr)
+        print("len(instr.qubits):", len(instr.qubits))
+        print("len(instr.frame_names):", len(instr.frame_names))
+        if len(instr.qubits) > 0 and len(instr.frame_names) > 0:
+            return Delay._from_rs_delay(instr)
+        if len(instr.qubits) > 0:
+            return DelayQubits._from_rs_delay(instr)
+        return DelayFrames._from_rs_delay(instr)
     if isinstance(instr, quil_rs.Fence):
         if len(instr.qubits) == 0:
             return FenceAll()
@@ -238,7 +244,10 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     if isinstance(instr, quil_rs.RawCapture):
         return RawCapture._from_rs_raw_capture(instr)
     if isinstance(instr, quil_rs.Reset):
-        return Reset._from_rs_reset(instr)
+        if instr.qubit is None:
+            return Reset._from_rs_reset(instr)
+        else:
+            return ResetQubit._from_rs_reset(instr)
     if isinstance(instr, quil_rs.CircuitDefinition):
         return DefCircuit._from_rs_circuit_definition(instr)
     if isinstance(instr, quil_rs.GateDefinition):
@@ -555,7 +564,7 @@ class Reset(quil_rs.Reset, AbstractInstruction):
     The RESET instruction.
     """
 
-    def __new__(cls, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument]] = None) -> Self:
+    def __new__(cls, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument, int]] = None) -> Self:
         rs_qubit: Optional[quil_rs.Qubit] = None
         if qubit is not None:
             rs_qubit = _convert_to_rs_qubit(qubit)
@@ -614,10 +623,17 @@ class ResetQubit(Reset):
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    def __new__(cls, qubit: Union[Qubit, QubitPlaceholder, FormalArgument]) -> Self:
+    def __new__(cls, qubit: Union[Qubit, QubitPlaceholder, FormalArgument, int]) -> Self:
         if qubit is None:
             raise TypeError("qubit should not be None")
         return super().__new__(cls, qubit)
+
+    @classmethod
+    def _from_rs_reset(cls, reset: quil_rs.Reset) -> "ResetQubit":
+        if reset.qubit is not None:
+            qubit = _convert_to_py_qubit(reset.qubit)
+            return ResetQubit.__new__(cls, qubit)
+        raise ValueError("reset.qubit should not be None")
 
 
 class DefGate(quil_rs.GateDefinition, AbstractInstruction):
@@ -2396,10 +2412,18 @@ class DelayFrames(Delay):
     def __new__(cls, frames: List[Frame], duration: float) -> Self:
         return super().__new__(cls, frames, [], duration)
 
+    @classmethod
+    def _from_rs_delay(cls, delay: quil_rs.Delay) -> "DelayFrames":
+        return Delay._from_rs_delay.__func__(cls, delay)  # type: ignore
+
 
 class DelayQubits(Delay):
     def __new__(cls, qubits: Sequence[Union[Qubit, FormalArgument]], duration: float) -> Self:
         return super().__new__(cls, [], qubits, duration)
+
+    @classmethod
+    def _from_rs_delay(cls, delay: quil_rs.Delay) -> "DelayQubits":
+        return Delay._from_rs_delay.__func__(cls, delay)  # type: ignore
 
 
 class Fence(quil_rs.Fence, AbstractInstruction):

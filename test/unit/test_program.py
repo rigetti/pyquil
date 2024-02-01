@@ -2,9 +2,9 @@ import numpy as np
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program
-from pyquil.quilatom import Label
-from pyquil.quilbase import MemoryReference
 from pyquil.quil import AbstractInstruction, Declare, Measurement
+from pyquil.quilbase import Reset, ResetQubit, Delay, DelayFrames, DelayQubits, Frame
+from pyquil.quilatom import Label, MemoryReference
 from pyquil.experiment._program import (
     measure_qubits,
     parameterized_single_qubit_measurement_basis,
@@ -168,3 +168,25 @@ SWAP-PHASES 2 3 "xy" 3 4 "xy";
     )
     full_program = non_quil_t_program + quil_t_program
     assert full_program.remove_quil_t_instructions() == non_quil_t_program
+
+
+def test_compatibility_layer():
+    """
+    Test that the compatibility layer that transforms pyQuil instructions to quil instructions works as intended.
+    """
+    # Note: `quil` re-orders some instructions in a program (e.g. by shuffling DECLAREs to the top). This isn't a
+    # problem for the current set of instructions we're testing, but it's something to keep in mind if we add more.
+    instructions = [
+        ResetQubit(0),
+        Reset(),
+        Delay([Frame([0], "frame")], [0], 0.01),
+        DelayFrames([Frame([], "frame")], 0.01),
+        DelayQubits([0, 1], 0.01),
+    ]
+    program = Program(instructions)
+    for (original, transformed) in zip(instructions, program):
+        assert isinstance(transformed, AbstractInstruction)
+        print("type(transformed):", type(transformed))
+        print("type(original):", type(original))
+        assert isinstance(transformed, type(original))
+        assert transformed == original
