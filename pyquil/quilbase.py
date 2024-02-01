@@ -2414,7 +2414,7 @@ class DelayFrames(Delay):
 
     @classmethod
     def _from_rs_delay(cls, delay: quil_rs.Delay) -> "DelayFrames":
-        return Delay._from_rs_delay.__func__(cls, delay)
+        return Delay._from_rs_delay.__func__(cls, delay)  # type: ignore
 
 
 class DelayQubits(Delay):
@@ -2423,7 +2423,7 @@ class DelayQubits(Delay):
 
     @classmethod
     def _from_rs_delay(cls, delay: quil_rs.Delay) -> "DelayQubits":
-        return Delay._from_rs_delay.__func__(cls, delay)
+        return Delay._from_rs_delay.__func__(cls, delay)  # type: ignore
 
 
 class Fence(quil_rs.Fence, AbstractInstruction):
