@@ -1,5 +1,19 @@
 # Changelog
 
+## 4.6.0-rc.4 (2024-02-01)
+
+### Features
+
+#### qcs-sdk-python version for libquil support, and document libquil usage (#1698)
+
+#### Add a `with_loop` method to `Program` (#1717)
+
+### Fixes
+
+#### Add deprecated property to DefFrame for CHANNEL-DELAY attribute (#1729)
+
+#### ResetQubit instructions will not be returned as Reset after being inserted into a Program (#1727)
+
 ## 4.6.0-rc.3 (2024-01-30)
 
 ### Features
