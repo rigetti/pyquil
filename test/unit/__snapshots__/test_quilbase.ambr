@@ -196,6 +196,7 @@
 # name: TestDefFrame.test_out[With-Optionals].1
   set({
     '\tCENTER-FREQUENCY: 440',
+    '\tCHANNEL-DELAY: 0',
     '\tDIRECTION: "direction"',
     '\tHARDWARE-OBJECT: "hardware_object"',
     '\tINITIAL-FREQUENCY: 1.39',
@@ -215,6 +216,7 @@
 # name: TestDefFrame.test_str[With-Optionals].1
   set({
     '\tCENTER-FREQUENCY: 440',
+    '\tCHANNEL-DELAY: 0',
     '\tDIRECTION: "direction"',
     '\tHARDWARE-OBJECT: "hardware_object"',
     '\tINITIAL-FREQUENCY: 1.39',

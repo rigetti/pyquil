@@ -111,6 +111,55 @@ After doing so, for all intents and purposes - compilation, optimization, etc - 
 as when using "default" endpoint for a given quantum processor, except that it will be executed by an
 alternate QCS service, and the results of execution should not be treated as correct or meaningful.
 
+*******************************
+Using libquil for Quilc and QVM
+*******************************
+
+.. note::
+    This feature is experimental and may not work for all platforms.
+
+`libquil <https://github.com/rigetti/libquil>`_ provides the functionality of Quilc and QVM in a library
+that can be used without having to run Quilc and QVM as servers, which can make developing with pyQuil
+easier.
+
+To use ``libquil``, first follow its `installation instructions <https://github.com/rigetti/libquil#libquil>`_.
+Once ``libquil`` and its dependencies are installed, you will need to run the following command to install a compatible
+version of ``qcs-sdk-python``:
+
+.. code::
+
+    poetry run pip install --config-settings=build-args='--features libquil' qcs-sdk-python --force-reinstall --no-binary qcs-sdk-python
+
+You can then check that ``libquil`` is available to pyQuil by executing the following Python code
+
+.. code:: python
+
+    from pyquil.diagnostics import get_report
+    print(get_report())
+
+Towards the end of the output, you will see a ``libquil`` section like below
+
+.. code::
+
+    libquil:
+        available: true
+        quilc version: 1.27.0
+        qvm version: 1.17.2 (077ba23)
+
+If you do not see ``available: true`` then re-try installation. If you continue to have issues, please report them
+on `github <https://github.com/rigetti/pyquil/issues/new/choose>`_.
+
+If installation was successful, you can now use libquil in pyQuil: the ``get_qc`` function provides two keyword parameters ``quilc_client`` and ``qvm_client`` which can be set to use ``libquil``:
+
+.. code:: python
+
+    from pyquil import get_qc
+    from qcs_sdk.compiler.quilc import QuilcClient
+    from qcs_sdk.qvm import QVMClient
+
+    qc = get_qc("8q-qvm", quilc_client=QuilcClient.new_libquil(), qvm_client=QVMClient.new_libquil())
+
+Please report issues on `github <https://github.com/rigetti/pyquil/issues/new/choose>`_.
 
 ************************
 Using qubit placeholders
@@ -268,6 +317,8 @@ register of qubits to build your program.
     H 12
     H 14
 
+.. _classical_control_flow: 
+
 **********************
 Classical control flow
 **********************
@@ -339,6 +390,13 @@ classical register.  There are several classical commands that can be used in th
 - ``IOR`` which operates on two classical bits
 - ``MOVE`` which moves the value of a classical bit at one classical address into another
 - ``EXCHANGE`` which swaps the value of two classical bits
+
+.. note::
+
+   The approach documented here can be used to construct a "numshots" loop in pure Quil. See the
+   :py:meth:`~pyquil.quil.Program.with_loop` method and :ref:`build_a_fixed_count_loop` for more
+   information.
+
 
 If, then
 ========
@@ -424,6 +482,172 @@ We can run this program a few times to see what we get in the readout register `
      [1]
      [1]
      [0]]
+
+Sentinel based loop
+===================
+
+Now that we understand how to create loops and conditionals, we can put them together to create a sentinel controlled
+loop. That is, we'll repeat the body of a program until a certain condition is met. In this example, we'll use the
+classic bell state program to demonstrate the concept. However, this technique can be applied to any program with a
+probabilistic outcome that we want to repeat until we get a desired result.
+
+To start, let's import everything we'll need:
+
+.. testcode:: sentinel-based-loop
+
+    # Import some types we'll use
+    from typing import Optional, Tuple
+
+    # We'll use numpy to help us validate our results
+    import numpy as np
+
+    # We'll need to create a program and define an executor
+    from pyquil import Program, get_qc
+    # We'll use these gates in our program
+    from pyquil.gates import CNOT, H, X
+    # We'll also need the help of a few control flow instructions
+    from pyquil.quilbase import Halt, Qubit, MemoryReference, JumpTarget, Jump
+    from pyquil.quilatom import Label
+
+Building our program
+--------------------
+
+Adding control flow to a program introduces complexity, especially as we add more branches to the program. To manage 
+this complexity we'll use some of the methods we learned about in the previous sections as well as by breaking down the
+program into its constituent parts.
+
+The program body
+^^^^^^^^^^^^^^^^
+
+First, let's define the body of our program. This is the part of the program that we'll repeat until we get the result
+we desire. In this case, we'll create a bell state between two qubits and measure them:
+
+.. testcode:: sentinel-based-loop
+
+    def body(qubits: Tuple[Qubit, Qubit], measures: MemoryReference) -> Program:
+        """Constructs a bell state between the given qubit and measures them into the given memory reference."""
+        program = Program(H(qubits[0]), CNOT(*qubits))
+        program.measure_all(*zip(qubits, measures))
+        return program
+
+Resetting state
+^^^^^^^^^^^^^^^
+
+For this program, we'll say our desired result is that both qubits measure to 0. After an unsuccessful attempt where
+they measure to 1, we'll want to reset the state of the qubits before trying again. To do this, we'll create a program
+that applies an :math:`X` gate to the qubits if either of them measured to 1:
+
+.. testcode:: sentinel-based-loop
+
+    def reset_bell_state(qubits: Tuple[Qubit, Qubit], measures: MemoryReference) -> Program:
+        """Resets the state of the qubits if either of them measured to 1."""
+        program = Program()
+        program.if_then(measures[0], Program(X(qubits[0])))
+        program.if_then(measures[1], Program(X(qubits[1])))
+        return program
+
+Enforcing a sentinel condition
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Next, we'll construct the part of our program that enforces the sentinel condition. In this case, we'll end the program
+if the given memory reference is 0, otherwise we'll want to reset the state of our qubits and jump back to the
+beginning of the program. We'll construct the branch that ends the program using Quil's ``Halt`` instruction, and we'll
+accept the alternative branch as an argument to our function and pass it in the next step:
+
+.. testcode:: sentinel-based-loop
+
+    def enforce_sentinel(mem_ref: MemoryReference, else_program: Program) -> Program:
+        """Ends the program if mem_ref is 0, otherwise executes else_program."""
+        program = Program()
+        # We use the `if_then` method here to help us construct our branch. As described above,
+        # `if_then` takes a memory reference and two programs. It constructs a branch that
+        # runs the first program if `mem_ref` is 1, otherwise it runs the second program.
+        # Since we want to end the program if `mem_ref` is 0, we pass in our HALTing
+        # program as the second program and the alternative branch as the first.
+        program.if_then(mem_ref, else_program, Program(Halt()))
+        return program
+
+Putting it all together
+^^^^^^^^^^^^^^^^^^^^^^^
+
+With each component of our program ready, we just need to compose all the pieces:
+
+.. testcode:: sentinel-based-loop
+
+    def sentinel_program(qubits: Tuple[Qubit, Qubit]) -> Program:
+        # Create a label to reference the start of the program
+        start_label = Label("start-loop")
+        
+        # Use the label to create a jump target at the beginning of the program
+        program = Program(JumpTarget(start_label))
+        
+        # Declare a register to measure the qubits into
+        measures = program.declare("measures", "BIT", 2)
+
+        # Add the loop body to our program
+        program += body(qubits, measures)
+        
+        # If the sentinel condition isn't met, then we: 
+        reset = Program(
+            # Reset the state of our qubits
+            reset_bell_state(qubits, measures),
+            # Jump back to the start of the program
+            Jump(start_label)
+        )
+        
+        # Finally, if both Qubits measured to 0 (our sentinel), then we want to end the program
+        # Otherwise, we try again.
+        program += enforce_sentinel(measures[0], reset)
+        
+        # We used pyQuil to construct some of the branches for us, those methods use label placeholders
+        # to avoid conflicts with existing labels in the program, so we resolve those placeholders here.
+        program.resolve_label_placeholders()
+        return program
+
+Testing our program
+^^^^^^^^^^^^^^^^^^^
+
+Now that we have our program, let's test it out. We'll use the ``sentinel_program`` function to construct the program
+and run it against a QVM for 1000 shots. We'll use numpy to assert that the measures register contains only 0s. Over
+1000 trials, this result would be improbable if our program didn't work as intended.
+
+.. testcode:: sentinel-based-loop
+
+    qubits = (Qubit(0), Qubit(1))
+
+    qc = get_qc("2q-qvm")
+    program = sentinel_program(qubits)
+    program.wrap_in_numshots_loop(1000)
+    print(program.out())
+    results = qc.run(program)
+    measures = results.get_register_map()["measures"] 
+
+    assert np.all(measures == 0)
+
+.. testoutput:: sentinel-based-loop
+
+    DECLARE measures BIT[2]
+    LABEL @start-loop
+    H 0
+    CNOT 0 1
+    MEASURE 0 measures[0]
+    MEASURE 1 measures[1]
+    JUMP-WHEN @THEN_0 measures[0]
+    HALT
+    JUMP @END_0
+    LABEL @THEN_0
+    JUMP-WHEN @THEN_1 measures[0]
+    JUMP @END_1
+    LABEL @THEN_1
+    X 0
+    LABEL @END_1
+    JUMP-WHEN @THEN_2 measures[1]
+    JUMP @END_2
+    LABEL @THEN_2
+    X 1
+    LABEL @END_2
+    JUMP @start-loop
+    LABEL @END_0
 
 
 **********************
