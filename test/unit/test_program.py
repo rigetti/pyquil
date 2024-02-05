@@ -3,15 +3,16 @@ from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program
 from pyquil.quil import AbstractInstruction, Declare, Measurement
-from pyquil.quilbase import Reset, ResetQubit, Delay, DelayFrames, DelayQubits, Frame
-from pyquil.quilatom import Label, MemoryReference
+from pyquil.quilbase import Reset, ResetQubit, Delay, DelayFrames, DelayQubits, Frame, \
+    DefMeasureCalibration
+from pyquil.quilatom import Label, MemoryReference, Qubit
 from pyquil.experiment._program import (
     measure_qubits,
     parameterized_single_qubit_measurement_basis,
     parameterized_single_qubit_state_preparation,
     parameterized_readout_symmetrization,
 )
-from pyquil.gates import MEASURE, RX, RZ, H
+from pyquil.gates import MEASURE, RX, RZ, H, DELAY
 
 
 def test_measure_qubits():
@@ -180,13 +181,33 @@ def test_compatibility_layer():
         ResetQubit(0),
         Reset(),
         Delay([Frame([0], "frame")], [0], 0.01),
-        DelayFrames([Frame([], "frame")], 0.01),
+        DelayFrames([Frame([0], "frame")], 0.01),
         DelayQubits([0, 1], 0.01),
     ]
     program = Program(instructions)
     for (original, transformed) in zip(instructions, program):
         assert isinstance(transformed, AbstractInstruction)
-        print("type(transformed):", type(transformed))
-        print("type(original):", type(original))
         assert isinstance(transformed, type(original))
         assert transformed == original
+
+    defmeascal = DefMeasureCalibration(
+        Qubit(0),
+        MemoryReference("foo"),
+        instructions
+    )
+    for original, transformed in zip(instructions, defmeascal.instrs):
+        assert isinstance(transformed, AbstractInstruction)
+        assert isinstance(transformed, type(original))
+        assert transformed == original
+
+
+def test_delay_conversions():
+    f = Frame([Qubit(0)], "hi")
+
+    i = DELAY(f, 7)
+    assert isinstance(i, DelayFrames)
+    p = Program()
+    p += i
+    p += DelayFrames([f], 8)
+    for x in p:
+        assert isinstance(x, DelayFrames), type(x)
