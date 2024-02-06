@@ -113,6 +113,8 @@ jobs:
   test-unit:
     name: Test Unit
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # allows coverage bot to comment
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
@@ -140,7 +142,7 @@ jobs:
           coverageFile: coverage.xml
           thresholdAll: 0.87
           thresholdNew: 0.9
-          token:  ${{ secrets.PAT }}
+          token:  ${{ secrets.GITHUB_TOKEN }}
 
   check-docker-image:
     name: Check types
