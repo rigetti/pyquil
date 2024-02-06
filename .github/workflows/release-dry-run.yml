@@ -17,10 +17,9 @@ jobs:
   release-dry-run:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        token: ${{ secrets.PAT }}
     - name: Install Knope
       uses: knope-dev/action@v2.0.0
       with:

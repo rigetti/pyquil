@@ -113,6 +113,8 @@ jobs:
   test-unit:
     name: Test Unit
     runs-on: ubuntu-latest
+    permissions:
+      pull_requests: write # allows coverage bot to comment
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
