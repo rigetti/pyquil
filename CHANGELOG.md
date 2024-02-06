@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.6.1-rc.1 (2024-02-06)
+
+### Fixes
+
+#### Compatibility layer will prefer to return DelayFrames, then DelayQubits, then Delay. (#1731)
+
 ## 4.6.1-rc.0 (2024-02-05)
 
 ### Fixes
