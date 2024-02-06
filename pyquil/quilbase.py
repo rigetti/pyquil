@@ -218,13 +218,11 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
     if isinstance(instr, quil_rs.Declaration):
         return Declare._from_rs_declaration(instr)
     if isinstance(instr, quil_rs.Delay):
-        print("len(instr.qubits):", len(instr.qubits))
-        print("len(instr.frame_names):", len(instr.frame_names))
-        if len(instr.qubits) > 0 and len(instr.frame_names) > 0:
-            return Delay._from_rs_delay(instr)
+        if len(instr.frame_names) > 0:
+            return DelayFrames._from_rs_delay(instr)
         if len(instr.qubits) > 0:
             return DelayQubits._from_rs_delay(instr)
-        return DelayFrames._from_rs_delay(instr)
+        return Delay._from_rs_delay(instr)
     if isinstance(instr, quil_rs.Fence):
         if len(instr.qubits) == 0:
             return FenceAll()
