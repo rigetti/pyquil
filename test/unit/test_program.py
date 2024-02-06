@@ -180,7 +180,7 @@ def test_compatibility_layer():
     instructions = [
         ResetQubit(0),
         Reset(),
-        Delay([Frame([0], "frame")], [0], 0.01),
+        Delay([], [], 0.01),
         DelayFrames([Frame([0], "frame")], 0.01),
         DelayQubits([0, 1], 0.01),
     ]
