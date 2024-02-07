@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.6.2-rc.0 (2024-02-07)
+
+### Fixes
+
+#### bump qcs-sdk-python version to pull DEFCIRCUIT serialization fix (#1735)
+
 ## 4.6.1 (2024-02-06)
 
 ### Fixes
