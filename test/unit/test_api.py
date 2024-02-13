@@ -18,7 +18,7 @@ from math import pi
 
 import numpy as np
 
-from pyquil.external.rpcq import _compiler_isa_from_dict
+from pyquil.external.rpcq import  CompilerISA, Qubit, Edge
 from pyquil.gates import CNOT, H, MEASURE, PHASE, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
@@ -48,8 +48,15 @@ COMPILED_BELL_STATE = Program(
         Halt(),
     ]
 )
-DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
-DUMMY_ISA = _compiler_isa_from_dict(DUMMY_ISA_DICT)
+DUMMY_ISA = CompilerISA(
+    qubits={
+        "0": Qubit(id=0),
+        "1": Qubit(id=1),
+    },
+    edges={
+        "0-1": Edge(ids=[0, 1]),
+    },
+)
 
 COMPILED_BYTES_ARRAY = b"SUPER SECRET PACKAGE"
 RB_ENCODED_REPLY = [[0, 0], [1, 1]]

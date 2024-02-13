@@ -14,14 +14,14 @@ def test_qubit_dead_serialization():
         id=0,
         gates=[gate_info],
     )
-    assert "dead" not in qubit.dict().keys()
+    assert "dead" not in qubit.to_dict().keys()
 
     qubit = Qubit(
         id=0,
         gates=[],
         dead=True,
     )
-    assert qubit.dict()["dead"] is True
+    assert qubit.to_dict()["dead"] is True
 
 
 def test_edge_dead_serialization():
@@ -37,11 +37,11 @@ def test_edge_dead_serialization():
         ids=[0, 1],
         gates=[gate_info],
     )
-    assert "dead" not in edge.dict().keys()
+    assert "dead" not in edge.to_dict().keys()
 
     edge = Edge(
         ids=[0, 1],
         gates=[],
         dead=True,
     )
-    assert edge.dict()["dead"] is True
+    assert edge.to_dict()["dead"] is True
