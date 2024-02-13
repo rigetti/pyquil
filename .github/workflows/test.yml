@@ -114,6 +114,7 @@ jobs:
     name: Test Unit
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: write # allows coverage bot to comment
     strategy:
       matrix:
