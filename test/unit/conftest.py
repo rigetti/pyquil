@@ -42,8 +42,8 @@ def compiler_isa() -> CompilerISA:
     gates_2q = []
     for gate in DEFAULT_2Q_GATES:
         gates_2q.extend(_transform_edge_operation_to_gates(gate))
-    gates_1q = [g.to_dict() for g in gates_1q]
-    gates_2q = [g.to_dict() for g in gates_2q]
+    gates_1q = [g.dict() for g in gates_1q]
+    gates_2q = [g.dict() for g in gates_2q]
     compiler_isa_dict = {
         "1Q": {
             "0": {"id": 0, "gates": gates_1q},
@@ -80,7 +80,7 @@ def compiler_isa() -> CompilerISA:
     }
     # from pprint import pprint
     # pprint(compiler_isa_dict)
-    return CompilerISA.from_dict(compiler_isa_dict)
+    return CompilerISA.parse_obj(compiler_isa_dict)
 
 
 @pytest.fixture()
