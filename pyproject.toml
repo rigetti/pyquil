@@ -69,6 +69,7 @@ docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc", "mat
 
 [tool.poetry.group.dev.dependencies]
 setuptools = {version = "^69.0.2", python = ">=3.12"}
+mypy = "^1.8.0"
 
 [tool.ruff]
 line-length = 120

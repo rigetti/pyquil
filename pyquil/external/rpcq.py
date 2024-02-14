@@ -3,8 +3,8 @@ from typing import Dict, List, Union, Optional, Any
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 from dataclasses import dataclass, field
 
-#JsonValue = Union[type(None), bool, int, float, str, list["JsonValue"], dict[str, "JsonValue"]]
-JsonValue = Any
+JsonValue = Union[type(None), bool, int, float, str, List["JsonValue"], Dict[str, "JsonValue"]]
+#JsonValue = Any
 
 @dataclass
 class Operator:
