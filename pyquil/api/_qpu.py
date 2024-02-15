@@ -32,6 +32,7 @@ from pyquil.quilatom import (
 from qcs_sdk import QCSClient, ResultData, ExecutionData
 from qcs_sdk.qpu.api import (
     submit,
+    cancel_job,
     retrieve_results,
     ConnectionStrategy,
     ExecutionResult,
@@ -199,6 +200,29 @@ class QPU(QAM[QPUExecuteResponse]):
         )
 
         return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=effective_execution_options)
+
+    def cancel(
+        self,
+        execute_response: QPUExecuteResponse,
+    ) -> None:
+        """
+        Cancel a job that has yet to begin executing using the response from ``QPU#execute``.
+
+        This action is *not* atomic, and will attempt to cancel a job even if it cannot be cancelled. A
+        job can be cancelled only if it has not yet started executing.
+
+        Success response indicates only that the request was received. Cancellation is not guaranteed,
+        as it is based on job state at the time of cancellation, and is completed on a best effort
+        basis.
+
+        :param execute_response: The return value from a call to ``execute``.
+        """
+        cancel_job(
+            execute_response.job_id,
+            self.quantum_processor_id,
+            self._client_configuration,
+            execute_response.execution_options,
+        )
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
