@@ -19,7 +19,7 @@ def test_isa_from_graph_order():
     # representation will have it as (16,15)
     fc = nx.from_edgelist([(16, 17), (15, 16)])
     isa = graph_to_compiler_isa(fc)
-    isad = isa.dict(by_alias=True)
+    isad = isa.dict()
     for k in isad["2Q"]:
         q1, q2 = k.split("-")
         assert q1 < q2
