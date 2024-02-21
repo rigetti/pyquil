@@ -145,6 +145,8 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_gate_definition(instr)
     if isinstance(instr, Halt):
         return quil_rs.Instruction.new_halt()
+    if isinstance(instr, Include):
+        return quil_rs.Instruction.from_include(instr)
     if isinstance(instr, quil_rs.Load):
         return quil_rs.Instruction.from_load(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
@@ -211,6 +213,8 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         return _convert_to_py_instruction(instr.inner())
     if isinstance(instr, quil_rs.Arithmetic):
         return ArithmeticBinaryOp._from_rs_arithmetic(instr)
+    if isinstance(instr, quil_rs.BinaryLogic):
+        return LogicalBinaryOp._from_rs_binary_logic(instr)
     if isinstance(instr, quil_rs.Calibration):
         return DefCalibration._from_rs_calibration(instr)
     if isinstance(instr, quil_rs.Capture):
