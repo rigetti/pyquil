@@ -42,42 +42,45 @@ def compiler_isa() -> CompilerISA:
     gates_2q = []
     for gate in DEFAULT_2Q_GATES:
         gates_2q.extend(_transform_edge_operation_to_gates(gate))
-    return CompilerISA.parse_obj(
-        {
-            "1Q": {
-                "0": {"id": 0, "gates": gates_1q},
-                "1": {"id": 1, "gates": gates_1q},
-                "2": {"id": 2, "gates": gates_1q},
-                "3": {"id": 3, "dead": True},
+    gates_1q = [g.dict() for g in gates_1q]
+    gates_2q = [g.dict() for g in gates_2q]
+    compiler_isa_dict = {
+        "1Q": {
+            "0": {"id": 0, "gates": gates_1q},
+            "1": {"id": 1, "gates": gates_1q},
+            "2": {"id": 2, "gates": gates_1q},
+            "3": {"id": 3, "dead": True},
+        },
+        "2Q": {
+            "0-1": {"ids": [0, 1], "gates": gates_2q},
+            "1-2": {
+                "ids": [1, 2],
+                "gates": [
+                    {
+                        "operator_type": "gate",
+                        "operator": "ISWAP",
+                        "parameters": [],
+                        "arguments": ["_", "_"],
+                    }
+                ],
             },
-            "2Q": {
-                "0-1": {"ids": [0, 1], "gates": gates_2q},
-                "1-2": {
-                    "ids": [1, 2],
-                    "gates": [
-                        {
-                            "operator_type": "gate",
-                            "operator": "ISWAP",
-                            "parameters": [],
-                            "arguments": ["_", "_"],
-                        }
-                    ],
-                },
-                "0-2": {
-                    "ids": [0, 2],
-                    "gates": [
-                        {
-                            "operator_type": "gate",
-                            "operator": "CPHASE",
-                            "parameters": ["theta"],
-                            "arguments": ["_", "_"],
-                        },
-                    ],
-                },
-                "0-3": {"ids": [0, 3], "dead": True},
+            "0-2": {
+                "ids": [0, 2],
+                "gates": [
+                    {
+                        "operator_type": "gate",
+                        "operator": "CPHASE",
+                        "parameters": ["theta"],
+                        "arguments": ["_", "_"],
+                    },
+                ],
             },
-        }
-    )
+            "0-3": {"ids": [0, 3], "dead": True},
+        },
+    }
+    # from pprint import pprint
+    # pprint(compiler_isa_dict)
+    return CompilerISA.parse_obj(compiler_isa_dict)
 
 
 @pytest.fixture()
