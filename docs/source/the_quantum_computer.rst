@@ -282,7 +282,7 @@ Requesting a job cancellation
 
 Jobs submitted to a QPU are queued for execution before they are run. While a job is pending execution, you can request
 that the job be cancelled with `:py:meth:~pyquil.api.QPU#cancel`. This functionality is unavailable on the QVM, so you
-can use a similar startegy to above to make sure the Quantum Abstract Machine (QAM) backing the QuantumComputer is
+can use a similar strategy to above to make sure the Quantum Abstract Machine (QAM) backing the QuantumComputer is
 indeed a QPU to safely call this method:
 
 .. code:: python
