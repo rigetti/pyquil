@@ -145,6 +145,8 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_gate_definition(instr)
     if isinstance(instr, Halt):
         return quil_rs.Instruction.new_halt()
+    if isinstance(instr, Include):
+        return quil_rs.Instruction.from_include(instr)
     if isinstance(instr, quil_rs.Load):
         return quil_rs.Instruction.from_load(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
@@ -211,10 +213,18 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         return _convert_to_py_instruction(instr.inner())
     if isinstance(instr, quil_rs.Arithmetic):
         return ArithmeticBinaryOp._from_rs_arithmetic(instr)
-    if isinstance(instr, quil_rs.Capture):
-        return Capture._from_rs_capture(instr)
+    if isinstance(instr, quil_rs.BinaryLogic):
+        return LogicalBinaryOp._from_rs_binary_logic(instr)
     if isinstance(instr, quil_rs.Calibration):
         return DefCalibration._from_rs_calibration(instr)
+    if isinstance(instr, quil_rs.Capture):
+        return Capture._from_rs_capture(instr)
+    if isinstance(instr, quil_rs.CircuitDefinition):
+        return DefCircuit._from_rs_circuit_definition(instr)
+    if isinstance(instr, quil_rs.Convert):
+        return ClassicalConvert._from_rs_convert(instr)
+    if isinstance(instr, quil_rs.Comparison):
+        return ClassicalComparison._from_rs_comparison(instr)
     if isinstance(instr, quil_rs.Declaration):
         return Declare._from_rs_declaration(instr)
     if isinstance(instr, quil_rs.Delay):
@@ -223,18 +233,36 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         if len(instr.qubits) > 0:
             return DelayQubits._from_rs_delay(instr)
         return Delay._from_rs_delay(instr)
+    if isinstance(instr, quil_rs.Exchange):
+        return ClassicalExchange._from_rs_exchange(instr)
     if isinstance(instr, quil_rs.Fence):
         if len(instr.qubits) == 0:
             return FenceAll()
         return Fence._from_rs_fence(instr)
     if isinstance(instr, quil_rs.FrameDefinition):
         return DefFrame._from_rs_frame_definition(instr)
+    if isinstance(instr, quil_rs.GateDefinition):
+        return DefGate._from_rs_gate_definition(instr)
     if isinstance(instr, quil_rs.Gate):
         return Gate._from_rs_gate(instr)
+    if isinstance(instr, quil_rs.Include):
+        return Include._from_rs_include(instr)
+    if isinstance(instr, quil_rs.Jump):
+        return Jump._from_rs_jump(instr)
+    if isinstance(instr, quil_rs.JumpWhen):
+        return JumpWhen._from_rs_jump_when(instr)
+    if isinstance(instr, quil_rs.JumpUnless):
+        return JumpUnless._from_rs_jump_unless(instr)
+    if isinstance(instr, quil_rs.Label):
+        return JumpTarget._from_rs_label(instr)
+    if isinstance(instr, quil_rs.Load):
+        return ClassicalLoad._from_rs_load(instr)
     if isinstance(instr, quil_rs.MeasureCalibrationDefinition):
         return DefMeasureCalibration._from_rs_measure_calibration_definition(instr)
     if isinstance(instr, quil_rs.Measurement):
         return Measurement._from_rs_measurement(instr)
+    if isinstance(instr, quil_rs.Move):
+        return ClassicalMove._from_rs_move(instr)
     if isinstance(instr, quil_rs.Pragma):
         return Pragma._from_rs_pragma(instr)
     if isinstance(instr, quil_rs.Pulse):
@@ -246,12 +274,6 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
             return Reset._from_rs_reset(instr)
         else:
             return ResetQubit._from_rs_reset(instr)
-    if isinstance(instr, quil_rs.CircuitDefinition):
-        return DefCircuit._from_rs_circuit_definition(instr)
-    if isinstance(instr, quil_rs.GateDefinition):
-        return DefGate._from_rs_gate_definition(instr)
-    if isinstance(instr, quil_rs.WaveformDefinition):
-        return DefWaveform._from_rs_waveform_definition(instr)
     if isinstance(instr, quil_rs.SetFrequency):
         return SetFrequency._from_rs_set_frequency(instr)
     if isinstance(instr, quil_rs.SetPhase):
@@ -264,16 +286,12 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         return ShiftPhase._from_rs_shift_phase(instr)
     if isinstance(instr, quil_rs.SwapPhases):
         return SwapPhases._from_rs_swap_phases(instr)
-    if isinstance(instr, quil_rs.Label):
-        return JumpTarget._from_rs_label(instr)
-    if isinstance(instr, quil_rs.Move):
-        return ClassicalMove._from_rs_move(instr)
-    if isinstance(instr, quil_rs.Jump):
-        return Jump._from_rs_jump(instr)
-    if isinstance(instr, quil_rs.JumpWhen):
-        return JumpWhen._from_rs_jump_when(instr)
-    if isinstance(instr, quil_rs.JumpUnless):
-        return JumpUnless._from_rs_jump_unless(instr)
+    if isinstance(instr, quil_rs.Store):
+        return ClassicalStore._from_rs_store(instr)
+    if isinstance(instr, quil_rs.UnaryLogic):
+        return UnaryClassicalInstruction._from_rs_unary_logic(instr)
+    if isinstance(instr, quil_rs.WaveformDefinition):
+        return DefWaveform._from_rs_waveform_definition(instr)
     if isinstance(instr, quil_rs.Instruction):
         raise NotImplementedError(f"The {type(instr)} Instruction hasn't been mapped to an AbstractInstruction yet.")
     elif isinstance(instr, AbstractInstruction):

@@ -11,6 +11,8 @@ from pyquil.quilatom import quil_cos, quil_sin
 from pyquil.gates import X
 from pyquil.quil import Program
 from pyquil.quilbase import (
+    _convert_to_rs_instruction,
+    _convert_to_py_instruction,
     AbstractInstruction,
     ArithmeticBinaryOp,
     Capture,
@@ -159,6 +161,10 @@ class TestGate:
         not_eq_gate = Gate(f"not-{name}", params, qubits)
         assert not (gate == not_eq_gate)
         assert gate != not_eq_gate
+
+    def test_convert(self, gate: Gate):
+        rs_gate = _convert_to_rs_instruction(gate)
+        assert gate == _convert_to_py_instruction(rs_gate)
 
     def test_copy(self, gate: Gate):
         assert isinstance(copy.copy(gate), Gate)
@@ -399,6 +405,10 @@ class TestDefCalibration:
         assert isinstance(copy.copy(calibration), DefCalibration)
         assert isinstance(copy.deepcopy(calibration), DefCalibration)
 
+    def test_convert(self, calibration: DefCalibration):
+        rs_calibration = _convert_to_rs_instruction(calibration)
+        assert calibration == _convert_to_py_instruction(rs_calibration)
+
 
 @pytest.mark.parametrize(
     ("qubit", "memory_reference", "instrs"),
@@ -432,6 +442,10 @@ class TestDefMeasureCalibration:
     def test_copy(self, measure_calibration: DefMeasureCalibration):
         assert isinstance(copy.copy(measure_calibration), DefMeasureCalibration)
         assert isinstance(copy.deepcopy(measure_calibration), DefMeasureCalibration)
+
+    def test_convert(self, measure_calibration: DefMeasureCalibration):
+        rs_measure_calibration = _convert_to_rs_instruction(measure_calibration)
+        assert measure_calibration == _convert_to_py_instruction(rs_measure_calibration)
 
 
 @pytest.mark.parametrize(
@@ -471,6 +485,10 @@ class TestMeasurement:
     def test_copy(self, measurement: Measurement):
         assert isinstance(copy.copy(measurement), Measurement)
         assert isinstance(copy.deepcopy(measurement), Measurement)
+
+    def test_convert(self, measurement: Measurement):
+        rs_measurement = _convert_to_rs_instruction(measurement)
+        assert measurement == _convert_to_py_instruction(rs_measurement)
 
 
 @pytest.mark.parametrize(
@@ -560,6 +578,10 @@ class TestDefFrame:
         assert isinstance(copy.copy(def_frame), DefFrame)
         assert isinstance(copy.deepcopy(def_frame), DefFrame)
 
+    def test_convert(self, def_frame: DefFrame):
+        rs_def_frame = _convert_to_rs_instruction(def_frame)
+        assert def_frame == _convert_to_py_instruction(rs_def_frame)
+
 
 @pytest.mark.parametrize(
     ("name", "memory_type", "memory_size", "shared_region", "offsets"),
@@ -626,6 +648,10 @@ class TestDeclare:
         assert isinstance(copy.copy(declare), Declare)
         assert isinstance(copy.deepcopy(declare), Declare)
 
+    def test_convert(self, declare: Declare):
+        rs_declare = _convert_to_rs_instruction(declare)
+        assert declare == _convert_to_py_instruction(rs_declare)
+
 
 @pytest.mark.parametrize(
     ("command", "args", "freeform_string"),
@@ -666,6 +692,10 @@ class TestPragma:
     def test_copy(self, pragma: Pragma):
         assert isinstance(copy.copy(pragma), Pragma)
         assert isinstance(copy.deepcopy(pragma), Pragma)
+
+    def test_convert(self, pragma: Pragma):
+        rs_pragma = _convert_to_rs_instruction(pragma)
+        assert pragma == _convert_to_py_instruction(rs_pragma)
 
 
 @pytest.mark.parametrize(
@@ -710,6 +740,10 @@ class TestReset:
         assert isinstance(copy.copy(reset_qubit), type(reset_qubit))
         assert isinstance(copy.deepcopy(reset_qubit), type(reset_qubit))
 
+    def test_convert(self, reset_qubit: Reset):
+        rs_reset_qubit = _convert_to_rs_instruction(reset_qubit)
+        assert reset_qubit == _convert_to_py_instruction(rs_reset_qubit)
+
 
 @pytest.mark.parametrize(
     ("frames", "duration"),
@@ -738,6 +772,10 @@ class TestDelayFrames:
     def test_copy(self, delay_frames: DelayFrames):
         assert isinstance(copy.copy(delay_frames), DelayFrames)
         assert isinstance(copy.deepcopy(delay_frames), DelayFrames)
+
+    def test_convert(self, delay_frames: DelayFrames):
+        rs_delay_frames = _convert_to_rs_instruction(delay_frames)
+        assert delay_frames == _convert_to_py_instruction(rs_delay_frames)
 
 
 @pytest.mark.parametrize(
@@ -770,6 +808,10 @@ class TestDelayQubits:
         assert isinstance(copy.copy(delay_qubits), DelayQubits)
         assert isinstance(copy.deepcopy(delay_qubits), DelayQubits)
 
+    def test_convert(self, delay_qubits: DelayQubits):
+        rs_delay_qubits = _convert_to_rs_instruction(delay_qubits)
+        assert delay_qubits == _convert_to_py_instruction(rs_delay_qubits)
+
 
 @pytest.mark.parametrize(
     ("qubits"),
@@ -795,6 +837,10 @@ class TestFence:
     def test_copy(self, fence: Fence):
         assert isinstance(copy.copy(fence), Fence)
         assert isinstance(copy.deepcopy(fence), Fence)
+
+    def test_convert(self, fence: Fence):
+        rs_fence = _convert_to_rs_instruction(fence)
+        assert fence == _convert_to_py_instruction(rs_fence)
 
 
 def test_fence_all():
@@ -842,6 +888,10 @@ class TestDefWaveform:
     def test_copy(self, def_waveform: DefWaveform):
         assert isinstance(copy.copy(def_waveform), DefWaveform)
         assert isinstance(copy.deepcopy(def_waveform), DefWaveform)
+
+    def test_convert(self, def_waveform: DefWaveform):
+        rs_def_waveform = _convert_to_rs_instruction(def_waveform)
+        assert def_waveform == _convert_to_py_instruction(rs_def_waveform)
 
 
 @pytest.mark.parametrize(
@@ -899,6 +949,10 @@ class TestDefCircuit:
         assert isinstance(copy.copy(def_circuit), DefCircuit)
         assert isinstance(copy.deepcopy(def_circuit), DefCircuit)
 
+    def test_convert(self, def_circuit: DefCircuit):
+        rs_def_circuit = _convert_to_rs_instruction(def_circuit)
+        assert def_circuit == _convert_to_py_instruction(rs_def_circuit)
+
 
 @pytest.mark.parametrize(
     ("frame", "kernel", "memory_region", "nonblocking"),
@@ -955,6 +1009,10 @@ class TestCapture:
     def test_copy(self, capture: Capture):
         assert isinstance(copy.copy(capture), Capture)
         assert isinstance(copy.deepcopy(capture), Capture)
+
+    def test_convert(self, capture: Capture):
+        rs_capture = _convert_to_rs_instruction(capture)
+        assert capture == _convert_to_py_instruction(rs_capture)
 
 
 @pytest.mark.parametrize(
@@ -1042,6 +1100,10 @@ class TestPulse:
         assert isinstance(copy.copy(pulse), Pulse)
         assert isinstance(copy.deepcopy(pulse), Pulse)
 
+    def test_convert(self, pulse: Pulse):
+        rs_pulse = _convert_to_rs_instruction(pulse)
+        assert pulse == _convert_to_py_instruction(rs_pulse)
+
 
 @pytest.mark.parametrize(
     ("frame", "duration", "memory_region", "nonblocking"),
@@ -1098,6 +1160,10 @@ class TestRawCapture:
     def test_copy(self, raw_capture: RawCapture):
         assert isinstance(copy.copy(raw_capture), RawCapture)
         assert isinstance(copy.deepcopy(raw_capture), RawCapture)
+
+    def test_convert(self, raw_capture: RawCapture):
+        rs_raw_capture = _convert_to_rs_instruction(raw_capture)
+        assert raw_capture == _convert_to_py_instruction(rs_raw_capture)
 
 
 @pytest.mark.parametrize(
@@ -1161,6 +1227,11 @@ class TestFrameMutations:
             assert isinstance(copy.copy(instr), type(instr))
             assert isinstance(copy.deepcopy(instr), type(instr))
 
+    def test_convert(self, frame_mutation_instructions):
+        for instr in frame_mutation_instructions:
+            rs_instr = _convert_to_rs_instruction(instr)
+            assert instr == _convert_to_py_instruction(rs_instr)
+
 
 @pytest.mark.parametrize(
     ("frame_a", "frame_b"),
@@ -1190,6 +1261,10 @@ class TestSwapPhases:
     def test_copy(self, swap_phase: SwapPhases):
         assert isinstance(copy.copy(swap_phase), SwapPhases)
         assert isinstance(copy.deepcopy(swap_phase), SwapPhases)
+
+    def test_convert(self, swap_phase: SwapPhases):
+        rs_swap_phase = _convert_to_rs_instruction(swap_phase)
+        assert swap_phase == _convert_to_py_instruction(rs_swap_phase)
 
 
 @pytest.mark.parametrize(
@@ -1222,6 +1297,10 @@ class TestClassicalMove:
         assert isinstance(copy.copy(move), ClassicalMove)
         assert isinstance(copy.deepcopy(move), ClassicalMove)
 
+    def test_convert(self, move: ClassicalMove):
+        rs_classical_move = _convert_to_rs_instruction(move)
+        assert move == _convert_to_py_instruction(rs_classical_move)
+
 
 @pytest.mark.parametrize(
     ("left", "right"),
@@ -1249,6 +1328,10 @@ class TestClassicalExchange:
         assert isinstance(copy.copy(exchange), ClassicalExchange)
         assert isinstance(copy.deepcopy(exchange), ClassicalExchange)
 
+    def test_convert(self, exchange: ClassicalExchange):
+        rs_classical_exchange = _convert_to_rs_instruction(exchange)
+        assert exchange == _convert_to_py_instruction(rs_classical_exchange)
+
 
 @pytest.mark.parametrize(
     ("left", "right"),
@@ -1275,6 +1358,10 @@ class TestClassicalConvert:
     def test_copy(self, convert: ClassicalConvert):
         assert isinstance(copy.copy(convert), ClassicalConvert)
         assert isinstance(copy.deepcopy(convert), ClassicalConvert)
+
+    def test_convert(self, convert: ClassicalConvert):
+        rs_classical_convert = _convert_to_rs_instruction(convert)
+        assert convert == _convert_to_py_instruction(rs_classical_convert)
 
 
 @pytest.mark.parametrize(
@@ -1308,6 +1395,10 @@ class TestClassicalLoad:
         assert isinstance(copy.copy(load), ClassicalLoad)
         assert isinstance(copy.deepcopy(load), ClassicalLoad)
 
+    def test_convert(self, load: ClassicalLoad):
+        rs_classical_load = _convert_to_rs_instruction(load)
+        assert load == _convert_to_py_instruction(rs_classical_load)
+
 
 @pytest.mark.parametrize(
     ("target", "left", "right"),
@@ -1319,30 +1410,34 @@ class TestClassicalLoad:
 )
 class TestClassicalStore:
     @pytest.fixture
-    def load(self, target: str, left: MemoryReference, right: MemoryReference) -> ClassicalStore:
+    def store(self, target: str, left: MemoryReference, right: MemoryReference) -> ClassicalStore:
         return ClassicalStore(target, left, right)
 
-    def test_out(self, load: ClassicalStore, snapshot: SnapshotAssertion):
-        assert load.out() == snapshot
+    def test_out(self, store: ClassicalStore, snapshot: SnapshotAssertion):
+        assert store.out() == snapshot
 
-    def test_target(self, load: ClassicalStore, target: str):
-        assert load.target == target
-        load.target = "new-target"
-        assert load.target == "new-target"
+    def test_target(self, store: ClassicalStore, target: str):
+        assert store.target == target
+        store.target = "new-target"
+        assert store.target == "new-target"
 
-    def test_left(self, load: ClassicalStore, left: MemoryReference):
-        assert load.left == left
-        load.left = MemoryReference("new-memory-reference")
-        assert load.left == MemoryReference("new-memory-reference")
+    def test_left(self, store: ClassicalStore, left: MemoryReference):
+        assert store.left == left
+        store.left = MemoryReference("new-memory-reference")
+        assert store.left == MemoryReference("new-memory-reference")
 
-    def test_right(self, load: ClassicalStore, right: Union[MemoryReference, int, float]):
-        assert load.right == right
-        load.right = MemoryReference("new-memory-reference")
-        assert load.right == MemoryReference("new-memory-reference")
+    def test_right(self, store: ClassicalStore, right: Union[MemoryReference, int, float]):
+        assert store.right == right
+        store.right = MemoryReference("new-memory-reference")
+        assert store.right == MemoryReference("new-memory-reference")
 
-    def test_copy(self, load: ClassicalStore):
-        assert isinstance(copy.copy(load), ClassicalStore)
-        assert isinstance(copy.deepcopy(load), ClassicalStore)
+    def test_copy(self, store: ClassicalStore):
+        assert isinstance(copy.copy(store), ClassicalStore)
+        assert isinstance(copy.deepcopy(store), ClassicalStore)
+
+    def test_convert(self, store: ClassicalStore):
+        rs_classical_store = _convert_to_rs_instruction(store)
+        assert store == _convert_to_py_instruction(rs_classical_store)
 
 
 @pytest.mark.parametrize(
@@ -1392,6 +1487,10 @@ class TestClassicalComparison:
         assert isinstance(copy.copy(comparison), type(comparison))
         assert isinstance(copy.deepcopy(comparison), type(comparison))
 
+    def test_convert(self, comparison: ClassicalComparison):
+        rs_classical_comparison = _convert_to_rs_instruction(comparison)
+        assert comparison == _convert_to_py_instruction(rs_classical_comparison)
+
 
 @pytest.mark.parametrize(
     ("op", "target"),
@@ -1419,6 +1518,10 @@ class TestUnaryClassicalInstruction:
     def test_copy(self, unary: UnaryClassicalInstruction):
         assert isinstance(copy.copy(unary), type(unary))
         assert isinstance(copy.deepcopy(unary), type(unary))
+
+    def test_convert(self, unary: UnaryClassicalInstruction):
+        rs_classical_unary = _convert_to_rs_instruction(unary)
+        assert unary == _convert_to_py_instruction(rs_classical_unary)
 
 
 @pytest.mark.parametrize(
@@ -1467,6 +1570,10 @@ class TestArithmeticBinaryOp:
         except Exception:
             pytest.fail("ArithmeticBinaryOp not valid in Program")
 
+    def test_convert(self, arithmetic: UnaryClassicalInstruction):
+        rs_classical_arithmetic = _convert_to_rs_instruction(arithmetic)
+        assert arithmetic == _convert_to_py_instruction(rs_classical_arithmetic)
+
 
 @pytest.mark.parametrize(
     ("op", "left", "right"),
@@ -1502,21 +1609,33 @@ class TestLogicalBinaryOp:
         assert isinstance(copy.copy(logical), type(logical))
         assert isinstance(copy.deepcopy(logical), type(logical))
 
+    def test_convert(self, logical: LogicalBinaryOp):
+        rs_classical_logical = _convert_to_rs_instruction(logical)
+        assert logical == _convert_to_py_instruction(rs_classical_logical)
+
 
 def test_include():
     include = Include("my-cool-file.quil")
     assert include.out() == 'INCLUDE "my-cool-file.quil"'
     include.filename = "my-other-file.quil"
     assert include.filename == "my-other-file.quil"
+    rs_include = _convert_to_rs_instruction(include)
+    assert include == _convert_to_py_instruction(rs_include)
 
 
 def test_wait():
     assert Wait().out() == str(Wait()) == "WAIT"
+    rs_wait = _convert_to_rs_instruction(Wait())
+    assert Wait() == _convert_to_py_instruction(rs_wait)
 
 
 def test_halt():
     assert Halt().out() == str(Halt()) == "HALT"
+    rs_halt = _convert_to_rs_instruction(Halt())
+    assert Halt() == _convert_to_py_instruction(rs_halt)
 
 
 def test_nop():
     assert Nop().out() == str(Nop()) == "NOP"
+    rs_nop = _convert_to_rs_instruction(Nop())
+    assert Nop() == _convert_to_py_instruction(rs_nop)
