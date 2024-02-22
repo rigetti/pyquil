@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.7.0-rc.0 (2024-02-22)
+
+### Features
+
+#### Support job cancellation for QPUs, perform automatic retries on transient network failures. (#1741)
+
 ## 4.6.2 (2024-02-20)
 
 ### Fixes
