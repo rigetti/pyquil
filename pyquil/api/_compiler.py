@@ -146,7 +146,7 @@ class QPUCompiler(AbstractCompiler):
         response = get_quilt_calibrations(
             quantum_processor_id=self.quantum_processor_id,
         )
-        return Program(response.quilt)
+        return Program(response)
 
     def get_calibration_program(self, force_refresh: bool = False) -> Program:
         """
