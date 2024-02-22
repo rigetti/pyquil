@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.7.0-rc.1 (2024-02-22)
+
+### Features
+
+#### Support job cancellation for QPUs, perform automatic retries on transient network failures. (#1741)
+
+### Fixes
+
+#### Valid instructions will no longer be rejected by the compatibility layer (#1742)
+
 ## 4.7.0-rc.0 (2024-02-22)
 
 ### Features
