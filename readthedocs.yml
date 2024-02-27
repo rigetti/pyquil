@@ -14,7 +14,7 @@ build:
     post_install:
       # Install dependencies with 'docs' dependency group
       # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
-      - poetry install --extras docs --extras latex
+      - poetry install --with docs --with latex
 
 sphinx:
   configuration: docs/source/conf.py
