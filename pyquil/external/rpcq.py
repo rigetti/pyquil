@@ -220,18 +220,18 @@ class CompilerISA:
     qubits: Dict[str, Qubit] = field(default_factory=dict)
     edges: Dict[str, Edge] = field(default_factory=dict)
 
-    def _dict(self) -> Dict[str, JsonValue]:
+    def _dict(self, by_alias=False) -> Dict[str, JsonValue]:
         return {
-            "1Q": {k: q._dict() for k, q in self.qubits.items()},
-            "2Q": {k: e._dict() for k, e in self.edges.items()},
+            "1Q" if by_alias else "qubits": {k: q._dict() for k, q in self.qubits.items()},
+            "2Q" if by_alias else "edges": {k: e._dict() for k, e in self.edges.items()},
         }
 
     @deprecated(
         version="4.6.2",
         reason="No longer requires serialization of RPCQ objects and is dropping Pydantic as a dependency.",  # noqa: E501
     )
-    def dict(self):
-        return self._dict()
+    def dict(self, by_alias=False):
+        return self._dict(by_alias=by_alias)
 
     @classmethod
     def _parse_obj(cls, dictionary: Dict):
@@ -288,7 +288,7 @@ def get_edge(quantum_processor: CompilerISA, qubit1: int, qubit2: int) -> Option
 
 
 def compiler_isa_to_target_quantum_processor(compiler_isa: CompilerISA) -> TargetQuantumProcessor:
-    return TargetQuantumProcessor(isa=compiler_isa._dict(), specs={})
+    return TargetQuantumProcessor(isa=compiler_isa.dict(by_alias=True), specs={})
 
 
 class Supported1QGate:
