@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.7.0-rc.2 (2024-02-27)
+
+### Features
+
+#### Support job cancellation for QPUs, perform automatic retries on transient network failures. (#1741)
+
+### Fixes
+
+#### Valid instructions will no longer be rejected by the compatibility layer (#1742)
+
+#### CompilerISA.dict() now uses the correct default field names: qubits and edges (#1746)
+
 ## 4.7.0-rc.1 (2024-02-22)
 
 ### Features
