@@ -8,13 +8,13 @@ build:
     post_create_environment:
       # Install poetry
       # https://python-poetry.org/docs/#installing-manually
-      - pip install poetry
+      - pip install poetry 'sphinx-rtd-theme==1.3.0'
       # Tell poetry to not use a virtual environment
       - poetry config virtualenvs.create false
     post_install:
       # Install dependencies with 'docs' dependency group
       # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
-      - poetry install --with docs --with latex
+      - poetry install --extras docs --extras latex
 
 sphinx:
   configuration: docs/source/conf.py
