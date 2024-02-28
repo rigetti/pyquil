@@ -230,6 +230,8 @@ class QPU(QAM[QPUExecuteResponse]):
                 QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=effective_execution_options)
             )
 
+        return responses
+
     def cancel(self, execute_response: QPUExecuteResponse) -> None:
         """
         Cancel a job that has yet to begin executing.
