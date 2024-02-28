@@ -16,7 +16,7 @@
 from dataclasses import dataclass
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List
 
 import numpy as np
 from numpy.typing import NDArray
@@ -31,13 +31,13 @@ from pyquil.quilatom import (
 )
 from qcs_sdk import QCSClient, ResultData, ExecutionData
 from qcs_sdk.qpu.api import (
-    submit,
     retrieve_results,
     cancel_job,
     ConnectionStrategy,
     ExecutionResult,
     ExecutionOptions,
     ExecutionOptionsBuilder,
+    submit_with_parameter_batch,
 )
 from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
 
@@ -177,6 +177,28 @@ class QPU(QAM[QPUExecuteResponse]):
               to configure how the job is submitted and retrieved from the QPU. If unset,
               an appropriate default will be used.
         """
+        memory_map = memory_map or {}
+        responses = self.execute_with_memory_map_batch(executable, [memory_map], execution_options)
+        assert len(responses) == 1, "Request to execute job with a single memory map returned multiple responses"
+        return responses[0]
+
+    def execute_with_memory_map_batch(
+        self,
+        executable: QuantumExecutable,
+        memory_maps: List[MemoryMap],
+        execution_options: Optional[ExecutionOptions] = None,
+    ) -> List[QPUExecuteResponse]:
+        """
+        Execute a compiled program on a QPU with multiple sets of `memory_maps`.
+
+        See the documentation of `qcs_sdk.qpu.api.submit_with_parameter_batch` for more information.
+
+        :param program: The `EncryptedProgram` to execute.
+        :param memory_maps: A list containing one or more mappings of symbols to their desired values.
+        :param execution_options: The ``ExecutionOptions`` to use.
+
+        :returns: A list of responses with a length and order corresponding to the memory_maps given.
+        """
         executable = executable.copy()
 
         assert isinstance(
@@ -187,11 +209,14 @@ class QPU(QAM[QPUExecuteResponse]):
             executable.ro_sources is not None
         ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
 
-        memory_map = memory_map or {}
-        patch_values = build_patch_values(executable.recalculation_table, memory_map)
+        patch_values = []
+        for memory_map in memory_maps:
+            memory_map = memory_map or {}
+            patch_values.append(build_patch_values(executable.recalculation_table, memory_map))
+
         effective_execution_options = execution_options or self.execution_options
 
-        job_id = submit(
+        job_ids = submit_with_parameter_batch(
             program=executable.program,
             patch_values=patch_values,
             quantum_processor_id=self.quantum_processor_id,
@@ -199,7 +224,11 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options=effective_execution_options,
         )
 
-        return QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=effective_execution_options)
+        responses = []
+        for job_id in job_ids:
+            responses.append(
+                QPUExecuteResponse(_executable=executable, job_id=job_id, execution_options=effective_execution_options)
+            )
 
     def cancel(self, execute_response: QPUExecuteResponse) -> None:
         """
