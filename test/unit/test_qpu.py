@@ -58,13 +58,13 @@ def test_provided_execution_options():
 
 
 @patch("pyquil.api._qpu.retrieve_results")
-@patch("pyquil.api._qpu.submit")
+@patch("pyquil.api._qpu.submit_with_parameter_batch")
 def test_qpu_execute(
     mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
 ):
     qpu = QPU(quantum_processor_id="test")
 
-    mock_submit.return_value = "some-job-id"
+    mock_submit.return_value = ["some-job-id"]
     execute_response = qpu.execute(mock_encrypted_program)
 
     mock_retrieve_results.return_value = ExecutionResults(
@@ -91,13 +91,13 @@ def test_qpu_execute(
 
 
 @patch("pyquil.api._qpu.retrieve_results")
-@patch("pyquil.api._qpu.submit")
+@patch("pyquil.api._qpu.submit_with_parameter_batch")
 def test_qpu_execute_jagged_results(
     mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
 ):
     qpu = QPU(quantum_processor_id="test")
 
-    mock_submit.return_value = "some-job-id"
+    mock_submit.return_value = ["some-job-id"]
     execute_response = qpu.execute(mock_encrypted_program)
 
     mock_retrieve_results.return_value = ExecutionResults(
@@ -130,7 +130,7 @@ def test_qpu_execute_jagged_results(
 
 class TestQPUExecutionOptions:
     @patch("pyquil.api._qpu.retrieve_results")
-    @patch("pyquil.api._qpu.submit")
+    @patch("pyquil.api._qpu.submit_with_parameter_batch")
     def test_submit_with_class_options(
         self, mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
     ):
@@ -146,7 +146,7 @@ class TestQPUExecutionOptions:
         execution_options = execution_options_builder.build()
         qpu.execution_options = execution_options
 
-        mock_submit.return_value = "some-job-id"
+        mock_submit.return_value = ["some-job-id"]
         execute_response = qpu.execute(mock_encrypted_program)
         assert execute_response.execution_options == qpu.execution_options
 
@@ -168,7 +168,7 @@ class TestQPUExecutionOptions:
         )
 
     @patch("pyquil.api._qpu.retrieve_results")
-    @patch("pyquil.api._qpu.submit")
+    @patch("pyquil.api._qpu.submit_with_parameter_batch")
     def test_submit_with_options(
         self, mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
     ):
@@ -178,7 +178,7 @@ class TestQPUExecutionOptions:
         """
         qpu = QPU(quantum_processor_id="test")
 
-        mock_submit.return_value = "some-job-id"
+        mock_submit.return_value = ["some-job-id"]
         execution_options_builder = ExecutionOptionsBuilder()
         execution_options_builder.timeout_seconds = 10.0
         execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id("some-endpoint-id")
