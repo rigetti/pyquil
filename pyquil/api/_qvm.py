@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence, Tuple, Dict
+from typing import Any, Optional, Sequence, Tuple, Dict, List, Iterable
 
 import numpy as np
 
@@ -126,6 +126,17 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             check_qvm_version(version)
         except ConnectionError:
             raise QVMNotRunning(f"No QVM server running at {self._client.qvm_url}") from ConnectionError
+
+    def execute_with_memory_map_batch(
+        self, executable: QuantumExecutable, memory_maps: Iterable[MemoryMap], **__: Any
+    ) -> List[QVMExecuteResponse]:
+        """
+        Executes a single program on the QVM with multiple memory maps.
+
+        This method is a convenience wrapper around QVM#execute and isn't more efficient than making multiple seperate
+        requests to the QVM.
+        """
+        return [self.execute(executable, memory_map) for memory_map in memory_maps]
 
     def execute(
         self,

@@ -15,7 +15,7 @@
 ##############################################################################
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Sequence, Type, Union, Any
+from typing import Dict, List, Optional, Sequence, Type, Union, Any, Iterable
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -220,6 +220,13 @@ class PyQVM(QAM["PyQVM"]):
             if isinstance(dg, DefPermutationGate) or isinstance(dg, DefGateByPaulis):
                 raise NotImplementedError("PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM.")
             self.defined_gates[dg.name] = dg.matrix
+
+    def execute_with_memory_map_batch(
+        self, executable: QuantumExecutable, memory_maps: Iterable[MemoryMap], **__: Any
+    ) -> List["PyQVM"]:
+        raise NotImplementedError(
+            "PyQVM does not support batch execution as the state of the instance is reset at the start of each execute."
+        )
 
     def execute(self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **__: Any) -> "PyQVM":
         """

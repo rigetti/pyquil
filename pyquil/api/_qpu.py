@@ -16,7 +16,7 @@
 from dataclasses import dataclass
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Dict, Optional, Union, List, Iterable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -185,7 +185,7 @@ class QPU(QAM[QPUExecuteResponse]):
     def execute_with_memory_map_batch(
         self,
         executable: QuantumExecutable,
-        memory_maps: List[MemoryMap],
+        memory_maps: Iterable[MemoryMap],
         execution_options: Optional[ExecutionOptions] = None,
     ) -> List[QPUExecuteResponse]:
         """
