@@ -187,6 +187,7 @@ class QPU(QAM[QPUExecuteResponse]):
         executable: QuantumExecutable,
         memory_maps: Iterable[MemoryMap],
         execution_options: Optional[ExecutionOptions] = None,
+        **__: Any,
     ) -> List[QPUExecuteResponse]:
         """
         Execute a compiled program on a QPU with multiple sets of `memory_maps`.
