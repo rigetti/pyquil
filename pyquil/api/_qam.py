@@ -152,7 +152,7 @@ class QAM(ABC, Generic[T]):
         **kwargs: Any,
     ) -> List[T]:
         """
-        Execute a QuantumExecutable with one or more memory_maps, returning a handles to be used to retrieve results.
+        Execute a QuantumExecutable with one or more memory_maps, returning handles to be used to retrieve results.
 
         How these programs are batched and executed is determined by the executor. See their respective documentation
         for details.
