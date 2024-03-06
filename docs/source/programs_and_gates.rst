@@ -362,7 +362,7 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
 .. testcode:: parametric
 
     # Generate a memory map for each set of parameters we want to execute with
-    memory_maps = [{"theta": [theta] for theta in np.linspace(0, 2 * np.pi, 200)}
+    memory_maps = [{"theta": [theta] for theta in np.linspace(0, 2 * np.pi, 200)}]
 
     # Begin batch execution of the program using each set of parameters.
     # This returns a list of references to each job, the length and order of which correspond to the memory maps we
