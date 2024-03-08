@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.8.0 (2024-03-08)
+
+### Features
+
+#### Add run_with_memory_map_batch method for more efficient execution of parameter batches (#1750)
+
 ## 4.8.0-rc.0 (2024-03-08)
 
 ### Features
