@@ -157,8 +157,7 @@ class QAM(ABC, Generic[T]):
         How these programs are batched and executed is determined by the executor. See their respective documentation
         for details.
 
-        Returns a list of ``QAMExecutionResult``, which can be used to fetch
-        results in ``QAM#get_result``.
+        Returns a list of handles that can be used to fetch results with ``QAM#get_result``.
         """
 
     @abstractmethod

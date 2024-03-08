@@ -364,13 +364,10 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
     # Generate a memory map for each set of parameters we want to execute with
     memory_maps = [{"theta": [theta] for theta in np.linspace(0, 2 * np.pi, 200)}]
 
-    # Begin batch execution of the program using each set of parameters.
-    # This returns a list of references to each job, the length and order of which correspond to the memory maps we
+    # Batch execute of the program using each set of parameters.
+    # This returns a list of results for each execution, the length and order of which correspond to the memory maps we
     # pass in.
-    handles = qc.execute_with_memory_map_batch(executable, memory_maps)
-
-    # Use the handles to gather the results
-    parametric_measurements = [qc.get_result(handles) for handle in handles]
+    parametric_measurements = qc.run_with_memory_map_batch(executable, memory_maps)
 
 .. note::
 
