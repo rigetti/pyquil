@@ -24,6 +24,7 @@ from typing import (
     Any,
     Tuple,
     Iterator,
+    Iterable,
     Optional,
     Set,
     Union,
@@ -140,6 +141,22 @@ class QuantumComputer:
         :return: execution result including readout data.
         """
         return self.qam.run(executable, memory_map, **kwargs)
+
+    def run_with_memory_map_batch(
+        self, executable: QuantumExecutable, memory_maps: Iterable[MemoryMap], **kwargs: Any
+    ) -> List[QAMExecutionResult]:
+        """
+        Run a QuantumExecutable with one or more memory_maps, returning a list of results corresponding to the length
+        and order of the given MemoryMaps.
+
+        How these programs are batched and executed is determined by the executor. See their respective documentation
+        for details.
+
+        Returns a list of ``QAMExecutionResult``, which can be used to fetch
+        results in ``QAM#get_result``.
+        """
+        handles = self.qam.execute_with_memory_map_batch(executable, memory_maps, **kwargs)
+        return [self.qam.get_result(handle) for handle in handles]
 
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """

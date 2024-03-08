@@ -15,7 +15,7 @@
 ##############################################################################
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Generic, Mapping, Optional, TypeVar, Sequence, Union, Dict
+from typing import Any, Generic, Mapping, Optional, TypeVar, Sequence, Union, Dict, List, Iterable
 from datetime import timedelta
 
 from deprecated import deprecated
@@ -142,6 +142,22 @@ class QAM(ABC, Generic[T]):
         :param executable: The executable program to be executed by the QAM.
         :param memory_map: A mapping of memory regions to a list containing the values to be written into that memory
             region for the run.
+        """
+
+    @abstractmethod
+    def execute_with_memory_map_batch(
+        self,
+        executable: QuantumExecutable,
+        memory_maps: Iterable[MemoryMap],
+        **kwargs: Any,
+    ) -> List[T]:
+        """
+        Execute a QuantumExecutable with one or more memory_maps, returning handles to be used to retrieve results.
+
+        How these programs are batched and executed is determined by the executor. See their respective documentation
+        for details.
+
+        Returns a list of handles that can be used to fetch results with ``QAM#get_result``.
         """
 
     @abstractmethod

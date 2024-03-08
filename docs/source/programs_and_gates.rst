@@ -361,21 +361,18 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
 
 .. testcode:: parametric
 
-    # Somewhere to store each list of results
-    parametric_measurements = []
+    # Generate a memory map for each set of parameters we want to execute with
+    memory_maps = [{"theta": [theta] for theta in np.linspace(0, 2 * np.pi, 200)}]
 
-    for theta in np.linspace(0, 2 * np.pi, 200):
-        # Set the desired parameter value in executable memory
-        memory_map = {"theta": [theta]}
+    # Batch execute of the program using each set of parameters.
+    # This returns a list of results for each execution, the length and order of which correspond to the memory maps we
+    # pass in.
+    parametric_measurements = qc.run_with_memory_map_batch(executable, memory_maps)
 
-        # Get the results of the run with the value we want to execute with
-        bitstrings = qc.run(executable, memory_map=memory_map).get_register_map().get("ro")
+.. note::
 
-        # Store our results
-        parametric_measurements.append(bitstrings)
-
-In the example here, if you called ``qc.run(executable)`` and didn't specify ``'theta'``, the program would apply
-``RZ(0, qubit)`` for every execution.
+   :py:meth:`~QAM.run` and :py:meth:`~QAM.execute` both support executing a program a single memory map. We chose 
+   :py:meth:`~QAM.batch_execute_with_memory_map` for this example since we had multiple sets of parameters to run.
 
 .. note::
 
