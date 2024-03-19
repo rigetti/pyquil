@@ -31,6 +31,8 @@ tenacity = "^8.2.2"
 types-python-dateutil = "^2.8.19"
 types-retry = "^0.9.9"
 packaging = "^23.1"
+deprecated = "^1.2.13"
+types-deprecated = "^1.2.9.2"
 
 # latex extra
 ipython = { version = "^7.21.0", optional = true }
@@ -44,8 +46,6 @@ pandoc = {version = "2.4b0", optional = true}
 matplotlib = {version = "^3.7.1", optional = true}
 matplotlib-inline = {version = "^0.1.6", optional = true}
 seaborn = {version = "^0.12.2", optional = true}
-deprecated = "^1.2.13"
-types-deprecated = "^1.2.9.2"
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
@@ -53,14 +53,15 @@ flake8 = "^3.8.1"
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
 mypy = "^1.5.0"
+ruff = "^0.3.2"
 toml = "^0.10.2"
 pytest-xdist = "^3.3.1"
 pytest-rerunfailures = "^12.0.0"
 pytest-timeout = "^1.4.2"
 pytest-mock = "^3.11.1"
+pytest-benchmark = "^4.0.0"
+pytest-profiling = "^1.7.0"
 respx = "^0.20"
-nest-asyncio = "^1.5.6"
-mock = { version = "^4.0", python = "<3.8" }
 syrupy = "^3.0.6"
 
 [tool.poetry.extras]
