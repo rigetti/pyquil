@@ -1,9 +1,16 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use indexmap::IndexMap;
 use pyo3::{exceptions::PyValueError, prelude::*};
+use quil_rs::quil::Quil;
 
 use crate::instruction::{Declare, DefCalibration, DefMeasureCalibration, Instruction};
+
+pub fn init_module(_py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
+    let m = PyModule::new_bound(_py, "program")?;
+    m.add_class::<Program>()?;
+    Ok(m)
+}
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -11,6 +18,23 @@ pub struct Program {
     inner: quil_rs::Program,
     #[pyo3(get, set)]
     num_shots: u64,
+}
+
+#[pyclass]
+pub struct ProgramIter {
+    // inner: std::vec::IntoIter<Instruction>,
+    inner: Box<dyn Iterator<Item = Instruction> + Send>,
+}
+
+#[pymethods]
+impl ProgramIter {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Instruction> {
+        slf.inner.next()
+    }
 }
 
 #[derive(FromPyObject, Clone, Debug)]
@@ -108,6 +132,19 @@ impl Program {
             )
             .collect()
     }
+
+    fn out(&self) -> PyResult<String> {
+        self.inner
+            .to_quil()
+            .map_err(|e| PyValueError::new_err(format!("Could not serialize program to Quil: {e}")))
+    }
+
+    fn __iter__(&self, py: Python<'_>) -> PyResult<Py<ProgramIter>> {
+        let iter = ProgramIter {
+            inner: Box::new(self.clone().iter_instructions()),
+        };
+        Py::new(py, iter)
+    }
 }
 
 impl Program {
@@ -119,6 +156,20 @@ impl Program {
             .map(|(name, descriptor)| {
                 quil_rs::instruction::Declaration::new(name, descriptor.size, descriptor.sharing)
             })
+    }
+
+    fn iter_instructions(self) -> impl Iterator<Item = Instruction> {
+        self.iter_declarations()
+            .map(|declaration| {
+                Instruction::from_quil_rs(quil_rs::instruction::Instruction::Declaration(
+                    declaration,
+                ))
+            })
+            .chain(
+                self.inner
+                    .into_body_instructions()
+                    .map(Instruction::from_quil_rs),
+            )
     }
 }
 

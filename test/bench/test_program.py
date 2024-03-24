@@ -1,6 +1,7 @@
 import pytest
+from pyquil._core import program
 
-from pyquil import Program
+Program = program.Program
 
 
 @pytest.fixture
@@ -20,8 +21,10 @@ class TestInstructionIteration:
         for instruction in program:
             continue
 
-    def test_calibration_program(self, benchmark, mock_calibration_program: Program):
+    def test_calibration_program(self, benchmark, mock_calibration_program: Program, snapshot):
         benchmark(self.iterate, mock_calibration_program)
+        assert mock_calibration_program.out() == snapshot
 
-    def test_large_program(self, benchmark, over_9000_line_program: Program):
+    def test_large_program(self, benchmark, over_9000_line_program: Program, snapshot):
         benchmark(self.iterate, over_9000_line_program)
+        assert over_9000_line_program.out() == snapshot

@@ -18,6 +18,7 @@ fn pyquil(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     initalize_submodule(py, "instruction", m, &instruction::init_module(py)?)?;
     initalize_submodule(py, "expression", m, &expression::init_module(py)?)?;
     initalize_submodule(py, "primitive", m, &primitive::init_module(py)?)?;
+    initalize_submodule(py, "program", m, &program::init_module(py)?)?;
     Ok(())
 }
 
