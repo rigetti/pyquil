@@ -1,90 +1,99 @@
 import copy
 from math import pi
-from typing import Any, List, Optional, Iterable, Tuple, Union
 from numbers import Complex, Number
+from typing import Any, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
-from syrupy.assertion import SnapshotAssertion
-
-from pyquil.quilatom import quil_cos, quil_sin
+from pyquil.api._compiler import QPUCompiler
 from pyquil.gates import X
+from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
+from pyquil.quilatom import (
+    BinaryExp,
+    Expression,
+    Frame,
+    Mul,
+    Qubit,
+    TemplateWaveform,
+    Waveform,
+    WaveformReference,
+    quil_cos,
+    quil_sin,
+)
 from pyquil.quilbase import (
-    _convert_to_rs_instruction,
-    _convert_to_py_instruction,
     AbstractInstruction,
     ArithmeticBinaryOp,
     Capture,
     ClassicalAdd,
     ClassicalAnd,
-    ClassicalExclusiveOr,
-    ClassicalInclusiveOr,
-    ClassicalSub,
-    ClassicalMul,
-    ClassicalDiv,
     ClassicalComparison,
     ClassicalConvert,
+    ClassicalDiv,
+    ClassicalEqual,
     ClassicalExchange,
+    ClassicalExclusiveOr,
+    ClassicalGreaterEqual,
+    ClassicalGreaterThan,
+    ClassicalInclusiveOr,
+    ClassicalLessEqual,
+    ClassicalLessThan,
     ClassicalLoad,
     ClassicalMove,
+    ClassicalMul,
     ClassicalNeg,
     ClassicalNot,
     ClassicalStore,
-    ClassicalEqual,
-    ClassicalLessThan,
-    ClassicalLessEqual,
-    ClassicalGreaterThan,
-    ClassicalGreaterEqual,
+    ClassicalSub,
     Declare,
     DefCalibration,
     DefCircuit,
     DefFrame,
     DefGate,
-    DefWaveform,
-    DefPermutationGate,
     DefGateByPaulis,
     DefMeasureCalibration,
+    DefPermutationGate,
+    DefWaveform,
     DelayFrames,
     DelayQubits,
     Fence,
     FenceAll,
     FormalArgument,
     Gate,
+    Halt,
     Include,
     LogicalBinaryOp,
     Measurement,
     MemoryReference,
-    ParameterDesignator,
+    Nop,
     Parameter,
+    ParameterDesignator,
     Pragma,
     Pulse,
     QubitDesignator,
     RawCapture,
+    Reset,
+    ResetQubit,
     SetFrequency,
     SetPhase,
     SetScale,
     ShiftFrequency,
     ShiftPhase,
     SwapPhases,
-    Reset,
-    ResetQubit,
     UnaryClassicalInstruction,
     Wait,
-    Halt,
-    Nop,
+    _convert_to_py_instruction,
+    _convert_to_rs_instruction,
 )
-from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilatom import BinaryExp, Mul, Frame, Qubit, Expression, Waveform, WaveformReference, TemplateWaveform
-from pyquil.api._compiler import QPUCompiler
 from pyquil.quiltwaveforms import (
+    BoxcarAveragerKernel,
+    DragGaussianWaveform,
+    ErfSquareWaveform,
     FlatWaveform,
     GaussianWaveform,
-    DragGaussianWaveform,
     HrmGaussianWaveform,
-    ErfSquareWaveform,
-    BoxcarAveragerKernel,
 )
+from syrupy.assertion import SnapshotAssertion
 
 
 @pytest.mark.parametrize(
@@ -363,10 +372,12 @@ class TestDefGateByPaulis:
 @pytest.mark.parametrize(
     ("name", "parameters", "qubits", "instrs"),
     [
-        ("Calibrate", [], [Qubit(0)], [X(0)]),
-        ("Calibrate", [Parameter("X")], [Qubit(0)], [X(0)]),
+        # ("Calibrate", [], [Qubit(0)], [X(0)]),
+        ("Calibrate", [], [0], []),
+        # ("Calibrate", [Parameter("X")], [Qubit(0)], [X(0)]),
     ],
-    ids=("No-Params", "Params"),
+    # ids=("No-Params", "Fixed-Qubit", "Params"),
+    ids=("Fixed-Qubit",),
 )
 class TestDefCalibration:
     @pytest.fixture

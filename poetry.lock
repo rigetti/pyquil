@@ -1357,6 +1357,35 @@ files = [
 traitlets = "*"
 
 [[package]]
+name = "maturin"
+version = "1.5.0"
+description = "Build and publish crates with pyo3, rust-cpython and cffi bindings as well as rust binaries as python packages"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "maturin-1.5.0-py3-none-linux_armv6l.whl", hash = "sha256:0b976116b7cfaafbc8c3f0acfaec6702520c49e86e48ea80e2c282b7f8118c1a"},
+    {file = "maturin-1.5.0-py3-none-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:d277adf9b27143627ba7be7ea254513d3e85008fb16a94638b56884a41b4e5a2"},
+    {file = "maturin-1.5.0-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:d6a314472e07b6bdfa4cdf97d24cda1defe008d36d4b75de2efd3383e7a2d7bf"},
+    {file = "maturin-1.5.0-py3-none-manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686.whl", hash = "sha256:a5c038ded82c7595d99e94a208aa8af2b5c94eef4c8fcf5ef6e841957e506201"},
+    {file = "maturin-1.5.0-py3-none-manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:faa0d099a8045afc9977284cb3a1c26e5ebc9a7f0fe4d53b7ee17f62fd279f4a"},
+    {file = "maturin-1.5.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:9cba3737cb92ce5c1bd82cbb9b1fde412b2aac8882ac38b8340980f5eb858d8c"},
+    {file = "maturin-1.5.0-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:1b29bf8771f27d2e6b2685c82de952b5732ee79e5c0030ffd5dab5ccb99137a1"},
+    {file = "maturin-1.5.0-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.musllinux_1_1_ppc64le.whl", hash = "sha256:f271f315fb78d2ff5fdf60f8d3ada2a04a66ac6fbd3cbb318c4eb4e9766449bc"},
+    {file = "maturin-1.5.0-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:76e3270ff87b5484976d23e3d88475cd64acf41b54f561263f253d8fca0baab3"},
+    {file = "maturin-1.5.0-py3-none-win32.whl", hash = "sha256:eb35dfe5994ad2c34d2874a73720847ecc2adb28f934e9a7cbcdb8826b240e60"},
+    {file = "maturin-1.5.0-py3-none-win_amd64.whl", hash = "sha256:b3a499ff5960e46115488e68011809ce99857864ce3a91cf5d0fff3adbd89e8c"},
+    {file = "maturin-1.5.0-py3-none-win_arm64.whl", hash = "sha256:2e4c01370a5c10b6c4887bee66d3582bdb38c3805168c1393f072bd266da08d4"},
+    {file = "maturin-1.5.0.tar.gz", hash = "sha256:e046ea2aed687991d58c42f6276dfcc0c037092934654f538b5877fd57dd3a9c"},
+]
+
+[package.dependencies]
+tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
+
+[package.extras]
+patchelf = ["patchelf"]
+zig = ["ziglang (>=0.10.0,<0.11.0)"]
+
+[[package]]
 name = "mccabe"
 version = "0.6.1"
 description = "McCabe checker, plugin for flake8"
@@ -3359,9 +3388,10 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [extras]
 docs = ["Sphinx", "matplotlib", "nbsphinx", "pandoc", "recommonmark", "seaborn", "sphinx-rtd-theme"]
+grpc-web = []
 latex = ["ipython"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8,<=3.12"
-content-hash = "e116e1c4c9fe066c72b88a6306104007d5c7a8ea4fbc2abfaa0ba608cf488165"
+content-hash = "72b9c1dd80c1b4b46b8050442411b25ccd63e7a15cb2223388ababb9a6fc9636"
