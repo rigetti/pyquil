@@ -1,9 +1,9 @@
 //! Conversion functions that can be used to convert pyQuil types to [`quil_rs`] types.
 //!
 //! This module contains two kinds of functions:
-//! - `py_to_${quil_rs::t}` functions convert a #[pyo3::PyAny] into some quil-rs type `t`. These methods are
+//! - `py_to_${quil_rs::t}` functions convert a #[`pyo3::PyAny`] into some quil-rs type `t`. These methods are
 //!    compatible with the #[pyo3(from_py_with="")] field attribute for function arguments.
-//! - `${quil_rs::t}_from_{k}` functions return some quil-rs type `t` from some other type `k`.
+//! - `${t}_from_{k}` functions return some pyQuil or quil-rs type `t` to it's counterpart type `k`.
 //!
 //! Both types of functions will raise an error if the input values cannot be used to construct a
 //! valid quil-rs type.
@@ -77,9 +77,9 @@ pub(crate) fn scalar_type_from_string(s: String) -> PyResult<quil_rs::instructio
         "INT" => Ok(quil_rs::instruction::ScalarType::Integer),
         "REAL" => Ok(quil_rs::instruction::ScalarType::Real),
         "OCTET" => Ok(quil_rs::instruction::ScalarType::Octet),
-        _ => Err(PyValueError::new_err(
-            "{} is not a valid memory type. Must be BIT, INT, REAL, or OCTET.",
-        )),
+        other => Err(PyValueError::new_err(format!(
+            "{other} is not a valid memory type. Must be BIT, INT, REAL, or OCTET."
+        ))),
     }
 }
 
