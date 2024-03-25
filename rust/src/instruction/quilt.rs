@@ -1,5 +1,3 @@
-//! [TODO:description]
-
 use pyo3::{exceptions::PyValueError, prelude::*};
 
 use crate::{
