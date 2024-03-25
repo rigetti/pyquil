@@ -17,3 +17,13 @@ impl From<GateModifier> for quil_rs::instruction::GateModifier {
         }
     }
 }
+
+impl From<quil_rs::instruction::GateModifier> for GateModifier {
+    fn from(modifier: quil_rs::instruction::GateModifier) -> Self {
+        match modifier {
+            quil_rs::instruction::GateModifier::Controlled => GateModifier::Controlled,
+            quil_rs::instruction::GateModifier::Dagger => GateModifier::Dagger,
+            quil_rs::instruction::GateModifier::Forked => GateModifier::Forked,
+        }
+    }
+}
