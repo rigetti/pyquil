@@ -187,8 +187,8 @@ macro_rules! impl_from_quil_rs(
 /// a result containing the reference if extraction was successful, or an error if the desired
 /// type didn't match the contents of the instruction.
 ///
-/// * $py_ref is expected to be of type [`PyRef<'_, Instruction>`].
-/// * $dst_type should be the name of the variant as it appears on the
+/// * $py_ref must be of type [`PyRef<'_, Instruction>`].
+/// * $dst_type is the name of the variant as it appears on the
 ///     [`quil_rs::instruction::Instruction`] enum.
 #[macro_export]
 macro_rules! extract_instruction_as(
@@ -207,8 +207,8 @@ macro_rules! extract_instruction_as(
 /// Returns a result containing the reference if extraction was successful, or an error if the
 /// desired type didn't match the contents of the instruction.
 ///
-/// * $py_ref is expected to be of type [`PyRefMut<'_, Instruction>`].
-/// * $dst_type should be the name of the variant as it appears on the
+/// * $py_ref must be of type [`PyRefMut<'_, Instruction>`].
+/// * $dst_type is the name of the variant as it appears on the
 ///     [`quil_rs::instruction::Instruction`] enum.
 #[macro_export]
 macro_rules! extract_instruction_as_mut(
