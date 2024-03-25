@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 
 use indexmap::IndexMap;
 use pyo3::{exceptions::PyValueError, prelude::*};

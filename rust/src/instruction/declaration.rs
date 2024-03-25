@@ -75,7 +75,10 @@ impl Declare {
     fn shared_region(self_: PyRef<'_, Self>) -> PyResult<Option<String>> {
         let instruction = self_.into_super();
         let declaration = extract_instruction_as!(instruction, Declaration)?;
-        Ok(declaration.sharing.clone().map(|sharing| sharing.name))
+        Ok(declaration
+            .sharing
+            .as_ref()
+            .map(|sharing| sharing.name.clone()))
     }
 
     #[setter]
@@ -110,9 +113,8 @@ impl Declare {
         let mut instruction = self_.into_super();
         let offsets = conversion::py_to_offsets(&offsets)?;
         let declaration = extract_instruction_as_mut!(instruction, Declaration)?;
-        match declaration.sharing {
-            None => {}
-            Some(ref mut sharing) => sharing.offsets = offsets,
+        if let Some(ref mut sharing) = declaration.sharing {
+            sharing.offsets = offsets;
         }
         Ok(())
     }
@@ -130,7 +132,10 @@ impl Declare {
         dict.set_item("memory_size", declaration.size.length)?;
         dict.set_item(
             "shared_region",
-            declaration.sharing.clone().map(|sharing| sharing.name),
+            declaration
+                .sharing
+                .as_ref()
+                .map(|sharing| sharing.name.clone()),
         )?;
         dict.set_item(
             "offsets",
