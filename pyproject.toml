@@ -83,7 +83,6 @@ maturin = "^1.5.0"
 [tool.poetry.extras]
 latex = ["ipython"]
 docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc", "matplotlib", "seaborn", "toml"]
-grpc-web = ["qcs-sdk-python-grpc-web"]
 
 [tool.poetry.group.dev.dependencies]
 setuptools = {version = "^69.0.2", python = ">=3.12"}
