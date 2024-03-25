@@ -116,10 +116,10 @@ impl Instruction {
         _py: Python<'a>,
         state: &Bound<'a, PyBytes>,
     ) -> PyResult<()> {
-        let instructions =
-            quil_rs::program::Program::from_str(std::str::from_utf8(state.as_bytes()).map_err(
-                |e| PyValueError::new_err(format!("Could not deserialize non-utf-8 string: {}", e)),
-            )?)
+        let program_str = std::str::from_utf8(state.as_bytes()).map_err(|e| {
+            PyValueError::new_err(format!("Could not deserialize non-utf-8 string: {}", e))
+        })?;
+        let instructions = quil_rs::program::Program::from_str(program_str)
             .map_err(|e| PyRuntimeError::new_err(format!("Could not deserialize {}", e)))?
             .into_instructions();
 
@@ -135,7 +135,7 @@ impl Instruction {
             inner: instructions
                 .into_iter()
                 .next()
-                .expect("Instructions has exactly one instruction."),
+                .expect("instructions has exactly one instruction."),
         };
 
         Ok(())
