@@ -67,8 +67,6 @@ if TYPE_CHECKING:  # avoids circular import
 import quil.expression as quil_rs_expr
 import quil.instructions as quil_rs
 
-from pyquil._instruction import DefCalibration
-
 
 class _InstructionMeta(abc.ABCMeta):
     """A metaclass that allows us to group all instruction types from quil-rs and pyQuil as an `AbstractInstruction`.
@@ -2504,71 +2502,70 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
         return DefCircuit._from_rs_circuit_definition(super().__deepcopy__(memo))
 
 
-# class DefCalibration(quil_rs.Calibration, AbstractInstruction):
-#     def __new__(
-#         cls,
-#         name: str,
-#         parameters: Sequence[ParameterDesignator],
-#         qubits: Sequence[Union[Qubit, FormalArgument]],
-#         instrs: Sequence[AbstractInstruction],
-#         modifiers: Optional[List[quil_rs.GateModifier]] = None,
-#     ) -> Self:
-#         return super().__new__(
-#             cls,
-#             name,
-#             _convert_to_rs_expressions(parameters),
-#             _convert_to_rs_qubits(qubits),
-#             _convert_to_rs_instructions(instrs),
-#             modifiers or [],
-#         )
-#
-#     @classmethod
-#     def _from_rs_calibration(cls, calibration: quil_rs.Calibration) -> "DefCalibration":
-#         return super().__new__(
-#             cls,
-#             calibration.name,
-#             calibration.parameters,
-#             calibration.qubits,
-#             calibration.instructions,
-#             calibration.modifiers,
-#         )
-#
-#     @property  # type: ignore[override]
-#     def parameters(self) -> Sequence[ParameterDesignator]:
-#         return _convert_to_py_expressions(super().parameters)
-#
-#     @parameters.setter
-#     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
-#         quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined] # noqa
-#
-#     @property  # type: ignore[override]
-#     def qubits(self) -> List[QubitDesignator]:
-#         return _convert_to_py_qubits(super().qubits)
-#
-#     @qubits.setter
-#     def qubits(self, qubits: Sequence[QubitDesignator]) -> None:
-#         quil_rs.Calibration.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
-#
-#     @property
-#     def instrs(self) -> List[AbstractInstruction]:
-#         return _convert_to_py_instructions(super().instructions)
-#
-#     @instrs.setter
-#     def instrs(self, instrs: Sequence[AbstractInstruction]) -> None:
-#         quil_rs.Calibration.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined] # noqa
-#
-#     def out(self) -> str:
-#         return super().to_quil()
-#
-#     def __str__(self) -> str:
-#         return super().to_quil_or_debug()
-#
-#     def __copy__(self) -> Self:
-#         return self
-#
-#     def __deepcopy__(self, memo: Dict) -> "DefCalibration":
-#         return DefCalibration._from_rs_calibration(super().__deepcopy__(memo))
-#
+class DefCalibration(quil_rs.Calibration, AbstractInstruction):
+    def __new__(
+        cls,
+        name: str,
+        parameters: Sequence[ParameterDesignator],
+        qubits: Sequence[Union[Qubit, FormalArgument]],
+        instrs: Sequence[AbstractInstruction],
+        modifiers: Optional[List[quil_rs.GateModifier]] = None,
+    ) -> Self:
+        return super().__new__(
+            cls,
+            name,
+            _convert_to_rs_expressions(parameters),
+            _convert_to_rs_qubits(qubits),
+            _convert_to_rs_instructions(instrs),
+            modifiers or [],
+        )
+
+    @classmethod
+    def _from_rs_calibration(cls, calibration: quil_rs.Calibration) -> "DefCalibration":
+        return super().__new__(
+            cls,
+            calibration.name,
+            calibration.parameters,
+            calibration.qubits,
+            calibration.instructions,
+            calibration.modifiers,
+        )
+
+    @property  # type: ignore[override]
+    def parameters(self) -> Sequence[ParameterDesignator]:
+        return _convert_to_py_expressions(super().parameters)
+
+    @parameters.setter
+    def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
+        quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined] # noqa
+
+    @property  # type: ignore[override]
+    def qubits(self) -> List[QubitDesignator]:
+        return _convert_to_py_qubits(super().qubits)
+
+    @qubits.setter
+    def qubits(self, qubits: Sequence[QubitDesignator]) -> None:
+        quil_rs.Calibration.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
+
+    @property
+    def instrs(self) -> List[AbstractInstruction]:
+        return _convert_to_py_instructions(super().instructions)
+
+    @instrs.setter
+    def instrs(self, instrs: Sequence[AbstractInstruction]) -> None:
+        quil_rs.Calibration.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined] # noqa
+
+    def out(self) -> str:
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: Dict) -> "DefCalibration":
+        return DefCalibration._from_rs_calibration(super().__deepcopy__(memo))
 
 
 class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstruction):
