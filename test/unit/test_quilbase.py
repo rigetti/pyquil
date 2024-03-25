@@ -5,6 +5,8 @@ from typing import Any, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
+from syrupy.assertion import SnapshotAssertion
+
 from pyquil.api._compiler import QPUCompiler
 from pyquil.gates import X
 from pyquil.paulis import PauliSum, PauliTerm
@@ -93,7 +95,6 @@ from pyquil.quiltwaveforms import (
     GaussianWaveform,
     HrmGaussianWaveform,
 )
-from syrupy.assertion import SnapshotAssertion
 
 
 @pytest.mark.parametrize(
@@ -372,12 +373,11 @@ class TestDefGateByPaulis:
 @pytest.mark.parametrize(
     ("name", "parameters", "qubits", "instrs"),
     [
-        # ("Calibrate", [], [Qubit(0)], [X(0)]),
+        ("Calibrate", [], [Qubit(0)], [X(0)]),
         ("Calibrate", [], [0], []),
-        # ("Calibrate", [Parameter("X")], [Qubit(0)], [X(0)]),
+        ("Calibrate", [Parameter("X")], [Qubit(0)], [X(0)]),
     ],
-    # ids=("No-Params", "Fixed-Qubit", "Params"),
-    ids=("Fixed-Qubit",),
+    ids=("No-Params", "Fixed-Qubit", "Params"),
 )
 class TestDefCalibration:
     @pytest.fixture
