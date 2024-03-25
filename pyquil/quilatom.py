@@ -792,7 +792,9 @@ def _expression_to_string(expression: ExpressionDesignator) -> str:
         # If op2 is a float, it will maybe represented as a multiple
         # of pi in right. If that is the case, then we need to take
         # extra care to insert parens. See gh-943.
-        elif isinstance(expression.op2, float) and (("pi" in right and right != "pi")):
+        elif (isinstance(expression.op2, float) and (("pi" in right and right != "pi"))) or isinstance(
+            expression.op2, complex
+        ):
             right = "(" + right + ")"
 
         return left + expression.operator + right
