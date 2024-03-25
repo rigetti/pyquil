@@ -22,7 +22,6 @@ pub struct Program {
 
 #[pyclass]
 pub struct ProgramIter {
-    // inner: std::vec::IntoIter<Instruction>,
     inner: Box<dyn Iterator<Item = Instruction> + Send>,
 }
 
@@ -137,6 +136,14 @@ impl Program {
         self.inner
             .to_quil()
             .map_err(|e| PyValueError::new_err(format!("Could not serialize program to Quil: {e}")))
+    }
+
+    fn __str__(&self) -> String {
+        self.inner.to_quil_or_debug()
+    }
+
+    fn __repr__(&self) -> String {
+        self.__str__()
     }
 
     fn __iter__(&self, py: Python<'_>) -> PyResult<Py<ProgramIter>> {
