@@ -1,12 +1,10 @@
 //! [TODO:description]
 
-use pyo3::{
-    exceptions::PyValueError, prelude::*, pyclass_init::PyObjectInit, type_object::PyTypeInfo,
-};
+use pyo3::{exceptions::PyValueError, prelude::*};
 
 use crate::{
     expression::{self, Expression, MemoryReference},
-    impl_from_quil_rs,
+    extract_instruction_as, extract_instruction_as_mut, impl_from_quil_rs,
     instruction::Instruction,
     primitive::QubitDesignator,
 };
@@ -69,19 +67,7 @@ impl From<Parameter> for quil_rs::expression::Expression {
 impl From<quil_rs::expression::Expression> for Parameter {
     fn from(value: quil_rs::expression::Expression) -> Self {
         match value {
-            quil_rs::expression::Expression::Number(number) => {
-                if number.im == 0.0 {
-                    if number.re as i64 as f64 == number.re {
-                        Parameter::I64(number.re as i64)
-                    } else if number.re as u64 as f64 == number.re {
-                        Parameter::U64(number.re as u64)
-                    } else {
-                        Parameter::F64(number.re)
-                    }
-                } else {
-                    Parameter::Complex(number)
-                }
-            }
+            quil_rs::expression::Expression::Number(number) => Parameter::Complex(number),
             quil_rs::expression::Expression::Address(address) => {
                 Parameter::MemoryReference(address.into())
             }
@@ -137,94 +123,71 @@ impl DefCalibration {
     }
 
     #[getter]
-    fn parameters(self_: PyRef<'_, Self>, py: Python<'_>) -> Vec<PyObject> {
+    fn parameters(self_: PyRef<'_, Self>, py: Python<'_>) -> PyResult<Vec<PyObject>> {
         let instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::CalibrationDefinition(calibration) =
-            &(*instruction).inner
-        {
-            calibration
-                .parameters
-                .iter()
-                .cloned()
-                .map(|p| Parameter::from(p).to_object(py))
-                .collect()
-        } else {
-            unreachable!()
-        }
+        let calibration = extract_instruction_as!(instruction, CalibrationDefinition)?;
+        Ok(calibration
+            .parameters
+            .iter()
+            .cloned()
+            .map(|p| Parameter::from(p).to_object(py))
+            .collect())
     }
 
-    fn set_parameters(self_: PyRefMut<'_, Self>, parameters: Vec<Parameter>) {
+    fn set_parameters(self_: PyRefMut<'_, Self>, parameters: Vec<Parameter>) -> PyResult<()> {
         let mut instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::CalibrationDefinition(calibration) =
-            &mut instruction.inner
-        {
-            calibration.parameters = parameters
-                .into_iter()
-                .map(quil_rs::expression::Expression::from)
-                .collect()
-        }
+        let calibration = extract_instruction_as_mut!(instruction, CalibrationDefinition)?;
+        calibration.parameters = parameters
+            .into_iter()
+            .map(quil_rs::expression::Expression::from)
+            .collect();
+        Ok(())
     }
 
     #[getter]
-    fn qubits(self_: PyRef<'_, Self>, py: Python) -> Vec<PyObject> {
+    fn qubits(self_: PyRef<'_, Self>, py: Python) -> PyResult<Vec<PyObject>> {
         let instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::CalibrationDefinition(calibration) =
-            &(*instruction).inner
-        {
-            calibration
-                .qubits
-                .iter()
-                .cloned()
-                .map(|p| QubitDesignator::from(p).to_object(py))
-                .collect()
-        } else {
-            unreachable!()
-        }
+        let calibration = extract_instruction_as!(instruction, CalibrationDefinition)?;
+        Ok(calibration
+            .qubits
+            .iter()
+            .cloned()
+            .map(|p| QubitDesignator::from(p).to_object(py))
+            .collect())
     }
 
     #[setter]
-    fn set_qubits(self_: PyRefMut<'_, Self>, qubits: Vec<QubitDesignator>) {
+    fn set_qubits(self_: PyRefMut<'_, Self>, qubits: Vec<QubitDesignator>) -> PyResult<()> {
         let mut instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::CalibrationDefinition(calibration) =
-            &mut instruction.inner
-        {
-            calibration.qubits = qubits
-                .into_iter()
-                .map(quil_rs::instruction::Qubit::from)
-                .collect()
-        }
+        let calibration = extract_instruction_as_mut!(instruction, CalibrationDefinition)?;
+        calibration.qubits = qubits
+            .into_iter()
+            .map(quil_rs::instruction::Qubit::from)
+            .collect();
+        Ok(())
     }
 
     #[getter]
-    fn instrs(self_: PyRef<'_, Self>, py: Python) -> Vec<PyObject> {
+    fn instrs(self_: PyRef<'_, Self>, py: Python) -> PyResult<Vec<PyObject>> {
         let instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::CalibrationDefinition(calibration) =
-            &(*instruction).inner
-        {
-            calibration
-                .instructions
-                .iter()
-                .cloned()
-                .map(|p| Instruction::from(p).into_py(py))
-                .collect()
-        } else {
-            unreachable!()
-        }
+        let calibration = extract_instruction_as!(instruction, CalibrationDefinition)?;
+        Ok(calibration
+            .instructions
+            .iter()
+            .cloned()
+            .map(|p| Instruction::from(p).into_py(py))
+            .collect())
     }
 
     #[setter]
-    fn set_instrs(self_: PyRefMut<'_, Self>, instructions: Vec<Instruction>) {
+    fn set_instrs(self_: PyRefMut<'_, Self>, instructions: Vec<Instruction>) -> PyResult<()> {
         let mut instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::CalibrationDefinition(calibration) =
-            &mut instruction.inner
-        {
-            calibration.instructions = instructions
-                .into_iter()
-                .map(quil_rs::instruction::Instruction::from)
-                .collect()
-        } else {
-            unreachable!()
-        }
+        let calibration = extract_instruction_as_mut!(instruction, CalibrationDefinition)?;
+        calibration.instructions = instructions
+            .into_iter()
+            .map(quil_rs::instruction::Instruction::from)
+            .collect();
+        Ok(())
     }
 }
 
@@ -264,59 +227,43 @@ impl DefMeasureCalibration {
     }
 
     #[getter]
-    fn qubit(self_: PyRef<'_, Self>, py: Python) -> Option<PyObject> {
+    fn qubit(self_: PyRef<'_, Self>, py: Python) -> PyResult<Option<PyObject>> {
         let instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::MeasureCalibrationDefinition(calibration) =
-            &instruction.inner
-        {
-            calibration
-                .qubit
-                .clone()
-                .map(|q| QubitDesignator::from(q).to_object(py))
-        } else {
-            unreachable!()
-        }
+        let calibration = extract_instruction_as!(instruction, MeasureCalibrationDefinition)?;
+        Ok(calibration
+            .qubit
+            .clone()
+            .map(|q| QubitDesignator::from(q).to_object(py)))
     }
 
     #[setter]
-    fn set_qubit(self_: PyRefMut<'_, Self>, qubit: Option<QubitDesignator>) {
+    fn set_qubit(self_: PyRefMut<'_, Self>, qubit: Option<QubitDesignator>) -> PyResult<()> {
         let mut instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::MeasureCalibrationDefinition(calibration) =
-            &mut instruction.inner
-        {
-            calibration.qubit = qubit.map(quil_rs::instruction::Qubit::from)
-        }
+        let calibration = extract_instruction_as_mut!(instruction, MeasureCalibrationDefinition)?;
+        calibration.qubit = qubit.map(quil_rs::instruction::Qubit::from);
+        Ok(())
     }
 
     #[getter]
-    fn instrs(self_: PyRef<'_, Self>, py: Python<'_>) -> Vec<PyObject> {
+    fn instrs(self_: PyRef<'_, Self>, py: Python<'_>) -> PyResult<Vec<PyObject>> {
         let instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::MeasureCalibrationDefinition(calibration) =
-            &(*instruction).inner
-        {
-            calibration
-                .instructions
-                .iter()
-                .cloned()
-                .map(|p| Instruction::from(p).into_py(py))
-                .collect()
-        } else {
-            unreachable!()
-        }
+        let calibration = extract_instruction_as!(instruction, MeasureCalibrationDefinition)?;
+        Ok(calibration
+            .instructions
+            .iter()
+            .cloned()
+            .map(|p| Instruction::from(p).into_py(py))
+            .collect())
     }
 
     #[setter]
-    fn set_instrs(self_: PyRefMut<'_, Self>, instructions: Vec<Instruction>) {
+    fn set_instrs(self_: PyRefMut<'_, Self>, instructions: Vec<Instruction>) -> PyResult<()> {
         let mut instruction = self_.into_super();
-        if let quil_rs::instruction::Instruction::MeasureCalibrationDefinition(calibration) =
-            &mut instruction.inner
-        {
-            calibration.instructions = instructions
-                .into_iter()
-                .map(quil_rs::instruction::Instruction::from)
-                .collect()
-        } else {
-            unreachable!()
-        }
+        let calibration = extract_instruction_as_mut!(instruction, MeasureCalibrationDefinition)?;
+        calibration.instructions = instructions
+            .into_iter()
+            .map(quil_rs::instruction::Instruction::from)
+            .collect();
+        Ok(())
     }
 }
