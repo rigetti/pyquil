@@ -67,6 +67,10 @@ impl Instruction {
             inner: self_.inner.clone(),
         };
 
+        // QubitPlaceholders are implemented with Arc and identified as unique by their pointer
+        // address. Since cloning an Arc just copies the pointer address, we have to create new
+        // placeholders for the copy, otherwise resolving a placeholder in the copy would also
+        // resolve them in the original (or vice-versa).
         let mut placeholders: HashMap<
             quil_rs::instruction::QubitPlaceholder,
             quil_rs::instruction::QubitPlaceholder,
@@ -91,7 +95,10 @@ impl Instruction {
         self.clone()
     }
 
-    ///
+    // This will raise an error if the program contains any unresolved
+    // placeholders. This is because they can't be converted to valid quil,
+    // nor can they be serialized and deserialized in a consistent
+    // way.
     pub fn __getstate__<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyBytes>> {
         Ok(PyBytes::new_bound(
             py,
