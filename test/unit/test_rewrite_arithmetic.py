@@ -36,7 +36,7 @@ def test_rewrite_arithmetic_duplicate_exprs():
 
     assert response == RewriteArithmeticResponse(
         original_memory_descriptors={"theta": ParameterSpec(length=1, type="REAL")},
-        recalculation_table={ParameterAref(index=0, name="__P1"): "theta[0]*1.5/(2*pi)"},
+        recalculation_table={ParameterAref(index=0, name="__P1"): "theta[0]*(1.5)/(2*pi)"},
         quil=Program("DECLARE __P1 REAL[1]", "DECLARE theta REAL[1]", "RZ(__P1[0]) 0", "RX(__P1[0]) 0").out(),
     )
 
