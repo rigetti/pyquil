@@ -90,3 +90,8 @@ docs/quil/grammars/Quil.g4:
 .PHONY: generate-parser
 generate-parser: docs/quil/grammars/Quil.g4
 	cd docs/quil/grammars && antlr -Dlanguage=Python3 -o ../../../pyquil/_parser/gen3 Quil.g4
+
+.PHONY: benchmark
+benchmark:
+	pytest -v test/bench --benchmark-only --profile
+	
