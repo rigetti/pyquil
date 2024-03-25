@@ -18,7 +18,7 @@ use pyo3::{
 };
 use quil_rs::quil::Quil;
 
-/// Converts a pyQuil's Tuple[int, str] to a quil-rs vector of offsets.
+/// Converts a pyQuil's `list[tuple[int, str]]` to a quil-rs vector of offsets.
 pub(crate) fn py_to_offsets(
     value: &Bound<'_, PyAny>,
 ) -> PyResult<Vec<quil_rs::instruction::Offset>> {
