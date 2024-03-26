@@ -224,7 +224,7 @@ class PauliTerm(object):
             return other == self
         else:
             return self.operations_as_set() == other.operations_as_set() and np.allclose(
-                self.coefficient, other.coefficient  # type: ignore
+                self.coefficient, other.coefficient
             )
 
     def __hash__(self) -> int:
