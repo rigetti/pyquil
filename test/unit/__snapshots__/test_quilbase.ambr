@@ -229,6 +229,9 @@
 # name: TestDefGate.test_get_constructor[No-Params]
   'NoParamGate 123'
 # ---
+# name: TestDefGate.test_get_constructor[ParameterlessExpression]
+  'ParameterlessExpressions 123'
+# ---
 # name: TestDefGate.test_get_constructor[Params]
   'ParameterizedGate(%theta) 123'
 # ---
@@ -247,6 +250,14 @@
   	0, 1, 0, 0
   	0, 0, 1, 0
   	0, 0, 0, 1
+  
+  '''
+# ---
+# name: TestDefGate.test_out[ParameterlessExpression]
+  '''
+  DEFGATE ParameterlessExpressions AS MATRIX:
+  	1, 1.2246467991473532e-16
+  	1.2246467991473532e-16, -1
   
   '''
 # ---
@@ -275,6 +286,14 @@
   	0, 1, 0, 0
   	0, 0, 1, 0
   	0, 0, 0, 1
+  
+  '''
+# ---
+# name: TestDefGate.test_str[ParameterlessExpression]
+  '''
+  DEFGATE ParameterlessExpressions AS MATRIX:
+  	1, 1.2246467991473532e-16
+  	1.2246467991473532e-16, -1
   
   '''
 # ---
