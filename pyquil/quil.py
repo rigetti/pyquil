@@ -832,7 +832,7 @@ class Program:
         if calibrations:
             return self._program.to_quil()
         else:
-            return self._program.into_simplified().to_quil()
+            return self.remove_quil_t_instructions().out()
 
     @deprecated(
         version="4.0",

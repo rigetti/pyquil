@@ -1163,3 +1163,25 @@ def test_cached_frames():
     p.inst(frames[1])
     program_frames = p.frames
     assert program_frames == {frames[0].frame: frames[0], frames[1].frame: frames[1]}
+
+
+def test_out_without_calibrations():
+    quilt_program = Program(
+        """
+DEFCAL J 0:
+    RX(1.5707963267948966) 0
+DEFCAL MEASURE 0 addr:
+    FENCE 0
+"""
+    )
+    quil_program = Program(
+        """
+DECLARE ro BIT[1]
+J 0
+MEASURE 0 ro
+"""
+    )
+
+    combined_program = quilt_program + quil_program
+
+    assert combined_program.out(calibrations=False) == quil_program.out()

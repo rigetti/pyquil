@@ -26,7 +26,7 @@ from pyquil.api._qvm import (
 )
 from pyquil.gates import MOVE
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quil import Program, percolate_declares
+from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.wavefunction import Wavefunction
 
@@ -93,6 +93,7 @@ class WavefunctionSimulator:
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
+        print(quil_program.out(calibrations=False))
         request = qvm.api.WavefunctionRequest(
             quil_program.out(calibrations=False),
             self.measurement_noise,
@@ -230,4 +231,4 @@ class WavefunctionSimulator:
 
         p += quil_program
 
-        return percolate_declares(p)
+        return p
