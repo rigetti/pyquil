@@ -825,11 +825,11 @@ def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
     terms = []
     for term_list in like_terms.values():
         first_term = term_list[0]
-        if len(term_list) == 1 and not np.isclose(first_term.coefficient, 0.0):  # type: ignore
+        if len(term_list) == 1 and not np.isclose(first_term.coefficient, 0.0):
             terms.append(first_term)
         else:
             coeff = sum(t.coefficient for t in term_list)
-            if not np.isclose(coeff, 0.0):  # type: ignore
+            if not np.isclose(coeff, 0.0):
                 terms.append(term_with_coeff(term_list[0], coeff))
     return PauliSum(terms)
 
@@ -896,13 +896,9 @@ def is_identity(term: PauliDesignator) -> bool:
     :returns: True if the PauliTerm or PauliSum is a scalar multiple of identity, False otherwise
     """
     if isinstance(term, PauliTerm):
-        return (len(term) == 0) and (not np.isclose(term.coefficient, 0))  # type: ignore
+        return (len(term) == 0) and (not np.isclose(term.coefficient, 0))
     elif isinstance(term, PauliSum):
-        return (
-            (len(term.terms) == 1)
-            and (len(term.terms[0]) == 0)
-            and (not np.isclose(term.terms[0].coefficient, 0))  # type: ignore
-        )
+        return (len(term.terms) == 1) and (len(term.terms[0]) == 0) and (not np.isclose(term.terms[0].coefficient, 0))
     else:
         raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
@@ -1024,7 +1020,7 @@ def exponentiate_pauli_sum(
         assert isinstance(coeff, Number)
         qubit_paulis = {qubit: pauli for qubit, pauli in term.operations_as_set()}
         paulis = [qubit_paulis[q] if q in qubit_paulis else "I" for q in qubits]
-        matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis])  # type: ignore
+        matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis])
         matrices.append(matrix)
     generated_unitary = expm(-1j * np.pi * sum(matrices))
     phase = np.exp(-1j * np.angle(generated_unitary[0, 0]))
