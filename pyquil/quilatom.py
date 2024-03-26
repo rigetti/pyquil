@@ -573,11 +573,13 @@ class Expression(object):
 
         Note that expression simplification can be slow for large recursive expressions.
         """
-        if dtype == object:
-            return np.array(None, dtype=object)
         try:
-            return np.asarray(self._evaluate(), dtype=dtype)
+            if dtype != object:
+                return np.asarray(self._evaluate(), dtype=dtype)
+            raise ValueError
         except ValueError:
+            # Note: The `None` here is a placeholder for the expression in the numpy array.
+            # The expression instance will still be accessible in the array.
             return np.array(None, dtype=object)
 
 
