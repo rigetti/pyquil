@@ -832,7 +832,9 @@ class Program:
         if calibrations:
             return self._program.to_quil()
         else:
-            return self.remove_quil_t_instructions().out()
+            return self.filter_instructions(
+                lambda inst: not isinstance(inst, (DefCalibration, DefMeasureCalibration))
+            ).out()
 
     @deprecated(
         version="4.0",
