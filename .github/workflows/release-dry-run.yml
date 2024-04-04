@@ -40,11 +40,10 @@ jobs:
     - uses: snok/install-poetry@v1
       with:
         virtualenvs-in-project: true
-    - name: Patch package metadata for grpc-web
-      run: |
-        pip install toml
-        python scripts/ci_publish_grpc_web.py
-        cargo update hyper-proxy
+    # - name: Patch package metadata for grpc-web
+    #   run: |
+    #     pip install toml
+    #     python scripts/ci_publish_grpc_web.py
     - name: "Build"
       run: |
         poetry build --no-interaction
