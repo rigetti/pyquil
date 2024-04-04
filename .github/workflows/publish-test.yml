@@ -3,6 +3,8 @@ ame: Publish pyQuil (test)
 on:
   push:
     branches: [1759-use-grpc-web]
+  pull_request:
+    branches: [1759-use-grpc-web]
 
 jobs:
   build-publish:
