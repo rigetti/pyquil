@@ -30,3 +30,25 @@ jobs:
     - name: Prepare Release
       run: knope ${{ inputs.type }} --dry-run
       if: github.event_name == 'workflow_dispatch'
+
+  build-publish-test:
+    name: Build and Publish (test)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+    - uses: snok/install-poetry@v1
+      with:
+        virtualenvs-in-project: true
+    - name: Patch package metadata for grpc-web
+      run: |
+        pip install toml
+        python scripts/ci_publish_grpc_web.py
+        cargo update hyper-proxy
+    - name: "Build"
+      run: |
+        poetry build --no-interaction
+    - name: Upload wheels 
+      uses: actions/upload-artifact@v2 
+      with: 
+        name: wheels
