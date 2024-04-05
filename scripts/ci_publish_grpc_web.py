@@ -15,8 +15,10 @@ def write(f: TextIOWrapper, data):
 
 with open(join(workspace_path, "pyproject.toml"), "r+") as f:
     data = toml.load(f)
-    deps = data["tool"]["poetry"]["dependencies"]
 
+    data["tool"]["poetry"]["name"] = "pyquil-grpc-web"
+
+    deps = data["tool"]["poetry"]["dependencies"]
     deps["qcs-sdk-python-grpc-web"] = deps["qcs-sdk-python"]
     del deps["qcs-sdk-python"]
 
