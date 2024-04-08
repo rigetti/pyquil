@@ -30,6 +30,7 @@ jobs:
       uses: actions/upload-artifact@v2 
       with: 
         name: wheels
+        path: dist
     - name: Mint token for trusted publisher
       id: mint
       uses: tschm/token-mint-action@v1.0.3
