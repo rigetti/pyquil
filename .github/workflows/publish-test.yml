@@ -10,6 +10,9 @@ jobs:
   build-publish:
     name: Build and Publish
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v3
@@ -20,11 +23,17 @@ jobs:
       run: |
         pip install toml
         python scripts/ci_publish_grpc_web.py
-        cargo update hyper-proxy
-    - name: "Build"
+    - name: Poetry Build
       run: |
         poetry build --no-interaction
-    - name: Upload wheels 
+    - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v2 
       with: 
         name: wheels
+    - name: Mint token for trusted publisher
+      id: mint
+      uses: tschm/token-mint-action@v1.0.3
+    - name: Publish the package with poetry
+      run: |
+        poetry config repositories.test-pypi https://test.pypi.org/legacy/
+        poetry publish -u __token__ -p '${{ steps.mint.outputs.api-token }}' -r test-pypi
