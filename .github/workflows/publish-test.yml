@@ -33,7 +33,55 @@ jobs:
         path: dist
     - name: Mint token for trusted publisher
       id: mint
-      uses: tschm/token-mint-action@v1.0.3
+      run: |
+        echo "Checking the required environment variables"
+
+        env_vars_found=true
+        if [[ -z $ACTIONS_ID_TOKEN_REQUEST_TOKEN ]]; then
+          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN is not defined."
+          env_vars_found=false
+        fi
+
+        if [[ -z $ACTIONS_ID_TOKEN_REQUEST_URL ]]; then
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL is not defined."
+          env_vars_found=false
+        fi
+
+        if [[ $env_vars_found == false ]]; then
+          echo "Make sure that:"
+          echo "a) Permission are set correctly"
+          echo "b) The .yml is registered as a trusted publisher"
+          echo "See https://github.com/tschm/token-mint-action/blob/main/README.md."
+          exit 1
+        else
+          echo "Required environment variables found!"
+        fi
+
+        echo "Fetching OIDC token"
+        resp=$(curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+                           "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${{ inputs.audience }}")
+
+        # extract the token from the response
+        oidc_token=$(jq -r '.value' <<< "${resp}")
+        echo "OIDC token fetched successfully!"
+
+        echo "Fetching API token"
+
+        # and move the token into json format
+        pypi_api_json_payload="{\"token\":\"${oidc_token}\"}"
+
+        # use the OIDC token to request an api token
+        resp=$(curl -sS -X POST https://test.pypi.org/_/oidc/github/mint-token -d "$pypi_api_json_payload")
+
+        # extract the token from the response
+        api_token=$(jq -r '.token' <<< "${resp}")
+        echo "API token fetched successfully!"
+
+        # mask the newly minted API token, so that we don't accidentally leak it
+        echo "::add-mask::${api_token}"
+
+        echo "api-token=$api_token" >> "$GITHUB_OUTPUT"
+        echo "API token masked and exported successfully!"
     - name: Publish the package with poetry
       run: |
         poetry config repositories.test-pypi https://test.pypi.org/legacy/
