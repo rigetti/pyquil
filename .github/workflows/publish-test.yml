@@ -1,4 +1,4 @@
-ame: Publish pyQuil (test)
+name: Publish pyQuil (test)
 
 on:
   push:
