@@ -16,9 +16,12 @@ def write(f: TextIOWrapper, data):
 with open(join(workspace_path, "pyproject.toml"), "r+") as f:
     data = toml.load(f)
 
+    # renames the published package name, but not the import name
     data["project"] = { "name": "pyquil-grpc-web" }
     data["tool"]["poetry"]["name"] = "pyquil-grpc-web"
 
+    # use the same dependency definition, but change the name
+    # to the grpc-web version of the package.
     deps = data["tool"]["poetry"]["dependencies"]
     deps["qcs-sdk-python-grpc-web"] = deps["qcs-sdk-python"]
     del deps["qcs-sdk-python"]
