@@ -59,7 +59,7 @@ jobs:
 
         echo "Fetching OIDC token"
         resp=$(curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-                           "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${{ inputs.audience }}")
+                           "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=testpypi")
 
         # extract the token from the response
         oidc_token=$(jq -r '.value' <<< "${resp}")
