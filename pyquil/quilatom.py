@@ -546,7 +546,7 @@ class Expression(object):
         number.
         """
         expr = quil_rs_expr.Expression.parse(str(self))
-        expr.simplify()  # type: ignore
+        expr.simplify()  # type: ignore[no-untyped-call]
         if not expr.is_number():
             raise ValueError(f"Cannot evaluate expression {self} to a number. Got {expr}.")
         return np.complex128(expr.to_number())
