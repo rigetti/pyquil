@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.9.0-rc.1 (2024-04-10)
+
+### Features
+
+#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+
+### Fixes
+
+#### Program#out(calibrations=False) will not expand calibrations (#1758)
+
 ## 4.9.0-rc.0 (2024-04-09)
 
 ### Features
