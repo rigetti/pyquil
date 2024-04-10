@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.9.0-rc.0 (2024-04-09)
+
+### Features
+
+#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+
 ## 4.8.0 (2024-03-08)
 
 ### Features
