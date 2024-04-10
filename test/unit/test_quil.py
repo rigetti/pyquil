@@ -1176,9 +1176,18 @@ DEFCAL MEASURE 0 addr:
     )
     quil_program = Program(
         """
+DEFFRAME 0 1 "cphase":
+    DIRECTION: "tx"
+    INITIAL-FREQUENCY: 458935243.82547355
+    CENTER-FREQUENCY: 375000000.0
+    HARDWARE-OBJECT: "q0_ff"
+    SAMPLE-RATE: 1000000000.0
+DEFWAVEFORM another1:
+    4,5
 DECLARE ro BIT[1]
 J 0
 MEASURE 0 ro
+DELAY 0
 """
     )
 
