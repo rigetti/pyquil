@@ -65,12 +65,15 @@ def test_expression_to_string():
     assert str((x + y) - 2) == "%x + %y - 2"
     assert str(x + (y - 2)) == "%x + %y - 2"
 
-    assert str(x ** y ** 2) == "%x^%y^2"
-    assert str(x ** (y ** 2)) == "%x^%y^2"
-    assert str((x ** y) ** 2) == "(%x^%y)^2"
+    assert str(x**y**2) == "%x^%y^2"
+    assert str(x ** (y**2)) == "%x^%y^2"
+    assert str((x**y) ** 2) == "(%x^%y)^2"
 
     assert str(quil_sin(x)) == "SIN(%x)"
     assert str(3 * quil_sin(x + y)) == "3*SIN(%x + %y)"
+    assert (
+        str(quil_exp(-1j * x / 2) * np.exp(1j * np.pi / 4)) == "EXP(-i*%x/2)*(0.7071067811865476+0.7071067811865475i)"
+    )
 
 
 def test_contained_parameters():
@@ -80,7 +83,7 @@ def test_contained_parameters():
     y = Parameter("y")
     assert _contained_parameters(x + y) == {x, y}
 
-    assert _contained_parameters(x ** y ** quil_sin(x * y * 4)) == {x, y}
+    assert _contained_parameters(x**y ** quil_sin(x * y * 4)) == {x, y}
 
 
 def test_eval():
@@ -93,7 +96,7 @@ def test_eval():
     assert substitute(quil_exp(x), {y: 5}) != np.exp(5)
     assert substitute(quil_exp(x), {x: 5}) == np.exp(5)
 
-    assert np.isclose(substitute(quil_sin(x * x ** 2 / y), {x: 5.0, y: 10.0}), np.sin(12.5))
+    assert np.isclose(substitute(quil_sin(x * x**2 / y), {x: 5.0, y: 10.0}), np.sin(12.5))
     assert np.isclose(substitute(quil_sqrt(x), {x: 5.0, y: 10.0}), np.sqrt(5.0))
     assert np.isclose(substitute(quil_cis(x), {x: 5.0, y: 10.0}), np.exp(1j * 5.0))
     assert np.isclose(substitute(x - y, {x: 5.0, y: 10.0}), -5.0)
