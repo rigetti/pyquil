@@ -537,6 +537,51 @@ class Expression(object):
     def _substitute(self, d: Any) -> ExpressionDesignator:
         return self
 
+    def _evaluate(self) -> np.complex128:
+        """
+        Attempts to evaluate the expression to by simplifying it to a complex number.
+
+        Expression simplification can be slow, especially for large recursive expressions.
+        This method will raise a ValueError if the expression cannot be simplified to a complex
+        number.
+        """
+        expr = quil_rs_expr.Expression.parse(str(self))
+        expr.simplify()  # type: ignore[no-untyped-call]
+        if not expr.is_number():
+            raise ValueError(f"Cannot evaluate expression {self} to a number. Got {expr}.")
+        return np.complex128(expr.to_number())
+
+    def __float__(self) -> float:
+        """
+        Returns a copy of the expression as a float by attempting to simplify the expression.
+
+        Expression simplification can be slow, especially for large recursive expressions.
+        This cast will raise a ValueError if simplification doesn't result in a real number.
+        """
+        value = self._evaluate()
+        if value.imag != 0:
+            raise ValueError(f"Cannot convert complex value with non-zero imaginary value to float: {value}")
+        return float(value.real)
+
+    def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+        """
+        Implements the numpy array protocol for this expression.
+
+        If the dtype is not object, then there will be an attempt to simplify the expression to a
+        complex number. If the expression cannot be simplified to one, then fallback to the
+        object representation of the expression.
+
+        Note that expression simplification can be slow for large recursive expressions.
+        """
+        try:
+            if dtype != object:
+                return np.asarray(self._evaluate(), dtype=dtype)
+            raise ValueError
+        except ValueError:
+            # Note: The `None` here is a placeholder for the expression in the numpy array.
+            # The expression instance will still be accessible in the array.
+            return np.array(None, dtype=object)
+
 
 ParameterSubstitutionsMapDesignator = Mapping[Union["Parameter", "MemoryReference"], ExpressionValueDesignator]
 
