@@ -1,5 +1,19 @@
 # Changelog
 
+## 4.9.0-rc.3 (2024-04-12)
+
+### Features
+
+#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+
+#### Expressions without parameters have improved compatibility with numpy. (#1757)
+
+### Fixes
+
+#### Program#out(calibrations=False) will not expand calibrations (#1758)
+
+#### The imaginary part of a complex number is no longer moved incorrectly to the outside of a binary expression. (#1756)
+
 ## 4.9.0-rc.2 (2024-04-11)
 
 ### Features
