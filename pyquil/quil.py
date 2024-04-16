@@ -1041,6 +1041,7 @@ class Program:
         """
         return _convert_to_py_instructions(self._program.to_instructions())
 
+
 def merge_with_pauli_noise(
     prog_list: Iterable[Program], probabilities: Sequence[float], qubits: Sequence[int]
 ) -> Program:
