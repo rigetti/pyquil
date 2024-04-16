@@ -578,6 +578,8 @@ class Expression(object):
                 return np.asarray(self._evaluate(), dtype=dtype)
             raise ValueError
         except ValueError:
+            # np.asarray(self, ...) would cause an infinite recursion error, so we build the array with a
+            # placeholder value, then replace it with self after.
             array = np.asarray(None, dtype=object)
             array.flat[0] = self
             return array
