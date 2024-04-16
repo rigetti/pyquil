@@ -1014,7 +1014,7 @@ class Program:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Program):
-            return self._program.to_instructions() == other._program.to_instructions()
+            return self._program == other._program
         return False
 
     def __len__(self) -> int:
@@ -1034,6 +1034,13 @@ class Program:
         your program contains unaddressed QubitPlaceholders
         """
         return self._program.to_quil_or_debug()
+
+    def get_all_instructions(self) -> List[AbstractInstruction]:
+        """
+        Get _all_ instructions that makeup the program.
+        """
+        return _convert_to_py_instructions(self._program.to_instructions())
+
 
 
 def merge_with_pauli_noise(
