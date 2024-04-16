@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.9.1 (2024-04-16)
+
+### Fixes
+
+#### Expression arithmetic does not error when a numpy type is on the left hand side. (#1769)
+
 ## 4.9.1-rc.0 (2024-04-16)
 
 ### Fixes
