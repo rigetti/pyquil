@@ -1227,7 +1227,11 @@ DEFGATE FOO AS MATRIX:
 H 1
 CNOT 2 3""")
 
-    # Definitions in Quil are global in the sense that where they are defined in the program does not matter.
+    # Definitions in Quil are "global" in the sense that the order they are defined in the program does should not
+    # effect equality.
+    # Note: pyQuil de-duplicates DEFCAL and DEFCAL MEASURE definitions. If that were not the case, then calibration
+    # order _would_ matter. During expansion, the last calibration to be defined that matches a signature would be
+    # applied.
     def is_global_state_instruction(i: AbstractInstruction) -> bool:
         return isinstance(i, (DefFrame, DefCalibration, DefMeasureCalibration, DefWaveform, DefGate))
 
