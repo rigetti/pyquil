@@ -578,9 +578,9 @@ class Expression(object):
                 return np.asarray(self._evaluate(), dtype=dtype)
             raise ValueError
         except ValueError:
-            # Note: The `None` here is a placeholder for the expression in the numpy array.
-            # The expression instance will still be accessible in the array.
-            return np.array(None, dtype=object)
+            array = np.asarray(None, dtype=object)
+            array.flat[0] = self
+            return array
 
 
 ParameterSubstitutionsMapDesignator = Mapping[Union["Parameter", "MemoryReference"], ExpressionValueDesignator]

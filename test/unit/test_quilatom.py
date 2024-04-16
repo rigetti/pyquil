@@ -1,8 +1,10 @@
 from typing import Sequence, Union
+
 import pytest
 from syrupy.assertion import SnapshotAssertion
+import numpy as np
 
-from pyquil.quilatom import FormalArgument, Frame, Qubit, Label, LabelPlaceholder, QubitPlaceholder
+from pyquil.quilatom import Add, FormalArgument, Frame, Qubit, Label, LabelPlaceholder, QubitPlaceholder, Parameter
 
 
 @pytest.mark.parametrize(
@@ -69,3 +71,9 @@ def test_qubit_placeholder():
         register[0].out()
 
     assert register[0] != register[1]
+
+
+def test_arithmetic_with_numpy():
+    x = Parameter("x")
+    expression = np.float_(1.0) + x
+    assert expression == Add(np.float_(1.0), x)
