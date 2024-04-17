@@ -1229,16 +1229,17 @@ CNOT 2 3""")
 
     # Definitions in Quil are "global" in the sense that the order they are defined in the program does should not
     # effect equality.
-    # Note: pyQuil de-duplicates DEFCAL and DEFCAL MEASURE definitions. If that were not the case, then calibration
-    # order _would_ matter. During expansion, the last calibration to be defined that matches a signature would be
-    # applied.
     def is_global_state_instruction(i: AbstractInstruction) -> bool:
-        return isinstance(i, (DefFrame, DefCalibration, DefMeasureCalibration, DefWaveform, DefGate))
+        return isinstance(i, (DefFrame, DefWaveform, DefGate))
 
     # Construct a copy of the program, inserting global instructions in reverse order. Since their order does not matter
     # the new program should be equal to the original program.
-    new_program = program.filter_instructions(lambda i: not is_global_state_instruction(i))
+    base_program = program.filter_instructions(lambda i: not is_global_state_instruction(i))
     global_instructions = program.filter_instructions(lambda i: is_global_state_instruction(i)).get_all_instructions()
-    new_program += global_instructions[::-1]
+    global_reversed_program = base_program + global_instructions[::-1]
 
-    assert new_program == program
+    assert global_reversed_program == program
+
+    # Program with reversed instructions that aren't "global" should not be equivalent
+    non_global_reversed_program = Program(base_program.get_all_instructions()[::-1]) + global_instructions
+    assert non_global_reversed_program != program
