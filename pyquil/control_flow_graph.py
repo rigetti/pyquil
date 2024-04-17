@@ -1,10 +1,7 @@
-from typing import List, Iterable, TYPE_CHECKING, Optional
+from typing import List, Optional
 from typing_extensions import Self, override
 
 from quil import program as quil_rs
-
-if TYPE_CHECKING:
-    from pyquil.quil import Program
 
 from pyquil.quilbase import _convert_to_py_instruction, _convert_to_py_instructions, AbstractInstruction
 
@@ -14,7 +11,9 @@ class BasicBlock(quil_rs.BasicBlock):
     Represents a basic block in the Program.
 
     Most functionality is implemented by the `quil` package. See the
-    [quil documentation](https://rigetti.github.io/quil-rs/quil/program.html#BasicBlock) for available methods.
+    `quil documentation`_ for documentation and available methods.
+
+    .. _quil documentation: https://rigetti.github.io/quil-rs/quil/program.html#BasicBlock
     """
 
     @classmethod
@@ -33,39 +32,29 @@ class BasicBlock(quil_rs.BasicBlock):
         return _convert_to_py_instruction(super().terminator())
 
 
-class ControlFlowGraph:
+class ControlFlowGraph(quil_rs.ControlFlowGraph):
     """
     Representation of a control flow graph (CFG) for a Quil program.
 
     The CFG is a directed graph where each node is a basic block and each edge is a control flow transition between two
     basic blocks.
+
+    This class should not be initialized directly. Use :py:meth:~pyquil.quil.Program.control
+     flow_graph` to get a CFG for a program.
+
+    Most functionality is implemented by the `quil` package. See the `quil documentation`_ for
+    documentation and available methods.
+
+    .. _quil documentation: https://rigetti.github.io/quil-rs/quil/program.html#ControlFlowGraph
     """
 
-    def __init__(self, program: "Program"):
-        self._graph = program._program.control_flow_graph()
+    @classmethod
+    def _from_rs(cls, graph: quil_rs.ControlFlowGraph) -> Self:
+        return super().__new__(cls, graph)
 
-    @staticmethod
-    def _from_rs(graph: quil_rs.ControlFlowGraph) -> "ControlFlowGraph":
-        from pyquil.quil import Program
-
-        py_graph = ControlFlowGraph(Program())
-        py_graph._graph = graph
-
-        return py_graph
-
-    def has_dynamic_control_flow(self) -> bool:
-        """
-        Return True if the program has dynamic control flow, i.e. contains a conditional branch instruction.
-
-        False does not imply that there is only one basic block in the program. Multiple basic blocks may have
-        non-conditional control flow among them, in which the execution order is deterministic and does not depend on
-        program state. This may be a sequence of basic blocks with fixed JUMPs or without explicit terminators.
-        """
-        return self._graph.has_dynamic_control_flow()
-
-    def basic_blocks(self) -> Iterable[BasicBlock]:
+    @override
+    def basic_blocks(self) -> List[BasicBlock]:  # type: ignore[override]
         """
         Return a list of all the basic blocks in the control flow graph, in order of definition.
         """
-        for block in self._graph.basic_blocks():
-            yield BasicBlock._from_rs(block)
+        return [BasicBlock._from_rs(block) for block in super().basic_blocks()]

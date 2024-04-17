@@ -1,6 +1,6 @@
 from types import NoneType
 
-from pyquil.control_flow_graph import BasicBlock, ControlFlowGraph
+from pyquil.control_flow_graph import BasicBlock
 from pyquil.quilbase import AbstractInstruction
 from pyquil.quil import Program
 
@@ -50,7 +50,7 @@ JUMP @END
 LABEL @END
 """
     )
-    graph = ControlFlowGraph(program)
+    graph = program.control_flow_graph()
     assert not graph.has_dynamic_control_flow()
     blocks = list(graph.basic_blocks())
     assert len(blocks) == 2
