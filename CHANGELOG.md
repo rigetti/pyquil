@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.9.2-rc.0 (2024-04-17)
+
+### Fixes
+
+#### Program serialization is deterministic, and program equality checks have been corrected. (#1767)
+
 ## 4.9.1 (2024-04-16)
 
 ### Fixes
