@@ -316,14 +316,14 @@ def test_prog_init(snapshot):
     assert p.out() == snapshot
 
 
-def test_classical_regs():
+def test_classical_regs(snapshot: SnapshotAssertion):
     p = Program()
     p.inst(
-        Declare("ro", "BIT", 2),
         Declare("reg", "BIT", 2),
+        Declare("ro", "BIT", 2),
         X(0),
     ).measure(0, MemoryReference("reg", 1))
-    assert p.out() == "DECLARE reg BIT[2]\nDECLARE ro BIT[2]\nX 0\nMEASURE 0 reg[1]\n"
+    assert p.out() == snapshot
     assert p.declarations == {
         "reg": Declare("reg", "BIT", 2),
         "ro": Declare("ro", "BIT", 2),

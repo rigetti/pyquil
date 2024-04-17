@@ -411,8 +411,8 @@ method.
 
     # Declare our memory spaces
     branching_prog = Program()
-    test_register = branching_prog.declare('test_register', 'BIT')
     ro = branching_prog.declare('ro', 'BIT')
+    test_register = branching_prog.declare('test_register', 'BIT')
 
     # Construct each branch of our if-statement. We can have empty branches
     # simply by having empty programs.
