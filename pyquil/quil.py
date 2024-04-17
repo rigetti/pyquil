@@ -43,6 +43,7 @@ import numpy as np
 
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
 
+from pyquil.control_flow_graph import ControlFlowGraph
 from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
@@ -319,6 +320,10 @@ class Program:
                     raise ValueError("Invalid instruction: {}, type: {}".format(instruction, type(instruction)))
 
         return self
+
+    def control_flow_graph(self) -> ControlFlowGraph:
+        """Return the control flow graph of the program."""
+        return ControlFlowGraph._from_rs(self._program.control_flow_graph())
 
     def with_loop(
         self,
