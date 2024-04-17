@@ -58,14 +58,13 @@ def test_rewrite_arithmetic_mixed():
         ParameterAref(index=1, name="__P2"): "(beta[0] + theta[0])/(2*pi)",
     }
     assert (
-        response.quil
-        == Program(
+        Program(response.quil) == Program(
             "DECLARE __P2 REAL[2]",
             "DECLARE theta REAL[1]",
             "DECLARE beta REAL[1]",
             "RZ(__P2[0]) 0",
             "RZ(__P2[1]) 0",
-        ).out()
+        )
     )
 
 
