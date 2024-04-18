@@ -322,7 +322,7 @@ class Program:
         return self
 
     def control_flow_graph(self) -> ControlFlowGraph:
-        """Return the control flow graph of the program."""
+        """Return the :py:class:`~ControlFlowGraph` of the program."""
         return ControlFlowGraph._from_rs(self._program.control_flow_graph())
 
     def with_loop(

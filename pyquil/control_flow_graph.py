@@ -11,9 +11,9 @@ class BasicBlock(quil_rs.BasicBlock):
     Represents a basic block in the Program.
 
     Most functionality is implemented by the `quil` package. See the
-    `quil documentation`_ for documentation and available methods.
+    `quil BasicBlock documentation`_ for documentation and available methods.
 
-    .. _quil documentation: https://rigetti.github.io/quil-rs/quil/program.html#BasicBlock
+    .. _quil BasicBlock documentation: https://rigetti.github.io/quil-rs/quil/program.html#BasicBlock
     """
 
     @classmethod
@@ -42,10 +42,10 @@ class ControlFlowGraph(quil_rs.ControlFlowGraph):
     This class should not be initialized directly. Use :py:meth:~pyquil.quil.Program.control
      flow_graph` to get a CFG for a program.
 
-    Most functionality is implemented by the `quil` package. See the `quil documentation`_ for
-    documentation and available methods.
+    Most functionality is implemented by the `quil` package. See the `quil ControlFlowGraph documentation`_ for
+    available methods.
 
-    .. _quil documentation: https://rigetti.github.io/quil-rs/quil/program.html#ControlFlowGraph
+    .. _quil ControlFlowGraph documentation: https://rigetti.github.io/quil-rs/quil/program.html#ControlFlowGraph
     """
 
     @classmethod
