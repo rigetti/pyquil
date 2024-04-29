@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.10.0 (2024-04-29)
+
+### Features
+
+#### Add Program#control_flow_graph() method (#1770)
+
 ## 4.10.0-rc.0 (2024-04-29)
 
 ### Features
