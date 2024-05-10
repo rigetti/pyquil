@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.10.1-rc.0 (2024-05-10)
+
+### Fixes
+
+#### Refresh JWT only when expired, not before every request (#1772)
+
 ## 4.10.0 (2024-04-29)
 
 ### Features
