@@ -691,8 +691,9 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         return super().to_quil()
 
     def get_constructor(self) -> Union[Callable[..., Gate], Callable[..., Callable[..., Gate]]]:
-        """:returns: A function that constructs this gate on variable qubit indices. E.g.
-        `mygate.get_constructor()(1) applies the gate to qubit 1.`
+        """:returns: A function that constructs this gate on variable qubit indices.
+
+        For example, `mygate.get_constructor()(1) applies the gate to qubit 1.`
         """
         if self.parameters:
             return lambda *params: lambda *qubits: Gate(
