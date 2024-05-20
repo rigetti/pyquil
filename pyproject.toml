@@ -172,8 +172,5 @@ line-ending = "auto"
 filterwarnings = ["ignore::DeprecationWarning:pyquil.*:", "ignore::DeprecationWarning:test.unit.*:"]
 
 [build-system]
-requires = ["maturin>=1,<2"]
-build-backend = "maturin"
-
-[tool.maturin]
-module-name = "pyquil._core"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
