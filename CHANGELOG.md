@@ -1,5 +1,109 @@
 # Changelog
 
+## 4.10.1 (2024-05-10)
+
+### Fixes
+
+#### Refresh JWT only when expired, not before every request (#1772)
+
+## 4.10.1-rc.0 (2024-05-10)
+
+### Fixes
+
+#### Refresh JWT only when expired, not before every request (#1772)
+
+## 4.10.0 (2024-04-29)
+
+### Features
+
+#### Add Program#control_flow_graph() method (#1770)
+
+## 4.10.0-rc.0 (2024-04-29)
+
+### Features
+
+#### Add Program#control_flow_graph() method (#1770)
+
+## 4.9.2 (2024-04-17)
+
+### Fixes
+
+#### Program serialization is deterministic, and program equality checks have been corrected. (#1767)
+
+## 4.9.2-rc.0 (2024-04-17)
+
+### Fixes
+
+#### Program serialization is deterministic, and program equality checks have been corrected. (#1767)
+
+## 4.9.1 (2024-04-16)
+
+### Fixes
+
+#### Expression arithmetic does not error when a numpy type is on the left hand side. (#1769)
+
+## 4.9.1-rc.0 (2024-04-16)
+
+### Fixes
+
+#### Expression arithmetic does not error when a numpy type is on the left hand side. (#1769)
+
+## 4.9.0 (2024-04-15)
+
+### Features
+
+#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+
+#### Expressions without parameters have improved compatibility with numpy. (#1757)
+
+### Fixes
+
+#### Program#out(calibrations=False) will not expand calibrations (#1758)
+
+#### The imaginary part of a complex number is no longer moved incorrectly to the outside of a binary expression. (#1756)
+
+## 4.9.0-rc.3 (2024-04-12)
+
+### Features
+
+#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+
+#### Expressions without parameters have improved compatibility with numpy. (#1757)
+
+### Fixes
+
+#### Program#out(calibrations=False) will not expand calibrations (#1758)
+
+#### The imaginary part of a complex number is no longer moved incorrectly to the outside of a binary expression. (#1756)
+
+## 4.9.0-rc.2 (2024-04-11)
+
+### Features
+
+#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+
+### Fixes
+
+#### Program#out(calibrations=False) will not expand calibrations (#1758)
+
+#### The imaginary part of a complex number is no longer moved incorrectly to the outside of a binary expression. (#1756)
+
+## 4.9.0-rc.1 (2024-04-10)
+
+### Features
+
+#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+
+### Fixes
+
+#### Program#out(calibrations=False) will not expand calibrations (#1758)
+
+## 4.9.0-rc.0 (2024-04-09)
+
+### Features
+
+#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+
 ## 4.8.0 (2024-03-08)
 
 ### Features

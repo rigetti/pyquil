@@ -353,9 +353,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.21.0-beta.0"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d0c41d899f822e5f39186d6da130a822a0a43edb19992b51bf4ef6cd0b4cfd1"
+checksum = "a5e00b96a521718e08e03b1a622f01c8a8deb50719335de3f60b3b3950f069d8"
 dependencies = [
  "cfg-if",
  "indexmap",
@@ -375,9 +375,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.21.0-beta.0"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5509c2aa78c7e770077e41ba86f806e60dcee812e924ccb2d6fe78c0a0128ce2"
+checksum = "7883df5835fafdad87c0d888b266c8ec0f4c9ca48a5bed6bbb592e8dedee1b50"
 dependencies = [
  "once_cell",
  "target-lexicon",
@@ -385,9 +385,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.21.0-beta.0"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6bb234a86ed619a661f3bb3c2493aaff9cb937e33e198d17f5f20a15881e155"
+checksum = "01be5843dc60b916ab4dad1dca6d20b9b4e6ddc8e15f50c47fe6d85f1fb97403"
 dependencies = [
  "libc",
  "pyo3-build-config",
@@ -395,9 +395,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros"
-version = "0.21.0-beta.0"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0b787de2c6832eb1eb393c9f82f976a5a87bda979780d9b853878846a8d2e4b"
+checksum = "77b34069fc0682e11b31dbd10321cbf94808394c56fd996796ce45217dfac53c"
 dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
@@ -407,9 +407,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.21.0-beta.0"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e3b7beed357786d2afe845871964e824ad8af0df38a403f7d01cdc81aadb211"
+checksum = "08260721f32db5e1a5beae69a55553f56b99bd0e1c3e6e0a5e8851a9d0f5a85c"
 dependencies = [
  "heck",
  "proc-macro2",

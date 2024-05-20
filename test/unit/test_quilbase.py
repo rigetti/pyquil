@@ -202,8 +202,18 @@ class TestGate:
             ),
             [Parameter("X")],
         ),
+        (
+            "ParameterlessExpressions",
+            np.array(
+                [
+                    [-quil_cos(np.pi), quil_sin(np.pi)],
+                    [quil_sin(np.pi), quil_cos(np.pi)],
+                ]
+            ),
+            [],
+        ),
     ],
-    ids=("No-Params", "Params", "MixedTypes"),
+    ids=("No-Params", "Params", "MixedTypes", "ParameterlessExpression"),
 )
 class TestDefGate:
     @pytest.fixture

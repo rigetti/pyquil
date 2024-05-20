@@ -15,7 +15,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 num-complex = "0.4.5"
-pyo3 = { version = "0.21.0-beta.0", features = ["extension-module", "num-complex", "multiple-pymethods", "serde", "indexmap"] }
+pyo3 = { version = "0.21.2", features = ["extension-module", "num-complex", "multiple-pymethods", "serde", "indexmap"] }
 indexmap = "2.2.6"
 serde = "1.0.197"
 bincode = "1.3.3"

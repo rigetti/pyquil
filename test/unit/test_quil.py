@@ -80,6 +80,7 @@ from pyquil.quil import (
 )
 from pyquil.quilatom import Frame, MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
 from pyquil.quilbase import (
+    AbstractInstruction,
     DefGate,
     DefFrame,
     Gate,
@@ -89,6 +90,7 @@ from pyquil.quilbase import (
     DefCalibration,
     DefMeasureCalibration,
     DefPermutationGate,
+    DefWaveform,
 )
 
 
@@ -314,14 +316,14 @@ def test_prog_init(snapshot):
     assert p.out() == snapshot
 
 
-def test_classical_regs():
+def test_classical_regs(snapshot: SnapshotAssertion):
     p = Program()
     p.inst(
-        Declare("ro", "BIT", 2),
         Declare("reg", "BIT", 2),
+        Declare("ro", "BIT", 2),
         X(0),
     ).measure(0, MemoryReference("reg", 1))
-    assert p.out() == "DECLARE reg BIT[2]\nDECLARE ro BIT[2]\nX 0\nMEASURE 0 reg[1]\n"
+    assert p.out() == snapshot
     assert p.declarations == {
         "reg": Declare("reg", "BIT", 2),
         "ro": Declare("ro", "BIT", 2),
@@ -1163,3 +1165,81 @@ def test_cached_frames():
     p.inst(frames[1])
     program_frames = p.frames
     assert program_frames == {frames[0].frame: frames[0], frames[1].frame: frames[1]}
+
+
+def test_out_without_calibrations():
+    quilt_program = Program(
+        """
+DEFCAL J 0:
+    RX(1.5707963267948966) 0
+DEFCAL MEASURE 0 addr:
+    FENCE 0
+"""
+    )
+    quil_program = Program(
+        """
+DEFFRAME 0 1 "cphase":
+    DIRECTION: "tx"
+    INITIAL-FREQUENCY: 458935243.82547355
+    CENTER-FREQUENCY: 375000000.0
+    HARDWARE-OBJECT: "q0_ff"
+    SAMPLE-RATE: 1000000000.0
+DEFWAVEFORM another1:
+    4,5
+DECLARE ro BIT[1]
+J 0
+MEASURE 0 ro
+DELAY 0
+"""
+    )
+
+    combined_program = quilt_program + quil_program
+
+    assert combined_program.out(calibrations=False) == quil_program.out()
+
+
+def test_program_equality():
+    program = Program("""DECLARE foo REAL[1]
+DEFFRAME 1 "rx":
+    HARDWARE-OBJECT: "hardware"
+DEFCAL I 0:
+    DELAY 0 1
+DEFCAL I 1:
+    DELAY 0 1
+DEFCAL I 2:
+    DELAY 0 1
+DEFCAL MEASURE 0 addr:
+    CAPTURE 0 "ro_rx" custom addr
+DEFCAL MEASURE 1 addr:
+    CAPTURE 1 "ro_rx" custom addr
+DEFWAVEFORM custom:
+    1,2
+DEFWAVEFORM custom2:
+    3,4
+DEFWAVEFORM another1:
+    4,5
+DEFGATE BAR AS MATRIX:
+    0, 1
+    1, 0
+DEFGATE FOO AS MATRIX:
+    0, 1
+    1, 0
+H 1
+CNOT 2 3""")
+
+    # Definitions in Quil are "global" in the sense that the order they are defined in the program does should not
+    # effect equality.
+    def is_global_state_instruction(i: AbstractInstruction) -> bool:
+        return isinstance(i, (DefFrame, DefWaveform, DefGate))
+
+    # Construct a copy of the program, inserting global instructions in reverse order. Since their order does not matter
+    # the new program should be equal to the original program.
+    base_program = program.filter_instructions(lambda i: not is_global_state_instruction(i))
+    global_instructions = program.filter_instructions(lambda i: is_global_state_instruction(i)).get_all_instructions()
+    global_reversed_program = base_program + global_instructions[::-1]
+
+    assert global_reversed_program == program
+
+    # Program with reversed instructions that aren't "global" should not be equivalent
+    non_global_reversed_program = Program(base_program.get_all_instructions()[::-1]) + global_instructions
+    assert non_global_reversed_program != program

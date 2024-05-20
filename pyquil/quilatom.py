@@ -526,6 +526,53 @@ class Expression(object):
     def _substitute(self, d: Any) -> ExpressionDesignator:
         return self
 
+    def _evaluate(self) -> np.complex128:
+        """
+        Attempts to evaluate the expression to by simplifying it to a complex number.
+
+        Expression simplification can be slow, especially for large recursive expressions.
+        This method will raise a ValueError if the expression cannot be simplified to a complex
+        number.
+        """
+        expr = quil_rs_expr.Expression.parse(str(self))
+        expr.simplify()  # type: ignore[no-untyped-call]
+        if not expr.is_number():
+            raise ValueError(f"Cannot evaluate expression {self} to a number. Got {expr}.")
+        return np.complex128(expr.to_number())
+
+    def __float__(self) -> float:
+        """
+        Returns a copy of the expression as a float by attempting to simplify the expression.
+
+        Expression simplification can be slow, especially for large recursive expressions.
+        This cast will raise a ValueError if simplification doesn't result in a real number.
+        """
+        value = self._evaluate()
+        if value.imag != 0:
+            raise ValueError(f"Cannot convert complex value with non-zero imaginary value to float: {value}")
+        return float(value.real)
+
+    def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+        """
+        Implements the numpy array protocol for this expression.
+
+        If the dtype is not object, then there will be an attempt to simplify the expression to a
+        complex number. If the expression cannot be simplified to one, then fallback to the
+        object representation of the expression.
+
+        Note that expression simplification can be slow for large recursive expressions.
+        """
+        try:
+            if dtype != object:
+                return np.asarray(self._evaluate(), dtype=dtype)
+            raise ValueError
+        except ValueError:
+            # np.asarray(self, ...) would cause an infinite recursion error, so we build the array with a
+            # placeholder value, then replace it with self after.
+            array = np.asarray(None, dtype=object)
+            array.flat[0] = self
+            return array
+
 
 ParameterSubstitutionsMapDesignator = Mapping[Union["Parameter", "MemoryReference"], ExpressionValueDesignator]
 
@@ -773,8 +820,12 @@ def _expression_to_string(expression: ExpressionDesignator) -> str:
             right = "(" + right + ")"
         # If op2 is a float, it will maybe represented as a multiple
         # of pi in right. If that is the case, then we need to take
-        # extra care to insert parens. See gh-943.
-        elif isinstance(expression.op2, float) and (("pi" in right and right != "pi")):
+        # extra care to insert parens. Similarly, complex numbers need
+        # to be wrapped in parens so the imaginary part is captured.
+        # See gh-943,1734.
+        elif (isinstance(expression.op2, float) and (("pi" in right and right != "pi"))) or isinstance(
+            expression.op2, complex
+        ):
             right = "(" + right + ")"
 
         return left + expression.operator + right
