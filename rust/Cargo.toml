@@ -1,0 +1,22 @@
+[package]
+name = "pyquil"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+# The name of the native library. This is the name which will be used in Python to import the
+# library (i.e. `import string_sum`). If you change this, you must also change the name of the
+# `#[pymodule]` in `src/lib.rs`.
+name = "pyquil"
+
+# "cdylib" is necessary to produce a shared library for Python to import from.
+crate-type = ["cdylib"]
+
+[dependencies]
+num-complex = "0.4.5"
+pyo3 = { version = "0.21.2", features = ["extension-module", "num-complex", "multiple-pymethods", "serde", "indexmap"] }
+indexmap = "2.2.6"
+serde = "1.0.197"
+bincode = "1.3.3"
+quil-rs = "0.23.0"

@@ -138,6 +138,9 @@
 # name: TestDeclare.test_str[With-Size]
   'DECLARE ro OCTET[5]'
 # ---
+# name: TestDefCalibration.test_out[Fixed-Qubit]
+  'DEFCAL Calibrate 0:'
+# ---
 # name: TestDefCalibration.test_out[No-Params]
   '''
   DEFCAL Calibrate 0:
@@ -149,6 +152,9 @@
   DEFCAL Calibrate(%X) 0:
   	X 0
   '''
+# ---
+# name: TestDefCalibration.test_str[Fixed-Qubit]
+  'DEFCAL Calibrate 0:'
 # ---
 # name: TestDefCalibration.test_str[No-Params]
   '''

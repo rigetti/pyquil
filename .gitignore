@@ -53,6 +53,7 @@ coverage.xml
 *,cover
 .hypothesis/
 .pytest_cache/
+prof/
 
 # Translations
 *.mo
@@ -189,3 +190,8 @@ fabric.properties
 
 
 node_modules/
+
+
+# Added by cargo
+
+/target

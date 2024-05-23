@@ -1,3 +1,19 @@
+[project]
+name = "pyquil"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
 [tool.poetry]
 name = "pyquil"
 version = "4.10.1"
@@ -12,7 +28,6 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
-  "Operating System :: OS Independent",
 ]
 keywords = ["quantum", "quil", "programming", "hybrid"]
 packages = [{ include = "pyquil" }]
@@ -31,6 +46,8 @@ tenacity = "^8.2.2"
 types-python-dateutil = "^2.8.19"
 types-retry = "^0.9.9"
 packaging = "^23.1"
+deprecated = "^1.2.13"
+types-deprecated = "^1.2.9.2"
 
 # latex extra
 ipython = { version = "^7.21.0", optional = true }
@@ -44,8 +61,6 @@ pandoc = {version = "2.4b0", optional = true}
 matplotlib = {version = "^3.7.1", optional = true}
 matplotlib-inline = {version = "^0.1.6", optional = true}
 seaborn = {version = "^0.12.2", optional = true}
-deprecated = "^1.2.13"
-types-deprecated = "^1.2.9.2"
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
@@ -53,15 +68,17 @@ flake8 = "^3.8.1"
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
 mypy = "^1.5.0"
+ruff = "^0.3.2"
 toml = "^0.10.2"
 pytest-xdist = "^3.3.1"
 pytest-rerunfailures = "^12.0.0"
 pytest-timeout = "^1.4.2"
 pytest-mock = "^3.11.1"
+pytest-benchmark = "^4.0.0"
+pytest-profiling = "^1.7.0"
 respx = "^0.20"
-nest-asyncio = "^1.5.6"
-mock = { version = "^4.0", python = "<3.8" }
 syrupy = "^3.0.6"
+maturin = "^1.5.0"
 
 [tool.poetry.extras]
 latex = ["ipython"]
@@ -70,9 +87,6 @@ docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "recommonmark", "pandoc", "mat
 [tool.poetry.group.dev.dependencies]
 setuptools = {version = "^69.0.2", python = ">=3.12"}
 mypy = "^1.8.0"
-
-[tool.ruff]
-line-length = 120
 
 [tool.black]
 line-length = 120
@@ -98,6 +112,61 @@ exclude = '''
 
 )
 '''
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+# Same as Black.
+line-length = 120
+indent-width = 4
+# Assume Python 3.8
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["D", "E4", "E7", "E9", "F", "I", "B", "S", "W"]
+ignore = []
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning:pyquil.*:", "ignore::DeprecationWarning:test.unit.*:"]
