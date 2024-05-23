@@ -15,17 +15,13 @@
 ##############################################################################
 from multiprocessing.pool import ThreadPool
 
-import nest_asyncio
 import numpy as np
 
 from pyquil import Program
-from pyquil.api import QuantumComputer, QPU
-from pyquil.gates import H, CNOT, MEASURE, RX
+from pyquil.api import QPU, QuantumComputer
+from pyquil.gates import CNOT, MEASURE, RX, H
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
-
-nest_asyncio.apply()
-
 
 TEST_PROGRAM = Program(
     Declare("ro", "BIT", 2),
