@@ -401,7 +401,7 @@ class TestDefCalibration:
         calibration.parameters = [pi / 2]
         assert calibration.parameters == [pi / 2]
 
-    def test_qubits(self, calibration: DefCalibration, qubits: List[Qubit]):
+    def test_qubits(self, calibration: DefCalibration, qubits: List[QubitDesignator]):
         assert calibration.qubits == qubits
         calibration.qubits = [Qubit(123)]
         assert calibration.qubits == [Qubit(123)]
