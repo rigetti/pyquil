@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from collections.abc import Sequence
-from typing import Any, List, Optional, Tuple, Union, cast
+from typing import Any, Optional, Union, cast
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -44,7 +44,7 @@ from pyquil.simulation.matrices import QUANTUM_GATES
 from pyquil.simulation.tools import all_bitstrings
 
 
-def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: List[int]) -> np.ndarray:
+def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: list[int]) -> np.ndarray:
     """Left-multiplies the given axes of the wf tensor by the given gate matrix.
 
     Note that the matrix must have a compatible tensor structure.
@@ -141,7 +141,7 @@ def get_measure_probabilities(wf: np.ndarray, qubit: int) -> np.ndarray:
     return np.einsum(np.conj(wf), all_inds, wf, all_inds, [int(qubit)])  # type: ignore
 
 
-def _get_gate_tensor_and_qubits(gate: Gate) -> Tuple[np.ndarray, List[int]]:
+def _get_gate_tensor_and_qubits(gate: Gate) -> tuple[np.ndarray, list[int]]:
     """Given a gate ``Instruction``, turn it into a matrix and extract qubit indices.
 
     :param gate: the instruction
@@ -296,5 +296,5 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[(0,) * self.n_qubits] = complex(1.0, 0)
         return self
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "AbstractQuantumSimulator":
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: list[int]) -> "AbstractQuantumSimulator":
         raise NotImplementedError("The numpy simulator cannot handle noise")

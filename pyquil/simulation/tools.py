@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from collections.abc import Sequence
-from typing import List, Tuple, Union, cast
+from typing import Union, cast
 
 import numpy as np
 
@@ -93,7 +93,7 @@ def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.
     return np.kron(top_matrix, np.kron(matrix, bottom_matrix))
 
 
-def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Generate the permutation matrix that permutes two single-particle Hilbert
     spaces into adjacent positions.
 
@@ -138,7 +138,7 @@ def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> T
     return perm, new_qubit_map
 
 
-def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> Tuple[np.ndarray, np.ndarray, int]:
+def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> tuple[np.ndarray, np.ndarray, int]:
     """Generate the permutation matrix that permutes an arbitrary number of
     single-particle Hilbert spaces into adjacent positions.
 
@@ -338,7 +338,7 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
     return umat
 
 
-def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np.ndarray:
+def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.ndarray:
     """Takes a PauliSum object along with a list of
     qubits and returns a matrix corresponding the tensor representation of the
     object.
@@ -379,7 +379,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np
     return result_hilbert
 
 
-def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np.ndarray:
+def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.ndarray:
     """Takes a PauliSum object along with a list of
     qubits and returns a matrix corresponding the tensor representation of the
     object.
@@ -394,7 +394,7 @@ def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np.nd
     return lifted_pauli(pauli_sum=pauli_sum, qubits=qubits)
 
 
-def lifted_state_operator(state: TensorProductState, qubits: List[int]) -> np.ndarray:
+def lifted_state_operator(state: TensorProductState, qubits: list[int]) -> np.ndarray:
     """Take a TensorProductState along with a list of qubits and return a matrix
     corresponding to the tensored-up representation of the states' density operator form.
 

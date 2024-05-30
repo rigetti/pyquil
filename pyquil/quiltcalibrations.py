@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import quil.expression as quil_expr
 import quil.instructions as quil_rs
@@ -32,7 +32,7 @@ class CalibrationDoesntMatch(CalibrationError):
 @dataclass
 class CalibrationMatch:
     cal: Union[DefCalibration, DefMeasureCalibration]
-    settings: Dict[Union[QubitDesignator, ExpressionDesignator], Any]
+    settings: dict[Union[QubitDesignator, ExpressionDesignator], Any]
 
 
 def _convert_to_calibration_match(
@@ -56,7 +56,7 @@ def _convert_to_calibration_match(
     else:
         return None
 
-    settings: Dict[Union[QubitDesignator, ExpressionDesignator], Union[QubitDesignator, ExpressionDesignator]] = {
+    settings: dict[Union[QubitDesignator, ExpressionDesignator], Union[QubitDesignator, ExpressionDesignator]] = {
         _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
         for param, qubit in zip(parameter_qubits, target_qubits)
         if isinstance(param, MemoryReference) or param.is_variable()

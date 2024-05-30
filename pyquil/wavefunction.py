@@ -17,7 +17,7 @@
 """
 import itertools
 from collections.abc import Iterator, Sequence
-from typing import Dict, List, Optional, cast
+from typing import Optional, cast
 
 import numpy as np
 
@@ -92,7 +92,7 @@ class Wavefunction:
         """Returns an array of probabilities in lexicographical order"""
         return np.abs(self.amplitudes) ** 2  # type: ignore
 
-    def get_outcome_probs(self) -> Dict[str, float]:
+    def get_outcome_probs(self) -> dict[str, float]:
         """Parses a wavefunction (array of complex amplitudes) and returns a dictionary of
         outcomes and associated probabilities.
 
@@ -106,7 +106,7 @@ class Wavefunction:
             outcome_dict[outcome] = abs(amplitude) ** 2
         return outcome_dict
 
-    def pretty_print_probabilities(self, decimal_digits: int = 2) -> Dict[str, float]:
+    def pretty_print_probabilities(self, decimal_digits: int = 2) -> dict[str, float]:
         """TODO: This doesn't seem like it is named correctly...
 
         Prints outcome probabilities, ignoring all outcomes with approximately zero probabilities
@@ -192,7 +192,7 @@ def get_bitstring_from_index(index: int, qubit_num: int) -> str:
     return bin(index)[2:].rjust(qubit_num, "0")
 
 
-def _octet_bits(o: int) -> List[int]:
+def _octet_bits(o: int) -> list[int]:
     """Get the bits of an octet.
 
     :param o: The octets.

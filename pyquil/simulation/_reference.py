@@ -15,7 +15,7 @@
 ##############################################################################
 import warnings
 from collections.abc import Sequence
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -180,7 +180,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[0] = complex(1.0, 0)
         return self
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "AbstractQuantumSimulator":
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: list[int]) -> "AbstractQuantumSimulator":
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
@@ -334,7 +334,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.density = self.initial_density
         return self
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "ReferenceDensitySimulator":
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: list[int]) -> "ReferenceDensitySimulator":
         kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
         if np.isclose(noise_prob, 0.0):
             warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0", stacklevel=2)

@@ -114,7 +114,6 @@ Specialized gates / internal utility gates:
     :math:`\begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}`
 """  # noqa: E501
 import cmath
-from typing import Tuple
 
 import numpy as np
 
@@ -355,7 +354,7 @@ QUANTUM_GATES = {
 }
 
 
-def relaxation_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
+def relaxation_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
     """Return the amplitude damping Kraus operators
     """
     k0 = np.array([[1.0, 0.0], [0.0, np.sqrt(1 - p)]])
@@ -363,7 +362,7 @@ def relaxation_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     return k0, k1
 
 
-def dephasing_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
+def dephasing_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
     """Return the phase damping Kraus operators
     """
     k0 = np.eye(2) * np.sqrt(1 - p / 2)
@@ -371,7 +370,7 @@ def dephasing_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     return k0, k1
 
 
-def depolarizing_operators(p: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def depolarizing_operators(p: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Return the phase damping Kraus operators
     """
     k0 = np.sqrt(1.0 - p) * I
@@ -381,7 +380,7 @@ def depolarizing_operators(p: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray
     return k0, k1, k2, k3
 
 
-def phase_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
+def phase_flip_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
     """Return the phase flip kraus operators
     """
     k0 = np.sqrt(1 - p) * I
@@ -389,7 +388,7 @@ def phase_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     return k0, k1
 
 
-def bit_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
+def bit_flip_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
     """Return the phase flip kraus operators
     """
     k0 = np.sqrt(1 - p) * I
@@ -397,7 +396,7 @@ def bit_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     return k0, k1
 
 
-def bitphase_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
+def bitphase_flip_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
     """Return the bitphase flip kraus operators
     """
     k0 = np.sqrt(1 - p) * I
