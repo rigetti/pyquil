@@ -1,15 +1,18 @@
 import itertools
 import random
-from test.unit.utils import DummyCompiler
 from typing import cast
 
 import networkx as nx
 import numpy as np
 import pytest
 import respx
+from qcs_sdk import QCSClient
+from qcs_sdk.qpu.isa import InstructionSetArchitecture
+from qcs_sdk.qvm import QVMClient
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program, list_quantum_computers
+from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
     QuantumComputer,
     _check_min_num_trials_for_symmetrized_readout,
@@ -24,7 +27,6 @@ from pyquil.api._quantum_computer import (
     _symmetrization,
     get_qc,
 )
-from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment import Experiment, ExperimentSetting
 from pyquil.experiment._main import _pauli_to_product_state
@@ -34,10 +36,7 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
-from qcs_sdk import QCSClient
-from qcs_sdk.qvm import QVMClient
-from qcs_sdk.qpu.isa import InstructionSetArchitecture
-from rpcq.messages import ParameterAref
+from test.unit.utils import DummyCompiler
 
 
 def test_flip_array_to_prog(snapshot: SnapshotAssertion):
@@ -828,8 +827,7 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClient, qvm_client: QVMC
 
 
 def test_undeclared_memory_region(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
-    """
-    Test for https://github.com/rigetti/pyquil/issues/1596
+    """Test for https://github.com/rigetti/pyquil/issues/1596
     """
     program = Program(
         """
@@ -852,8 +850,7 @@ MEASURE 1 ro[1]
 @pytest.mark.skip  # qcs_sdk client profiles do not support group accounts
 @respx.mock
 def test_get_qc_with_group_account(client_configuration: QCSClient, qvm_client: QVMClient, qcs_aspen8_isa: InstructionSetArchitecture):
-    """
-    Assert that a client may specify a ``QCSClientSettingsProfile`` representing a QCS group
+    """Assert that a client may specify a ``QCSClientSettingsProfile`` representing a QCS group
     account.
     """
     respx.get(

@@ -2,17 +2,16 @@ import numpy as np
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program
-from pyquil.quil import AbstractInstruction, Declare, Measurement
-from pyquil.quilbase import Reset, ResetQubit, Delay, DelayFrames, DelayQubits, Frame, \
-    DefMeasureCalibration
-from pyquil.quilatom import Label, MemoryReference, Qubit
 from pyquil.experiment._program import (
     measure_qubits,
+    parameterized_readout_symmetrization,
     parameterized_single_qubit_measurement_basis,
     parameterized_single_qubit_state_preparation,
-    parameterized_readout_symmetrization,
 )
-from pyquil.gates import MEASURE, RX, RZ, H, DELAY
+from pyquil.gates import DELAY, MEASURE, RX, RZ, H
+from pyquil.quil import AbstractInstruction, Declare, Measurement
+from pyquil.quilatom import Label, MemoryReference, Qubit
+from pyquil.quilbase import DefMeasureCalibration, Delay, DelayFrames, DelayQubits, Frame, Reset, ResetQubit
 
 
 def test_measure_qubits():
@@ -172,8 +171,7 @@ SWAP-PHASES 2 3 "xy" 3 4 "xy";
 
 
 def test_compatibility_layer():
-    """
-    Test that the compatibility layer that transforms pyQuil instructions to quil instructions works as intended.
+    """Test that the compatibility layer that transforms pyQuil instructions to quil instructions works as intended.
     """
     # Note: `quil` re-orders some instructions in a program (e.g. by shuffling DECLAREs to the top). This isn't a
     # problem for the current set of instructions we're testing, but it's something to keep in mind if we add more.

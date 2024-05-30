@@ -19,78 +19,78 @@ from math import pi
 
 import numpy as np
 import pytest
-from syrupy.assertion import SnapshotAssertion
 import quil.instructions as quil_rs
+from syrupy.assertion import SnapshotAssertion
 
 from pyquil.gates import (
-    I,
-    X,
-    Y,
-    Z,
-    H,
-    T,
-    S,
-    RX,
-    RY,
-    RZ,
-    CNOT,
+    ADD,
+    AND,
     CCNOT,
-    PHASE,
+    CNOT,
+    CONVERT,
+    CPHASE,
     CPHASE00,
     CPHASE01,
     CPHASE10,
-    CPHASE,
-    SWAP,
     CSWAP,
-    ISWAP,
-    PSWAP,
-    MEASURE,
-    HALT,
-    WAIT,
-    NOP,
-    RESET,
-    NOT,
-    AND,
-    MOVE,
-    EXCHANGE,
-    LOAD,
-    CONVERT,
-    STORE,
-    XOR,
-    IOR,
-    NEG,
-    ADD,
-    SUB,
-    MUL,
     DIV,
     EQ,
-    GT,
+    EXCHANGE,
     GE,
-    LT,
+    GT,
+    HALT,
+    IOR,
+    ISWAP,
     LE,
+    LOAD,
+    LT,
+    MEASURE,
+    MOVE,
+    MUL,
+    NEG,
+    NOP,
+    NOT,
+    PHASE,
+    PSWAP,
+    RESET,
+    RX,
+    RY,
+    RZ,
+    STORE,
+    SUB,
+    SWAP,
+    WAIT,
+    XOR,
+    H,
+    I,
+    S,
+    T,
+    X,
+    Y,
+    Z,
 )
 from pyquil.paulis import exponential_map, sZ
 from pyquil.quil import (
     Program,
-    merge_programs,
-    merge_with_pauli_noise,
     address_qubits,
     get_classical_addresses_from_program,
+    merge_programs,
+    merge_with_pauli_noise,
     validate_supported_quil,
 )
 from pyquil.quilatom import Frame, MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
 from pyquil.quilbase import (
     AbstractInstruction,
-    DefGate,
-    DefFrame,
-    Gate,
-    Qubit,
-    JumpWhen,
     Declare,
     DefCalibration,
+    DefFrame,
+    DefGate,
     DefMeasureCalibration,
     DefPermutationGate,
     DefWaveform,
+    Gate,
+    JumpWhen,
+    Qubit,
 )
 
 
@@ -712,7 +712,7 @@ def test_qubit_placeholder_new():
 
 def test_multiaddress():
     p = Program()
-    q0, q1 = [QubitPlaceholder() for _ in range(2)]
+    q0, q1 = (QubitPlaceholder() for _ in range(2))
     p += exponential_map(sZ(q0) * sZ(q1))(0.5)
 
     map1 = {q0: 0, q1: 1}
@@ -992,11 +992,9 @@ def test_get_classical_addresses_from_program():
 
 
 def test_get_classical_addresses_from_quil_program():
-    """
-    Tests that can get_classical_addresses_from_program can handle both MEASURE
+    """Tests that can get_classical_addresses_from_program can handle both MEASURE
     quil instructions with and without explicit classical registers.
     """
-
     p = Program("\n".join(["X 0", "MEASURE 0"]))
     assert get_classical_addresses_from_program(p) == {}
 
@@ -1118,8 +1116,8 @@ class TestProgram:
 
         calibrations = program.calibrations
         measure_calibrations = program.measure_calibrations
-        assert all((isinstance(cal, DefCalibration) for cal in program.calibrations))
-        assert all((isinstance(cal, DefMeasureCalibration) for cal in program.measure_calibrations))
+        assert all(isinstance(cal, DefCalibration) for cal in program.calibrations)
+        assert all(isinstance(cal, DefMeasureCalibration) for cal in program.measure_calibrations)
         assert calibrations == snapshot
         assert measure_calibrations == snapshot
 

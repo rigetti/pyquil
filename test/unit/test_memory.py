@@ -2,8 +2,8 @@ import numpy as np
 
 from pyquil.experiment._memory import (
     merge_memory_map_lists,
-    pauli_term_to_preparation_memory_map,
     pauli_term_to_measurement_memory_map,
+    pauli_term_to_preparation_memory_map,
 )
 from pyquil.paulis import sX, sY
 from pyquil.quilatom import (

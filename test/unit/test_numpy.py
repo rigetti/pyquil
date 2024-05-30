@@ -4,23 +4,23 @@ import numpy as np
 import pytest
 
 from pyquil import Program
-from pyquil.gates import CCNOT, CNOT, H, MEASURE, RX, X
-from pyquil.paulis import sZ, sX
+from pyquil.gates import CCNOT, CNOT, MEASURE, RX, H, X
+from pyquil.paulis import sX, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare, DefGate
 from pyquil.simulation._numpy import (
-    targeted_einsum,
     NumpyWavefunctionSimulator,
-    all_bitstrings,
-    targeted_tensordot,
     _term_expectation,
+    all_bitstrings,
+    targeted_einsum,
+    targeted_tensordot,
 )
 from pyquil.simulation._reference import ReferenceWavefunctionSimulator
 from pyquil.simulation.matrices import QUANTUM_GATES as GATES
 from test.unit.test_reference_wavefunction import (
-    _generate_random_program,
     _generate_random_pauli,
+    _generate_random_program,
 )
 
 
@@ -266,11 +266,14 @@ def kron(*matrices: np.ndarray) -> np.ndarray:
     A *args version of lambda args: functools.reduce(np.kron, args).
 
     Args:
+    ----
         *matrices: The matrices and controls to combine with the kronecker
             product.
 
     Returns:
+    -------
         The resulting matrix.
+
     """
     product = np.eye(1)
     for m in matrices:

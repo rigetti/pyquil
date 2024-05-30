@@ -6,12 +6,13 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import os
+import subprocess
+
 import sphinx_rtd_theme
 from sphinx.ext.doctest import doctest
-from pyquil import __version__
 
-import subprocess
-import os
+from pyquil import __version__
 
 project = "pyQuil"
 copyright = "2021, Rigetti Computing"

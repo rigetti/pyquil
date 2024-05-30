@@ -1,9 +1,9 @@
-"""
-Changes the qcs-sdk-python dependency to qcs-sdk-python-grpc-web.
+"""Changes the qcs-sdk-python dependency to qcs-sdk-python-grpc-web.
 """
 
 from io import TextIOWrapper
-from os.path import dirname, realpath, join
+from os.path import dirname, join, realpath
+
 import toml
 
 workspace_path = dirname(dirname(realpath(__file__)))

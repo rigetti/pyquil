@@ -24,24 +24,24 @@ from operator import mul
 import numpy as np
 import pytest
 
-from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+from pyquil.gates import CNOT, PHASE, RX, RZ, H, X
 from pyquil.paulis import (
-    PauliTerm,
-    PauliSum,
-    exponential_map,
-    exponentiate_commuting_pauli_sum,
     ID,
-    exponentiate,
-    trotterize,
-    is_zero,
+    ZERO,
+    PauliSum,
+    PauliTerm,
     check_commutation,
     commuting_sets,
-    term_with_coeff,
+    exponential_map,
+    exponentiate,
+    exponentiate_commuting_pauli_sum,
+    is_zero,
     sI,
     sX,
     sY,
     sZ,
-    ZERO,
+    term_with_coeff,
+    trotterize,
 )
 from pyquil.quil import Program, address_qubits
 from pyquil.quilatom import QubitPlaceholder
@@ -70,7 +70,7 @@ def test_get_qubits():
 def test_simplify_term_single():
     q0, q1, q2 = QubitPlaceholder.register(3)
     term = PauliTerm("Z", q0) * PauliTerm("I", q1) * PauliTerm("X", q2, 0.5j) * PauliTerm("Z", q0, 1.0)
-    assert term.id() == "X{}".format(q2)
+    assert term.id() == f"X{q2}"
     assert term.coefficient == 0.5j
 
 
@@ -80,14 +80,14 @@ def test_simplify_term_xz():
     term2 = -0.5 * PauliTerm("X", q0) * (-1.0) * PauliTerm("Z", q0)
     term3 = 0.5 * PauliTerm("X", q0) * PauliTerm("Z", q0)
     for term in [term1, term2, term3]:
-        assert term.id() == "Y{}".format(q0)
+        assert term.id() == f"Y{q0}"
         assert term.coefficient == -0.5j
 
 
 def test_simplify_term_multindex():
     q0, q2 = QubitPlaceholder.register(2)
     term = PauliTerm("X", q0, coefficient=-0.5) * PauliTerm("Z", q0, coefficient=-1.0) * PauliTerm("X", q2, 0.5)
-    assert term.id(sort_ops=False) == "Y{q0}X{q2}".format(q0=q0, q2=q2)
+    assert term.id(sort_ops=False) == f"Y{q0}X{q2}"
     assert term.coefficient == -0.25j
 
 
@@ -95,11 +95,9 @@ def test_simplify_sum_terms():
     q0 = QubitPlaceholder()
     sum_term = PauliSum([PauliTerm("X", q0, 0.5), PauliTerm("Z", q0, 0.5j)])
     str_sum_term = str(sum_term + sum_term)
-    assert str_sum_term == "(1+0j)*X{q0} + 1j*Z{q0}".format(q0=q0) or str_sum_term == "1j*Z{q0} + (1+0j)*X{q0}".format(
-        q0=q0
-    )
+    assert str_sum_term == f"(1+0j)*X{q0} + 1j*Z{q0}" or str_sum_term == f"1j*Z{q0} + (1+0j)*X{q0}"
     sum_term = PauliSum([PauliTerm("X", q0, 0.5), PauliTerm("X", q0, 0.5)])
-    assert str(sum_term.simplify()) == "(1+0j)*X{q0}".format(q0=q0)
+    assert str(sum_term.simplify()) == f"(1+0j)*X{q0}"
 
     # test the simplify on multiplication
     sum_term = PauliSum([PauliTerm("X", q0, 0.5), PauliTerm("X", q0, 0.5)])

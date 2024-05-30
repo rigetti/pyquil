@@ -1,40 +1,35 @@
 import os
 from typing import Optional
 
-import pytest
 import numpy as np
+import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quil import Program
 from pyquil.gates import RX
+from pyquil.quil import Program
 from pyquil.quilatom import (
+    FormalArgument,
     MemoryReference,
     Parameter,
-    FormalArgument,
-    Frame,
-)
-from pyquil.quiltwaveforms import (
-    FlatWaveform,
-    GaussianWaveform,
-    DragGaussianWaveform,
-    ErfSquareWaveform,
-    HrmGaussianWaveform,
-    BoxcarAveragerKernel,
-)
-from pyquil.quiltcalibrations import (
-    CalibrationError,
-    CalibrationMatch,
-    match_calibration,
 )
 from pyquil.quilbase import (
     AbstractInstruction,
-    Gate,
     DefCalibration,
     DefMeasureCalibration,
-    ShiftPhase,
-    DelayQubits,
-    Pulse,
+    Gate,
     Qubit,
+)
+from pyquil.quiltcalibrations import (
+    CalibrationMatch,
+    match_calibration,
+)
+from pyquil.quiltwaveforms import (
+    BoxcarAveragerKernel,
+    DragGaussianWaveform,
+    ErfSquareWaveform,
+    FlatWaveform,
+    GaussianWaveform,
+    HrmGaussianWaveform,
 )
 from test.unit.conftest import TEST_DATA_DIR
 

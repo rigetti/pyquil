@@ -1,18 +1,19 @@
+from typing import Any, Dict
+
 import networkx as nx
-from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
-    compiler_isa_to_graph,
-    DEFAULT_2Q_GATES,
-    DEFAULT_1Q_GATES,
-)
-from pyquil.quantum_processor.transformers import graph_to_compiler_isa
-from pyquil.quantum_processor.graph import NxQuantumProcessor
+
 from pyquil.external.rpcq import CompilerISA
-from typing import Dict, Any
+from pyquil.quantum_processor.graph import NxQuantumProcessor
+from pyquil.quantum_processor.transformers import graph_to_compiler_isa
+from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
+    DEFAULT_1Q_GATES,
+    DEFAULT_2Q_GATES,
+    compiler_isa_to_graph,
+)
 
 
 def test_isa_from_graph_order():
-    """
-    Test that edge keys in the CompilerISA are properly formatted and sorted by
+    """Test that edge keys in the CompilerISA are properly formatted and sorted by
     the node id.
     """
     # since node 16 appears first, even though we ask for the edge (15,16) the networkx internal
@@ -26,8 +27,7 @@ def test_isa_from_graph_order():
 
 
 def test_compiler_isa_to_graph(compiler_isa: CompilerISA):
-    """
-    Test that compiler_isa_to_graph transforms a ``CompilerISA`` to an ``nx.Graph``
+    """Test that compiler_isa_to_graph transforms a ``CompilerISA`` to an ``nx.Graph``
     accurately and that an ``NxQuantumProcessor.qubit_topology`` is isomorphic to the
     raw ``nx.Graph``.
     """
@@ -40,8 +40,7 @@ def test_compiler_isa_to_graph(compiler_isa: CompilerISA):
 
 
 def test_graph_to_compiler_isa(compiler_isa: CompilerISA, noise_model_dict: Dict[str, Any]):
-    """
-    Test that ```compiler_isa_to_graph``` transforms ``CompilerISA`` to an ``nx.Graph`` and that
+    """Test that ```compiler_isa_to_graph``` transforms ``CompilerISA`` to an ``nx.Graph`` and that
     ``graph_to_compiler_isa`` transforms an ``nx.Device`` to a ``CompilerISA`` with default
     gates.
     """

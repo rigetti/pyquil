@@ -5,34 +5,32 @@ from math import pi
 import numpy as np
 import pytest
 
-from pyquil import Program
-from pyquil.api import WavefunctionSimulator
-from pyquil.api import QCSClient
-from pyquil import get_qc
+from pyquil import Program, get_qc
+from pyquil.api import QCSClient, WavefunctionSimulator
 from pyquil.experiment import (
-    ExperimentSetting,
     SIC0,
     SIC1,
     SIC2,
     SIC3,
-    TensorProductState,
     Experiment,
+    ExperimentSetting,
+    TensorProductState,
     minusY,
     minusZ,
     plusX,
     plusY,
     plusZ,
 )
-from pyquil.gates import CNOT, CZ, H, I, RX, RY, RZ, X, Y
+from pyquil.gates import CNOT, CZ, RX, RY, RZ, H, I, X, Y
 from pyquil.operator_estimation import (
+    _calibration_program,
     _one_q_sic_prep,
-    group_experiments,
-    measure_observables,
     _ops_bool_to_prog,
     _stats_from_measurements,
-    _calibration_program,
+    group_experiments,
+    measure_observables,
 )
-from pyquil.paulis import sI, sX, sY, sZ, PauliSum
+from pyquil.paulis import PauliSum, sI, sX, sY, sZ
 from pyquil.quilbase import Pragma
 
 
@@ -148,8 +146,7 @@ def test_sic_process_tomo(client_configuration: QCSClient):
 
 
 def test_measure_observables_symmetrize(client_configuration: QCSClient):
-    """
-    Symmetrization alone should not change the outcome on the QVM
+    """Symmetrization alone should not change the outcome on the QVM
     """
     expts = [
         ExperimentSetting(TensorProductState(), o1 * o2)
@@ -169,8 +166,7 @@ def test_measure_observables_symmetrize(client_configuration: QCSClient):
 
 
 def test_measure_observables_symmetrize_calibrate(client_configuration: QCSClient):
-    """
-    Symmetrization + calibration should not change the outcome on the QVM
+    """Symmetrization + calibration should not change the outcome on the QVM
     """
     expts = [
         ExperimentSetting(TensorProductState(), o1 * o2)
@@ -190,8 +186,7 @@ def test_measure_observables_symmetrize_calibrate(client_configuration: QCSClien
 
 
 def test_measure_observables_zero_expectation(client_configuration: QCSClient):
-    """
-    Testing case when expectation value of observable should be close to zero
+    """Testing case when expectation value of observable should be close to zero
     """
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
@@ -605,8 +600,7 @@ def test_expectations_sic3(client_configuration: QCSClient, use_seed: bool):
 
 
 def test_sic_conditions(client_configuration: QCSClient):
-    """
-    Test that the SIC states indeed yield SIC-POVMs
+    """Test that the SIC states indeed yield SIC-POVMs
     """
     wfn_sim = WavefunctionSimulator(client_configuration=client_configuration)
 
@@ -697,13 +691,13 @@ def test_measure_observables_grouped_expts(client_configuration: QCSClient, use_
 
 def _point_channel_fidelity_estimate(v, dim=2):
     """:param v: array of expectation values
-    :param dim: dimensionality of the Hilbert space"""
+    :param dim: dimensionality of the Hilbert space
+    """
     return (1.0 + np.sum(v) + dim) / (dim * (dim + 1))
 
 
 def test_bit_flip_channel_fidelity(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
     if use_seed:
@@ -750,8 +744,7 @@ def test_bit_flip_channel_fidelity(client_configuration: QCSClient, use_seed: bo
 
 
 def test_dephasing_channel_fidelity(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
     if use_seed:
@@ -795,8 +788,7 @@ def test_dephasing_channel_fidelity(client_configuration: QCSClient, use_seed: b
 
 
 def test_depolarizing_channel_fidelity(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
     if use_seed:
@@ -842,8 +834,7 @@ def test_depolarizing_channel_fidelity(client_configuration: QCSClient, use_seed
 
 
 def test_unitary_channel_fidelity(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
     if use_seed:
@@ -881,8 +872,7 @@ def test_unitary_channel_fidelity(client_configuration: QCSClient, use_seed: boo
 
 
 def test_bit_flip_channel_fidelity_readout_error(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
     if use_seed:
@@ -930,8 +920,7 @@ def test_bit_flip_channel_fidelity_readout_error(client_configuration: QCSClient
 
 
 def test_dephasing_channel_fidelity_readout_error(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
     if use_seed:
@@ -977,8 +966,7 @@ def test_dephasing_channel_fidelity_readout_error(client_configuration: QCSClien
 
 
 def test_depolarizing_channel_fidelity_readout_error(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
     if use_seed:
@@ -1026,8 +1014,7 @@ def test_depolarizing_channel_fidelity_readout_error(client_configuration: QCSCl
 
 
 def test_unitary_channel_fidelity_readout_error(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc("1q-qvm", client_configuration=client_configuration)
     if use_seed:
@@ -1067,8 +1054,7 @@ def test_unitary_channel_fidelity_readout_error(client_configuration: QCSClient,
 
 
 def test_2q_unitary_channel_fidelity_readout_error(client_configuration: QCSClient, use_seed: bool):
-    """
-    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    """We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     This tests if our dimensionality factors are correct, even in the presence
     of readout errors
     """
@@ -1584,7 +1570,8 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(client_configurat
 
 def _point_state_fidelity_estimate(v, dim=2):
     """:param v: array of expectation values
-    :param dim: dimensionality of the Hilbert space"""
+    :param dim: dimensionality of the Hilbert space
+    """
     return (1.0 + np.sum(v)) / dim
 
 

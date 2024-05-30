@@ -2,12 +2,12 @@ import numpy as np
 
 from pyquil.simulation.matrices import (
     QUANTUM_GATES,
-    relaxation_operators,
+    bit_flip_operators,
+    bitphase_flip_operators,
     dephasing_operators,
     depolarizing_operators,
-    bit_flip_operators,
     phase_flip_operators,
-    bitphase_flip_operators,
+    relaxation_operators,
 )
 
 

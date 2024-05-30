@@ -4,28 +4,27 @@ import pytest
 
 from pyquil import Program
 from pyquil.experiment._group import (
-    get_results_by_qubit_groups,
-    merge_disjoint_experiments,
-    group_settings,
+    _max_tpb_overlap,
     _max_weight_operator,
     _max_weight_state,
-    _max_tpb_overlap,
+    get_results_by_qubit_groups,
+    group_settings,
+    merge_disjoint_experiments,
 )
 from pyquil.experiment._main import Experiment, _pauli_to_product_state
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import (
     ExperimentSetting,
-    plusX,
-    minusX,
-    plusZ,
-    minusZ,
-    plusY,
     TensorProductState,
+    minusX,
+    minusZ,
+    plusX,
+    plusY,
+    plusZ,
     zeros_state,
 )
-from pyquil.gates import H
-from pyquil.gates import X, Z
-from pyquil.paulis import sZ, sX, sY, sI, PauliTerm
+from pyquil.gates import H, X, Z
+from pyquil.paulis import PauliTerm, sI, sX, sY, sZ
 
 
 def test_results_by_qubit_groups():
@@ -256,8 +255,7 @@ def test_group_experiments_greedy():
 
 def test_expt_settings_diagonal_in_tpb():
     def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
-        """
-        Extends the concept of being diagonal in the same tpb to ExperimentSettings, by
+        """Extends the concept of being diagonal in the same tpb to ExperimentSettings, by
         determining if the pairs of in_states and out_operators are separately diagonal in the same
         tpb
         """

@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
 import numpy as np
 import pytest
@@ -8,13 +8,13 @@ from qcs_sdk.qpu.isa import InstructionSetArchitecture
 from qcs_sdk.qvm import QVMClient
 
 from pyquil.api import (
-    QVMCompiler,
     BenchmarkConnection,
+    QVMCompiler,
 )
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import I
 from pyquil.paulis import sX
-from pyquil.quantum_processor import QCSQuantumProcessor, CompilerQuantumProcessor
+from pyquil.quantum_processor import CompilerQuantumProcessor, QCSQuantumProcessor
 from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     DEFAULT_1Q_GATES,
     DEFAULT_2Q_GATES,
@@ -22,7 +22,8 @@ from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     _transform_qubit_operation_to_gates,
 )
 from pyquil.quil import Program
-from test.unit.utils import DummyCompiler, CLIENT_PUBLIC_KEY, CLIENT_SECRET_KEY, SERVER_PUBLIC_KEY
+from test.unit.utils import DummyCompiler
+
 from .. import override_qcs_config
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
@@ -31,8 +32,7 @@ override_qcs_config()
 
 @pytest.fixture
 def compiler_isa() -> CompilerISA:
-    """
-    Configures an arbitrary ``CompilerISA`` that may be used to initialize
+    """Configures an arbitrary ``CompilerISA`` that may be used to initialize
     a ``CompilerQuantumProcessor``. Developers should create specific test cases of
     ``CompilerISA`` as separate fixtures in conftest.py or in the test file.
     """
@@ -90,8 +90,7 @@ def compiler_quantum_processor(compiler_isa: CompilerISA) -> CompilerQuantumProc
 
 @pytest.fixture
 def aspen8_compiler_isa() -> CompilerISA:
-    """
-    Read the Aspen-8 QCS ``CompilerISA`` from file. This should be an exact conversion of
+    """Read the Aspen-8 QCS ``CompilerISA`` from file. This should be an exact conversion of
     qcs_aspen8_isa to a ``CompilerISA``.
     """
     return CompilerISA.parse_file(os.path.join(TEST_DATA_DIR, "compiler-isa-Aspen-8.json"))
@@ -99,8 +98,7 @@ def aspen8_compiler_isa() -> CompilerISA:
 
 @pytest.fixture
 def qcs_aspen8_isa() -> InstructionSetArchitecture:
-    """
-    Read the Aspen-8 QCS InstructionSetArchitecture from file and load it into
+    """Read the Aspen-8 QCS InstructionSetArchitecture from file and load it into
     the ``InstructionSetArchitecture`` QCS API client model.
     """
     with open(os.path.join(TEST_DATA_DIR, "qcs-isa-Aspen-8.json")) as f:

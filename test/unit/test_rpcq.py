@@ -1,8 +1,8 @@
-from pyquil.external.rpcq import Qubit, Edge, GateInfo, Supported1QGate, Supported2QGate
+from pyquil.external.rpcq import Edge, GateInfo, Qubit, Supported1QGate, Supported2QGate
 
 
 def test_qubit_dead_serialization():
-    "test that the qubit is marked dead if it has no gates"
+    """Test that the qubit is marked dead if it has no gates"""
     gate_info = GateInfo(
         operator=Supported1QGate.RX,
         parameters=[0.0],
@@ -25,7 +25,7 @@ def test_qubit_dead_serialization():
 
 
 def test_edge_dead_serialization():
-    "test that the edge is marked dead if it has no gates"
+    """Test that the edge is marked dead if it has no gates"""
     gate_info = GateInfo(
         operator=Supported2QGate.CZ,
         parameters=[],

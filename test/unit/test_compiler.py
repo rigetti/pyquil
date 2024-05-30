@@ -2,15 +2,18 @@ import math
 from typing import Optional
 
 import pytest
+from qcs_sdk.qpu.translation import TranslationBackend
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program
-from pyquil.api._compiler import QPUCompiler
-from pyquil.gates import RX, MEASURE, RZ
+from pyquil.api._compiler import (
+    IncompatibleBackendForQuantumProcessorIDWarning,
+    QPUCompiler,
+    select_backend_for_quantum_processor_id,
+)
+from pyquil.gates import MEASURE, RX, RZ
 from pyquil.quilatom import FormalArgument
 from pyquil.quilbase import DefCalibration
-from pyquil.api._compiler import select_backend_for_quantum_processor_id, IncompatibleBackendForQuantumProcessorIDWarning
-from qcs_sdk.qpu.translation import TranslationBackend
 
 
 def simple_program():
@@ -57,4 +60,4 @@ def test_translation_backend_validation(quantum_processor_id: str, backend: Opti
     else:
         actual = select_backend_for_quantum_processor_id(quantum_processor_id, backend)
     assert actual == expected
-    
+
