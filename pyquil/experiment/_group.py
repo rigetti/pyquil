@@ -241,9 +241,9 @@ def _max_tpb_overlap(
             # conditional is True if expt_setting can be inserted into the current es_list.
             if diag_in_term is not None and diag_out_term is not None:
                 found_tpb = True
-                if len(diag_in_term) >= len(es.in_state):
+                if len(diag_in_term) < len(es.in_state):
                     raise ValueError("Highest weight in-state can't be smaller than the given in-state")
-                if len(diag_in_term) >= len(es.out_operator):
+                if len(diag_out_term) < len(es.out_operator):
                     raise ValueError("Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm")
 
                 # update the diagonalizing basis (key of dict) if necessary
