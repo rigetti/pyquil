@@ -693,27 +693,27 @@ class Function(Expression):
 
 
 def quil_sin(expression: ExpressionDesignator) -> Function:
-    """The Quil COS() function."""
+    """Quil COS() function."""
     return Function("SIN", expression, np.sin)
 
 
 def quil_cos(expression: ExpressionDesignator) -> Function:
-    """The Quil SIN() function."""
+    """Quil SIN() function."""
     return Function("COS", expression, np.cos)
 
 
 def quil_sqrt(expression: ExpressionDesignator) -> Function:
-    """The Quil SQRT() function."""
+    """Quil SQRT() function."""
     return Function("SQRT", expression, np.sqrt)
 
 
 def quil_exp(expression: ExpressionDesignator) -> Function:
-    """The Quil EXP() function."""
+    """Quil EXP() function."""
     return Function("EXP", expression, np.exp)
 
 
 def quil_cis(expression: ExpressionDesignator) -> Function:
-    """The Quil CIS() function."""
+    """Quil CIS() function."""
     def _cis(x: ExpressionValueDesignator) -> complex:
         # numpy doesn't ship with type stubs, so mypy assumes anything coming from numpy has type
         # Any, hence we need to cast the return type to complex here to satisfy the type checker.
@@ -833,7 +833,7 @@ class Div(BinaryExp):
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         """Initialize a new division operation between two expressions."""
-        super(Div, self).__init__(op1, op2)
+        super().__init__(op1, op2)
 
 
 class Pow(BinaryExp):
@@ -850,7 +850,7 @@ class Pow(BinaryExp):
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         """Initialize a new exponentiation operation between two expressions."""
-        super(Pow, self).__init__(op1, op2)
+        super().__init__(op1, op2)
 
 
 def _expression_to_string(expression: ExpressionDesignator) -> str:
@@ -951,6 +951,7 @@ class MemoryReference(QuilAtom, Expression):
     """
 
     def __init__(self, name: str, offset: int = 0, declared_size: Optional[int] = None):
+        """Initialize a new memory reference."""
         if not isinstance(offset, int) or offset < 0:
             raise TypeError("MemoryReference offset must be a non-negative int")
         self.name = name
@@ -972,6 +973,7 @@ class MemoryReference(QuilAtom, Expression):
         return quil_rs.MemoryReference(self.name, self.offset)
 
     def out(self) -> str:
+        """Return the memory reference as a valid Quil string."""
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:
             return f"{self.name}"
         else:
@@ -1031,10 +1033,10 @@ def _contained_mrefs(expression: ExpressionDesignator) -> set[MemoryReference]:
 
 
 class Frame(quil_rs.FrameIdentifier):
-    """Representation of a frame descriptor.
-    """
+    """Representation of a frame descriptor."""
 
     def __new__(cls, qubits: Sequence[QubitDesignator], name: str) -> Self:
+        """Initialize a new Frame."""
         return super().__new__(cls, name, _convert_to_rs_qubits(qubits))
 
     @classmethod
@@ -1043,6 +1045,7 @@ class Frame(quil_rs.FrameIdentifier):
 
     @property  # type: ignore[override]
     def qubits(self) -> tuple[QubitDesignator, ...]:
+        """Get the qubits in the frame."""
         return tuple(_convert_to_py_qubits(super().qubits))
 
     @qubits.setter
@@ -1050,14 +1053,19 @@ class Frame(quil_rs.FrameIdentifier):
         quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
     def out(self) -> str:
+        """Return the frame as a valid Quil string."""
         return super().to_quil()
 
     def __str__(self) -> str:
+        """Return the frame as a string."""
         return super().to_quil_or_debug()
 
 
 class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
+    """A waveform invocation."""
+
     def __new__(cls, name: str, parameters: Optional[dict[str, ParameterDesignator]] = None) -> Self:
+        """Initialize a new waveform invocation."""
         if parameters is None:
             parameters = {}
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
@@ -1065,6 +1073,7 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
 
     @property  # type: ignore[override]
     def parameters(self) -> dict[str, ParameterDesignator]:
+        """The parameters in the waveform invocation."""
         return {key: _convert_to_py_expression(value) for key, value in super().parameters.items()}
 
     @parameters.setter
@@ -1073,9 +1082,11 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
         quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
 
     def out(self) -> str:
+        """Return the waveform invocation as a valid Quil string."""
         return self.to_quil()
 
     def __str__(self) -> str:
+        """Return the frame as a string."""
         return super().to_quil_or_debug()
 
 
@@ -1084,28 +1095,25 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
     reason="The WaveformReference class will be removed, consider using WaveformInvocation instead.",
 )
 class WaveformReference(WaveformInvocation):
-    """Representation of a Waveform reference.
-    """
+    """Representation of a Waveform reference."""
 
     def __new__(cls, name: str) -> Self:
+        """Initialize a new waveform reference."""
         return super().__new__(cls, name, {})
 
 
 def _template_waveform_property(
     name: str, *, dtype: Optional[Union[type[int], type[float]]] = None, doc: Optional[str] = None
 ) -> property:
-    """Helper method for initializing getters, setters, and deleters for
-    parameters on a ``TemplateWaveform``. Should only be used inside of
-    ``TemplateWaveform`` or one its base classes.
+    """Initialize a getters, setters, and deleter for a parameter on a ``TemplateWaveform``.
 
-    Parameters
-    ----------
-        name - The name of the property
-        dtype - `dtype` is an optional parameter that takes the int or float type, and attempts
-            to convert the underlying complex value by casting the real part to `dtype`. If set, this
-            function will raise an error if the complex number has a non-zero imaginary part.
-        doc - Docstring for the property.
+    Should only be used inside of ``TemplateWaveform`` or one its base classes.
 
+    :param name: The name of the property
+    :param dtype: An optional parameter that takes the int or float type, and attempts
+            to convert the underlying complex value by casting the real part to `dtype`. If set, this function will
+            raise an error if the complex number has a non-zero imaginary part.
+    :param doc: Docstring for the property.
     """
 
     def fget(self: "TemplateWaveform") -> Optional[ParameterDesignator]:
@@ -1139,6 +1147,8 @@ def _template_waveform_property(
 
 
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
+    """Base class for creating waveform templates."""
+
     NAME: ClassVar[str]
 
     def __new__(
@@ -1148,20 +1158,24 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         duration: float,
         **kwargs: Union[Optional[ParameterDesignator], Optional[ExpressionDesignator]],
     ) -> Self:
+        """Initialize a new TemplateWaveform."""
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
         rs_parameters["duration"] = _convert_to_rs_expression(duration)
         return super().__new__(cls, name, rs_parameters)
 
     def out(self) -> str:
+        """Return the waveform as a valid Quil string."""
         return str(self)
 
     def get_parameter(self, name: str) -> Optional[ParameterDesignator]:
+        """Get a parameter in the waveform by name."""
         parameter = super().parameters.get(name, None)
         if parameter is None:
             return None
         return _convert_to_py_expression(parameter)
 
     def set_parameter(self, name: str, value: Optional[ParameterDesignator]) -> None:
+        """Set a parameter with a value."""
         parameters = super().parameters
         if value is None:
             parameters.pop(name, None)
@@ -1172,14 +1186,12 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
     duration = _template_waveform_property("duration", dtype=float)
 
     def num_samples(self, rate: float) -> int:
-        """The number of samples in the reference implementation of the waveform.
+        """Return the number of samples in the reference implementation of the waveform.
 
-        Note: this does not include any hardware-enforced alignment (cf.
-        documentation for `samples`).
+        Note: this does not include any hardware-enforced alignment (cf. documentation for `samples`).
 
         :param rate: The sample rate, in Hz.
         :return: The number of samples.
-
         """
         duration = self.duration.real
         if self.duration.imag != 0.0:
@@ -1187,7 +1199,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         return int(np.ceil(duration * rate))
 
     def samples(self, rate: float) -> np.ndarray:
-        """A reference implementation of waveform sample generation.
+        """Generate samples of the waveform.
 
         Note: this is close but not always exactly equivalent to the actual IQ
         values produced by the waveform generators on Rigetti hardware. The
@@ -1202,10 +1214,12 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
 
     @classmethod
     def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
-        """The ``quil`` package has no equivalent to ``TemplateWaveform``s, this function checks the name and
-        properties of a ``quil`` ``WaveformInvocation`` to see if they potentially match a subclass of
-        ``TemplateWaveform``. If a match is found and construction succeeds, then that type is returned.
-        Otherwise, a generic ``WaveformInvocation`` is returned.
+        """Build a TemplateWaveform from a ``quil`` waveform invocation.
+
+        The ``quil`` package has no equivalent to ``TemplateWaveform``s, this function checks the name and properties of
+        a ``quil`` ``WaveformInvocation`` to see if they potentially match a subclass of ``TemplateWaveform``. If a
+        match is found and construction succeeds, then that type is returned. Otherwise, a generic
+        ``WaveformInvocation`` is returned.
         """
         from pyquil.quiltwaveforms import (
             BoxcarAveragerKernel,
@@ -1216,7 +1230,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
             HrmGaussianWaveform,
         )
 
-        template: Type[TemplateWaveform]  # mypy needs a type annotation here to understand this.
+        template: type[TemplateWaveform]  # mypy needs a type annotation here to understand this.
         for template in [
             FlatWaveform,
             GaussianWaveform,

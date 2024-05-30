@@ -220,7 +220,8 @@ class PauliTerm:
 
     def __hash__(self) -> int:
         """Return a hash of the PauliTerm."""
-        assert isinstance(self.coefficient, Complex)
+        if not isinstance(self.coefficient, Complex):
+            raise ValueError("PauliTerm cannot be hashed if the coefficient is not a number.")
         return hash(
             (
                 round(self.coefficient.real * HASH_PRECISION),
@@ -498,12 +499,12 @@ class PauliTerm:
 
 # For convenience, a shorthand for several operators.
 def ID() -> PauliTerm:
-    """The identity operator."""
+    """Identity operator."""
     return PauliTerm("I", 0, 1)
 
 
 def ZERO() -> PauliTerm:
-    """The zero operator."""
+    """Zero operator."""
     return PauliTerm("I", 0, 0)
 
 

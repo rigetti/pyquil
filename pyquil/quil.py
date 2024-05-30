@@ -912,7 +912,7 @@ class Program:
         reason="This function always returns True and will be removed.",
     )
     def is_protoquil(self, quilt: bool = False) -> bool:
-        """This function has been deprecated and will always return True."""
+        """Return True, this method is deprecated."""
         return True
 
     @deprecated(
@@ -920,7 +920,7 @@ class Program:
         reason="This function always returns True and will be removed.",
     )
     def is_supported_on_qpu(self) -> bool:
-        """This function has been deprecated and will always return True."""
+        """Return True, this method is deprecated."""
         return True
 
     def dagger(self) -> "Program":

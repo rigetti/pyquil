@@ -254,7 +254,7 @@ class DiagramState:
         return sorted(qubits)
 
     def is_interval(self, qubits: Sequence[int]) -> bool:
-        """Do the specified qubits correspond to an interval in this diagram?"""
+        """Return True if the specified qubits correspond to an interval in this diagram, False otherwise."""
         return qubits == self.interval(min(qubits), max(qubits))
 
 

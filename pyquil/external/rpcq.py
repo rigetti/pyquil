@@ -327,7 +327,7 @@ def compiler_isa_to_target_quantum_processor(compiler_isa: CompilerISA) -> Targe
 class Supported1QGate:
     """Supported 1Q gates."""
 
-    I = "I"
+    I = "I"  # noqa: E741 - I is not an ambiguous gate name.
     RX = "RX"
     RZ = "RZ"
     MEASURE = "MEASURE"
