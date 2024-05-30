@@ -13,12 +13,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from deprecated.sphinx import deprecated
-from deprecated.sphinx import versionadded
+from collections.abc import Mapping, Sequence
 from numbers import Real
-from typing import Callable, Mapping, Optional, Tuple, Union, Sequence, no_type_check
+from typing import Callable, Optional, Tuple, Union, no_type_check
 
 import numpy as np
+from deprecated.sphinx import deprecated, versionadded
 
 from pyquil.quilatom import (
     Expression,
@@ -27,54 +27,54 @@ from pyquil.quilatom import (
     MemoryReference,
     MemoryReferenceDesignator,
     ParameterDesignator,
-    QubitDesignator,
     Qubit,
+    QubitDesignator,
+    Waveform,
     unpack_classical_reg,
     unpack_qubit,
-    Waveform,
 )
 from pyquil.quilbase import (
     AbstractInstruction,
-    Declare,
-    Gate,
-    Halt,
-    Reset,
-    ResetQubit,
-    Measurement,
-    Nop,
-    Wait,
-    ClassicalNeg,
-    ClassicalNot,
+    Capture,
+    ClassicalAdd,
     ClassicalAnd,
-    ClassicalInclusiveOr,
-    ClassicalExclusiveOr,
+    ClassicalConvert,
+    ClassicalDiv,
     ClassicalEqual,
+    ClassicalExchange,
+    ClassicalExclusiveOr,
     ClassicalGreaterEqual,
     ClassicalGreaterThan,
+    ClassicalInclusiveOr,
     ClassicalLessEqual,
     ClassicalLessThan,
-    ClassicalMove,
-    ClassicalExchange,
-    ClassicalConvert,
     ClassicalLoad,
-    ClassicalStore,
-    ClassicalAdd,
-    ClassicalSub,
+    ClassicalMove,
     ClassicalMul,
-    ClassicalDiv,
-    Pulse,
-    SetFrequency,
-    ShiftFrequency,
-    SetPhase,
-    ShiftPhase,
-    SwapPhases,
-    SetScale,
-    Capture,
-    RawCapture,
+    ClassicalNeg,
+    ClassicalNot,
+    ClassicalStore,
+    ClassicalSub,
+    Declare,
     DelayFrames,
     DelayQubits,
-    FenceAll,
     Fence,
+    FenceAll,
+    Gate,
+    Halt,
+    Measurement,
+    Nop,
+    Pulse,
+    RawCapture,
+    Reset,
+    ResetQubit,
+    SetFrequency,
+    SetPhase,
+    SetScale,
+    ShiftFrequency,
+    ShiftPhase,
+    SwapPhases,
+    Wait,
 )
 
 
@@ -82,8 +82,7 @@ def unpack_reg_val_pair(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: Union[MemoryReferenceDesignator, int, float],
 ) -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
-    """
-    Helper function for typechecking / type-coercing arguments to constructors for binary classical
+    """Helper function for typechecking / type-coercing arguments to constructors for binary classical
     operators.
 
     :param classical_reg1: Specifier for the classical memory address to be modified.
@@ -102,8 +101,7 @@ def prepare_ternary_operands(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
-    """
-    Helper function for typechecking / type-coercing arguments to constructors for ternary
+    """Helper function for typechecking / type-coercing arguments to constructors for ternary
     classical operators.
 
     :param classical_reg1: Specifier for the classical memory address to be modified.
@@ -654,8 +652,7 @@ memory is being manipulated by a CPU in a hybrid classical/quantum algorithm.
 
 
 def RESET(qubit_index: Optional[QubitDesignator] = None) -> Union[Reset, ResetQubit]:
-    """
-    Reset all qubits or just one specific qubit.
+    """Reset all qubits or just one specific qubit.
 
     :param qubit_index: The qubit to reset.
         This can be a qubit's index, a Qubit, or a QubitPlaceholder.
@@ -701,8 +698,7 @@ def DECLARE(
 
 
 def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> Measurement:
-    """
-    Produce a MEASURE instruction.
+    """Produce a MEASURE instruction.
 
     :param qubit: The qubit to measure.
     :param classical_reg: The classical register to measure into, or None.
@@ -717,8 +713,7 @@ def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesig
 
 
 def NEG(classical_reg: MemoryReferenceDesignator) -> ClassicalNeg:
-    """
-    Produce a NEG instruction.
+    """Produce a NEG instruction.
 
     :param classical_reg: A classical memory address to modify.
     :return: A ClassicalNeg instance.
@@ -727,8 +722,7 @@ def NEG(classical_reg: MemoryReferenceDesignator) -> ClassicalNeg:
 
 
 def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
-    """
-    Produce a NOT instruction.
+    """Produce a NOT instruction.
 
     :param classical_reg: A classical register to modify.
     :return: A ClassicalNot instance.
@@ -739,8 +733,7 @@ def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
 def AND(
     classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
 ) -> ClassicalAnd:
-    """
-    Produce an AND instruction.
+    """Produce an AND instruction.
 
     NOTE: The order of operands was reversed in pyQuil <=1.9 .
 
@@ -756,8 +749,7 @@ def AND(
 def IOR(
     classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
 ) -> ClassicalInclusiveOr:
-    """
-    Produce an inclusive OR instruction.
+    """Produce an inclusive OR instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
@@ -771,8 +763,7 @@ def IOR(
 def XOR(
     classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
 ) -> ClassicalExclusiveOr:
-    """
-    Produce an exclusive OR instruction.
+    """Produce an exclusive OR instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
@@ -787,8 +778,7 @@ def MOVE(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalMove:
-    """
-    Produce a MOVE instruction.
+    """Produce a MOVE instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
@@ -799,8 +789,7 @@ def MOVE(
 
 
 def EXCHANGE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalExchange:
-    """
-    Produce an EXCHANGE instruction.
+    """Produce an EXCHANGE instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register, which gets modified.
@@ -814,8 +803,7 @@ def EXCHANGE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryRe
 def LOAD(
     target_reg: MemoryReferenceDesignator, region_name: str, offset_reg: MemoryReferenceDesignator
 ) -> ClassicalLoad:
-    """
-    Produce a LOAD instruction.
+    """Produce a LOAD instruction.
 
     :param target_reg: LOAD storage target.
     :param region_name: Named region of memory to load from.
@@ -830,8 +818,7 @@ def STORE(
     offset_reg: MemoryReferenceDesignator,
     source: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalStore:
-    """
-    Produce a STORE instruction.
+    """Produce a STORE instruction.
 
     :param region_name: Named region of memory to store to.
     :param offset_reg: Offset into memory region. Must be a MemoryReference.
@@ -844,8 +831,7 @@ def STORE(
 
 
 def CONVERT(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalConvert:
-    """
-    Produce a CONVERT instruction.
+    """Produce a CONVERT instruction.
 
     :param classical_reg1: MemoryReference to store to.
     :param classical_reg2: MemoryReference to read from.
@@ -855,8 +841,7 @@ def CONVERT(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryRef
 
 
 def ADD(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalAdd:
-    """
-    Produce an ADD instruction.
+    """Produce an ADD instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
         target.
@@ -868,8 +853,7 @@ def ADD(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
 
 
 def SUB(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalSub:
-    """
-    Produce a SUB instruction.
+    """Produce a SUB instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
         target.
@@ -881,8 +865,7 @@ def SUB(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
 
 
 def MUL(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMul:
-    """
-    Produce a MUL instruction.
+    """Produce a MUL instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
         target.
@@ -894,8 +877,7 @@ def MUL(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
 
 
 def DIV(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalDiv:
-    """
-    Produce an DIV instruction.
+    """Produce an DIV instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
         target.
@@ -911,8 +893,7 @@ def EQ(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalEqual:
-    """
-    Produce an EQ instruction.
+    """Produce an EQ instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -931,8 +912,7 @@ def LT(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalLessThan:
-    """
-    Produce an LT instruction.
+    """Produce an LT instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -950,8 +930,7 @@ def LE(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalLessEqual:
-    """
-    Produce an LE instruction.
+    """Produce an LE instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -969,8 +948,7 @@ def GT(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalGreaterThan:
-    """
-    Produce an GT instruction.
+    """Produce an GT instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -988,8 +966,7 @@ def GE(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalGreaterEqual:
-    """
-    Produce an GE instruction.
+    """Produce an GE instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -1003,8 +980,7 @@ def GE(
 
 
 def PULSE(frame: Frame, waveform: Waveform, nonblocking: bool = False) -> Pulse:
-    """
-    Produce a PULSE instruction.
+    """Produce a PULSE instruction.
 
     :param frame: The frame on which to apply the pulse.
     :param waveform: The pulse waveform.
@@ -1015,8 +991,7 @@ def PULSE(frame: Frame, waveform: Waveform, nonblocking: bool = False) -> Pulse:
 
 
 def SET_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> SetFrequency:
-    """
-    Produce a SET-FREQUENCY instruction.
+    """Produce a SET-FREQUENCY instruction.
 
     :param frame: The frame on which to set the frequency.
     :param freq: The frequency value, in Hz.
@@ -1026,8 +1001,7 @@ def SET_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> SetFrequency:
 
 
 def SHIFT_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> ShiftFrequency:
-    """
-    Produce a SHIFT-FREQUENCY instruction.
+    """Produce a SHIFT-FREQUENCY instruction.
 
     :param frame: The frame on which to shift the frequency.
     :param freq: The value, in Hz, to add to the existing frequency.
@@ -1037,8 +1011,7 @@ def SHIFT_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> ShiftFrequency:
 
 
 def SET_PHASE(frame: Frame, phase: ParameterDesignator) -> SetPhase:
-    """
-    Produce a SET-PHASE instruction.
+    """Produce a SET-PHASE instruction.
 
     :param frame: The frame on which to set the phase.
     :param phase: The new phase value, in radians.
@@ -1048,8 +1021,7 @@ def SET_PHASE(frame: Frame, phase: ParameterDesignator) -> SetPhase:
 
 
 def SHIFT_PHASE(frame: Frame, phase: ParameterDesignator) -> ShiftPhase:
-    """
-    Produce a SHIFT-PHASE instruction.
+    """Produce a SHIFT-PHASE instruction.
 
     :param frame: The frame on which to shift the phase.
     :param phase: The value, in radians, to add to the existing phase.
@@ -1060,8 +1032,7 @@ def SHIFT_PHASE(frame: Frame, phase: ParameterDesignator) -> ShiftPhase:
 
 @versionadded(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
 def SWAP_PHASES(frameA: Frame, frameB: Frame) -> SwapPhases:
-    """
-    Produce a SWAP-PHASES instruction.
+    """Produce a SWAP-PHASES instruction.
 
     :param frameA: A frame.
     :param frameB: A frame.
@@ -1072,15 +1043,13 @@ def SWAP_PHASES(frameA: Frame, frameB: Frame) -> SwapPhases:
 
 @deprecated(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
 def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhases:
-    """
-    Alias of :func:`SWAP_PHASES`.
+    """Alias of :func:`SWAP_PHASES`.
     """
     return SWAP_PHASES(frameA, frameB)
 
 
 def SET_SCALE(frame: Frame, scale: ParameterDesignator) -> SetScale:
-    """
-    Produce a SET-SCALE instruction.
+    """Produce a SET-SCALE instruction.
 
     :param frame: The frame on which to set the scale.
     :param scale: The scaling factor.
@@ -1095,8 +1064,7 @@ def CAPTURE(
     memory_region: MemoryReferenceDesignator,
     nonblocking: bool = False,
 ) -> Capture:
-    """
-    Produce a CAPTURE instruction.
+    """Produce a CAPTURE instruction.
 
     :param frame: The frame on which to capture an IQ value.
     :param kernel: The integrating kernel for the capture.
@@ -1114,8 +1082,7 @@ def RAW_CAPTURE(
     memory_region: MemoryReferenceDesignator,
     nonblocking: bool = False,
 ) -> RawCapture:
-    """
-    Produce a RAW-CAPTURE instruction.
+    """Produce a RAW-CAPTURE instruction.
 
     :param frame: The frame on which to capture raw values.
     :param duration: The duration of the capture, in seconds.
@@ -1133,8 +1100,7 @@ def RAW_CAPTURE(
 # type T.
 @no_type_check
 def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
-    """
-    Produce a DELAY instruction.
+    """Produce a DELAY instruction.
 
     Note: There are two variants of DELAY. One applies to specific frames on some
     qubit, e.g. `DELAY 0 "rf" "ff" 1.0` delays the `"rf"` and `"ff"` frames on 0.
@@ -1166,8 +1132,7 @@ def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
 
 
 def FENCE(*qubits: Union[int, Qubit, FormalArgument]) -> Union[FenceAll, Fence]:
-    """
-    Produce a FENCE instruction.
+    """Produce a FENCE instruction.
 
     Note: If no qubits are specified, then this is interpreted as a global FENCE.
 

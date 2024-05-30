@@ -1,14 +1,14 @@
-from pyquil.quantum_processor._base import AbstractQuantumProcessor
 from typing import List
-from pyquil.quantum_processor.transformers import compiler_isa_to_graph
-from pyquil.external.rpcq import CompilerISA
 
 import networkx as nx
 
+from pyquil.external.rpcq import CompilerISA
+from pyquil.quantum_processor._base import AbstractQuantumProcessor
+from pyquil.quantum_processor.transformers import compiler_isa_to_graph
+
 
 class CompilerQuantumProcessor(AbstractQuantumProcessor):
-    """
-    An AbstractQuantumProcessor initialized with a user constructed ``CompilerISA``.
+    """An AbstractQuantumProcessor initialized with a user constructed ``CompilerISA``.
     """
 
     _isa: CompilerISA

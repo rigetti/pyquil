@@ -1,19 +1,18 @@
 from typing import Optional
-from typing_extensions import Self
 
 import numpy as np
 from scipy.special import erf
+from typing_extensions import Self
 
 from pyquil.quilatom import (
     TemplateWaveform,
-    _update_envelope,
     _template_waveform_property,
+    _update_envelope,
 )
 
 
 class FlatWaveform(TemplateWaveform):
-    """
-    A flat (constant) waveform.
+    """A flat (constant) waveform.
     """
 
     NAME = "flat"

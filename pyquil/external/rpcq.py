@@ -1,9 +1,9 @@
 import json
-from typing import Dict, List, Union, Optional, Literal
+from dataclasses import dataclass, field
+from typing import Dict, List, Literal, Optional, Union
 
 from deprecated.sphinx import deprecated
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
-from dataclasses import dataclass, field
 
 JsonValue = Union[type(None), bool, int, float, str, List["JsonValue"], Dict[str, "JsonValue"]]
 
@@ -256,7 +256,7 @@ class CompilerISA:
         reason="No longer requires serialization of RPCQ objects and is dropping Pydantic as a dependency.",  # noqa: E501
     )
     def parse_file(cls, filename: str):
-        with open(filename, "r") as file:
+        with open(filename) as file:
             json_dict = json.load(file)
             return cls._parse_obj(json_dict)
 

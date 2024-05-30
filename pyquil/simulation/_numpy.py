@@ -13,12 +13,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast
+from collections.abc import Sequence
+from typing import Any, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from numpy.random.mtrand import RandomState
 
-from pyquil.paulis import PauliTerm, PauliSum
+from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import QUANTUM_GATES
@@ -128,8 +129,7 @@ def targeted_tensordot(gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequenc
 
 
 def get_measure_probabilities(wf: np.ndarray, qubit: int) -> np.ndarray:
-    """
-    Get the probabilities of measuring a qubit.
+    """Get the probabilities of measuring a qubit.
 
     :param wf: The statevector with a dimension for each qubit
     :param qubit: The qubit to measure. We will sum over every axis except this one.
@@ -176,8 +176,7 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
 
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
-        """
-        A wavefunction simulator that uses numpy's tensordot or einsum to update a state vector
+        """A wavefunction simulator that uses numpy's tensordot or einsum to update a state vector
 
         Please consider using
         :py:class:`PyQVM(..., quantum_simulator_type=NumpyWavefunctionSimulator)` rather
@@ -200,8 +199,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[(0,) * n_qubits] = complex(1.0, 0)
 
     def sample_bitstrings(self, n_samples: int) -> np.ndarray:
-        """
-        Sample bitstrings from the distribution defined by the wavefunction.
+        """Sample bitstrings from the distribution defined by the wavefunction.
 
         Qubit 0 is at ``out[:, 0]``.
 
@@ -223,8 +221,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         return possible_bitstrings[inds, :]
 
     def do_measurement(self, qubit: int) -> int:
-        """
-        Measure a qubit, collapse the wavefunction, and return the measurement result.
+        """Measure a qubit, collapse the wavefunction, and return the measurement result.
 
         :param qubit: Index of the qubit to measure.
         :return: measured bit
@@ -252,8 +249,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         return measured_bit
 
     def do_gate(self, gate: Gate) -> "NumpyWavefunctionSimulator":
-        """
-        Perform a gate.
+        """Perform a gate.
 
         :return: ``self`` to support method chaining.
         """
@@ -265,8 +261,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         return self
 
     def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "NumpyWavefunctionSimulator":
-        """
-        Apply an arbitrary unitary; not necessarily a named gate.
+        """Apply an arbitrary unitary; not necessarily a named gate.
 
         :param matrix: The unitary matrix to apply. No checks are done
         :param qubits: A list of qubits to apply the unitary to.
@@ -282,8 +277,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         return self
 
     def expectation(self, operator: Union[PauliTerm, PauliSum]) -> float:
-        """
-        Compute the expectation of an operator.
+        """Compute the expectation of an operator.
 
         :param operator: The operator
         :return: The operator's expectation value
@@ -294,8 +288,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         return sum(_term_expectation(self.wf, term) for term in operator)  # type: ignore
 
     def reset(self) -> "NumpyWavefunctionSimulator":
-        """
-        Reset the wavefunction to the ``|000...00>`` state.
+        """Reset the wavefunction to the ``|000...00>`` state.
 
         :return: ``self`` to support method chaining.
         """

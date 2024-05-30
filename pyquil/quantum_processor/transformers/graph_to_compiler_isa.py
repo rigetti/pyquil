@@ -1,19 +1,17 @@
-from typing import Union
+from typing import List, Optional, Union, cast
 
+import networkx as nx
 import numpy as np
-from typing import List, Optional, cast
+
 from pyquil.external.rpcq import (
+    CompilerISA,
     GateInfo,
     MeasureInfo,
     Supported1QGate,
     Supported2QGate,
-    CompilerISA,
-    add_qubit,
     add_edge,
+    add_qubit,
 )
-
-import networkx as nx
-
 
 DEFAULT_1Q_GATES = [
     Supported1QGate.I,
@@ -30,8 +28,7 @@ DEFAULT_2Q_GATES = [
 def graph_to_compiler_isa(
     graph: nx.Graph, gates_1q: Optional[List[str]] = None, gates_2q: Optional[List[str]] = None
 ) -> CompilerISA:
-    """
-    Generate an ``CompilerISA`` object from a NetworkX graph and list of 1Q and 2Q gates.
+    """Generate an ``CompilerISA`` object from a NetworkX graph and list of 1Q and 2Q gates.
     May raise ``GraphGateError`` if the specified gates are not supported.
 
     :param graph: The graph topology of the quantum_processor.
@@ -67,15 +64,13 @@ def graph_to_compiler_isa(
 
 
 def compiler_isa_to_graph(compiler_isa: CompilerISA) -> nx.Graph:
-    """
-    Generate an ``nx.Graph`` based on the qubits and edges of any ``CompilerISA``.
+    """Generate an ``nx.Graph`` based on the qubits and edges of any ``CompilerISA``.
     """
     return nx.from_edgelist([int(i) for i in edge.ids] for edge in compiler_isa.edges.values())
 
 
 class GraphGateError(ValueError):
-    """
-    Signals an error when creating a ``CompilerISA`` from an ``nx.Graph``.
+    """Signals an error when creating a ``CompilerISA`` from an ``nx.Graph``.
     This may raise as a consequence of unsupported gates.
     """
 
@@ -122,7 +117,7 @@ def _transform_qubit_operation_to_gates(
     elif operation_name == Supported1QGate.WILDCARD:
         return cast(List[Union[GateInfo, MeasureInfo]], _make_wildcard_1q_gates())
     else:
-        raise GraphGateError("Unsupported graph qubit operation: {}".format(operation_name))
+        raise GraphGateError(f"Unsupported graph qubit operation: {operation_name}")
 
 
 def _make_cz_gates() -> List[GateInfo]:
@@ -157,4 +152,4 @@ def _transform_edge_operation_to_gates(operation_name: str) -> List[GateInfo]:
     elif operation_name == Supported2QGate.WILDCARD:
         return _make_wildcard_2q_gates()
     else:
-        raise GraphGateError("Unsupported graph edge operation: {}".format(operation_name))
+        raise GraphGateError(f"Unsupported graph edge operation: {operation_name}")

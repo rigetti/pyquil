@@ -1,23 +1,24 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Union, Dict, Any, Optional, Sequence
+from typing import Any, Dict, Optional, Union
+
+import quil.expression as quil_expr
+import quil.instructions as quil_rs
+from quil.program import CalibrationSet
 
 from pyquil.quilatom import (
     ExpressionDesignator,
-    QubitDesignator,
     MemoryReference,
+    QubitDesignator,
     _convert_to_py_expression,
 )
 from pyquil.quilbase import (
     AbstractInstruction,
     DefCalibration,
     DefMeasureCalibration,
-    _convert_to_rs_instruction,
     _convert_to_py_qubit,
+    _convert_to_rs_instruction,
 )
-
-from quil.program import CalibrationSet
-import quil.instructions as quil_rs
-import quil.expression as quil_expr
 
 
 class CalibrationError(Exception):

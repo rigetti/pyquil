@@ -1,16 +1,16 @@
-from pyquil.quilbase import Gate
-from pyquil.quilatom import Parameter, unpack_qubit
-from pyquil.external.rpcq import CompilerISA, Supported1QGate, Supported2QGate, GateInfo, Edge
-from typing import List, Optional
 import logging
+from typing import List, Optional
+
+from pyquil.external.rpcq import CompilerISA, Edge, GateInfo, Supported1QGate, Supported2QGate
+from pyquil.quilatom import Parameter, unpack_qubit
+from pyquil.quilbase import Gate
 
 _log = logging.getLogger(__name__)
 THETA = Parameter("theta")
 
 
 def _get_qvm_noise_supported_gates(isa: CompilerISA) -> List[Gate]:
-    """
-    Generate the gate set associated with an ISA for which QVM noise is supported.
+    """Generate the gate set associated with an ISA for which QVM noise is supported.
 
     :param isa: The instruction set architecture for a QPU.
     :return: A list of Gate objects encapsulating all gates compatible with the ISA.
@@ -55,7 +55,7 @@ def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, g
     if gate.operator == Supported1QGate.I:
         return Gate(Supported1QGate.I, [], [unpack_qubit(qubit_id)])
 
-    _log.warning("Unknown qubit gate operator: {}".format(gate.operator))
+    _log.warning(f"Unknown qubit gate operator: {gate.operator}")
     return None
 
 

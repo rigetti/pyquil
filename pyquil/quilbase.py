@@ -13,66 +13,61 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Contains the core pyQuil objects that correspond to Quil instructions.
+"""Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import abc
-
+from collections.abc import Container, Iterable, Sequence
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
-    Container,
     Dict,
-    Iterable,
     List,
     Optional,
-    Sequence,
     Set,
     Tuple,
     Union,
-    TYPE_CHECKING,
 )
-from typing_extensions import Self
 
 import numpy as np
 from deprecated.sphinx import deprecated
+from typing_extensions import Self
 
 from pyquil.quilatom import (
     Expression,
+    FormalArgument,
+    Frame,
     Label,
     LabelPlaceholder,
     MemoryReference,
     Parameter,
     ParameterDesignator,
-    Frame,
-    Waveform,
     Qubit,
     QubitDesignator,
     QubitPlaceholder,
-    FormalArgument,
+    Waveform,
+    _convert_to_py_expression,
+    _convert_to_py_expressions,
     _convert_to_py_qubit,
     _convert_to_py_qubits,
+    _convert_to_py_waveform,
     _convert_to_rs_expression,
     _convert_to_rs_expressions,
     _convert_to_rs_qubit,
     _convert_to_rs_qubits,
-    _convert_to_py_expression,
-    _convert_to_py_expressions,
-    _convert_to_py_waveform,
     unpack_qubit,
 )
 
 if TYPE_CHECKING:  # avoids circular import
     from pyquil.paulis import PauliSum
 
-import quil.instructions as quil_rs
 import quil.expression as quil_rs_expr
+import quil.instructions as quil_rs
 
 
 class _InstructionMeta(abc.ABCMeta):
-    """
-    A metaclass that allows us to group all instruction types from quil-rs and pyQuil as an `AbstractInstruction`.
+    """A metaclass that allows us to group all instruction types from quil-rs and pyQuil as an `AbstractInstruction`.
     As such, this should _only_ be used as a metaclass for `AbstractInstruction`.
     """
 
@@ -97,8 +92,7 @@ class _InstructionMeta(abc.ABCMeta):
 
 
 class AbstractInstruction(metaclass=_InstructionMeta):
-    """
-    Abstract class for representing single instructions.
+    """Abstract class for representing single instructions.
     """
 
     def __str__(self) -> str:
@@ -330,8 +324,7 @@ RESERVED_WORDS: Container[str] = [
 
 
 class Gate(quil_rs.Gate, AbstractInstruction):
-    """
-    This is the pyQuil object for a quantum gate instruction.
+    """This is the pyQuil object for a quantum gate instruction.
     """
 
     def __new__(
@@ -407,8 +400,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
             Sequence[Union[QubitDesignator, quil_rs.Qubit]],
         ],
     ) -> "Gate":
-        """
-        Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
+        """Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
         qubits.
         """
         if isinstance(control_qubit, Sequence):
@@ -424,8 +416,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         fork_qubit: Union[quil_rs.Qubit, QubitDesignator],
         alt_params: Union[Sequence[ParameterDesignator], Sequence[quil_rs_expr.Expression]],
     ) -> "Gate":
-        """
-        Add the FORKED modifier to the gate with the given fork qubit and given additional
+        """Add the FORKED modifier to the gate with the given fork qubit and given additional
         parameters.
         """
         forked = super().forked(_convert_to_rs_qubit(fork_qubit), _convert_to_rs_expressions(alt_params))
@@ -433,8 +424,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         return self
 
     def dagger(self) -> "Gate":
-        """
-        Add the DAGGER modifier to the gate.
+        """Add the DAGGER modifier to the gate.
         """
         self._update_super(super().dagger())
         return self
@@ -443,8 +433,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         return super().to_quil()
 
     def _update_super(self, gate: quil_rs.Gate) -> None:
-        """
-        Updates the state of the super class using a new gate.
+        """Updates the state of the super class using a new gate.
         The super class does not mutate the value of a gate when adding
         modifiers with methods like `dagger()`, but pyQuil does.
         """
@@ -464,8 +453,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
 
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
-    """
-    Remove modifiers from :py:class:`Gate`.
+    """Remove modifiers from :py:class:`Gate`.
 
     This function removes up to ``limit`` gate modifiers from the given gate,
     starting from the leftmost gate modifier.
@@ -495,7 +483,7 @@ def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
         elif m == "DAGGER":
             pass
         else:
-            raise TypeError("Unsupported gate modifier {}".format(m))
+            raise TypeError(f"Unsupported gate modifier {m}")
 
     stripped = Gate(gate.name, gate.params[:param_index], gate.qubits[qubit_index:])
     stripped.modifiers = gate.modifiers[limit:]
@@ -503,8 +491,7 @@ def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
 
 
 class Measurement(quil_rs.Measurement, AbstractInstruction):
-    """
-    This is the pyQuil object for a Quil measurement instruction.
+    """This is the pyQuil object for a Quil measurement instruction.
     """
 
     def __new__(
@@ -576,8 +563,7 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
 
 
 class Reset(quil_rs.Reset, AbstractInstruction):
-    """
-    The RESET instruction.
+    """The RESET instruction.
     """
 
     def __new__(cls, qubit: Optional[Union[Qubit, QubitPlaceholder, FormalArgument, int]] = None) -> Self:
@@ -635,8 +621,7 @@ class Reset(quil_rs.Reset, AbstractInstruction):
 
 
 class ResetQubit(Reset):
-    """
-    This is the pyQuil object for a Quil targeted reset instruction.
+    """This is the pyQuil object for a Quil targeted reset instruction.
     """
 
     def __new__(cls, qubit: Union[Qubit, QubitPlaceholder, FormalArgument, int]) -> Self:
@@ -653,8 +638,7 @@ class ResetQubit(Reset):
 
 
 class DefGate(quil_rs.GateDefinition, AbstractInstruction):
-    """
-    A DEFGATE directive.
+    """A DEFGATE directive.
 
     :param name: The name of the newly defined gate.
     :param matrix: The matrix defining this gate.
@@ -699,7 +683,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
             raise TypeError("Matrix argument must be a list or NumPy array/matrix")
 
         if 0 != rows & (rows - 1):
-            raise ValueError("Dimension of matrix must be a power of 2, got {0}".format(rows))
+            raise ValueError(f"Dimension of matrix must be a power of 2, got {rows}")
 
         if not contains_parameters:
             np_matrix = np.asarray(matrix)
@@ -711,9 +695,8 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         return super().to_quil()
 
     def get_constructor(self) -> Union[Callable[..., Gate], Callable[..., Callable[..., Gate]]]:
-        """
-        :returns: A function that constructs this gate on variable qubit indices. E.g.
-                  `mygate.get_constructor()(1) applies the gate to qubit 1.`
+        """:returns: A function that constructs this gate on variable qubit indices. E.g.
+        `mygate.get_constructor()(1) applies the gate to qubit 1.`
         """
         if self.parameters:
             return lambda *params: lambda *qubits: Gate(
@@ -723,8 +706,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
             return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
 
     def num_args(self) -> int:
-        """
-        :return: The number of qubit arguments the gate takes.
+        """:return: The number of qubit arguments the gate takes.
         """
         rows = len(self.matrix)
         return int(np.log2(rows))
@@ -779,8 +761,7 @@ class DefPermutationGate(DefGate):
         quil_rs.GateDefinition.specification.__set__(self, specification)  # type: ignore[attr-defined]
 
     def num_args(self) -> int:
-        """
-        :return: The number of qubit arguments the gate takes.
+        """:return: The number of qubit arguments the gate takes.
         """
         return int(np.log2(len(self.permutation)))
 
@@ -789,8 +770,7 @@ class DefPermutationGate(DefGate):
 
 
 class DefGateByPaulis(DefGate):
-    """
-    Records a gate definition as the exponentiation of a PauliSum.
+    """Records a gate definition as the exponentiation of a PauliSum.
     """
 
     def __new__(
@@ -844,8 +824,7 @@ class DefGateByPaulis(DefGate):
 
 
 class JumpTarget(quil_rs.Label, AbstractInstruction):
-    """
-    Representation of a target that can be jumped to.
+    """Representation of a target that can be jumped to.
     """
 
     def __new__(cls, label: Union[Label, LabelPlaceholder]) -> Self:
@@ -862,7 +841,7 @@ class JumpTarget(quil_rs.Label, AbstractInstruction):
         return Label._from_rs_target(super().target)
 
     def __repr__(self) -> str:
-        return "<JumpTarget {0}>".format(str(self.label))
+        return f"<JumpTarget {str(self.label)}>"
 
     def out(self) -> str:
         return super().to_quil()
@@ -875,8 +854,7 @@ class JumpTarget(quil_rs.Label, AbstractInstruction):
 
 
 class JumpWhen(quil_rs.JumpWhen, AbstractInstruction):
-    """
-    The JUMP-WHEN instruction.
+    """The JUMP-WHEN instruction.
     """
 
     def __new__(cls, target: Union[Label, LabelPlaceholder], condition: MemoryReference) -> Self:
@@ -918,8 +896,7 @@ class JumpWhen(quil_rs.JumpWhen, AbstractInstruction):
 
 
 class JumpUnless(quil_rs.JumpUnless, AbstractInstruction):
-    """
-    The JUMP-UNLESS instruction.
+    """The JUMP-UNLESS instruction.
     """
 
     def __new__(cls, target: Union[Label, LabelPlaceholder], condition: MemoryReference) -> Self:
@@ -961,8 +938,7 @@ class JumpUnless(quil_rs.JumpUnless, AbstractInstruction):
 
 
 class SimpleInstruction(AbstractInstruction):
-    """
-    Abstract class for simple instructions with no arguments.
+    """Abstract class for simple instructions with no arguments.
     """
 
     instruction: ClassVar[quil_rs.Instruction]
@@ -981,32 +957,28 @@ class SimpleInstruction(AbstractInstruction):
 
 
 class Halt(SimpleInstruction):
-    """
-    The HALT instruction.
+    """The HALT instruction.
     """
 
     instruction = quil_rs.Instruction.new_halt()
 
 
 class Wait(SimpleInstruction):
-    """
-    The WAIT instruction.
+    """The WAIT instruction.
     """
 
     instruction = quil_rs.Instruction.new_wait()
 
 
 class Nop(SimpleInstruction):
-    """
-    The NOP instruction.
+    """The NOP instruction.
     """
 
     instruction = quil_rs.Instruction.new_nop()
 
 
 class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
-    """
-    The abstract class for unary classical instructions.
+    """The abstract class for unary classical instructions.
     """
 
     op: ClassVar[quil_rs.UnaryOperator]
@@ -1042,24 +1014,21 @@ class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
 
 
 class ClassicalNeg(UnaryClassicalInstruction):
-    """
-    The NEG instruction.
+    """The NEG instruction.
     """
 
     op = quil_rs.UnaryOperator.Neg
 
 
 class ClassicalNot(UnaryClassicalInstruction):
-    """
-    The NOT instruction.
+    """The NOT instruction.
     """
 
     op = quil_rs.UnaryOperator.Not
 
 
 class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
-    """
-    The abstract class for binary logical classical instructions.
+    """The abstract class for binary logical classical instructions.
     """
 
     op: ClassVar[quil_rs.BinaryOperator]
@@ -1126,32 +1095,28 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
 
 
 class ClassicalAnd(LogicalBinaryOp):
-    """
-    The AND instruction.
+    """The AND instruction.
     """
 
     op = quil_rs.BinaryOperator.And
 
 
 class ClassicalInclusiveOr(LogicalBinaryOp):
-    """
-    The IOR instruction.
+    """The IOR instruction.
     """
 
     op = quil_rs.BinaryOperator.Ior
 
 
 class ClassicalExclusiveOr(LogicalBinaryOp):
-    """
-    The XOR instruction.
+    """The XOR instruction.
     """
 
     op = quil_rs.BinaryOperator.Xor
 
 
 class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
-    """
-    The abstract class for binary arithmetic classical instructions.
+    """The abstract class for binary arithmetic classical instructions.
     """
 
     op: ClassVar[quil_rs.ArithmeticOperator]
@@ -1199,40 +1164,35 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
 
 
 class ClassicalAdd(ArithmeticBinaryOp):
-    """
-    The ADD instruction.
+    """The ADD instruction.
     """
 
     op = quil_rs.ArithmeticOperator.Add
 
 
 class ClassicalSub(ArithmeticBinaryOp):
-    """
-    The SUB instruction.
+    """The SUB instruction.
     """
 
     op = quil_rs.ArithmeticOperator.Subtract
 
 
 class ClassicalMul(ArithmeticBinaryOp):
-    """
-    The MUL instruction.
+    """The MUL instruction.
     """
 
     op = quil_rs.ArithmeticOperator.Multiply
 
 
 class ClassicalDiv(ArithmeticBinaryOp):
-    """
-    The DIV instruction.
+    """The DIV instruction.
     """
 
     op = quil_rs.ArithmeticOperator.Divide
 
 
 class ClassicalMove(quil_rs.Move, AbstractInstruction):
-    """
-    The MOVE instruction.
+    """The MOVE instruction.
     """
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalMove":
@@ -1272,8 +1232,7 @@ class ClassicalMove(quil_rs.Move, AbstractInstruction):
 
 
 class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
-    """
-    The EXCHANGE instruction.
+    """The EXCHANGE instruction.
     """
 
     def __new__(
@@ -1317,8 +1276,7 @@ class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
 
 
 class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
-    """
-    The CONVERT instruction.
+    """The CONVERT instruction.
     """
 
     def __new__(cls, left: MemoryReference, right: MemoryReference) -> "ClassicalConvert":
@@ -1358,8 +1316,7 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
 
 
 class ClassicalLoad(quil_rs.Load, AbstractInstruction):
-    """
-    The LOAD instruction.
+    """The LOAD instruction.
     """
 
     def __new__(cls, target: MemoryReference, left: str, right: MemoryReference) -> "ClassicalLoad":
@@ -1426,8 +1383,7 @@ def _to_py_arithmetic_operand(operand: quil_rs.ArithmeticOperand) -> Union[Memor
 
 
 class ClassicalStore(quil_rs.Store, AbstractInstruction):
-    """
-    The STORE instruction.
+    """The STORE instruction.
     """
 
     def __new__(cls, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]) -> "ClassicalStore":
@@ -1476,8 +1432,7 @@ class ClassicalStore(quil_rs.Store, AbstractInstruction):
 
 
 class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
-    """
-    Abstract class for ternary comparison instructions.
+    """Abstract class for ternary comparison instructions.
     """
 
     op: ClassVar[quil_rs.ComparisonOperator]
@@ -1560,48 +1515,42 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
 
 
 class ClassicalEqual(ClassicalComparison):
-    """
-    The EQ comparison instruction.
+    """The EQ comparison instruction.
     """
 
     op = quil_rs.ComparisonOperator.Equal
 
 
 class ClassicalLessThan(ClassicalComparison):
-    """
-    The LT comparison instruction.
+    """The LT comparison instruction.
     """
 
     op = quil_rs.ComparisonOperator.LessThan
 
 
 class ClassicalLessEqual(ClassicalComparison):
-    """
-    The LE comparison instruction.
+    """The LE comparison instruction.
     """
 
     op = quil_rs.ComparisonOperator.LessThanOrEqual
 
 
 class ClassicalGreaterThan(ClassicalComparison):
-    """
-    The GT comparison instruction.
+    """The GT comparison instruction.
     """
 
     op = quil_rs.ComparisonOperator.GreaterThan
 
 
 class ClassicalGreaterEqual(ClassicalComparison):
-    """
-    The GE comparison instruction.
+    """The GE comparison instruction.
     """
 
     op = quil_rs.ComparisonOperator.GreaterThanOrEqual
 
 
 class Jump(quil_rs.Jump, AbstractInstruction):
-    """
-    Representation of an unconditional jump instruction (JUMP).
+    """Representation of an unconditional jump instruction (JUMP).
     """
 
     def __new__(cls, target: Union[Label, LabelPlaceholder]) -> Self:
@@ -1635,8 +1584,7 @@ class Jump(quil_rs.Jump, AbstractInstruction):
 
 
 class Pragma(quil_rs.Pragma, AbstractInstruction):
-    """
-    A PRAGMA instruction.
+    """A PRAGMA instruction.
 
     This is printed in QUIL as:
 
@@ -1719,8 +1667,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
 
 
 class Declare(quil_rs.Declaration, AbstractInstruction):
-    """
-    A DECLARE directive.
+    """A DECLARE directive.
 
     This is printed in Quil as::
 
@@ -2472,8 +2419,7 @@ class Fence(quil_rs.Fence, AbstractInstruction):
 
 
 class FenceAll(Fence):
-    """
-    The FENCE instruction.
+    """The FENCE instruction.
     """
 
     def __new__(cls) -> Self:

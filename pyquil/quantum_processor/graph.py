@@ -1,16 +1,14 @@
-from typing import Any, Tuple
-
-from pyquil.quantum_processor._base import AbstractQuantumProcessor
-from pyquil.quantum_processor.transformers import graph_to_compiler_isa
-from typing import List, Optional
-from pyquil.external.rpcq import CompilerISA
+from typing import Any, List, Optional, Tuple
 
 import networkx as nx
 
+from pyquil.external.rpcq import CompilerISA
+from pyquil.quantum_processor._base import AbstractQuantumProcessor
+from pyquil.quantum_processor.transformers import graph_to_compiler_isa
+
 
 class NxQuantumProcessor(AbstractQuantumProcessor):
-    """
-    An AbstractQuantumProcessor initialized with a user constructed NetworkX graph topology.
+    """An AbstractQuantumProcessor initialized with a user constructed NetworkX graph topology.
     Notably, this class is able to serialize a ``CompilerISA`` based on the
     graph topology and the configured 1Q and 2Q gates.
     """
@@ -21,8 +19,7 @@ class NxQuantumProcessor(AbstractQuantumProcessor):
         gates_1q: Optional[List[str]] = None,
         gates_2q: Optional[List[str]] = None,
     ) -> None:
-        """
-        Initialize a new NxQuantumProcessor.
+        """Initialize a new NxQuantumProcessor.
 
         :param topology: The graph topology of the quantum_processor.
         :param gates_1q: A list of 1Q gate names supported by all qubits in the quantum_processor.
@@ -36,8 +33,7 @@ class NxQuantumProcessor(AbstractQuantumProcessor):
         return self.topology
 
     def to_compiler_isa(self) -> CompilerISA:
-        """
-        Generate a ``CompilerISA`` object based on a NetworkX graph and the
+        """Generate a ``CompilerISA`` object based on a NetworkX graph and the
         ``gates_1q`` and ``gates_2q`` with which the quantum_processor was initialized.
 
         May raise ``GraphGateError`` if the specified gates are not supported.

@@ -13,16 +13,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence, Tuple, Dict, List, Iterable
+from typing import Any, Optional
 
 import numpy as np
-
-from qcs_sdk import QCSClient, qvm, ResultData, ExecutionData
-from qcs_sdk.qvm import QVMOptions, QVMResultData, QVMClient
+from qcs_sdk import ExecutionData, QCSClient, ResultData, qvm
+from qcs_sdk.qvm import QVMClient, QVMOptions, QVMResultData
 
 from pyquil._version import pyquil_version
-from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
+from pyquil.api import QAM, MemoryMap, QAMExecutionResult, QuantumExecutable
 from pyquil.noise import NoiseModel, apply_noise_model
 from pyquil.quil import Program
 
@@ -36,8 +36,7 @@ class QVMNotRunning(Exception):
 
 
 def check_qvm_version(version: str) -> None:
-    """
-    Verify that there is no mismatch between pyquil and QVM versions.
+    """Verify that there is no mismatch between pyquil and QVM versions.
 
     :param version: The version of the QVM
     """
@@ -54,7 +53,7 @@ class QVMExecuteResponse:
     data: QVMResultData
 
     @property
-    def memory(self) -> Dict[str, np.ndarray]:
+    def memory(self) -> dict[str, np.ndarray]:
         return {key: matrix.as_ndarray() for key, matrix in self.data.memory.items()}
 
 
@@ -62,14 +61,13 @@ class QVM(QAM[QVMExecuteResponse]):
     def __init__(
         self,
         noise_model: Optional[NoiseModel] = None,
-        gate_noise: Optional[Tuple[float, float, float]] = None,
-        measurement_noise: Optional[Tuple[float, float, float]] = None,
+        gate_noise: Optional[tuple[float, float, float]] = None,
+        measurement_noise: Optional[tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
         timeout: float = 10.0,
         client: Optional[QVMClient] = None,
     ) -> None:
-        """
-        A virtual machine that classically emulates the execution of Quil programs.
+        """Return a virtual machine that classically emulates the execution of Quil programs.
 
         :param noise_model: A noise model that describes noise to apply when emulating a program's
             execution.
@@ -129,11 +127,10 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
     def execute_with_memory_map_batch(
         self, executable: QuantumExecutable, memory_maps: Iterable[MemoryMap], **__: Any
-    ) -> List[QVMExecuteResponse]:
-        """
-        Executes a single program on the QVM with multiple memory maps.
+    ) -> list[QVMExecuteResponse]:
+        """Execute a single program on the QVM with multiple memory maps.
 
-        This method is a convenience wrapper around QVM#execute and isn't more efficient than making multiple seperate
+        This method is a convenience wrapper around QVM#execute and isn't more efficient than making multiple separate
         requests to the QVM.
         """
         return [self.execute(executable, memory_map) for memory_map in memory_maps]
@@ -144,9 +141,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         memory_map: Optional[MemoryMap] = None,
         **__: Any,
     ) -> QVMExecuteResponse:
-        """
-        Synchronously execute the input program to completion.
-        """
+        """Execute the input program to completion."""
         if not isinstance(executable, Program):
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
@@ -172,28 +167,34 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         return QVMExecuteResponse(executable=executable, data=result)
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
-        """
-        Return the results of execution on the QVM.
-        """
-
+        """Return the results of execution on the QVM."""
         result_data = ResultData(execute_response.data)
         data = ExecutionData(result_data=result_data, duration=None)
         return QAMExecutionResult(executable=execute_response.executable, data=data)
 
     def get_version_info(self) -> str:
-        """
-        Return version information for the QVM.
+        """Return version information for the QVM.
 
         :return: String with version information
         """
         return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))
 
 
-def validate_noise_probabilities(noise_parameter: Optional[Tuple[float, float, float]]) -> None:
-    """
-    Is noise_parameter a valid specification of noise probabilities for depolarizing noise?
+def validate_noise_probabilities(noise_parameter: Optional[tuple[float, float, float]]) -> None:
+    """Validate the noise probabilities.
 
-    :param tuple noise_parameter: Tuple of 3 noise parameter values to be validated.
+    This function checks that the provided noise parameters are in the correct format and within the expected ranges.
+
+    :param noise_parameter: A tuple containing three float values representing noise probabilities. If None, the
+    function returns without any validation.
+
+    :type noise_parameter: Optional[tuple[float, float, float]]
+
+    :raises TypeError: If noise_parameter is not a tuple or if any of its elements are not floats.
+    :raises ValueError: If noise_parameter does not have exactly three elements, if the sum of the elements is not
+        between 0 and 1 (inclusive), or if any element is negative.
+
+    :returns: None
     """
     if not noise_parameter:
         return
@@ -210,8 +211,7 @@ def validate_noise_probabilities(noise_parameter: Optional[Tuple[float, float, f
 
 
 def validate_qubit_list(qubit_list: Sequence[int]) -> Sequence[int]:
-    """
-    Check the validity of qubits for the payload.
+    """Check the validity of qubits for the payload.
 
     :param qubit_list: List of qubits to be validated.
     """

@@ -13,14 +13,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import dataclasses
-from typing import Any, Dict, List, Optional, Sequence, Union
 import json
+from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any, Optional, Union
 
 from qcs_sdk import QCSClient
-from qcs_sdk.compiler.quilc import compile_program, TargetDevice, CompilerOpts, QuilcClient, CompilationResult
+from qcs_sdk.compiler.quilc import CompilationResult, CompilerOpts, QuilcClient, TargetDevice, compile_program
+from rpcq.messages import ParameterSpec
 
 from pyquil._version import pyquil_version
 from pyquil.api._compiler_client import CompilerClient
@@ -30,7 +32,6 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Gate
-from rpcq.messages import ParameterSpec
 
 
 class QuilcVersionMismatch(Exception):
@@ -43,26 +44,22 @@ class QuilcNotRunning(Exception):
 
 @dataclass
 class EncryptedProgram:
-    """
-    Encrypted binary, executable on a QPU.
-    """
+    """Encrypted binary, executable on a QPU."""
 
     program: str
     """String representation of an encrypted Quil program."""
 
-    memory_descriptors: Dict[str, ParameterSpec]
+    memory_descriptors: dict[str, ParameterSpec]
     """Descriptors for memory executable's regions, mapped by name."""
 
-    ro_sources: Dict[MemoryReference, str]
+    ro_sources: dict[MemoryReference, str]
     """Readout sources, mapped by memory reference."""
 
-    recalculation_table: List[str]
+    recalculation_table: list[str]
     """A mapping from memory references to the original gate arithmetic."""
 
     def copy(self) -> "EncryptedProgram":
-        """
-        Return a deep copy of this EncryptedProgram.
-        """
+        """Return a deep copy of this EncryptedProgram."""
         return dataclasses.replace(self)
 
 
@@ -91,18 +88,15 @@ class AbstractCompiler(ABC):
             quilc_client=quilc_client,
         )
 
-    def get_version_info(self) -> Dict[str, Any]:
-        """
-        Return version information for this compiler and its dependencies.
+    def get_version_info(self) -> dict[str, Any]:
+        """Return version information for this compiler and its dependencies.
 
         :return: Dictionary of version information.
         """
         return {"quilc": self._compiler_client.get_version()}
 
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
-        """
-        Convert a Quil program into native Quil, which is supported for execution on a QPU.
-        """
+        """Convert a Quil program into native Quil, which is supported for execution on a QPU."""
         result = self._compile_with_quilc(
             program.out(calibrations=False),
             options=CompilerOpts(protoquil=protoquil, timeout=self._compiler_client.timeout),
@@ -132,38 +126,34 @@ class AbstractCompiler(ABC):
     def _connect(self) -> None:
         try:
             _check_quilc_version(self._compiler_client.get_version())
-        except TimeoutError:
+        except TimeoutError as e:
             raise QuilcNotRunning(
                 f"Request to quilc at {self._compiler_client.base_url} timed out. "
                 "This could mean that quilc is not running, is not reachable, or is "
                 "responding slowly. See the Troubleshooting Guide: "
                 "{DOCS_URL}/troubleshooting.html"
-            )
+            ) from e
 
     def transpile_qasm_2(self, qasm: str) -> Program:
-        """Transpile a QASM 2.0 program string to Quil, returning the result as a :py:class:~`pyquil.quil.Program`"""
+        """Transpile a QASM 2.0 program string to Quil, returning the result as a :py:class:~`pyquil.quil.Program`."""
         result = self._compile_with_quilc(qasm, options=CompilerOpts(timeout=self._compiler_client.timeout))
         return Program(result.program)
 
     @abstractmethod
     def native_quil_to_executable(self, nq_program: Program, **kwargs: Any) -> QuantumExecutable:
-        """
-        Compile a native quil program to a binary executable.
+        """Compile a native quil program to a binary executable.
 
         :param nq_program: Native quil to compile
         :return: An (opaque) binary executable
         """
 
+    @abstractmethod
     def reset(self) -> None:
-        """
-        Reset the state of the this compiler.
-        """
-        pass
+        """Reset the state of the this compiler."""
 
 
 def _check_quilc_version(version: str) -> None:
-    """
-    Verify that there is no mismatch between pyquil and quilc versions.
+    """Verify that there is no mismatch between pyquil and quilc versions.
 
     :param version: quilc version.
     """
@@ -177,9 +167,7 @@ def _check_quilc_version(version: str) -> None:
 class AbstractBenchmarker(ABC):
     @abstractmethod
     def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
-        r"""
-        Given a circuit that consists only of elements of the Clifford group,
-        return its action on a PauliTerm.
+        r"""Given a circuit that consists only of elements of the Clifford group, return its action on a PauliTerm.
 
         In particular, for Clifford C, and Pauli P, this returns the PauliTerm
         representing PCP^{\dagger}.
@@ -196,10 +184,10 @@ class AbstractBenchmarker(ABC):
         gateset: Sequence[Gate],
         seed: Optional[int] = None,
         interleaver: Optional[Program] = None,
-    ) -> List[Program]:
-        """
-        Construct a randomized benchmarking experiment on the given qubits, decomposing into
-        gateset. If interleaver is not provided, the returned sequence will have the form
+    ) -> list[Program]:
+        r"""Construct a randomized benchmarking experiment on the given qubits, decomposing into gateset.
+
+        If interleaver is not provided, the returned sequence will have the form
 
             C_1 C_2 ... C_(depth-1) C_inv ,
 

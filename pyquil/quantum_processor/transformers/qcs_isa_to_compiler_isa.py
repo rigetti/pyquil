@@ -1,22 +1,26 @@
 from collections import defaultdict
-from typing import List, Union, cast, DefaultDict, Set, Sequence, Optional
+from collections.abc import Sequence
+from typing import DefaultDict, List, Optional, Set, Union, cast
 
 import numpy as np
-from qcs_sdk.qpu.isa import InstructionSetArchitecture, Characteristic, Operation
+from qcs_sdk.qpu.isa import Characteristic, InstructionSetArchitecture, Operation
 
-from pyquil.external.rpcq import CompilerISA, add_edge, add_qubit, get_qubit, get_edge
 from pyquil.external.rpcq import (
+    CompilerISA,
     GateInfo,
     MeasureInfo,
     Supported1QGate,
     Supported2QGate,
+    add_edge,
+    add_qubit,
+    get_edge,
+    get_qubit,
     make_edge_id,
 )
 
 
 class QCSISAParseError(ValueError):
-    """
-    Signals an error when creating a ``CompilerISA`` due to the operators
+    """Signals an error when creating a ``CompilerISA`` due to the operators
     in the QCS ``InstructionSetArchitecture``. This may raise as a consequence
     of unsupported gates as well as missing nodes or edges.
     """
@@ -82,7 +86,7 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
                 operation_edge.gates.extend(_transform_edge_operation_to_gates(operation.name, site.characteristics))
 
             else:
-                raise QCSISAParseError("unexpected operation node count: {}".format(operation.node_count))
+                raise QCSISAParseError(f"unexpected operation node count: {operation.node_count}")
     for qubit in device.qubits.values():
         if len(qubit.gates) == 0:
             qubit.dead = True
@@ -236,7 +240,7 @@ def _transform_qubit_operation_to_gates(
     elif operation_name in {"I", "RESET"}:
         return []
     else:
-        raise QCSISAParseError("Unsupported qubit operation: {}".format(operation_name))
+        raise QCSISAParseError(f"Unsupported qubit operation: {operation_name}")
 
 
 def _make_cz_gates(characteristics: Sequence[Characteristic]) -> List[GateInfo]:
@@ -350,4 +354,4 @@ def _transform_edge_operation_to_gates(
     elif operation_name == Supported2QGate.WILDCARD:
         return _make_wildcard_2q_gates()
     else:
-        raise QCSISAParseError("Unsupported edge operation: {}".format(operation_name))
+        raise QCSISAParseError(f"Unsupported edge operation: {operation_name}")

@@ -13,14 +13,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Schema definition of an ExperimentSetting, which corresponds to preparing a collection of qubits
+"""Schema definition of an ExperimentSetting, which corresponds to preparing a collection of qubits
 in a TensorProductState and measuring them in a PauliTerm-defined basis.
 """
 import logging
 import re
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Any, FrozenSet, Generator, Iterable, List, Optional, cast
+from typing import Any, FrozenSet, List, Optional, cast
 
 from pyquil.paulis import PauliTerm, sI
 
@@ -29,8 +29,7 @@ log = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class _OneQState:
-    """
-    A description of a named one-qubit quantum state.
+    """A description of a named one-qubit quantum state.
 
     This can be used to generate pre-rotations for quantum process tomography. For example,
     X0_14 will generate the +1 eigenstate of the X operator on qubit 14. X1_14 will generate the
@@ -54,8 +53,7 @@ class _OneQState:
 
 @dataclass(frozen=True)
 class TensorProductState:
-    """
-    A description of a multi-qubit quantum state that is a tensor product of many _OneQStates
+    """A description of a multi-qubit quantum state that is a tensor product of many _OneQStates
     states.
     """
 
@@ -153,8 +151,7 @@ def zeros_state(qubits: Iterable[int]) -> TensorProductState:
 
 @dataclass(frozen=True, init=False)
 class ExperimentSetting:
-    """
-    Input and output settings for a tomography-like experiment.
+    """Input and output settings for a tomography-like experiment.
 
     Many near-term quantum algorithms take the following form:
 

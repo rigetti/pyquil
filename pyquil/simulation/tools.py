@@ -13,7 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Sequence, Tuple, Union, cast
+from collections.abc import Sequence
+from typing import List, Tuple, Union, cast
 
 import numpy as np
 
@@ -22,7 +23,7 @@ from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import Parameter
 from pyquil.quilbase import Gate, Halt, _strip_modifiers
-from pyquil.simulation.matrices import SWAP, STATES, QUANTUM_GATES
+from pyquil.simulation.matrices import QUANTUM_GATES, STATES, SWAP
 
 
 def all_bitstrings(n_bits: int) -> np.ndarray:
@@ -48,8 +49,7 @@ def all_bitstrings(n_bits: int) -> np.ndarray:
 
 
 def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.ndarray:
-    """
-    Lifts input k-qubit gate on adjacent qubits starting from qubit i
+    """Lifts input k-qubit gate on adjacent qubits starting from qubit i
     to complete Hilbert space of dimension 2 ** num_qubits.
 
     Ex: 1-qubit gate, lifts from qubit i
@@ -94,8 +94,7 @@ def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.
 
 
 def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Generate the permutation matrix that permutes two single-particle Hilbert
+    """Generate the permutation matrix that permutes two single-particle Hilbert
     spaces into adjacent positions.
 
     ALWAYS swaps j TO k. Recall that Hilbert spaces are ordered in decreasing
@@ -140,8 +139,7 @@ def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> T
 
 
 def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> Tuple[np.ndarray, np.ndarray, int]:
-    """
-    Generate the permutation matrix that permutes an arbitrary number of
+    """Generate the permutation matrix that permutes an arbitrary number of
     single-particle Hilbert spaces into adjacent positions.
 
     Transposes the qubit indices in the order they are passed to a
@@ -222,8 +220,7 @@ def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> Tuple[np.
 
 
 def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: Sequence[int], n_qubits: int) -> np.ndarray:
-    """
-    Lift a unitary matrix to act on the specified qubits in a full ``n_qubits``-qubit
+    """Lift a unitary matrix to act on the specified qubits in a full ``n_qubits``-qubit
     Hilbert space.
 
     For 1-qubit gates, this is easy and can be achieved with appropriate kronning of identity
@@ -255,8 +252,7 @@ def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: Sequence[int], n_qubits: 
 
 
 def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
-    """
-    Lift a pyquil :py:class:`Gate` in a full ``n_qubits``-qubit Hilbert space.
+    """Lift a pyquil :py:class:`Gate` in a full ``n_qubits``-qubit Hilbert space.
 
     This function looks up the matrix form of the gate and then dispatches to
     :py:func:`lifted_gate_matrix` with the target qubits.
@@ -265,7 +261,6 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
     :param n_qubits: The total number of qubits.
     :return: A 2^n by 2^n lifted version of the gate acting on its specified qubits.
     """
-
     zero = np.eye(2)
     zero[1, 1] = 0
     one = np.eye(2)
@@ -315,7 +310,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
                 mat1 = _gate_matrix(child)
                 return np.kron(zero, mat0) + np.kron(one, mat1)
             else:
-                raise TypeError("Unsupported gate modifier {}".format(mod))
+                raise TypeError(f"Unsupported gate modifier {mod}")
 
     matrix = _gate_matrix(gate)
 
@@ -323,8 +318,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
 
 
 def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
-    """
-    Return the unitary of a pyQuil program.
+    """Return the unitary of a pyQuil program.
 
     :param program: A program consisting only of :py:class:`Gate`.:
     :return: a unitary corresponding to the composition of the program's gates.
@@ -345,8 +339,7 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
 
 
 def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np.ndarray:
-    """
-    Takes a PauliSum object along with a list of
+    """Takes a PauliSum object along with a list of
     qubits and returns a matrix corresponding the tensor representation of the
     object.
 
@@ -387,8 +380,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np
 
 
 def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np.ndarray:
-    """
-    Takes a PauliSum object along with a list of
+    """Takes a PauliSum object along with a list of
     qubits and returns a matrix corresponding the tensor representation of the
     object.
 
@@ -424,8 +416,7 @@ def lifted_state_operator(state: TensorProductState, qubits: List[int]) -> np.nd
 
 
 def scale_out_phase(unitary1: np.ndarray, unitary2: np.ndarray) -> np.ndarray:
-    """
-    Returns a matrix m equal to unitary1/θ where ɑ satisfies unitary2
+    """Returns a matrix m equal to unitary1/θ where ɑ satisfies unitary2
     = e^(iθ)·unitary1.
 
     :param unitary1: The unitary matrix from which the constant of

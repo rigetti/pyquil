@@ -13,45 +13,41 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Optional, Sequence, cast
+from collections.abc import Sequence
+from typing import Optional, cast
 
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import (
-    PauliTerm as QuilcPauliTerm,
-    RandomizedBenchmarkingRequest,
     ConjugateByCliffordRequest,
+    RandomizedBenchmarkingRequest,
+)
+from qcs_sdk.compiler.quilc import (
+    PauliTerm as QuilcPauliTerm,
 )
 
 from pyquil.api._abstract_compiler import AbstractBenchmarker
 from pyquil.api._compiler_client import CompilerClient
-
 from pyquil.paulis import PauliTerm, is_identity
-from pyquil.quil import address_qubits, Program
+from pyquil.quil import Program, address_qubits
 from pyquil.quilbase import Gate
 
 
 class BenchmarkConnection(AbstractBenchmarker):
-    """
-    Represents a connection to a server that generates benchmarking data.
-    """
+    """Represents a connection to a server that generates benchmarking data."""
 
     def __init__(self, *, timeout: float = 10.0, client_configuration: Optional[QCSClient] = None):
-        """
-        Client to communicate with the benchmarking data endpoint.
+        """Client to communicate with the benchmarking data endpoint.
 
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-
         self._compiler_client = CompilerClient(
             client_configuration=client_configuration or QCSClient.load(),
             request_timeout=timeout,
         )
 
     def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
-        r"""
-        Given a circuit that consists only of elements of the Clifford group,
-        return its action on a PauliTerm.
+        r"""Given a circuit that consists only of elements of the Clifford group, return its action on a PauliTerm.
 
         In particular, for Clifford C, and Pauli P, this returns the PauliTerm
         representing CPC^{\dagger}.
@@ -80,7 +76,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         pauli_out = PauliTerm("I", 0, 1.0j**phase_factor)
         clifford_qubits = clifford.get_qubits()
         pauli_qubits = pauli_in.get_qubits()
-        all_qubits = sorted(set(cast(List[int], pauli_qubits)).union(set(cast(List[int], clifford_qubits))))
+        all_qubits = sorted(set(cast(list[int], pauli_qubits)).union(set(cast(list[int], clifford_qubits))))
         # The returned pauli will have specified its value on all_qubits, sorted by index.
         #  This is maximal set of qubits that can be affected by this conjugation.
         for i, pauli in enumerate(paulis):
@@ -93,10 +89,10 @@ class BenchmarkConnection(AbstractBenchmarker):
         gateset: Sequence[Gate],
         seed: Optional[int] = None,
         interleaver: Optional[Program] = None,
-    ) -> List[Program]:
-        """
-        Construct a randomized benchmarking experiment on the given qubits, decomposing into
-        gateset. If interleaver is not provided, the returned sequence will have the form
+    ) -> list[Program]:
+        """Construct a randomized benchmarking experiment on the given qubits, decomposing into gateset.
+
+        If interleaver is not provided, the returned sequence will have the form
 
             C_1 C_2 ... C_(depth-1) C_inv ,
 
@@ -123,7 +119,6 @@ class BenchmarkConnection(AbstractBenchmarker):
          programs are called cliffords then `sum(cliffords, Program())` will give the randomized
          benchmarking experiment, which will compose to the identity program.
         """
-
         # Support QubitPlaceholders: we temporarily index to arbitrary integers.
         # `generate_rb_sequence` handles mapping back to the original gateset gates.
         gateset_as_program = address_qubits(sum(gateset, Program()))  # type: ignore
@@ -131,7 +126,8 @@ class BenchmarkConnection(AbstractBenchmarker):
         gateset_for_api = gateset_as_program.out().splitlines()
         interleaver_out: Optional[str] = None
         if interleaver:
-            assert isinstance(interleaver, Program)
+            if not isinstance(interleaver, Program):
+                raise ValueError("interleaver must be a Program")
             interleaver_out = interleaver.out(calibrations=False)
 
         depth = int(depth)  # needs to be jsonable, no np.int64 please!

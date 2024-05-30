@@ -13,13 +13,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Schema definition of an ExperimentResult, which encapsulates the outcome of a collection of
+"""Schema definition of an ExperimentResult, which encapsulates the outcome of a collection of
 measurements that are aimed at estimating the expectation value of some observable.
 """
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from numbers import Number
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -47,7 +47,7 @@ class ExperimentResult:
     calibration_expectation: Optional[Union[float, complex]] = None
     calibration_std_err: Optional[Union[float, complex]] = None
     calibration_counts: Optional[int] = None
-    additional_results: Optional[List["ExperimentResult"]] = None
+    additional_results: Optional[list["ExperimentResult"]] = None
 
     def __init__(
         self,
@@ -60,7 +60,7 @@ class ExperimentResult:
         calibration_expectation: Optional[Union[float, complex]] = None,
         calibration_std_err: Optional[Union[float, complex]] = None,
         calibration_counts: Optional[int] = None,
-        additional_results: Optional[List["ExperimentResult"]] = None,
+        additional_results: Optional[list["ExperimentResult"]] = None,
     ):
 
         object.__setattr__(self, "setting", setting)
@@ -80,7 +80,7 @@ class ExperimentResult:
     def __repr__(self) -> str:
         return f"ExperimentResult[{self}]"
 
-    def serializable(self) -> Dict[str, Any]:
+    def serializable(self) -> dict[str, Any]:
         return {
             "type": "ExperimentResult",
             "setting": self.setting,
@@ -96,10 +96,9 @@ class ExperimentResult:
 
 
 def bitstrings_to_expectations(
-    bitstrings: np.ndarray, joint_expectations: Optional[List[List[int]]] = None
+    bitstrings: np.ndarray, joint_expectations: Optional[list[list[int]]] = None
 ) -> np.ndarray:
-    """
-    Given an array of bitstrings (each of which is represented as an array of bits), map them to
+    """Given an array of bitstrings (each of which is represented as an array of bits), map them to
     expectation values and return the desired joint expectation values. If no joint expectations
     are desired, then just the 1 -> -1, 0 -> 1 mapping is performed.
 
@@ -131,8 +130,7 @@ def correct_experiment_result(
     result: ExperimentResult,
     calibration: ExperimentResult,
 ) -> ExperimentResult:
-    """
-    Given a raw, unmitigated result and its associated readout calibration, produce the result
+    """Given a raw, unmitigated result and its associated readout calibration, produce the result
     absent readout error.
 
     :param result: An ``ExperimentResult`` object with unmitigated readout error.
@@ -171,12 +169,13 @@ def correct_experiment_result(
 
 
 def ratio_variance(
-    a: Union[float, np.ndarray],
-    var_a: Union[float, np.ndarray],
-    b: Union[float, np.ndarray],
-    var_b: Union[float, np.ndarray],
-) -> Union[float, np.ndarray]:
-    r"""
+    a: Union[Number, np.ndarray],
+    var_a: Union[Number, np.ndarray],
+    b: Union[Number, np.ndarray],
+    var_b: Union[Number, np.ndarray],
+) -> Union[Number, np.ndarray]:
+    r"""Compute the variance on the ratio Y = A/B.
+
     Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the
     mean of the random variables as a = E[A] and b = E[B] while the variances are var_a = Var[A]
     and var_b = Var[B] and the covariance as Cov[A,B]. The following expression approximates the
@@ -204,4 +203,5 @@ def ratio_variance(
     :param b: Mean of 'B', to be used as the numerator in a ratio.
     :param var_b: Variance in 'B'
     """
-    return var_a / b**2 + (a**2 * var_b) / b**4
+    result = var_a / b**2 + (a**2 * var_b) / b**4
+    return result

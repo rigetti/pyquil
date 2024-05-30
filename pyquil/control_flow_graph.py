@@ -1,14 +1,14 @@
-from typing import List, Optional
-from typing_extensions import Self, override
+"""Classes that represent the control flow graph of a Quil program."""
+from typing import Optional
 
 from quil import program as quil_rs
+from typing_extensions import Self, override
 
-from pyquil.quilbase import _convert_to_py_instruction, _convert_to_py_instructions, AbstractInstruction
+from pyquil.quilbase import AbstractInstruction, _convert_to_py_instruction, _convert_to_py_instructions
 
 
 class BasicBlock(quil_rs.BasicBlock):
-    """
-    Represents a basic block in the Program.
+    """Represents a basic block in the Program.
 
     Most functionality is implemented by the `quil` package. See the
     `quil BasicBlock documentation`_ for documentation and available methods.
@@ -21,7 +21,7 @@ class BasicBlock(quil_rs.BasicBlock):
         return super().__new__(cls, block)
 
     @override
-    def instructions(self) -> List[AbstractInstruction]:  # type: ignore[override]
+    def instructions(self) -> list[AbstractInstruction]:  # type: ignore[override]
         return _convert_to_py_instructions(super().instructions())
 
     @override
@@ -33,8 +33,7 @@ class BasicBlock(quil_rs.BasicBlock):
 
 
 class ControlFlowGraph(quil_rs.ControlFlowGraph):
-    """
-    Representation of a control flow graph (CFG) for a Quil program.
+    """Representation of a control flow graph (CFG) for a Quil program.
 
     The CFG is a directed graph where each node is a basic block and each edge is a control flow transition between two
     basic blocks.
@@ -53,8 +52,6 @@ class ControlFlowGraph(quil_rs.ControlFlowGraph):
         return super().__new__(cls, graph)
 
     @override
-    def basic_blocks(self) -> List[BasicBlock]:  # type: ignore[override]
-        """
-        Return a list of all the basic blocks in the control flow graph, in order of definition.
-        """
+    def basic_blocks(self) -> list[BasicBlock]:  # type: ignore[override]
+        """Return a list of all the basic blocks in the control flow graph, in order of definition."""
         return [BasicBlock._from_rs(block) for block in super().basic_blocks()]

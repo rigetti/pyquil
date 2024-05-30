@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -30,8 +30,7 @@ def parameterized_euler_rotations(
     suffix_beta: str = "beta",
     suffix_gamma: str = "gamma",
 ) -> Program:
-    """
-    Given a number of qubits (n), build a ``Program`` containing a ZXZXZ-decomposed gate on each
+    """Given a number of qubits (n), build a ``Program`` containing a ZXZXZ-decomposed gate on each
     qubit, where each ``RZ`` is parameterized by declared values with labels given by the "prefix"
     and "suffix" arguments. Put more plainly, the resulting Quil program on n qubits is::
 
@@ -80,8 +79,7 @@ def parameterized_euler_rotations(
 
 
 def parameterized_single_qubit_state_preparation(qubits: Sequence[int], label: str = "preparation") -> Program:
-    """
-    Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
+    """Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
     memory region is prefixed by ``label``, where label defaults to "preparation".
 
     :param qubits: The number of qubits (n).
@@ -92,8 +90,7 @@ def parameterized_single_qubit_state_preparation(qubits: Sequence[int], label: s
 
 
 def parameterized_single_qubit_measurement_basis(qubits: Sequence[int], label: str = "measurement") -> Program:
-    """
-    Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
+    """Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
     memory region is prefixed by ``label``, where label defaults to "measurement".
 
     :param qubits: The number of qubits (n).
@@ -104,8 +101,7 @@ def parameterized_single_qubit_measurement_basis(qubits: Sequence[int], label: s
 
 
 def parameterized_readout_symmetrization(qubits: Sequence[int], label: str = "symmetrization") -> Program:
-    """
-    Given a number of qubits (n), produce a ``Program`` with an ``RX`` instruction on qubits
+    """Given a number of qubits (n), produce a ``Program`` with an ``RX`` instruction on qubits
     0 through n-1, parameterized by memory regions label[0] through label[n-1], where "label"
     defaults to "symmetrization".
 
@@ -121,8 +117,7 @@ def parameterized_readout_symmetrization(qubits: Sequence[int], label: str = "sy
 
 
 def measure_qubits(qubits: Sequence[int]) -> Program:
-    """
-    Given a number of qubits (n), produce a ``Program`` with a ``MEASURE`` instruction on qubits
+    """Given a number of qubits (n), produce a ``Program`` with a ``MEASURE`` instruction on qubits
     0 through n-1, with corresponding readout registers ro[0] through ro[n-1].
 
     :param qubits: The number of qubits (n).

@@ -15,48 +15,49 @@
 ##############################################################################
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Sequence, Type, Union, Any, Iterable
+from collections.abc import Iterable, Sequence
+from typing import Any, Dict, List, Optional, Type, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
-from qcs_sdk import ResultData, ExecutionData, RegisterData
+from qcs_sdk import ExecutionData, RegisterData, ResultData
 from qcs_sdk.qvm import QVMResultData
 
-from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult, MemoryMap
-from pyquil.paulis import PauliTerm, PauliSum
+from pyquil.api import QAM, MemoryMap, QAMExecutionResult, QuantumExecutable
+from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
 from pyquil.quilbase import (
-    Gate,
-    Measurement,
-    ResetQubit,
-    DefGate,
-    JumpTarget,
-    JumpWhen,
-    JumpUnless,
-    Halt,
-    Wait,
-    Reset,
-    Nop,
-    UnaryClassicalInstruction,
-    ClassicalNeg,
-    ClassicalNot,
-    LogicalBinaryOp,
-    ClassicalAnd,
-    ClassicalInclusiveOr,
-    ClassicalExclusiveOr,
     ArithmeticBinaryOp,
     ClassicalAdd,
-    ClassicalSub,
-    ClassicalMul,
+    ClassicalAnd,
     ClassicalDiv,
-    ClassicalMove,
     ClassicalExchange,
-    Jump,
-    Pragma,
+    ClassicalExclusiveOr,
+    ClassicalInclusiveOr,
+    ClassicalMove,
+    ClassicalMul,
+    ClassicalNeg,
+    ClassicalNot,
+    ClassicalSub,
     Declare,
+    DefGate,
     DefGateByPaulis,
     DefPermutationGate,
+    Gate,
+    Halt,
+    Jump,
+    JumpTarget,
+    JumpUnless,
+    JumpWhen,
+    LogicalBinaryOp,
+    Measurement,
+    Nop,
+    Pragma,
+    Reset,
+    ResetQubit,
+    UnaryClassicalInstruction,
+    Wait,
 )
 
 log = logging.getLogger(__name__)
@@ -67,8 +68,7 @@ QUIL_TO_NUMPY_DTYPE = {"INT": np.int_, "REAL": np.float_, "BIT": np.int8, "OCTET
 class AbstractQuantumSimulator(ABC):
     @abstractmethod
     def __init__(self, n_qubits: int, rs: Optional[RandomState]):
-        """
-        Initialize.
+        """Initialize.
 
         :param n_qubits: Number of qubits to simulate.
         :param rs: a RandomState (shared with the owning :py:class:`PyQVM`) for
@@ -77,16 +77,14 @@ class AbstractQuantumSimulator(ABC):
 
     @abstractmethod
     def do_gate(self, gate: Gate) -> "AbstractQuantumSimulator":
-        """
-        Perform a gate.
+        """Perform a gate.
 
         :return: ``self`` to support method chaining.
         """
 
     @abstractmethod
     def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "AbstractQuantumSimulator":
-        """
-        Apply an arbitrary unitary; not necessarily a named gate.
+        """Apply an arbitrary unitary; not necessarily a named gate.
 
         :param matrix: The unitary matrix to apply. No checks are done
         :param qubits: A list of qubits to apply the unitary to.
@@ -94,8 +92,7 @@ class AbstractQuantumSimulator(ABC):
         """
 
     def do_program(self, program: Program) -> "AbstractQuantumSimulator":
-        """
-        Perform a sequence of gates contained within a program.
+        """Perform a sequence of gates contained within a program.
 
         :param program: The program
         :return: self
@@ -108,16 +105,14 @@ class AbstractQuantumSimulator(ABC):
 
     @abstractmethod
     def do_measurement(self, qubit: int) -> int:
-        """
-        Measure a qubit and collapse the wavefunction
+        """Measure a qubit and collapse the wavefunction
 
         :return: The measurement result. A 1 or a 0.
         """
 
     @abstractmethod
     def expectation(self, operator: Union[PauliTerm, PauliSum]) -> complex:
-        """
-        Compute the expectation of an operator.
+        """Compute the expectation of an operator.
 
         :param operator: The operator
         :return: The operator's expectation value
@@ -125,16 +120,14 @@ class AbstractQuantumSimulator(ABC):
 
     @abstractmethod
     def reset(self) -> "AbstractQuantumSimulator":
-        """
-        Reset the wavefunction to the ``|000...00>`` state.
+        """Reset the wavefunction to the ``|000...00>`` state.
 
         :return: ``self`` to support method chaining.
         """
 
     @abstractmethod
     def sample_bitstrings(self, n_samples: int) -> np.ndarray:
-        """
-        Sample bitstrings from the current state.
+        """Sample bitstrings from the current state.
 
         :param n_samples: The number of bitstrings to sample
         :return: A numpy array of shape (n_samples, n_qubits)
@@ -142,8 +135,7 @@ class AbstractQuantumSimulator(ABC):
 
     @abstractmethod
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "AbstractQuantumSimulator":
-        """
-        Apply noise that happens after each gate application.
+        """Apply noise that happens after each gate application.
 
         WARNING! This is experimental and the signature of this interface will likely change.
 
@@ -162,8 +154,7 @@ class PyQVM(QAM["PyQVM"]):
         seed: Optional[int] = None,
         post_gate_noise_probabilities: Optional[Dict[str, float]] = None,
     ):
-        """
-        PyQuil's built-in Quil virtual machine.
+        """PyQuil's built-in Quil virtual machine.
 
         This class implements common control flow and plumbing and dispatches the "actual" work to
         quantum simulators like ReferenceWavefunctionSimulator, ReferenceDensitySimulator,
@@ -229,8 +220,7 @@ class PyQVM(QAM["PyQVM"]):
         )
 
     def execute(self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **__: Any) -> "PyQVM":
-        """
-        Execute a program on the PyQVM. Note that the state of the instance is reset on each
+        """Execute a program on the PyQVM. Note that the state of the instance is reset on each
         call to ``execute``.
 
         :return: ``self`` to support method chaining.
@@ -265,8 +255,7 @@ class PyQVM(QAM["PyQVM"]):
         return self
 
     def get_result(self, execute_response: "PyQVM") -> QAMExecutionResult:
-        """
-        Return results from the PyQVM according to the common QAM API. Note that while the
+        """Return results from the PyQVM according to the common QAM API. Note that while the
         ``execute_response`` is not used, it's accepted in order to conform to that API; it's
         unused because the PyQVM, unlike other QAM's, is itself stateful.
         """
@@ -286,8 +275,7 @@ class PyQVM(QAM["PyQVM"]):
         return np.asarray(self._memory_results[region_name])
 
     def find_label(self, label: Union[Label, LabelPlaceholder]) -> int:
-        """
-        Helper function that iterates over the program and looks for a JumpTarget that has a
+        """Helper function that iterates over the program and looks for a JumpTarget that has a
         Label matching the input label.
 
         :param label: Label object to search for in program
@@ -302,8 +290,7 @@ class PyQVM(QAM["PyQVM"]):
         raise RuntimeError("Improper program - Jump Target not found in the input program!")
 
     def transition(self) -> bool:
-        """
-        Implements a QAM-like transition.
+        """Implements a QAM-like transition.
 
         This function assumes ``program`` and ``program_counter`` instance variables are set
         appropriately, and that the wavefunction simulator and classical memory ``ram`` instance
@@ -363,7 +350,7 @@ class PyQVM(QAM["PyQVM"]):
             assert jump_reg is not None
             cond = self.ram[jump_reg.name][jump_reg.offset]
             if not isinstance(cond, (bool, np.bool_, np.int8, int)):
-                raise ValueError("{} requires a data type of BIT; not {}".format(type(instruction), type(cond)))
+                raise ValueError(f"{type(instruction)} requires a data type of BIT; not {type(cond)}")
             dest_index = self.find_label(instruction.target)
             if isinstance(instruction, JumpWhen):
                 jump_if_cond = True
@@ -385,11 +372,11 @@ class PyQVM(QAM["PyQVM"]):
             old = self.ram[target.name][target.offset]
             if isinstance(instruction, ClassicalNeg):
                 if not isinstance(old, (int, float, np.int_, np.float_)):
-                    raise ValueError("NEG requires a data type of REAL or INTEGER; not {}".format(type(old)))
+                    raise ValueError(f"NEG requires a data type of REAL or INTEGER; not {type(old)}")
                 self.ram[target.name][target.offset] *= -1
             elif isinstance(instruction, ClassicalNot):
                 if not isinstance(old, (bool, np.bool_)):
-                    raise ValueError("NOT requires a data type of BIT; not {}".format(type(old)))
+                    raise ValueError(f"NOT requires a data type of BIT; not {type(old)}")
                 self.ram[target.name][target.offset] = not old
             else:
                 raise TypeError("Invalid UnaryClassicalInstruction")
@@ -425,7 +412,7 @@ class PyQVM(QAM["PyQVM"]):
             elif isinstance(instruction, ClassicalMove):
                 new_val = right_val
             else:
-                raise ValueError("Unknown BinaryOp {}".format(type(instruction)))
+                raise ValueError(f"Unknown BinaryOp {type(instruction)}")
             self.ram[left_ind.name][left_ind.offset] = new_val
             self.program_counter += 1
 
@@ -461,7 +448,7 @@ class PyQVM(QAM["PyQVM"]):
         elif isinstance(instruction, Halt):
             return True
         else:
-            raise ValueError("Unsupported instruction type: {}".format(instruction))
+            raise ValueError(f"Unsupported instruction type: {instruction}")
 
         # return HALTED (i.e. program_counter is end of program)
         assert self.program is not None
@@ -478,8 +465,7 @@ class PyQVM(QAM["PyQVM"]):
         return self
 
     def execute_once(self, program: Program) -> "PyQVM":
-        """
-        Execute one outer loop of a program on the PyQVM without re-initializing its state.
+        """Execute one outer loop of a program on the PyQVM without re-initializing its state.
 
         Note that the PyQVM is stateful. Subsequent calls to :py:func:`execute_once` will not
         automatically reset the wavefunction or the classical RAM. If this is desired,
