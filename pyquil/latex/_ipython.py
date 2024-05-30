@@ -28,7 +28,7 @@ from pyquil.quil import Program
 
 
 def display(circuit: Program, settings: Optional[DiagramSettings] = None, **image_options: Any) -> Image:
-    """Displays a PyQuil circuit as an IPython image object.
+    """Display a PyQuil circuit as an IPython image object.
 
     .. note::
 
@@ -59,7 +59,7 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None, **imag
             texfile.write(to_latex(circuit, settings))
 
         result = subprocess.run(
-            [pdflatex_path, "-halt-on-error", "-output-directory", tmpdir, texfile.name],
+            [pdflatex_path, "-halt-on-error", "-output-directory", tmpdir, texfile.name],  # noqa: S603 - valid input
             stdout=subprocess.PIPE,
         )
         if result.returncode != 0:
@@ -72,11 +72,11 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None, **imag
         png = os.path.join(tmpdir, "diagram.png")
         pdf = os.path.join(tmpdir, "diagram.pdf")
 
-        result = subprocess.run([convert_path, "-density", "300", pdf, png], stderr=subprocess.PIPE)
+        result = subprocess.run([convert_path, "-density", "300", pdf, png], stderr=subprocess.PIPE)  # noqa: S603
         if result.returncode != 0:
             msg = f"'convert' terminated with return code {result.returncode}."
             if result.stderr:
                 msg += " Transcript:\n\n" + result.stderr.decode("utf-8")
             raise RuntimeError(msg)
 
-        return Image(filename=png, **image_options)
+        return Image(filename=png, **image_options)  # type: ignore

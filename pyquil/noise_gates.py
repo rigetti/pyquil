@@ -1,3 +1,4 @@
+"""Utility functions for generating noise gates compatible with a QVM's instruction set architecture."""
 import logging
 from typing import Optional
 
@@ -23,7 +24,9 @@ def _get_qvm_noise_supported_gates(isa: CompilerISA) -> list[Gate]:
             if gate.operator == Supported1QGate.MEASURE:
                 continue
 
-            assert isinstance(gate, GateInfo)
+            if not isinstance(gate, GateInfo):
+                raise ValueError(f"ISA contained {type(gate)} where a GateInfo was expected.")
+
             qvm_noise_supported_gate = _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(
                 qubit_id=q.id,
                 gate=gate,

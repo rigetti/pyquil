@@ -30,9 +30,10 @@ def parameterized_euler_rotations(
     suffix_beta: str = "beta",
     suffix_gamma: str = "gamma",
 ) -> Program:
-    """Given a number of qubits (n), build a ``Program`` containing a ZXZXZ-decomposed gate on each
-    qubit, where each ``RZ`` is parameterized by declared values with labels given by the "prefix"
-    and "suffix" arguments. Put more plainly, the resulting Quil program on n qubits is::
+    """Given a number of qubits (n), build a ``Program`` containing a ZXZXZ-decomposed gate on each qubit.
+
+    Each ``RZ`` is parameterized by declared values with labels given by the "prefix" and "suffix" arguments. Put more
+    plainly, the resulting Quil program on n qubits is::
 
         RZ(alpha_label[0]) 0
         RX(pi/2) 0
@@ -79,34 +80,33 @@ def parameterized_euler_rotations(
 
 
 def parameterized_single_qubit_state_preparation(qubits: Sequence[int], label: str = "preparation") -> Program:
-    """Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
-    memory region is prefixed by ``label``, where label defaults to "preparation".
+    """Produce a program as in ``parameterized_euler_rotations`` where each memory region is prefixed by "preparation".
 
     :param qubits: The number of qubits (n).
-    :param label: The prefix to use when declaring memory in ``parameterized_euler_rotations``.
+    :param label: The prefix to use when declaring memory in ``parameterized_euler_rotations``. (default: "preparation")
     :return: A parameterized ``Program`` that can be used to prepare a product state.
     """
     return parameterized_euler_rotations(qubits, prefix=label)
 
 
 def parameterized_single_qubit_measurement_basis(qubits: Sequence[int], label: str = "measurement") -> Program:
-    """Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
-    memory region is prefixed by ``label``, where label defaults to "measurement".
+    """Produce a program as in ``parameterized_euler_rotations`` where each memory region is prefixed by "measurement".
 
     :param qubits: The number of qubits (n).
-    :param label: The prefix to use when declaring memory in ``parameterized_euler_rotations``.
-    :return: A parameterized ``Program`` that can be used to measure in a multi-qubit Pauli basis.
+    :param label: The prefix to use when declaring memory in ``parameterized_euler_rotations``. (default: "measurement")
+    :return: A parameterized ``Program`` that can be used to prepare a product state.
     """
     return parameterized_euler_rotations(qubits, prefix=label)
 
 
 def parameterized_readout_symmetrization(qubits: Sequence[int], label: str = "symmetrization") -> Program:
-    """Given a number of qubits (n), produce a ``Program`` with an ``RX`` instruction on qubits
-    0 through n-1, parameterized by memory regions label[0] through label[n-1], where "label"
-    defaults to "symmetrization".
+    """Given a number of qubits (n), produce a parameterized ``Program`` with an ``RX`` instruction on qubits [0, n-1].
+
+    Qubits 0 through n-1 are parameterized by memory regions label[0] through label[n-1], where "label" defaults to
+    "symmetrization".
 
     :param qubits: The number of qubits (n).
-    :param label: The name of the declared memory region.
+    :param label: The name of the declared memory region. (default: "symmetrization")
     :return: A ``Program`` with parameterized ``RX`` gates on n qubits.
     """
     p = Program()
@@ -117,8 +117,9 @@ def parameterized_readout_symmetrization(qubits: Sequence[int], label: str = "sy
 
 
 def measure_qubits(qubits: Sequence[int]) -> Program:
-    """Given a number of qubits (n), produce a ``Program`` with a ``MEASURE`` instruction on qubits
-    0 through n-1, with corresponding readout registers ro[0] through ro[n-1].
+    """Given a number of qubits (n), produce a ``Program`` with a ``MEASURE`` instruction on qubits [0, n-1].
+
+    Each MEASURE is written to corresponding readout registers ro[0] through ro[n-1].
 
     :param qubits: The number of qubits (n).
     :return: A ``Program`` that measures n qubits.

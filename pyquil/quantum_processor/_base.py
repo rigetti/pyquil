@@ -21,9 +21,7 @@ from pyquil.external.rpcq import CompilerISA
 
 
 class AbstractQuantumProcessor(ABC):
-    """A generic interface describing the qubits, topology, and compiler representation
-    of any arbitrary quantum_processor class.
-    """
+    """Interface describing the qubits, topology, and compiler representation of an arbitrary quantum processor."""
 
     @abstractmethod
     def qubits(self) -> list[int]:
@@ -31,11 +29,11 @@ class AbstractQuantumProcessor(ABC):
 
     @abstractmethod
     def qubit_topology(self) -> nx.Graph:
-        """The connectivity of qubits in this quantum_processor given as a NetworkX graph.
-        """
+        """Return a NetworkX graph that represents the connectivity of qubits in this quantum_processor."""
 
     @abstractmethod
     def to_compiler_isa(self) -> CompilerISA:
         """Construct an ISA suitable for targeting by compilation.
+
         This will raise an exception if the requested ISA is not supported by the quantum_processor.
         """

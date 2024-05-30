@@ -13,8 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Module for creating and verifying noisy gate and readout definitions.
-"""
+"""Module for creating and verifying noisy gate and readout definitions."""
 import sys
 from collections import namedtuple
 from collections.abc import Iterable, Sequence
@@ -51,7 +50,7 @@ class KrausModel(_KrausModel):
 
     @staticmethod
     def unpack_kraus_matrix(m: Union[list[Any], np.ndarray]) -> np.ndarray:
-        """Helper to optionally unpack a JSON compatible representation of a complex Kraus matrix.
+        """Unpack a JSON compatible representation of a complex Kraus matrix.
 
         :param m: The representation of a Kraus operator. Either a complex
             square matrix (as numpy array or nested lists) or a JSON-able pair of real matrices
@@ -104,10 +103,8 @@ class KrausModel(_KrausModel):
         return KrausModel(d["gate"], d["params"], d["targets"], kraus_ops, d["fidelity"])
 
     def __eq__(self, other: object) -> bool:
+        """Return True if both KrausModels are equal."""
         return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
-
-    def __neq__(self, other: object) -> bool:
-        return not self.__eq__(other)
 
 
 _NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
@@ -166,10 +163,8 @@ class NoiseModel(_NoiseModel):
         return [g for g in self.gates if g.gate == name]
 
     def __eq__(self, other: object) -> bool:
+        """Return True if NoiseModels are equal."""
         return isinstance(other, NoiseModel) and self.to_dict() == other.to_dict()
-
-    def __neq__(self, other: object) -> bool:
-        return not self.__eq__(other)
 
 
 def _check_kraus_ops(n: int, kraus_ops: Sequence[np.ndarray]) -> None:
@@ -258,8 +253,7 @@ def pauli_kraus_map(probabilities: Sequence[float]) -> list[np.ndarray]:
 
 
 def damping_kraus_map(p: float = 0.10) -> list[np.ndarray]:
-    """Generate the Kraus operators corresponding to an amplitude damping
-    noise channel.
+    """Generate the Kraus operators corresponding to an amplitude damping noise channel.
 
     :param p: The one-step damping probability.
     :return: A list [k1, k2] of the Kraus operators that parametrize the map.
@@ -282,8 +276,7 @@ def dephasing_kraus_map(p: float = 0.10) -> list[np.ndarray]:
 
 
 def tensor_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.ndarray]:
-    """Generate the Kraus map corresponding to the composition
-    of two maps on different qubits.
+    """Generate the Kraus map corresponding to the composition of two maps on different qubits.
 
     :param k1: The Kraus operators for the first qubit.
     :param k2: The Kraus operators for the second qubit.
@@ -293,9 +286,7 @@ def tensor_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.nda
 
 
 def combine_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.ndarray]:
-    """Generate the Kraus map corresponding to the composition
-    of two maps on the same qubits with k1 being applied to the state
-    after k2.
+    """Generate the Kraus map for two composed maps, with k1 applied after k2 on the same qubits.
 
     :param k1: The list of Kraus operators that are applied second.
     :param k2: The list of Kraus operators that are applied first.
@@ -305,16 +296,15 @@ def combine_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.nd
 
 
 def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> list[np.ndarray]:
-    """Generate the Kraus map corresponding to the composition
-    of a dephasing channel followed by an amplitude damping channel.
+    """Generate the Kraus map for a dephasing channel followed by an amplitude damping channel.
 
     :param T1: The amplitude damping time
     :param T2: The dephasing time
     :param gate_time: The gate duration.
     :return: A list of Kraus operators.
     """
-    assert T1 >= 0
-    assert T2 >= 0
+    if T1 < 0 or T2 < 0:
+        raise ValueError("T1 and T2 must be non-negative.")
 
     if T1 != INFINITY:
         damping = damping_kraus_map(p=1 - np.exp(-float(gate_time) / float(T1)))
@@ -355,7 +345,8 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> tup
     """
     params = tuple(params)
     if gate_name == "I":
-        assert params == ()
+        if params != ():
+            raise ValueError(f"Identity gate does not take parameters: {params}")
         return np.eye(2), "NOISY-I"
     if gate_name == "RX":
         (angle,) = params
@@ -371,7 +362,8 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> tup
         elif np.isclose(angle, -np.pi, atol=ANGLE_TOLERANCE):
             return np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180"
     elif gate_name == "CZ":
-        assert params == ()
+        if params != ():
+            raise ValueError(f"CZ gate does not take parameters: {params}")
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
 
     raise NoisyGateUndefined(
@@ -397,7 +389,7 @@ def _decoherence_noise_model(
     gate_time_2q: float = 150e-09,
     ro_fidelity: Union[dict[int, float], float] = 0.95,
 ) -> NoiseModel:
-    """The default noise parameters
+    """Return default noise model.
 
     - T1 = 30 us
     - T2 = 30 us
@@ -494,6 +486,7 @@ def decoherence_noise_with_asymmetric_ro(isa: CompilerISA, p00: float = 0.975, p
 
 def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
     """Generate the header for a pyquil Program that uses ``noise_model`` to overload noisy gates.
+
     The program header consists of 3 sections:
 
         - The ``DEFGATE`` statements that define the meaning of the newly introduced "noisy" gate
@@ -612,8 +605,7 @@ def add_decoherence_noise(
 
 
 def _bitstring_probs_by_qubit(p: np.ndarray) -> np.ndarray:
-    """Ensure that an array ``p`` with bitstring probabilities has a separate axis for each qubit such
-    that ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    """Ensure array p has a separate axis for each qubit so ``p[i,j,...,k]`` gives the probability of bitstring ``ij...k``.
 
     This should not allocate much memory if ``p`` is already in ``C``-contiguous order (row-major).
 
@@ -645,7 +637,9 @@ _CHARS = "klmnopqrstuvwxyzabcdefgh0123456789"
 
 
 def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarray:
-    """Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
+    """Apply local 2x2 matrices to each index in a 2D array of single shot results using assignment probability matrices.
+
+    Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
     and a list of assignment probability matrices (one for each bit in the readout, ordered like
     the inner axis of results) apply local 2x2 matrices to each bit index.
 
@@ -676,7 +670,9 @@ def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarr
 
 
 def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.ndarray]) -> np.ndarray:
-    """Given a 2d array of true bitstring probabilities (outer axis iterates over shots, inner axis
+    """Given a 2D array of bitstring probabilities and assignment matrices, compute the corrupted probabilities.
+
+    Given a 2d array of true bitstring probabilities (outer axis iterates over shots, inner axis
     over bits) and a list of assignment probability matrices (one for each bit in the readout,
     ordered like the inner axis of results) compute the corrupted probabilities.
 
@@ -698,7 +694,9 @@ def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.nda
 
 
 def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.ndarray]) -> np.ndarray:
-    """Given a 2d array of corrupted bitstring probabilities (outer axis iterates over shots, inner
+    """Given a 2D array of corrupted bitstring probabilities and assignment matrices, compute the corrected probabilities.
+
+    Given a 2d array of corrupted bitstring probabilities (outer axis iterates over shots, inner
     axis over bits) and a list of assignment probability matrices (one for each bit in the readout)
     compute the corrected probabilities.
 
@@ -743,6 +741,7 @@ def estimate_assignment_probs(
     p0: Optional["Program"] = None,
 ) -> np.ndarray:
     """Estimate the readout assignment probabilities for a given qubit ``q``.
+
     The returned matrix is of the form::
 
             [[p00 p01]
@@ -788,5 +787,6 @@ def estimate_assignment_probs(
 def _run(qc: "PyquilApiQuantumComputer", program: "Program") -> list[list[int]]:
     result = qc.run(qc.compiler.native_quil_to_executable(program))
     bitstrings = result.readout_data.get("ro")
-    assert bitstrings is not None
+    if bitstrings is None:
+        raise ValueError("No readout data found in result.")
     return cast(list[list[int]], bitstrings.tolist())

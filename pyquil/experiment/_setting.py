@@ -13,14 +13,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Schema definition of an ExperimentSetting, which corresponds to preparing a collection of qubits
-in a TensorProductState and measuring them in a PauliTerm-defined basis.
+"""Definition of an ExperimentSetting.
+
+Each ExperimentSetting corresponds to preparing a collection of qubits in a TensorProductState and measuring them in a
+PauliTerm-defined basis.
 """
 import logging
 import re
 from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Any, FrozenSet, Optional, cast
+from typing import Any, Optional, cast
 
 from pyquil.paulis import PauliTerm, sI
 
@@ -53,9 +55,7 @@ class _OneQState:
 
 @dataclass(frozen=True)
 class TensorProductState:
-    """A description of a multi-qubit quantum state that is a tensor product of many _OneQStates
-    states.
-    """
+    """A description of a multi-qubit quantum state that is a tensor product of many _OneQStates states."""
 
     states: list[_OneQState]
 
@@ -86,7 +86,7 @@ class TensorProductState:
     def __len__(self) -> int:
         return len(self.states)
 
-    def states_as_set(self) -> FrozenSet[_OneQState]:
+    def states_as_set(self) -> frozenset[_OneQState]:
         return frozenset(self.states)
 
     def __eq__(self, other: Any) -> bool:
@@ -208,7 +208,7 @@ class ExperimentSetting:
 
     @classmethod
     def from_str(cls, s: str) -> "ExperimentSetting":
-        """The opposite of str(expt)"""
+        """Opposite of str(expt)."""
         instr, outstr = s.split("→")
         return ExperimentSetting(
             in_state=TensorProductState.from_str(instr),

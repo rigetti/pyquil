@@ -1,3 +1,4 @@
+"""Tools for estimating the expectation value of operators on a quantum computer."""
 import logging
 from collections.abc import Generator, Mapping
 from math import pi
@@ -42,6 +43,7 @@ __all__ = [
     "group_experiments",
     "group_experiments_clique_removal",
     "group_experiments_greedy",
+    "measure_observables",
 ]
 
 
