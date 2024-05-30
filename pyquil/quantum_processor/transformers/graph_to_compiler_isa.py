@@ -1,3 +1,4 @@
+"""Transformers for converting between NetworkX graphs and CompilerISAs."""
 from typing import Optional, Union, cast
 
 import networkx as nx
@@ -29,6 +30,7 @@ def graph_to_compiler_isa(
     graph: nx.Graph, gates_1q: Optional[list[str]] = None, gates_2q: Optional[list[str]] = None
 ) -> CompilerISA:
     """Generate an ``CompilerISA`` object from a NetworkX graph and list of 1Q and 2Q gates.
+
     May raise ``GraphGateError`` if the specified gates are not supported.
 
     :param graph: The graph topology of the quantum_processor.
@@ -64,13 +66,13 @@ def graph_to_compiler_isa(
 
 
 def compiler_isa_to_graph(compiler_isa: CompilerISA) -> nx.Graph:
-    """Generate an ``nx.Graph`` based on the qubits and edges of any ``CompilerISA``.
-    """
+    """Generate an ``nx.Graph`` based on the qubits and edges of any ``CompilerISA``."""
     return nx.from_edgelist([int(i) for i in edge.ids] for edge in compiler_isa.edges.values())
 
 
 class GraphGateError(ValueError):
     """Signals an error when creating a ``CompilerISA`` from an ``nx.Graph``.
+
     This may raise as a consequence of unsupported gates.
     """
 

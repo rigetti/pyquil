@@ -1,6 +1,7 @@
+"""Transforms a QCS ``InstructionSetArchitecture`` into a ``CompilerISA``."""
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import DefaultDict, Optional, Union, cast
+from typing import Optional, Union, cast
 
 import numpy as np
 from qcs_sdk.qpu.isa import Characteristic, InstructionSetArchitecture, Operation
@@ -20,15 +21,16 @@ from pyquil.external.rpcq import (
 
 
 class QCSISAParseError(ValueError):
-    """Signals an error when creating a ``CompilerISA`` due to the operators
-    in the QCS ``InstructionSetArchitecture``. This may raise as a consequence
-    of unsupported gates as well as missing nodes or edges.
+    """Signals an error when creating a ``CompilerISA`` due to the operators in the QCS ``InstructionSetArchitecture``.
+
+    This may raise as a consequence of unsupported gates as well as missing nodes or edges.
     """
 
     pass
 
 
 def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
+    """Transform a QCS ``InstructionSetArchitecture`` into a ``CompilerISA``."""
     device = CompilerISA()
     for node in isa.architecture.nodes:
         add_qubit(device, node.node_id)
@@ -36,8 +38,8 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
     for edge in isa.architecture.edges:
         add_edge(device, edge.node_ids[0], edge.node_ids[1])
 
-    qubit_operations_seen: DefaultDict[int, set[str]] = defaultdict(set)
-    edge_operations_seen: DefaultDict[str, set[str]] = defaultdict(set)
+    qubit_operations_seen: defaultdict[int, set[str]] = defaultdict(set)
+    edge_operations_seen: defaultdict[str, set[str]] = defaultdict(set)
     for operation in isa.instructions:
         for site in operation.sites:
             if operation.node_count == 1:

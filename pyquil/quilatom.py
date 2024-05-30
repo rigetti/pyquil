@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+"""Classes that represent the atomic building blocks of Quil expressions."""
 import inspect
 from collections.abc import Iterable, Mapping, Sequence
 from fractions import Fraction
@@ -23,7 +24,6 @@ from typing import (
     ClassVar,
     NoReturn,
     Optional,
-    Type,
     Union,
     cast,
 )
@@ -36,22 +36,22 @@ from typing_extensions import Self
 
 
 class QuilAtom:
-    """Abstract class for atomic elements of Quil.
-    """
+    """Abstract class for atomic elements of Quil."""
 
     def out(self) -> str:
+        """Return the element as a valid Quil string."""
         raise NotImplementedError()
 
     def __str__(self) -> str:
+        """Get a string representation of the element, possibly not valid Quil."""
         raise NotImplementedError()
 
     def __eq__(self, other: object) -> bool:
+        """Return True if the other object is equal to this one."""
         raise NotImplementedError()
 
-    def __ne__(self, other: object) -> bool:
-        return not self.__eq__(other)
-
     def __hash__(self) -> int:
+        """Return a hash of the object."""
         raise NotImplementedError()
 
 
@@ -62,11 +62,13 @@ class Qubit(QuilAtom):
     """
 
     def __init__(self, index: int):
+        """Initialize a qubit."""
         if not (isinstance(index, int) and index >= 0):
             raise TypeError("Addr index must be a non-negative int")
         self.index = index
 
     def out(self) -> str:
+        """Return the element as a valid Quil string."""
         return str(self.index)
 
     def __str__(self) -> str:
@@ -83,20 +85,25 @@ class Qubit(QuilAtom):
 
 
 class FormalArgument(QuilAtom):
-    """Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM
-    or DEFCAL form.
-    """
+    """Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM or DEFCAL form."""
 
     def __init__(self, name: str):
+        """Initialize a formal argument."""
         if not isinstance(name, str):
             raise TypeError("Formal arguments must be named by a string.")
         self.name = name
 
     def out(self) -> str:
+        """Return the element as a valid Quil string."""
         return str(self)
 
     @property
+    @deprecated(
+        "Getting the index of a FormalArgument is invalid. This method will be removed in a future release.",
+        version="4.0",
+    )
     def index(self) -> NoReturn:
+        """Formal arguments do not have an index. Using this property raises a RuntimeError."""
         raise RuntimeError(f"Cannot derive an index from a FormalArgument {self}")
 
     def __str__(self) -> str:
@@ -113,7 +120,14 @@ class FormalArgument(QuilAtom):
 
 
 class QubitPlaceholder(QuilAtom):
+    """A placeholder for a qubit.
+
+    This is useful for constructing circuits without assigning qubits to specific indices.
+    Qubit placeholders must be resolved to actual qubits before they can be used in a program.
+    """
+
     def __init__(self, placeholder: Optional[quil_rs.QubitPlaceholder] = None):
+        """Initialize a qubit placeholder, or get a new handle for an existing placeholder."""
         if placeholder is not None:
             self._placeholder = placeholder
         else:
@@ -121,7 +135,7 @@ class QubitPlaceholder(QuilAtom):
 
     @staticmethod
     def register(n: int) -> list["QubitPlaceholder"]:
-        """Return a 'register' of ``n`` QubitPlaceholders.
+        r"""Return a 'register' of ``n`` QubitPlaceholders.
 
         >>> from pyquil import Program
         >>> from pyquil.gates import H
@@ -141,10 +155,12 @@ class QubitPlaceholder(QuilAtom):
         return [QubitPlaceholder() for _ in range(n)]
 
     def out(self) -> str:
+        """Raise a RuntimeError, as Qubit placeholders are not valid Quil."""
         raise RuntimeError(f"Qubit {self} has not been assigned an index")
 
     @property
     def index(self) -> NoReturn:
+        """Raise a RuntimeError, as Qubit placeholders do not have an index."""
         raise RuntimeError(f"Qubit {self} has not been assigned an index")
 
     def __str__(self) -> str:
@@ -280,6 +296,7 @@ class Label(QuilAtom):
     """
 
     def __init__(self, label_name: str):
+        """Initialize a new label."""
         self.target = quil_rs.Target.from_fixed(label_name)
 
     @staticmethod
@@ -287,10 +304,12 @@ class Label(QuilAtom):
         return Label(target.to_fixed())
 
     def out(self) -> str:
+        """Return the label as a valid Quil string."""
         return self.target.to_quil()
 
     @property
     def name(self) -> str:
+        """Return the label name."""
         return self.target.to_fixed()
 
     @name.setter
@@ -313,7 +332,14 @@ class Label(QuilAtom):
 
 
 class LabelPlaceholder(QuilAtom):
+    """A placeholder for a Quil label.
+
+    This is useful for constructing circuits without needing to name them.
+    All placeholders must be resolved to actual labels before they can be used in a program.
+    """
+
     def __init__(self, prefix: str = "L", *, placeholder: Optional[quil_rs.TargetPlaceholder] = None):
+        """Initialize a new label placeholder."""
         if placeholder:
             self.target = quil_rs.Target.from_placeholder(placeholder)
         else:
@@ -325,9 +351,11 @@ class LabelPlaceholder(QuilAtom):
 
     @property
     def prefix(self) -> str:
+        """Get the prefix of the label placeholder."""
         return self.target.to_placeholder().base_label
 
     def out(self) -> str:
+        """Raise a RuntimeError, as label placeholders are not valid Quil."""
         raise RuntimeError("Label has not been assigned a name")
 
     def __str__(self) -> str:
@@ -368,8 +396,9 @@ def _convert_to_rs_expressions(
 
 @deprecated(version="4.0", reason="This function has been superseded by the `quil` package and will be removed soon.")
 def format_parameter(element: ParameterDesignator) -> str:
-    """Formats a particular parameter. Essentially the same as built-in formatting except using 'i'
-    instead of 'j' for the imaginary number.
+    """Format a particular parameter.
+
+    Essentially the same as built-in formatting except using 'i' instead of 'j' for the imaginary number.
 
     :param element: The parameter to format for Quil output.
     """
@@ -388,10 +417,12 @@ def format_parameter(element: ParameterDesignator) -> str:
             out += repr(r)
 
         if i == 1:
-            assert np.isclose(r, 0, atol=1e-14)
+            if not np.isclose(r, 0, atol=1e-14):
+                raise ValueError(f"Invalid complex number: {element}")
             out = "i"
         elif i == -1:
-            assert np.isclose(r, 0, atol=1e-14)
+            if not np.isclose(r, 0, atol=1e-14):
+                raise ValueError(f"Invalid complex number: {element}")
             out = "-i"
         elif i < 0:
             out += repr(i) + "i"
@@ -405,7 +436,7 @@ def format_parameter(element: ParameterDesignator) -> str:
         return str(element)
     elif isinstance(element, Expression):
         return _expression_to_string(element)
-    raise AssertionError("Invalid parameter: %r" % element)
+    raise AssertionError(f"Invalid parameter: {element}")
 
 
 ExpressionValueDesignator = Union[int, float, complex]
@@ -466,8 +497,10 @@ def _convert_to_py_expressions(
 
 
 class Expression:
-    """Expression involving some unbound parameters. Parameters in Quil are represented as a label
-    like '%x' for the parameter named 'x'. An example expression therefore may be '%x*(%y/4)'.
+    """Expression involving some unbound parameters.
+
+    Parameters in Quil are represented as a label like '%x' for the parameter named 'x'. An example expression therefore
+    may be '%x*(%y/4)'.
 
     Expressions may also have function calls, supported functions in Quil are sin, cos, sqrt, exp,
     and cis.
@@ -522,7 +555,7 @@ class Expression:
         return self
 
     def _evaluate(self) -> np.complex128:
-        """Attempts to evaluate the expression to by simplifying it to a complex number.
+        """Attempt to evaluate the expression to by simplifying it to a complex number.
 
         Expression simplification can be slow, especially for large recursive expressions.
         This method will raise a ValueError if the expression cannot be simplified to a complex
@@ -535,7 +568,7 @@ class Expression:
         return np.complex128(expr.to_number())
 
     def __float__(self) -> float:
-        """Returns a copy of the expression as a float by attempting to simplify the expression.
+        """Return a copy of the expression as a float by attempting to simplify the expression.
 
         Expression simplification can be slow, especially for large recursive expressions.
         This cast will raise a ValueError if simplification doesn't result in a real number.
@@ -546,7 +579,7 @@ class Expression:
         return float(value.real)
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
-        """Implements the numpy array protocol for this expression.
+        """Implement the numpy array protocol for this expression.
 
         If the dtype is not object, then there will be an attempt to simplify the expression to a
         complex number. If the expression cannot be simplified to one, then fallback to the
@@ -570,9 +603,10 @@ ParameterSubstitutionsMapDesignator = Mapping[Union["Parameter", "MemoryReferenc
 
 
 def substitute(expr: ExpressionDesignator, d: ParameterSubstitutionsMapDesignator) -> ExpressionDesignator:
-    """Using a dictionary of substitutions ``d``, try and explicitly evaluate as much of ``expr`` as
-    possible. This supports substitution of both parameters and memory references. Each memory
-    reference must be individually assigned a value at each memory offset to be substituted.
+    r"""Explicitly evaluate as much of ``expr`` as possible, using substitutions from `d`.
+
+    This supports substitution of both parameters and memory references. Each memory reference must be individually
+    assigned a value at each memory offset to be substituted.
 
     :param expr: The expression whose parameters or memory references are to be substituted.
     :param d: Numerical substitutions for parameters or memory references.
@@ -595,13 +629,14 @@ def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParameterSub
 
 
 class Parameter(QuilAtom, Expression):
-    """Parameters in Quil are represented as a label like '%x' for the parameter named 'x'.
-    """
+    """Parameters in Quil are represented as a label like '%x' for the parameter named 'x'."""
 
     def __init__(self, name: str):
+        """Initialize a new parameter."""
         self.name = name
 
     def out(self) -> str:
+        """Return the parameter as a valid Quil string."""
         return "%" + self.name
 
     def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["Parameter", ExpressionValueDesignator]:
@@ -618,8 +653,7 @@ class Parameter(QuilAtom, Expression):
 
 
 class Function(Expression):
-    """Supported functions in Quil are sin, cos, sqrt, exp, and cis
-    """
+    """Base class for standard Quil functions."""
 
     def __init__(
         self,
@@ -627,6 +661,7 @@ class Function(Expression):
         expression: ExpressionDesignator,
         fn: Callable[[ExpressionValueDesignator], ExpressionValueDesignator],
     ):
+        """Initialize a new function."""
         self.name = name
         self.expression = expression
         self.fn = fn
@@ -658,22 +693,27 @@ class Function(Expression):
 
 
 def quil_sin(expression: ExpressionDesignator) -> Function:
+    """The Quil COS() function."""
     return Function("SIN", expression, np.sin)
 
 
 def quil_cos(expression: ExpressionDesignator) -> Function:
+    """The Quil SIN() function."""
     return Function("COS", expression, np.cos)
 
 
 def quil_sqrt(expression: ExpressionDesignator) -> Function:
+    """The Quil SQRT() function."""
     return Function("SQRT", expression, np.sqrt)
 
 
 def quil_exp(expression: ExpressionDesignator) -> Function:
+    """The Quil EXP() function."""
     return Function("EXP", expression, np.exp)
 
 
 def quil_cis(expression: ExpressionDesignator) -> Function:
+    """The Quil CIS() function."""
     def _cis(x: ExpressionValueDesignator) -> complex:
         # numpy doesn't ship with type stubs, so mypy assumes anything coming from numpy has type
         # Any, hence we need to cast the return type to complex here to satisfy the type checker.
@@ -683,15 +723,19 @@ def quil_cis(expression: ExpressionDesignator) -> Function:
 
 
 class BinaryExp(Expression):
+    """A Quil binary expression."""
+
     operator: ClassVar[str]
     precedence: ClassVar[int]
     associates: ClassVar[str]
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
+        """Perform the operation on the two expressions."""
         raise NotImplementedError
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
+        """Initialize a new binary expression."""
         self.op1 = op1
         self.op2 = op2
 
@@ -725,73 +769,94 @@ class BinaryExp(Expression):
 
 
 class Add(BinaryExp):
+    """The addition operation."""
+
     operator = " + "
     precedence = 1
     associates = "both"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Add", ExpressionValueDesignator]:
+        """Perform the addition operation."""
         return a + b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
-        super(Add, self).__init__(op1, op2)
+        """Initialize a new addition operation between two expressions."""
+        super().__init__(op1, op2)
 
 
 class Sub(BinaryExp):
+    """The subtraction operation."""
+
     operator = " - "
     precedence = 1
     associates = "left"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Sub", ExpressionValueDesignator]:
+        """Perform the subtraction operation."""
         return a - b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
-        super(Sub, self).__init__(op1, op2)
+        """Initialize a new addition operation between two expressions."""
+        super().__init__(op1, op2)
 
 
 class Mul(BinaryExp):
+    """The multiplication operation."""
+
     operator = "*"
     precedence = 2
     associates = "both"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Mul", ExpressionValueDesignator]:
+        """Perform the multiplication operation."""
         return a * b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
-        super(Mul, self).__init__(op1, op2)
+        """Initialize a new multiplication operation between two expressions."""
+        super().__init__(op1, op2)
 
 
 class Div(BinaryExp):
+    """The division operation."""
+
     operator = "/"
     precedence = 2
     associates = "left"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Div", ExpressionValueDesignator]:
+        """Perform the division operation."""
         return a / b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
+        """Initialize a new division operation between two expressions."""
         super(Div, self).__init__(op1, op2)
 
 
 class Pow(BinaryExp):
+    """The exponentiation operation."""
+
     operator = "^"
     precedence = 3
     associates = "right"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Pow", ExpressionValueDesignator]:
+        """Perform the exponentiation operation."""
         return a**b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
+        """Initialize a new exponentiation operation between two expressions."""
         super(Pow, self).__init__(op1, op2)
 
 
 def _expression_to_string(expression: ExpressionDesignator) -> str:
-    """Recursively converts an expression to a string taking into account precedence and associativity
-    for placing parenthesis.
+    """Convert an expression to a string.
+
+    This operation is recursive, and takes into account precedence and associativity when placing parenthesis.
 
     :param expression: expression involving parameters
     :return: string such as '%x*(%y-4)'
@@ -848,9 +913,10 @@ def _contained_parameters(expression: ExpressionDesignator) -> set[Parameter]:
 
 
 def _check_for_pi(element: float) -> str:
-    """Check to see if there exists a rational number r = p/q
-    in reduced form for which the difference between element/np.pi
-    and r is small and q <= 8.
+    """Return the float as a string, expressing the float as a multiple of pi if possible.
+
+    More specifically, check to see if there exists a rational number r = p/q in reduced form for which the difference
+    between element/np.pi and r is small and q <= 8.
 
     :param element: the number to check
     :return element: pretty print string if true, else standard representation.
@@ -1026,7 +1092,7 @@ class WaveformReference(WaveformInvocation):
 
 
 def _template_waveform_property(
-    name: str, *, dtype: Optional[Union[Type[int], Type[float]]] = None, doc: Optional[str] = None
+    name: str, *, dtype: Optional[Union[type[int], type[float]]] = None, doc: Optional[str] = None
 ) -> property:
     """Helper method for initializing getters, setters, and deleters for
     parameters on a ``TemplateWaveform``. Should only be used inside of
