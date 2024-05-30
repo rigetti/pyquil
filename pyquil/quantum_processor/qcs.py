@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import networkx as nx
 from qcs_sdk import QCSClient
@@ -36,7 +36,7 @@ class QCSQuantumProcessor(AbstractQuantumProcessor):
         self._isa = isa
         self.noise_model = noise_model
 
-    def qubits(self) -> List[int]:
+    def qubits(self) -> list[int]:
         return sorted(node.node_id for node in self._isa.architecture.nodes)
 
     def qubit_topology(self) -> nx.Graph:

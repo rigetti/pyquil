@@ -124,7 +124,7 @@ class QubitPlaceholder(QuilAtom):
             self._placeholder = quil_rs.QubitPlaceholder()
 
     @staticmethod
-    def register(n: int) -> List["QubitPlaceholder"]:
+    def register(n: int) -> list["QubitPlaceholder"]:
         """Return a 'register' of ``n`` QubitPlaceholders.
 
         >>> from pyquil import Program
@@ -192,7 +192,7 @@ def _convert_to_rs_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, QubitPlace
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[quil_rs.Qubit]:
+def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> list[quil_rs.Qubit]:
     return [_convert_to_rs_qubit(qubit) for qubit in qubits]
 
 
@@ -209,7 +209,7 @@ def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, quil_rs.Qu
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def _convert_to_py_qubits(qubits: Iterable[Union[QubitDesignator, quil_rs.Qubit]]) -> List[QubitDesignator]:
+def _convert_to_py_qubits(qubits: Iterable[Union[QubitDesignator, quil_rs.Qubit]]) -> list[QubitDesignator]:
     return [_convert_to_py_qubit(qubit) for qubit in qubits]
 
 
@@ -248,8 +248,8 @@ def qubit_index(qubit: QubitDesignator) -> int:
 # Like the Tuple, the List must be length 2, where the first item is a string and the second an
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
-# List[Any] here.
-MemoryReferenceDesignator = Union["MemoryReference", quil_rs.MemoryReference, Tuple[str, int], List[Any], str]
+# list[Any] here.
+MemoryReferenceDesignator = Union["MemoryReference", quil_rs.MemoryReference, tuple[str, int], list[Any], str]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
@@ -366,7 +366,7 @@ def _convert_to_rs_expression(
 
 def _convert_to_rs_expressions(
     parameters: Sequence[Union[ParameterDesignator, quil_rs_expr.Expression]]
-) -> List[quil_rs_expr.Expression]:
+) -> list[quil_rs_expr.Expression]:
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
@@ -835,7 +835,7 @@ def _expression_to_string(expression: ExpressionDesignator) -> str:
         return format_parameter(expression)
 
 
-def _contained_parameters(expression: ExpressionDesignator) -> Set[Parameter]:
+def _contained_parameters(expression: ExpressionDesignator) -> set[Parameter]:
     """Determine which parameters are contained in this expression.
 
     :param expression: expression involving parameters
@@ -952,7 +952,7 @@ class MemoryReference(QuilAtom, Expression):
         return self
 
 
-def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
+def _contained_mrefs(expression: ExpressionDesignator) -> set[MemoryReference]:
     """Determine which memory references are contained in this expression.
 
     :param expression: expression involving parameters
@@ -980,11 +980,11 @@ class Frame(quil_rs.FrameIdentifier):
         return super().__new__(cls, frame.name, frame.qubits)
 
     @property  # type: ignore[override]
-    def qubits(self) -> Tuple[QubitDesignator, ...]:
+    def qubits(self) -> tuple[QubitDesignator, ...]:
         return tuple(_convert_to_py_qubits(super().qubits))
 
     @qubits.setter
-    def qubits(self, qubits: Tuple[Qubit, FormalArgument]) -> None:
+    def qubits(self, qubits: tuple[Qubit, FormalArgument]) -> None:
         quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
     def out(self) -> str:
@@ -995,18 +995,18 @@ class Frame(quil_rs.FrameIdentifier):
 
 
 class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
-    def __new__(cls, name: str, parameters: Optional[Dict[str, ParameterDesignator]] = None) -> Self:
+    def __new__(cls, name: str, parameters: Optional[dict[str, ParameterDesignator]] = None) -> Self:
         if parameters is None:
             parameters = {}
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
         return super().__new__(cls, name, rs_parameters)
 
     @property  # type: ignore[override]
-    def parameters(self) -> Dict[str, ParameterDesignator]:
+    def parameters(self) -> dict[str, ParameterDesignator]:
         return {key: _convert_to_py_expression(value) for key, value in super().parameters.items()}
 
     @parameters.setter
-    def parameters(self, parameters: Dict[str, ParameterDesignator]) -> None:
+    def parameters(self, parameters: dict[str, ParameterDesignator]) -> None:
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
         quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
 

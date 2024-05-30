@@ -17,7 +17,7 @@
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import List, Optional, Set, Tuple, cast
+from typing import Optional, cast
 from warnings import warn
 
 from pyquil.quil import Program
@@ -205,7 +205,7 @@ class DiagramState:
 
     def __init__(self, qubits: Sequence[int]):
         self.qubits = qubits
-        self.lines: Mapping[int, List[str]] = defaultdict(list)
+        self.lines: Mapping[int, list[str]] = defaultdict(list)
 
     def extend_lines_to_common_edge(self, qubits: Iterable[int], offset: int = 0) -> None:
         """Add NOP operations on the lines associated with the given qubits, until
@@ -254,7 +254,7 @@ class DiagramState:
             self.lines[corner_row][corner_col] += " " + TIKZ_GATE_GROUP(grouped_qubits, group_width, group)
         return self
 
-    def interval(self, low: int, high: int) -> List[int]:
+    def interval(self, low: int, high: int) -> list[int]:
         """All qubits in the diagram, from low to high, inclusive.
         """
         full_interval = range(low, high + 1)
@@ -269,7 +269,7 @@ class DiagramState:
 
 def split_on_terminal_measures(
     program: Program,
-) -> Tuple[List[AbstractInstruction], List[AbstractInstruction]]:
+) -> tuple[list[AbstractInstruction], list[AbstractInstruction]]:
     """Split a program into two lists of instructions:
 
     1. A set of measurement instructions occuring as the final operation on their qubit.
@@ -279,10 +279,10 @@ def split_on_terminal_measures(
     if not any(isinstance(instr, Measurement) for instr in program.instructions):
         return [], program.instructions
 
-    seen_qubits: Set[QubitDesignator] = set()
+    seen_qubits: set[QubitDesignator] = set()
 
-    measures: List[AbstractInstruction] = []
-    remaining: List[AbstractInstruction] = []
+    measures: list[AbstractInstruction] = []
+    remaining: list[AbstractInstruction] = []
     in_group = False
     for instr in reversed(program.instructions):
         if not in_group and isinstance(instr, Measurement) and instr.qubit not in seen_qubits:
@@ -312,7 +312,7 @@ class DiagramBuilder:
         self.circuit = circuit
         self.settings = settings
         # instructions currently being processed
-        self.working_instructions: Optional[List[AbstractInstruction]] = None
+        self.working_instructions: Optional[list[AbstractInstruction]] = None
         # index into working instructions. we maintain the invariant that
         # working_instructions[0:index] has been processed, with the diagram
         # updated accordingly
@@ -323,7 +323,7 @@ class DiagramBuilder:
     def build(self) -> DiagramState:
         """Actually build the diagram.
         """
-        qubits = cast(Set[int], self.circuit.get_qubits(indices=True))
+        qubits = cast(set[int], self.circuit.get_qubits(indices=True))
         all_qubits = range(min(qubits), max(qubits) + 1) if self.settings.impute_missing_qubits else sorted(qubits)
         self.diagram = DiagramState(all_qubits)
 
@@ -497,7 +497,7 @@ class DiagramBuilder:
         self.index += 1
 
 
-def qubit_indices(instr: AbstractInstruction) -> List[int]:
+def qubit_indices(instr: AbstractInstruction) -> list[int]:
     """Get a list of indices associated with the given instruction.
     """
     if isinstance(instr, (Measurement, Gate)):

@@ -80,7 +80,7 @@ class WavefunctionSimulator:
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
 
-                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           This is expected to be of type dict[str, list[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
         :return: A Wavefunction object representing the state of the QVM.
@@ -122,7 +122,7 @@ class WavefunctionSimulator:
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
 
-                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           This is expected to be of type dict[str, list[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
         :return: Either a float or array floats depending on ``pauli_terms``.
@@ -179,7 +179,7 @@ class WavefunctionSimulator:
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
 
-                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           This is expected to be of type dict[str, list[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
         :return: An array of measurement results (0 or 1) of shape (trials, len(qubits))
@@ -207,8 +207,8 @@ class WavefunctionSimulator:
     ) -> Program:
         p = Program()
 
-        # we stupidly allowed memory_map to be of type Dict[MemoryReference, Any], whereas qc.run
-        # takes a memory initialization argument of type Dict[str, List[Union[int, float]]. until
+        # we stupidly allowed memory_map to be of type dict[MemoryReference, Any], whereas qc.run
+        # takes a memory initialization argument of type dict[str, list[Union[int, float]]. until
         # we are in a position to remove this, we support both styles of input.
 
         if len(memory_map.keys()) == 0:
@@ -218,7 +218,7 @@ class WavefunctionSimulator:
                 for index, value in enumerate(arr):
                     p += MOVE(MemoryReference(name, offset=index), value)
         else:
-            raise TypeError("Bad memory_map type; expected Dict[str, List[Union[int, float]]].")
+            raise TypeError("Bad memory_map type; expected dict[str, list[Union[int, float]]].")
 
         p += quil_program
 

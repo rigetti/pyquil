@@ -92,7 +92,7 @@ InstructionDesignator = Union[
     "Program",
     RSProgram,
     Sequence[Any],
-    Tuple[Any, ...],
+    tuple[Any, ...],
     str,  # required to be a pyquil program
     Generator[Any, Any, Any],
 ]
@@ -149,12 +149,12 @@ class Program:
     # decorator to clear these caches.
 
     @functools.cached_property
-    def calibrations(self) -> List[DefCalibration]:
+    def calibrations(self) -> list[DefCalibration]:
         """A list of Quil-T calibration definitions."""
         return [DefCalibration._from_rs_calibration(cal) for cal in self._program.calibrations.calibrations]
 
     @functools.cached_property
-    def measure_calibrations(self) -> List[DefMeasureCalibration]:
+    def measure_calibrations(self) -> list[DefMeasureCalibration]:
         """A list of measure calibrations"""
         return [
             DefMeasureCalibration._from_rs_measure_calibration_definition(cal)
@@ -162,7 +162,7 @@ class Program:
         ]
 
     @functools.cached_property
-    def waveforms(self) -> Dict[str, DefWaveform]:
+    def waveforms(self) -> dict[str, DefWaveform]:
         """A mapping from waveform names to their corresponding definitions."""
         return {
             name: DefWaveform._from_rs_waveform_definition(quil_rs.WaveformDefinition(name, waveform))
@@ -170,7 +170,7 @@ class Program:
         }
 
     @functools.cached_property
-    def frames(self) -> Dict[Frame, DefFrame]:
+    def frames(self) -> dict[Frame, DefFrame]:
         """A mapping from Quil-T frames to their definitions."""
         return {
             Frame._from_rs_frame_identifier(frame): DefFrame._from_rs_attribute_values(frame, attributes)
@@ -178,7 +178,7 @@ class Program:
         }
 
     @functools.cached_property
-    def declarations(self) -> Dict[str, Declare]:
+    def declarations(self) -> dict[str, Declare]:
         """A mapping from declared region names to their declarations."""
         return {name: Declare._from_rs_declaration(inst) for name, inst in self._program.declarations.items()}
 
@@ -210,19 +210,19 @@ class Program:
         return new_program
 
     @property
-    def defined_gates(self) -> List[DefGate]:
+    def defined_gates(self) -> list[DefGate]:
         """A list of defined gates on the program.
         """
         return [DefGate._from_rs_gate_definition(gate) for gate in self._program.gate_definitions.values()]
 
     @property
-    def instructions(self) -> List[AbstractInstruction]:
+    def instructions(self) -> list[AbstractInstruction]:
         """Fill in any placeholders and return a list of quil AbstractInstructions.
         """
         return list(self.declarations.values()) + _convert_to_py_instructions(self._program.body_instructions)
 
     @instructions.setter
-    def instructions(self, instructions: List[AbstractInstruction]) -> None:
+    def instructions(self, instructions: list[AbstractInstruction]) -> None:
         new_program = self.copy_everything_except_instructions()
         new_program.inst(instructions)
         self._program = new_program._program
@@ -283,7 +283,7 @@ class Program:
                         else:
                             self.measure(instruction[1], instruction[2])
                     else:
-                        params: List[ParameterDesignator] = []
+                        params: list[ParameterDesignator] = []
                         possible_params = instruction[1]
                         rest: Sequence[Any] = instruction[2:]
                         if isinstance(possible_params, list):
@@ -404,7 +404,7 @@ class Program:
         self._program.resolve_placeholders_with_custom_resolvers(target_resolver=lambda _: None)
 
     @_invalidates_cached_properties
-    def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: Dict[QubitPlaceholder, int]) -> None:
+    def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: dict[QubitPlaceholder, int]) -> None:
         """Resolve all qubit placeholders in the program using a mapping of ``QubitPlaceholder``\\s to
         the index they should resolve to.
         """
@@ -531,8 +531,8 @@ class Program:
     def defgate(
         self,
         name: str,
-        matrix: Union[List[List[Any]], np.ndarray, np.matrix],
-        parameters: Optional[List[Parameter]] = None,
+        matrix: Union[list[list[Any]], np.ndarray, np.matrix],
+        parameters: Optional[list[Parameter]] = None,
     ) -> "Program":
         """Define a new static gate.
 
@@ -626,7 +626,7 @@ class Program:
         """
         return self.inst(RESET(qubit_index))
 
-    def measure_all(self, *qubit_reg_pairs: Tuple[QubitDesignator, Optional[MemoryReferenceDesignator]]) -> "Program":
+    def measure_all(self, *qubit_reg_pairs: tuple[QubitDesignator, Optional[MemoryReferenceDesignator]]) -> "Program":
         """Measures many qubits into their specified classical bits, in the order
         they were entered. If no qubit/register pairs are provided, measure all qubits present in
         the program into classical addresses of the same index.
@@ -654,7 +654,7 @@ class Program:
             if any(isinstance(q, FormalArgument) for q in qubits):
                 raise ValueError("Cannot call measure_all on a Program that contains FormalArguments.")
             # Help mypy determine that qubits does not contain any QubitPlaceholders.
-            qubit_inds = cast(List[int], qubits)
+            qubit_inds = cast(list[int], qubits)
             ro = self.declare("ro", "BIT", max(qubit_inds) + 1)
             for qi in qubit_inds:
                 self.inst(MEASURE(qi, ro[qi]))
@@ -748,7 +748,7 @@ class Program:
         memory_type: str = "BIT",
         memory_size: int = 1,
         shared_region: Optional[str] = None,
-        offsets: Optional[Sequence[Tuple[int, str]]] = None,
+        offsets: Optional[Sequence[tuple[int, str]]] = None,
     ) -> MemoryReference:
         """DECLARE a quil variable
 
@@ -812,7 +812,7 @@ class Program:
         version="4.0",
         reason="The indices flag will be removed. Use get_qubit_indices() instead.",
     )
-    def get_qubits(self, indices: bool = True) -> Union[Set[QubitDesignator], Set[int]]:
+    def get_qubits(self, indices: bool = True) -> Union[set[QubitDesignator], set[int]]:
         """Returns all of the qubit indices used in this program, including gate applications and
         allocated qubits. e.g.
 
@@ -836,7 +836,7 @@ class Program:
             return self.get_qubit_indices()
         return set(_convert_to_py_qubits(self._program.get_used_qubits()))
 
-    def get_qubit_indices(self) -> Set[int]:
+    def get_qubit_indices(self) -> set[int]:
         """Returns the index of each qubit used in the program. Will raise an exception if any of the
         qubits are placeholders.
         """
@@ -889,8 +889,8 @@ class Program:
     def calibrate(
         self,
         instruction: AbstractInstruction,
-        previously_calibrated_instructions: Optional[Set[AbstractInstruction]] = None,
-    ) -> List[AbstractInstruction]:
+        previously_calibrated_instructions: Optional[set[AbstractInstruction]] = None,
+    ) -> list[AbstractInstruction]:
         """Expand an instruction into its calibrated definition.
 
         If a calibration definition matches the provided instruction, then the definition
@@ -995,7 +995,7 @@ class Program:
         """
         return self._program.to_quil_or_debug()
 
-    def get_all_instructions(self) -> List[AbstractInstruction]:
+    def get_all_instructions(self) -> list[AbstractInstruction]:
         """Get _all_ instructions that makeup the program.
         """
         return _convert_to_py_instructions(self._program.to_instructions())
@@ -1031,13 +1031,13 @@ def merge_with_pauli_noise(
     return p
 
 
-def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int]]:
+def get_classical_addresses_from_program(program: Program) -> dict[str, list[int]]:
     """Returns a sorted list of classical addresses found in the MEASURE instructions in the program.
 
     :param program: The program from which to get the classical addresses.
     :return: A mapping from memory region names to lists of offsets appearing in the program.
     """
-    addresses: Dict[str, List[int]] = defaultdict(list)
+    addresses: dict[str, list[int]] = defaultdict(list)
     flattened_addresses = {}
 
     # Required to use the `classical_reg.address` int attribute.
@@ -1055,7 +1055,7 @@ def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int
     return flattened_addresses
 
 
-def address_qubits(program: Program, qubit_mapping: Optional[Dict[QubitPlaceholder, int]] = None) -> Program:
+def address_qubits(program: Program, qubit_mapping: Optional[dict[QubitPlaceholder, int]] = None) -> Program:
     """Takes a program which contains placeholders and assigns them all defined values.
     Either all qubits must be defined or all undefined. If qubits are
     undefined, you may provide a qubit mapping to specify how placeholders get mapped
@@ -1076,9 +1076,9 @@ def address_qubits(program: Program, qubit_mapping: Optional[Dict[QubitPlacehold
 
 def _get_label(
     placeholder: LabelPlaceholder,
-    label_mapping: Dict[LabelPlaceholder, Label],
+    label_mapping: dict[LabelPlaceholder, Label],
     label_i: int,
-) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
+) -> tuple[Label, dict[LabelPlaceholder, Label], int]:
     """Helper function to either get the appropriate label for a given placeholder or generate
     a new label and update the mapping.
     See :py:func:`instantiate_labels` for usage.
@@ -1092,14 +1092,14 @@ def _get_label(
     return new_target, label_mapping, label_i
 
 
-def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[AbstractInstruction]:
+def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> list[AbstractInstruction]:
     """Takes an iterable of instructions which may contain label placeholders and assigns
     them all defined values.
     :return: list of instructions with all label placeholders assigned to real labels.
     """
     label_i = 1
-    result: List[AbstractInstruction] = []
-    label_mapping: Dict[LabelPlaceholder, Label] = dict()
+    result: list[AbstractInstruction] = []
+    label_mapping: dict[LabelPlaceholder, Label] = dict()
     for instr in instructions:
         if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
             new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)

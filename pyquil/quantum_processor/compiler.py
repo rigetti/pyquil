@@ -1,4 +1,3 @@
-from typing import List
 
 import networkx as nx
 
@@ -22,5 +21,5 @@ class CompilerQuantumProcessor(AbstractQuantumProcessor):
     def to_compiler_isa(self) -> CompilerISA:
         return self._isa
 
-    def qubits(self) -> List[int]:
+    def qubits(self) -> list[int]:
         return sorted([int(node_id) for node_id, node in self._isa.qubits.items()])

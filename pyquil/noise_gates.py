@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from pyquil.external.rpcq import CompilerISA, Edge, GateInfo, Supported1QGate, Supported2QGate
 from pyquil.quilatom import Parameter, unpack_qubit
@@ -9,7 +9,7 @@ _log = logging.getLogger(__name__)
 THETA = Parameter("theta")
 
 
-def _get_qvm_noise_supported_gates(isa: CompilerISA) -> List[Gate]:
+def _get_qvm_noise_supported_gates(isa: CompilerISA) -> list[Gate]:
     """Generate the gate set associated with an ISA for which QVM noise is supported.
 
     :param isa: The instruction set architecture for a QPU.
@@ -59,7 +59,7 @@ def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, g
     return None
 
 
-def _transform_rpcq_edge_gate_info_to_qvm_noise_supported_gates(edge: Edge) -> List[Gate]:
+def _transform_rpcq_edge_gate_info_to_qvm_noise_supported_gates(edge: Edge) -> list[Gate]:
     operators = [gate.operator for gate in edge.gates]
     targets = [unpack_qubit(t) for t in edge.ids]
 

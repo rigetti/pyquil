@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 import networkx as nx
 
@@ -16,8 +16,8 @@ class NxQuantumProcessor(AbstractQuantumProcessor):
     def __init__(
         self,
         topology: nx.Graph,
-        gates_1q: Optional[List[str]] = None,
-        gates_2q: Optional[List[str]] = None,
+        gates_1q: Optional[list[str]] = None,
+        gates_2q: Optional[list[str]] = None,
     ) -> None:
         """Initialize a new NxQuantumProcessor.
 
@@ -40,8 +40,8 @@ class NxQuantumProcessor(AbstractQuantumProcessor):
         """
         return graph_to_compiler_isa(self.topology, gates_1q=self.gates_1q, gates_2q=self.gates_2q)
 
-    def qubits(self) -> List[int]:
+    def qubits(self) -> list[int]:
         return sorted(self.topology.nodes)
 
-    def edges(self) -> List[Tuple[Any, ...]]:
+    def edges(self) -> list[tuple[Any, ...]]:
         return sorted(tuple(sorted(pair)) for pair in self.topology.edges)

@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, cast
+from typing import Optional, Union, cast
 
 import networkx as nx
 import numpy as np
@@ -26,7 +26,7 @@ DEFAULT_2Q_GATES = [
 
 
 def graph_to_compiler_isa(
-    graph: nx.Graph, gates_1q: Optional[List[str]] = None, gates_2q: Optional[List[str]] = None
+    graph: nx.Graph, gates_1q: Optional[list[str]] = None, gates_2q: Optional[list[str]] = None
 ) -> CompilerISA:
     """Generate an ``CompilerISA`` object from a NetworkX graph and list of 1Q and 2Q gates.
     May raise ``GraphGateError`` if the specified gates are not supported.
@@ -77,70 +77,70 @@ class GraphGateError(ValueError):
     pass
 
 
-def _make_i_gates() -> List[GateInfo]:
+def _make_i_gates() -> list[GateInfo]:
     return [GateInfo(operator=Supported1QGate.I, parameters=[], arguments=["_"])]
 
 
-def _make_measure_gates() -> List[MeasureInfo]:
+def _make_measure_gates() -> list[MeasureInfo]:
     return [
         MeasureInfo(operator=Supported1QGate.MEASURE, qubit="_", target="_"),
         MeasureInfo(operator=Supported1QGate.MEASURE, qubit="_", target=None),
     ]
 
 
-def _make_rx_gates() -> List[GateInfo]:
+def _make_rx_gates() -> list[GateInfo]:
     gates = []
     for param in [0.0, np.pi, -np.pi, np.pi / 2, -np.pi / 2]:
         gates.append(GateInfo(operator=Supported1QGate.RX, parameters=[param], arguments=["_"]))
     return gates
 
 
-def _make_rz_gates() -> List[GateInfo]:
+def _make_rz_gates() -> list[GateInfo]:
     return [GateInfo(operator=Supported1QGate.RZ, parameters=["theta"], arguments=["_"])]
 
 
-def _make_wildcard_1q_gates() -> List[GateInfo]:
+def _make_wildcard_1q_gates() -> list[GateInfo]:
     return [GateInfo(operator="_", parameters=["_"], arguments=["_"])]
 
 
 def _transform_qubit_operation_to_gates(
     operation_name: str,
-) -> List[Union[GateInfo, MeasureInfo]]:
+) -> list[Union[GateInfo, MeasureInfo]]:
     if operation_name == Supported1QGate.I:
-        return cast(List[Union[GateInfo, MeasureInfo]], _make_i_gates())
+        return cast(list[Union[GateInfo, MeasureInfo]], _make_i_gates())
     elif operation_name == Supported1QGate.RX:
-        return cast(List[Union[GateInfo, MeasureInfo]], _make_rx_gates())
+        return cast(list[Union[GateInfo, MeasureInfo]], _make_rx_gates())
     elif operation_name == Supported1QGate.RZ:
-        return cast(List[Union[GateInfo, MeasureInfo]], _make_rz_gates())
+        return cast(list[Union[GateInfo, MeasureInfo]], _make_rz_gates())
     elif operation_name == Supported1QGate.MEASURE:
-        return cast(List[Union[GateInfo, MeasureInfo]], _make_measure_gates())
+        return cast(list[Union[GateInfo, MeasureInfo]], _make_measure_gates())
     elif operation_name == Supported1QGate.WILDCARD:
-        return cast(List[Union[GateInfo, MeasureInfo]], _make_wildcard_1q_gates())
+        return cast(list[Union[GateInfo, MeasureInfo]], _make_wildcard_1q_gates())
     else:
         raise GraphGateError(f"Unsupported graph qubit operation: {operation_name}")
 
 
-def _make_cz_gates() -> List[GateInfo]:
+def _make_cz_gates() -> list[GateInfo]:
     return [GateInfo(operator=Supported2QGate.CZ, parameters=[], arguments=["_", "_"])]
 
 
-def _make_iswap_gates() -> List[GateInfo]:
+def _make_iswap_gates() -> list[GateInfo]:
     return [GateInfo(operator=Supported2QGate.ISWAP, parameters=[], arguments=["_", "_"])]
 
 
-def _make_cphase_gates() -> List[GateInfo]:
+def _make_cphase_gates() -> list[GateInfo]:
     return [GateInfo(operator=Supported2QGate.CPHASE, parameters=["theta"], arguments=["_", "_"])]
 
 
-def _make_xy_gates() -> List[GateInfo]:
+def _make_xy_gates() -> list[GateInfo]:
     return [GateInfo(operator=Supported2QGate.XY, parameters=["theta"], arguments=["_", "_"])]
 
 
-def _make_wildcard_2q_gates() -> List[GateInfo]:
+def _make_wildcard_2q_gates() -> list[GateInfo]:
     return [GateInfo(operator="_", parameters=["_"], arguments=["_", "_"])]
 
 
-def _transform_edge_operation_to_gates(operation_name: str) -> List[GateInfo]:
+def _transform_edge_operation_to_gates(operation_name: str) -> list[GateInfo]:
     if operation_name == Supported2QGate.CZ:
         return _make_cz_gates()
     elif operation_name == Supported2QGate.ISWAP:

@@ -148,7 +148,7 @@ class PauliTerm:
         if op not in PAULI_OPS:
             raise ValueError(f"{op} is not a valid Pauli operator")
 
-        self._ops: Dict[PauliTargetDesignator, str] = OrderedDict()
+        self._ops: dict[PauliTargetDesignator, str] = OrderedDict()
         if op != "I":
             if not _valid_qubit(index):
                 raise ValueError(f"{index} is not a valid qubit")
@@ -200,7 +200,7 @@ class PauliTerm:
         else:
             return "".join(f"{p}{q}" for q, p in self._ops.items())
 
-    def operations_as_set(self) -> FrozenSet[Tuple[PauliTargetDesignator, str]]:
+    def operations_as_set(self) -> FrozenSet[tuple[PauliTargetDesignator, str]]:
         """Return a frozenset of operations in this term.
 
         Use this in place of :py:func:`id` if the order of operations in the term does not
@@ -255,14 +255,14 @@ class PauliTerm:
     def program(self) -> Program:
         return Program([QUANTUM_GATES[gate](q) for q, gate in self])
 
-    def get_qubits(self) -> List[PauliTargetDesignator]:
+    def get_qubits(self) -> list[PauliTargetDesignator]:
         """Gets all the qubits that this PauliTerm operates on."""
         return list(self._ops.keys())
 
     def __getitem__(self, i: PauliTargetDesignator) -> str:
         return self._ops.get(i, "I")
 
-    def __iter__(self) -> Iterator[Tuple[PauliTargetDesignator, str]]:
+    def __iter__(self) -> Iterator[tuple[PauliTargetDesignator, str]]:
         for i in self.get_qubits():
             yield i, self[i]
 
@@ -392,7 +392,7 @@ class PauliTerm:
 
     @classmethod
     def from_list(
-        cls, terms_list: Sequence[Tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
+        cls, terms_list: Sequence[tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
     ) -> "PauliTerm":
         """Allocates a Pauli Term from a list of operators and indices. This is more efficient than
         multiplying together individual terms.
@@ -574,10 +574,10 @@ class PauliSum:
     def _from_rs_pauli_sum(cls, pauli_sum: quil_rs.PauliSum) -> "PauliSum":
         return cls([PauliTerm._from_rs_pauli_term(term) for term in pauli_sum.terms])
 
-    def _to_rs_pauli_sum(self, arguments: Optional[List[PauliTargetDesignator]] = None) -> quil_rs.PauliSum:
-        rs_arguments: List[str]
+    def _to_rs_pauli_sum(self, arguments: Optional[list[PauliTargetDesignator]] = None) -> quil_rs.PauliSum:
+        rs_arguments: list[str]
         if arguments is None:
-            argument_set: Dict[str, None] = {}
+            argument_set: dict[str, None] = {}
             for term_arguments in [term.get_qubits() for term in self.terms]:
                 argument_set.update({str(arg): None for arg in term_arguments})
             rs_arguments = list(argument_set.keys())
@@ -631,14 +631,14 @@ class PauliSum:
         if not isinstance(other, (Expression, Number, PauliTerm, PauliSum)):
             raise ValueError("Cannot multiply PauliSum by term that is not a Number, PauliTerm, or PauliSum")
 
-        other_terms: List[Union[PauliTerm, ExpressionDesignator]] = []
+        other_terms: list[Union[PauliTerm, ExpressionDesignator]] = []
         if isinstance(other, PauliSum):
             other_terms += other.terms
         else:
             other_terms += [other]
 
         new_terms = [lterm * rterm for lterm, rterm in product(self.terms, other_terms)]
-        new_sum = PauliSum(cast(List[PauliTerm], new_terms))
+        new_sum = PauliSum(cast(list[PauliTerm], new_terms))
         return new_sum.simplify()
 
     def __rmul__(self, other: ExpressionDesignator) -> "PauliSum":
@@ -726,12 +726,12 @@ class PauliSum:
         """
         return other + -1.0 * self
 
-    def get_qubits(self) -> List[PauliTargetDesignator]:
+    def get_qubits(self) -> list[PauliTargetDesignator]:
         """The support of all the operators in the PauliSum object.
 
         :returns: A list of all the qubits in the sum of terms.
         """
-        all_qubits: Set[PauliTargetDesignator] = set()
+        all_qubits: set[PauliTargetDesignator] = set()
         for term in self.terms:
             all_qubits.update(term.get_qubits())
         return _convert_to_py_qubits(set(all_qubits))
@@ -741,7 +741,7 @@ class PauliSum:
         """
         return simplify_pauli_sum(self)
 
-    def get_programs(self) -> Tuple[List[Program], np.ndarray]:
+    def get_programs(self) -> tuple[list[Program], np.ndarray]:
         """Get a Pyquil Program corresponding to each term in the PauliSum and a coefficient
         for each program
 
@@ -781,7 +781,7 @@ def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
     """
     # You might want to use a defaultdict(list) here, but don't because
     # we want to do our best to preserve the order of terms.
-    like_terms: Dict[Hashable, List[PauliTerm]] = OrderedDict()
+    like_terms: dict[Hashable, list[PauliTerm]] = OrderedDict()
     for term in pauli_sum.terms:
         key = term.operations_as_set()
         if key in like_terms:
@@ -827,7 +827,7 @@ def check_commutation(pauli_list: Sequence[PauliTerm], pauli_two: PauliTerm) -> 
     return True
 
 
-def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
+def commuting_sets(pauli_terms: PauliSum) -> list[list[PauliTerm]]:
     """Gather the Pauli terms of pauli_terms variable into commuting sets
 
     Uses algorithm defined in (Raeisi, Wiebe, Sanders, arXiv:1108.4318, 2011)
@@ -1037,7 +1037,7 @@ def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
     return quil_prog
 
 
-def suzuki_trotter(trotter_order: int, trotter_steps: int) -> List[Tuple[float, int]]:
+def suzuki_trotter(trotter_order: int, trotter_steps: int) -> list[tuple[float, int]]:
     """Generate trotterization coefficients for a given number of Trotter steps.
 
     U = exp(A + B) is approximated as exp(w1*o1)exp(w2*o2)... This method returns
@@ -1055,7 +1055,7 @@ def suzuki_trotter(trotter_order: int, trotter_steps: int) -> List[Tuple[float, 
     """
     p1 = p2 = p4 = p5 = 1.0 / (4 - (4 ** (1.0 / 3)))
     p3 = 1 - 4 * p1
-    trotter_dict: Dict[int, List[Tuple[float, int]]] = {
+    trotter_dict: dict[int, list[tuple[float, int]]] = {
         1: [(1, 0), (1, 1)],
         2: [(0.5, 0), (1, 1), (0.5, 0)],
         3: [

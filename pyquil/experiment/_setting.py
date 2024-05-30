@@ -20,7 +20,7 @@ import logging
 import re
 from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Any, FrozenSet, List, Optional, cast
+from typing import Any, FrozenSet, Optional, cast
 
 from pyquil.paulis import PauliTerm, sI
 
@@ -57,7 +57,7 @@ class TensorProductState:
     states.
     """
 
-    states: List[_OneQState]
+    states: list[_OneQState]
 
     def __init__(self, states: Optional[Iterable[_OneQState]] = None):
         if states is None:
@@ -171,13 +171,13 @@ class ExperimentSetting:
 
     in_state: TensorProductState
     out_operator: PauliTerm
-    additional_expectations: Optional[List[List[int]]] = None
+    additional_expectations: Optional[list[list[int]]] = None
 
     def __init__(
         self,
         in_state: TensorProductState,
         out_operator: PauliTerm,
-        additional_expectations: Optional[List[List[int]]] = None,
+        additional_expectations: Optional[list[list[int]]] = None,
     ):
         object.__setattr__(self, "in_state", in_state)
         object.__setattr__(self, "out_operator", out_operator)

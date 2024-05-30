@@ -1,11 +1,11 @@
 import json
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 from deprecated.sphinx import deprecated
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
-JsonValue = Union[type(None), bool, int, float, str, List["JsonValue"], Dict[str, "JsonValue"]]
+JsonValue = Union[type(None), bool, int, float, str, list["JsonValue"], dict[str, "JsonValue"]]
 
 
 @dataclass
@@ -18,7 +18,7 @@ class Operator:
         self.duration = float(self.duration) if self.duration is not None else None
         self.fidelity = float(self.fidelity) if self.fidelity is not None else None
 
-    def _dict(self) -> Dict[str, JsonValue]:
+    def _dict(self) -> dict[str, JsonValue]:
         if type(self) is Operator:
             raise ValueError("Should be a subclass")
         return dict(
@@ -35,7 +35,7 @@ class Operator:
         return self._dict()
 
     @classmethod
-    def _parse_obj(cls, dictionary: Dict):
+    def _parse_obj(cls, dictionary: dict):
         return Operator(**dictionary)
 
     @classmethod
@@ -43,7 +43,7 @@ class Operator:
         version="4.6.2",
         reason="No longer requires serialization of RPCQ objects and is dropping Pydantic as a dependency.",  # noqa: E501
     )
-    def parse_obj(cls, dictionary: Dict):
+    def parse_obj(cls, dictionary: dict):
         return cls._parse_obj(dictionary)
 
 
@@ -56,7 +56,7 @@ class MeasureInfo(Operator):
     def __post_init__(self):
         self.qubit = str(self.qubit)
 
-    def _dict(self) -> Dict[str, JsonValue]:
+    def _dict(self) -> dict[str, JsonValue]:
         return dict(
             operator_type=self.operator_type,
             operator=self.operator,
@@ -74,7 +74,7 @@ class MeasureInfo(Operator):
         return self._dict()
 
     @classmethod
-    def _parse_obj(cls, dictionary: Dict) -> "MeasureInfo":
+    def _parse_obj(cls, dictionary: dict) -> "MeasureInfo":
         return MeasureInfo(
             operator=dictionary.get("operator"),
             duration=dictionary.get("duration"),
@@ -88,17 +88,17 @@ class MeasureInfo(Operator):
         version="4.6.2",
         reason="No longer requires serialization of RPCQ objects and is dropping Pydantic as a dependency.",  # noqa: E501
     )
-    def parse_obj(cls, dictionary: Dict):
+    def parse_obj(cls, dictionary: dict):
         return cls._parse_obj(dictionary)
 
 
 @dataclass
 class GateInfo(Operator):
-    parameters: List[Union[float, str]] = field(default_factory=list)
-    arguments: List[Union[int, str]] = field(default_factory=list)
+    parameters: list[Union[float, str]] = field(default_factory=list)
+    arguments: list[Union[int, str]] = field(default_factory=list)
     operator_type: Literal["gate"] = "gate"
 
-    def _dict(self) -> Dict[str, JsonValue]:
+    def _dict(self) -> dict[str, JsonValue]:
         return dict(
             operator_type=self.operator_type,
             operator=self.operator,
@@ -130,7 +130,7 @@ class GateInfo(Operator):
         version="4.6.2",
         reason="No longer requires serialization of RPCQ objects and is dropping Pydantic as a dependency.",  # noqa: E501
     )
-    def parse_obj(cls, dictionary: Dict):
+    def parse_obj(cls, dictionary: dict):
         return cls._parse_obj(dictionary)
 
 
@@ -147,9 +147,9 @@ def _parse_operator(dictionary: dict) -> Union[GateInfo, MeasureInfo]:
 class Qubit:
     id: int
     dead: Optional[bool] = False
-    gates: List[Union[GateInfo, MeasureInfo]] = field(default_factory=list)
+    gates: list[Union[GateInfo, MeasureInfo]] = field(default_factory=list)
 
-    def _dict(self) -> Dict[str, JsonValue]:
+    def _dict(self) -> dict[str, JsonValue]:
         encoding = dict(id=self.id, gates=[g._dict() for g in self.gates])
         if self.dead:
             encoding["dead"] = self.dead
@@ -163,7 +163,7 @@ class Qubit:
         return self._dict()
 
     @classmethod
-    def _parse_obj(cls, dictionary: Dict) -> "Qubit":
+    def _parse_obj(cls, dictionary: dict) -> "Qubit":
         return Qubit(
             id=dictionary["id"],
             dead=bool(dictionary.get("dead")),
@@ -175,17 +175,17 @@ class Qubit:
         version="4.6.2",
         reason="No longer requires serialization of RPCQ objects and is dropping Pydantic as a dependency.",  # noqa: E501
     )
-    def parse_obj(cls, dictionary: Dict):
+    def parse_obj(cls, dictionary: dict):
         return cls._parse_obj(dictionary)
 
 
 @dataclass
 class Edge:
-    ids: List[int]
+    ids: list[int]
     dead: Optional[bool] = False
-    gates: List[GateInfo] = field(default_factory=list)
+    gates: list[GateInfo] = field(default_factory=list)
 
-    def _dict(self) -> Dict[str, JsonValue]:
+    def _dict(self) -> dict[str, JsonValue]:
         encoding = dict(ids=self.ids, gates=[g._dict() for g in self.gates])
         if self.dead:
             encoding["dead"] = self.dead
@@ -211,16 +211,16 @@ class Edge:
         version="4.6.2",
         reason="No longer requires serialization of RPCQ objects and is dropping Pydantic as a dependency.",  # noqa: E501
     )
-    def parse_obj(cls, dictionary: Dict):
+    def parse_obj(cls, dictionary: dict):
         return cls._parse_obj(dictionary)
 
 
 @dataclass
 class CompilerISA:
-    qubits: Dict[str, Qubit] = field(default_factory=dict)
-    edges: Dict[str, Edge] = field(default_factory=dict)
+    qubits: dict[str, Qubit] = field(default_factory=dict)
+    edges: dict[str, Edge] = field(default_factory=dict)
 
-    def _dict(self, by_alias=False) -> Dict[str, JsonValue]:
+    def _dict(self, by_alias=False) -> dict[str, JsonValue]:
         return {
             "1Q" if by_alias else "qubits": {k: q._dict() for k, q in self.qubits.items()},
             "2Q" if by_alias else "edges": {k: e._dict() for k, e in self.edges.items()},
@@ -234,7 +234,7 @@ class CompilerISA:
         return self._dict(by_alias=by_alias)
 
     @classmethod
-    def _parse_obj(cls, dictionary: Dict):
+    def _parse_obj(cls, dictionary: dict):
         qubit_dict = dictionary.get("1Q", {})
         edge_dict = dictionary.get("2Q", {})
         return CompilerISA(
@@ -247,7 +247,7 @@ class CompilerISA:
         version="4.6.2",
         reason="No longer requires serialization of RPCQ objects and is dropping Pydantic as a dependency.",  # noqa: E501
     )
-    def parse_obj(cls, dictionary: Dict):
+    def parse_obj(cls, dictionary: dict):
         return cls._parse_obj(dictionary)
 
     @classmethod

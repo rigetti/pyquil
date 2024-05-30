@@ -15,7 +15,7 @@
 ##############################################################################
 from collections.abc import Mapping, Sequence
 from numbers import Real
-from typing import Callable, Optional, Tuple, Union, no_type_check
+from typing import Callable, Optional, Union, no_type_check
 
 import numpy as np
 from deprecated.sphinx import deprecated, versionadded
@@ -81,7 +81,7 @@ from pyquil.quilbase import (
 def unpack_reg_val_pair(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: Union[MemoryReferenceDesignator, int, float],
-) -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
+) -> tuple[MemoryReference, Union[MemoryReference, int, float]]:
     """Helper function for typechecking / type-coercing arguments to constructors for binary classical
     operators.
 
@@ -100,7 +100,7 @@ def prepare_ternary_operands(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
-) -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
+) -> tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
     """Helper function for typechecking / type-coercing arguments to constructors for ternary
     classical operators.
 
@@ -686,7 +686,7 @@ def DECLARE(
     memory_type: str = "BIT",
     memory_size: int = 1,
     shared_region: Optional[str] = None,
-    offsets: Optional[Sequence[Tuple[int, str]]] = None,
+    offsets: Optional[Sequence[tuple[int, str]]] = None,
 ) -> Declare:
     return Declare(
         name=name,

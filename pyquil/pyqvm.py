@@ -16,7 +16,7 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Optional, Type, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -134,7 +134,7 @@ class AbstractQuantumSimulator(ABC):
         """
 
     @abstractmethod
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "AbstractQuantumSimulator":
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: list[int]) -> "AbstractQuantumSimulator":
         """Apply noise that happens after each gate application.
 
         WARNING! This is experimental and the signature of this interface will likely change.
@@ -152,7 +152,7 @@ class PyQVM(QAM["PyQVM"]):
         n_qubits: int,
         quantum_simulator_type: Optional[Type[AbstractQuantumSimulator]] = None,
         seed: Optional[int] = None,
-        post_gate_noise_probabilities: Optional[Dict[str, float]] = None,
+        post_gate_noise_probabilities: Optional[dict[str, float]] = None,
     ):
         """PyQuil's built-in Quil virtual machine.
 
@@ -183,7 +183,7 @@ class PyQVM(QAM["PyQVM"]):
                 quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
-        self.ram: Dict[str, List[Union[float, int]]] = {}
+        self.ram: dict[str, list[Union[float, int]]] = {}
 
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
@@ -191,10 +191,10 @@ class PyQVM(QAM["PyQVM"]):
 
         self.program: Optional[Program] = None
         self.program_counter: int = 0
-        self.defined_gates: Dict[str, np.ndarray] = dict()
+        self.defined_gates: dict[str, np.ndarray] = dict()
 
         # private implementation details
-        self._qubit_to_ram: Optional[Dict[int, int]] = None
+        self._qubit_to_ram: Optional[dict[int, int]] = None
         self._ro_size: Optional[int] = None
         self._memory_results = {}  # type: ignore
 
@@ -214,7 +214,7 @@ class PyQVM(QAM["PyQVM"]):
 
     def execute_with_memory_map_batch(
         self, executable: QuantumExecutable, memory_maps: Iterable[MemoryMap], **__: Any
-    ) -> List["PyQVM"]:
+    ) -> list["PyQVM"]:
         raise NotImplementedError(
             "PyQVM does not support batch execution as the state of the instance is reset at the start of each execute."
         )
