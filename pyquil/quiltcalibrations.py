@@ -1,3 +1,4 @@
+"""A module containing utilities for working with Quil-T calibrations."""
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Optional, Union
@@ -22,15 +23,21 @@ from pyquil.quilbase import (
 
 
 class CalibrationError(Exception):
+    """Base class for calibration errors."""
+
     pass
 
 
 class CalibrationDoesntMatch(CalibrationError):
+    """Raised when a calibration doesn't match an instruction."""
+
     pass
 
 
 @dataclass
 class CalibrationMatch:
+    """A match between a calibration definition and an instruction."""
+
     cal: Union[DefCalibration, DefMeasureCalibration]
     settings: dict[Union[QubitDesignator, ExpressionDesignator], Any]
 

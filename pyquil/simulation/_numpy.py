@@ -79,7 +79,7 @@ def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: list[int])
         output_indices[t] = w
 
     # TODO: `out` does not work if input matrices share memory with outputs, as is usually
-    # TODO: the case when propogating a wavefunction. This might be fixed in numpy 1.15
+    # TODO: the case when propagating a wavefunction. This might be fixed in numpy 1.15
     # https://github.com/numpy/numpy/pull/11286
     # It might be worth re-investigating memory savings with `out` when numpy 1.15 becomes
     # commonplace.
@@ -103,7 +103,8 @@ def targeted_tensordot(gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequenc
 
     # the indices we want to sum over are the final half
     gate_inds = np.arange(gate_n_qubits, 2 * gate_n_qubits)
-    assert len(wf_target_inds) == len(gate_inds), (wf_target_inds, gate_inds)
+    if len(wf_target_inds) != len(gate_inds):
+        raise ValueError(f"Length mismatch: wf_target_inds={wf_target_inds}, gate_inds={gate_inds}")
     wf = np.tensordot(gate, wf, (gate_inds, wf_target_inds))
 
     # tensordot dumps "output" indices into 0, 1, .. gate_n_qubits
@@ -164,7 +165,8 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
     # Computes <psi|XYZ..XXZ|psi>
     wf2 = wf
     for qubit_i, op_str in term._ops.items():
-        assert isinstance(qubit_i, int)
+        if not isinstance(qubit_i, int):
+            raise ValueError("Only PauliTerms with integer qubits are supported.")
         # Re-use QUANTUM_GATES since it has X, Y, Z
         op_mat = QUANTUM_GATES[op_str]
         wf2 = targeted_tensordot(gate=op_mat, wf=wf2, wf_target_inds=[qubit_i])
@@ -176,7 +178,7 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
 
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
-        """A wavefunction simulator that uses numpy's tensordot or einsum to update a state vector
+        """Initialize a wavefunction simulator that uses numpy's tensordot or einsum to update a state vector.
 
         Please consider using
         :py:class:`PyQVM(..., quantum_simulator_type=NumpyWavefunctionSimulator)` rather
@@ -190,8 +192,6 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
-        super().__init__(n_qubits=n_qubits, rs=rs)
-
         self.n_qubits = n_qubits
         self.rs = rs
 

@@ -13,8 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Module containing the Wavefunction object and methods for working with wavefunctions.
-"""
+"""Module containing the Wavefunction object and methods for working with wavefunctions."""
 import itertools
 from collections.abc import Iterator, Sequence
 from typing import Optional, cast
@@ -26,8 +25,7 @@ OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 
 class Wavefunction:
-    """Encapsulate a wavefunction representing a quantum state
-    as returned by :py:class:`~pyquil.api.WavefunctionSimulator`.
+    """Encapsulate a wavefunction representing a quantum state as returned by :py:class:`~pyquil.api.WavefunctionSimulator`.
 
     .. note::
 
@@ -39,7 +37,7 @@ class Wavefunction:
     """
 
     def __init__(self, amplitude_vector: np.ndarray):
-        """Initializes a wavefunction
+        """Initialize a Wavefunction.
 
         :param amplitude_vector: A numpy array of complex amplitudes
         """
@@ -55,7 +53,7 @@ class Wavefunction:
 
     @staticmethod
     def zeros(qubit_num: int) -> "Wavefunction":
-        """Constructs the groundstate wavefunction for a given number of qubits.
+        """Construct the groundstate wavefunction for a given number of qubits.
 
         :param qubit_num:
         :return: A Wavefunction in the ground state
@@ -66,7 +64,8 @@ class Wavefunction:
 
     @staticmethod
     def from_bit_packed_string(coef_string: bytes) -> "Wavefunction":
-        """From a bit packed string, unpacks to get the wavefunction
+        """Unpack the bit string to get a Wavefunction.
+
         :param coef_string:
         """
         num_cfloat = len(coef_string) // OCTETS_PER_COMPLEX_DOUBLE
@@ -89,12 +88,11 @@ class Wavefunction:
         return self.pretty_print(decimal_digits=10)
 
     def probabilities(self) -> np.ndarray:
-        """Returns an array of probabilities in lexicographical order"""
+        """Return an array of probabilities in lexicographical order."""
         return np.abs(self.amplitudes) ** 2  # type: ignore
 
     def get_outcome_probs(self) -> dict[str, float]:
-        """Parses a wavefunction (array of complex amplitudes) and returns a dictionary of
-        outcomes and associated probabilities.
+        """Parse a wavefunction (array of complex amplitudes) and return a dictionary of outcomes and associated probabilities.
 
         :return: A dict with outcomes as keys and probabilities as values.
         :rtype: dict
@@ -125,9 +123,10 @@ class Wavefunction:
         return outcome_dict
 
     def pretty_print(self, decimal_digits: int = 2) -> str:
-        """Returns a string repr of the wavefunction, ignoring all outcomes with approximately zero
-        amplitude (up to a certain number of decimal digits) and rounding the amplitudes to
-        decimal_digits.
+        """Return a more human-friendly string representation of the wavefunction.
+
+        Ignores all outcomes with approximately zero amplitude (up to a certain number of decimal digits) and rounding
+        the amplitudes to decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
         :return: A string representation of the wavefunction.
@@ -146,9 +145,7 @@ class Wavefunction:
         return pp_string
 
     def plot(self, qubit_subset: Optional[Sequence[int]] = None) -> None:
-        """TODO: calling this will error because of matplotlib
-
-        Plots a bar chart with bitstring on the x axis and probability on the y axis.
+        """Plot a bar chart with bitstring on the x-axis and probability on the y-axis.
 
         :param qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.
         """
@@ -181,7 +178,8 @@ class Wavefunction:
 
 
 def get_bitstring_from_index(index: int, qubit_num: int) -> str:
-    """Returns the bitstring in lexical order that corresponds to the given index in 0 to 2^(qubit_num)
+    """Get the bitstring in lexical order that corresponds to the given index in 0 to 2^(qubit_num).
+
     :param int index:
     :param int qubit_num:
     :return: the bitstring

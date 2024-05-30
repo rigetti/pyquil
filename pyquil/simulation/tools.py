@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+"""Miscellaneous tools that are helpful for simulation."""
 from collections.abc import Sequence
 from typing import Union, cast
 
@@ -49,8 +50,7 @@ def all_bitstrings(n_bits: int) -> np.ndarray:
 
 
 def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.ndarray:
-    """Lifts input k-qubit gate on adjacent qubits starting from qubit i
-    to complete Hilbert space of dimension 2 ** num_qubits.
+    """Lift k-qubit gate on adjacent qubits from qubit i to complete Hilbert space of dimension 2 ** num_qubits.
 
     Ex: 1-qubit gate, lifts from qubit i
     Ex: 2-qubit gate, lifts from qubits (i+1, i)
@@ -77,9 +77,11 @@ def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.
         complete Hilbert space of all num_qubits.
     """
     n_rows, n_cols = matrix.shape
-    assert n_rows == n_cols, "Matrix must be square"
+    if n_rows != n_cols:
+        raise ValueError("Matrix must be square")
     gate_size = np.log2(n_rows)
-    assert gate_size == int(gate_size), "Matrix must be 2^n by 2^n"
+    if gate_size != int(gate_size):
+        raise ValueError("Matrix must be 2^n by 2^n")
     gate_size = int(gate_size)
 
     # Outer-product to lift gate to complete Hilbert space
@@ -94,8 +96,7 @@ def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.
 
 
 def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Generate the permutation matrix that permutes two single-particle Hilbert
-    spaces into adjacent positions.
+    """Generate the permutation matrix that permutes two single-particle Hilbert spaces into adjacent positions.
 
     ALWAYS swaps j TO k. Recall that Hilbert spaces are ordered in decreasing
     qubit index order. Hence, j > k implies that j is to the left of k.
@@ -139,8 +140,7 @@ def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> t
 
 
 def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> tuple[np.ndarray, np.ndarray, int]:
-    """Generate the permutation matrix that permutes an arbitrary number of
-    single-particle Hilbert spaces into adjacent positions.
+    """Generate the permutation matrix that permutes an arbitrary number of single-particle Hilbert spaces into adjacent positions.
 
     Transposes the qubit indices in the order they are passed to a
     contiguous region in the complete Hilbert space, in increasing
@@ -215,13 +215,13 @@ def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> tuple[np.
         # for next iteration, go in opposite direction
         right = not right
 
-    assert np.allclose(qubit_arr[final_map[-1] : final_map[0] + 1][::-1], qubit_inds)
+    if not np.allclose(qubit_arr[final_map[-1] : final_map[0] + 1][::-1], qubit_inds):
+        raise ValueError("Permutation matrix not constructed correctly")
     return perm, qubit_arr[::-1], start_i
 
 
 def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: Sequence[int], n_qubits: int) -> np.ndarray:
-    """Lift a unitary matrix to act on the specified qubits in a full ``n_qubits``-qubit
-    Hilbert space.
+    """Lift a unitary matrix to act on the specified qubits in a full ``n_qubits``-qubit Hilbert space.
 
     For 1-qubit gates, this is easy and can be achieved with appropriate kronning of identity
     matrices. For 2-qubit gates acting on adjacent qubit indices, it is also easy. However,
@@ -234,9 +234,11 @@ def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: Sequence[int], n_qubits: 
     :return: A 2^n by 2^n lifted version of the unitary matrix acting on the specified qubits.
     """
     n_rows, n_cols = matrix.shape
-    assert n_rows == n_cols, "Matrix must be square"
+    if n_rows != n_cols:
+        raise ValueError("Matrix must be square")
     gate_size = np.log2(n_rows)
-    assert gate_size == int(gate_size), "Matrix must be 2^n by 2^n"
+    if gate_size != int(gate_size):
+        raise ValueError("Matrix must be 2^n by 2^n")
     gate_size = int(gate_size)
 
     pi_permutation_matrix, final_map, start_i = permutation_arbitrary(qubit_inds, n_qubits)
@@ -299,7 +301,8 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
                 matrix = _gate_matrix(child)
                 return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)  # type: ignore
             elif mod == "FORKED":
-                assert len(gate.params) % 2 == 0
+                if len(gate.params) % 2 != 0:
+                    raise ValueError("FORKED gates must have an even number of parameters.")
                 p0, p1 = gate.params[: len(gate.params) // 2], gate.params[len(gate.params) // 2 :]
                 child = _strip_modifiers(gate, limit=1)
                 # handle the first half of the FORKED params
@@ -339,9 +342,7 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
 
 
 def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.ndarray:
-    """Takes a PauliSum object along with a list of
-    qubits and returns a matrix corresponding the tensor representation of the
-    object.
+    """Return a matrix corresponding to the tensor representation of the given PauliSum and qubits.
 
     Useful for generating the full Hamiltonian after a particular fermion to
     pauli transformation. For example:
@@ -380,9 +381,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np
 
 
 def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.ndarray:
-    """Takes a PauliSum object along with a list of
-    qubits and returns a matrix corresponding the tensor representation of the
-    object.
+    """Return a matrix corresponding to the tensor representation of the given PauliSum and qubits.
 
     This is the same as :py:func:`lifted_pauli`. Nick R originally wrote this functionality
     and really likes the name ``tensor_up``. Who can blame him?
@@ -395,8 +394,7 @@ def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.nd
 
 
 def lifted_state_operator(state: TensorProductState, qubits: list[int]) -> np.ndarray:
-    """Take a TensorProductState along with a list of qubits and return a matrix
-    corresponding to the tensored-up representation of the states' density operator form.
+    """Return a matrix corresponding to the tensored-up representation of the given state and qubits.
 
     Developer note: Quil and the QVM like qubits to be ordered such that qubit 0 is on the right.
     Therefore, in ``qubit_adjacent_lifted_gate``, ``lifted_pauli``, and ``lifted_state_operator``,
@@ -408,7 +406,8 @@ def lifted_state_operator(state: TensorProductState, qubits: list[int]) -> np.nd
     mat: np.ndarray = np.eye(1)
     for qubit in qubits:
         oneq_state = state[qubit]
-        assert oneq_state.qubit == qubit
+        if oneq_state.qubit != qubit:
+            raise ValueError(f"State qubit mismatch: {oneq_state.qubit} != {qubit}")
         state_vector = STATES[oneq_state.label][oneq_state.index][:, np.newaxis]
         state_matrix = state_vector @ state_vector.conj().T
         mat = np.kron(state_matrix, mat)
@@ -416,8 +415,7 @@ def lifted_state_operator(state: TensorProductState, qubits: list[int]) -> np.nd
 
 
 def scale_out_phase(unitary1: np.ndarray, unitary2: np.ndarray) -> np.ndarray:
-    """Returns a matrix m equal to unitary1/θ where ɑ satisfies unitary2
-    = e^(iθ)·unitary1.
+    """Return a matrix m equal to unitary1/θ where ɑ satisfies unitary2 = e^(iθ)·unitary1.
 
     :param unitary1: The unitary matrix from which the constant of
         proportionality should be scaled-out.
@@ -440,6 +438,7 @@ def scale_out_phase(unitary1: np.ndarray, unitary2: np.ndarray) -> np.ndarray:
 
 def unitary_equal(A: np.ndarray, B: np.ndarray) -> bool:
     """Check if two matrices are unitarily equal."""
-    assert A.shape == B.shape
+    if A.shape != B.shape:
+        raise ValueError("Matrices must have the same shape")
     dim = A.shape[0]
     return np.allclose(np.abs(np.trace(A.T.conjugate() @ B) / dim), 1.0)

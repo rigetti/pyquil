@@ -31,7 +31,8 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm, n_qubits: int) -> Any:
     # Computes <psi|XYZ..XXZ|psi>
     wf2 = wf
     for qubit_i, op_str in term._ops.items():
-        assert isinstance(qubit_i, int)
+        if not isinstance(qubit_i, int):
+            raise TypeError("Operation only supported for on PauliTerms with integer qubits.")
         # Re-use QUANTUM_GATES since it has X, Y, Z
         op_mat = QUANTUM_GATES[op_str]
         op_mat = lifted_gate_matrix(matrix=op_mat, qubit_inds=[qubit_i], n_qubits=n_qubits)
@@ -46,8 +47,9 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm, n_qubits: int) -> Any:
 
 
 def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol: float = 1e-08) -> bool:
-    """Checks if a quantum state is valid, i.e. the matrix is Hermitian; trace one, and that the
-    eigenvalues are non-negative.
+    """Check if a quantum state is valid.
+
+    That is, the matrix is Hermitian; trace one, and that the eigenvalues are non-negative.
 
     :param state_matrix: a D by D np.ndarray representing a quantum state
     :param rtol: The relative tolerance parameter in np.allclose and np.isclose
@@ -69,7 +71,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
 
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
-        """A wavefunction simulator that prioritizes readability over performance.
+        """Initialize a wavefunction simulator that prioritizes readability over performance.
 
         Please consider using
         :py:class:`PyQVM(..., wf_simulator_type=ReferenceWavefunctionSimulator)` rather
@@ -83,8 +85,6 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
-        super().__init__(n_qubits=n_qubits, rs=rs)
-
         self.n_qubits = n_qubits
         self.rs = rs
 
@@ -211,17 +211,15 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     """
 
     def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
-        super().__init__(n_qubits=n_qubits, rs=rs)
-
         self.n_qubits = n_qubits
         self.rs = rs
         self.density: np.ndarray
         self.set_initial_state(zero_state_matrix(n_qubits)).reset()
 
     def set_initial_state(self, state_matrix: np.ndarray) -> "ReferenceDensitySimulator":
-        """This method is the correct way (TM) to update the initial state matrix that is
-        initialized every time reset() is called. The default initial state of
-        ReferenceDensitySimulator is ``|000...00>``.
+        """Update the initial state matrix that is initialized every time reset() is called.
+
+        The default initial state of ReferenceDensitySimulator is ``|000...00>``.
 
         Note that the current state matrix, i.e. ``self.density`` is not affected by this
         method; you must change it directly or else call reset() after calling this method.
@@ -298,7 +296,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         return self
 
     def do_measurement(self, qubit: int) -> int:
-        """Measure a qubit and collapse the wavefunction
+        """Measure a qubit and collapse the wavefunction.
 
         :return: The measurement result. A 1 or a 0.
         """
@@ -326,8 +324,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         raise NotImplementedError("To implement")
 
     def reset(self) -> "AbstractQuantumSimulator":
-        """Resets the current state of ReferenceDensitySimulator ``self.density`` to
-        ``self.initial_density``.
+        """Reset the current state of ReferenceDensitySimulator ``self.density`` to ``self.initial_density``.
 
         :return: ``self`` to support method chaining.
         """
