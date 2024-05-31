@@ -221,7 +221,7 @@ class PauliTerm:
     def __hash__(self) -> int:
         """Return a hash of the PauliTerm."""
         if not isinstance(self.coefficient, Complex):
-            raise ValueError("PauliTerm cannot be hashed if the coefficient is not a number.")
+            raise ValueError("PauliTerm cannot be hashed if the coefficient is not a complex number.")
         return hash(
             (
                 round(self.coefficient.real * HASH_PRECISION),
