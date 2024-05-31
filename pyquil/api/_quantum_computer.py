@@ -334,7 +334,7 @@ class QuantumComputer:
             )
 
         if meas_qubits is None:
-            meas_qubits = list(cast(set[int], program.get_qubits()))
+            meas_qubits = list(program.get_qubit_indices())
 
         # It is desirable to have hundreds or thousands of trials more than the minimum
         trials = _check_min_num_trials_for_symmetrized_readout(len(meas_qubits), trials, symm_type)
@@ -991,7 +991,7 @@ def local_forest_runtime(
             quilc.terminate()
 
 
-def _flip_array_to_prog(flip_array: tuple[bool], qubits: list[int]) -> Program:
+def _flip_array_to_prog(flip_array: tuple[bool], qubits: Sequence[QubitDesignator]) -> Program:
     """Generate a pre-measurement program that flips the qubit state according to the flip_array of bools.
 
     This is used, for example, in symmetrization to produce programs which flip a select subset
@@ -1017,7 +1017,7 @@ def _flip_array_to_prog(flip_array: tuple[bool], qubits: list[int]) -> Program:
 
 
 def _symmetrization(
-    program: Program, meas_qubits: list[int], symm_type: int = 3
+    program: Program, meas_qubits: Sequence[QubitDesignator], symm_type: int = 3
 ) -> tuple[list[Program], list[np.ndarray]]:
     """Generate new programs that flip the measured qubits with an X gate in order to symmetrize readout.
 
@@ -1098,7 +1098,7 @@ def _consolidate_symmetrization_outputs(outputs: list[np.ndarray], flip_arrays: 
 
 
 def _measure_bitstrings(
-    qc: QuantumComputer, programs: list[Program], meas_qubits: list[int], num_shots: int = 600
+    qc: QuantumComputer, programs: list[Program], meas_qubits: Sequence[QubitDesignator], num_shots: int = 600
 ) -> list[np.ndarray]:
     """Append measure instructions, run the program, and accumulate the resulting bitarrays.
 
