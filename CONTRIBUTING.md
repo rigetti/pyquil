@@ -107,7 +107,7 @@ poetry install
 
 ### Style Guidelines
 
-We use [ruff]() to enforce lint and formatting requireements as part of CI. You can run these
+We use [ruff](https://docs.astral.sh/ruff/) to enforce lint and formatting requirements as part of CI. You can run these
 tests yourself locally by running `make check-style` (to check for violations of the linting rules)
 and `make check-format` (to see if `ruff` would reformat the code) in the top-level directory of
 the repository. If you aren't presented with any errors, then that means your code satisfies all
