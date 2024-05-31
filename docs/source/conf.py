@@ -38,7 +38,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinxcontrib.jquery",
     "nbsphinx",
-    "recommonmark",
+    "myst-parser",
 ]
 
 templates_path = ["_templates"]
