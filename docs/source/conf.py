@@ -129,8 +129,6 @@ def builder_inited_handler(app):
     input = pandoc.read(source=None, file=infile, format="markdown")
     pandoc.write(input, file=outfile, format="rst")
 
-    os.environ["SPHINX_APIDOC_OPTIONS"] = "members,undoc-members,show-inheritance,no-index"
-
     result = subprocess.run(
         [
             "sphinx-apidoc",
