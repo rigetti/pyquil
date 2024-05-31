@@ -161,8 +161,8 @@ class Wavefunction:
                 else:
                     sub_dict[get_bitstring_from_index(i, qubit_num)] = prob_dict[get_bitstring_from_index(i, qubit_num)]
             prob_dict = sub_dict
-        plt.bar(range(len(prob_dict)), prob_dict.values(), align="center", color="#6CAFB7")
-        plt.xticks(range(len(prob_dict)), prob_dict.keys())
+        plt.bar(range(len(prob_dict)), list(prob_dict.values()), align="center", color="#6CAFB7")
+        plt.xticks(range(len(prob_dict)), list(prob_dict.keys()))
         plt.show()
 
     def sample_bitstrings(self, n_samples: int) -> np.ndarray:
