@@ -19,7 +19,7 @@ check-types:
 
 .PHONY: check-style
 check-style:
-	flake8 pyquil
+	ruff check pyquil
 
 .PHONY: clean
 clean:
