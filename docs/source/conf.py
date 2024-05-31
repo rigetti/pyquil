@@ -38,7 +38,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinxcontrib.jquery",
     "nbsphinx",
-    "myst-parser",
+    "myst_parser",
 ]
 
 templates_path = ["_templates"]
@@ -119,7 +119,6 @@ suppress_warnings = [
 # fun little hack to always build the rst changelog from the markdown
 
 dirname = os.path.dirname(__file__)
-
 
 def builder_inited_handler(app):
     import pandoc

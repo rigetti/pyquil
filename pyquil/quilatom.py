@@ -144,7 +144,7 @@ class QubitPlaceholder(QuilAtom):
         >>> qs = QubitPlaceholder.register(8) # a qubyte
         >>> prog = Program(H(q) for q in qs)
         >>> address_qubits(prog).out()
-        'H 0\\nH 1\\nH 2\\nH 3\\nH 4\\nH 5\\nH 6\\nH 7\\n'
+        'H 0\nH 1\nH 2\nH 3\nH 4\nH 5\nH 6\nH 7\n'
         >>>
 
         The returned register is a Python list of QubitPlaceholder objects, so all

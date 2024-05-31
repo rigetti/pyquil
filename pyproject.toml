@@ -39,15 +39,15 @@ pandoc = {version = "2.4b0", optional = true}
 matplotlib = {version = "^3.9.0", optional = true}
 matplotlib-inline = {version = "^0.1.7", optional = true}
 seaborn = {version = "^0.13.2", optional = true}
-deprecated = "^1.2.14"
-types-deprecated = "^1.2.9.3"
-typing-extensions = "^4.12.0"
 
 [tool.poetry.extras]
 latex = ["ipython"]
 docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "myst-parser", "pandoc", "matplotlib", "matlotlib-inline", "seaborn", "toml"]
 
 [tool.poetry.group.dev.dependencies]
+deprecated = "^1.2.14"
+types-deprecated = "^1.2.9.3"
+typing-extensions = "^4.12.0"
 setuptools = {version = "^69.0.2", python = ">=3.12"}
 ruff = "^0.4.6"
 pytest = "^8.2.0"
