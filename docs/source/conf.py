@@ -129,16 +129,26 @@ def builder_inited_handler(app):
     input = pandoc.read(source=None, file=infile, format="markdown")
     pandoc.write(input, file=outfile, format="rst")
 
-    subprocess.call(
+    result = subprocess.run(
         [
             "sphinx-apidoc",
             "--module-first",
             "--force",
+            "--append-syspath",
             "--separate",
             f"--output-dir={dirname}/apidocs",
             f"{dirname}/../../pyquil",
-        ]
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
     )
+    if result.returncode == 0:
+        print("sphinx-apidoc ran successfully.")
+    else:
+        print(f"sphinx-apidoc failed with return code {result.returncode}.")
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
 
 
 def setup(app):
