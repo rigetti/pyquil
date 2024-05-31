@@ -153,7 +153,9 @@ def correct_experiment_result(
     additional_results = None
     if result.additional_results is not None and calibration.additional_results:
         if len(result.additional_results) != len(calibration.additional_results):
-            raise ValueError("Length of results should match.")
+            len_result = len(result.additional_results)
+            len_calibration = len(calibration.additional_results)
+            raise ValueError(f"Length of results ({len_result}) should match calibration ({len_calibration}).")
         additional_results = [
             correct_experiment_result(r, c) for r, c in zip(result.additional_results, calibration.additional_results)
         ]
