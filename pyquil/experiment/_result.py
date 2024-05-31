@@ -146,7 +146,7 @@ def correct_experiment_result(
         result.expectation,
         result.std_err**2,
         calibration.expectation,
-        calibration.std_err**2,  # type: ignore
+        calibration.std_err**2,
     )
 
     # recursively apply to additional results
@@ -175,11 +175,11 @@ def correct_experiment_result(
 
 
 def ratio_variance(
-    a: Union[np.number, np.ndarray],
-    var_a: Union[np.number, np.ndarray],
-    b: Union[np.number, np.ndarray],
-    var_b: Union[np.number, np.ndarray],
-) -> Union[np.number, np.ndarray]:
+    a: Union[float, complex, np.number, np.ndarray],
+    var_a: Union[float, complex, np.number, np.ndarray],
+    b: Union[float, complex, np.number, np.ndarray],
+    var_b: Union[float, complex, np.number, np.ndarray],
+) -> Union[float, complex, np.number, np.ndarray]:
     r"""Compute the variance on the ratio Y = A/B.
 
     Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the
