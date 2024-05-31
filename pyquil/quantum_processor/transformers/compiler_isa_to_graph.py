@@ -1,4 +1,5 @@
 """Transform a ``CompilerISA`` to an ``nx.Graph``."""
+
 import networkx as nx
 
 from pyquil.external.rpcq import CompilerISA

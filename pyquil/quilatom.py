@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """Classes that represent the atomic building blocks of Quil expressions."""
+
 import inspect
 from collections.abc import Iterable, Mapping, Sequence
 from fractions import Fraction
@@ -141,7 +142,7 @@ class QubitPlaceholder(QuilAtom):
         >>> from pyquil.gates import H
         >>> from pyquil.quil import address_qubits
         >>> from pyquil.quilatom import QubitPlaceholder
-        >>> qs = QubitPlaceholder.register(8) # a qubyte
+        >>> qs = QubitPlaceholder.register(8)  # a qubyte
         >>> prog = Program(H(q) for q in qs)
         >>> address_qubits(prog).out()
         'H 0\nH 1\nH 2\nH 3\nH 4\nH 5\nH 6\nH 7\n'
@@ -377,7 +378,7 @@ ParameterDesignator = Union["Expression", "MemoryReference", int, float, complex
 
 
 def _convert_to_rs_expression(
-    parameter: Union[ParameterDesignator, quil_rs_expr.Expression]
+    parameter: Union[ParameterDesignator, quil_rs_expr.Expression],
 ) -> quil_rs_expr.Expression:
     if isinstance(parameter, quil_rs_expr.Expression):
         return parameter
@@ -389,7 +390,7 @@ def _convert_to_rs_expression(
 
 
 def _convert_to_rs_expressions(
-    parameters: Sequence[Union[ParameterDesignator, quil_rs_expr.Expression]]
+    parameters: Sequence[Union[ParameterDesignator, quil_rs_expr.Expression]],
 ) -> list[quil_rs_expr.Expression]:
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
@@ -450,7 +451,7 @@ def _convert_to_py_expression(
         ExpressionValueDesignator,
         quil_rs_expr.Expression,
         quil_rs.MemoryReference,
-    ]
+    ],
 ) -> ExpressionDesignator:
     if isinstance(expression, (Expression, Number)):
         return expression
@@ -491,7 +492,7 @@ def _convert_to_py_expression(
 def _convert_to_py_expressions(
     expressions: Sequence[
         Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
-    ]
+    ],
 ) -> Sequence[ExpressionDesignator]:
     return [_convert_to_py_expression(expression) for expression in expressions]
 
@@ -714,6 +715,7 @@ def quil_exp(expression: ExpressionDesignator) -> Function:
 
 def quil_cis(expression: ExpressionDesignator) -> Function:
     """Quil CIS() function."""
+
     def _cis(x: ExpressionValueDesignator) -> complex:
         # numpy doesn't ship with type stubs, so mypy assumes anything coming from numpy has type
         # Any, hence we need to cast the return type to complex here to satisfy the type checker.

@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """Module for creating and verifying noisy gate and readout definitions."""
+
 import sys
 from collections import namedtuple
 from collections.abc import Iterable, Sequence
@@ -75,13 +76,19 @@ class KrausModel(_KrausModel):
                 "gate": "RX",
                 "params": np.pi,
                 "targets": [0],
-                "kraus_ops": [            # In this example single Kraus op = ideal RX(pi) gate
-                    [[[0,   0],           # element-wise real part of matrix
-                      [0,   0]],
-                      [[0, -1],           # element-wise imaginary part of matrix
-                      [-1, 0]]]
+                "kraus_ops": [  # In this example single Kraus op = ideal RX(pi) gate
+                    [
+                        [
+                            [0, 0],  # element-wise real part of matrix
+                            [0, 0],
+                        ],
+                        [
+                            [0, -1],  # element-wise imaginary part of matrix
+                            [-1, 0],
+                        ],
+                    ]
                 ],
-                "fidelity": 1.0
+                "fidelity": 1.0,
             }
 
         :return: A JSON compatible dictionary representation.
@@ -367,8 +374,7 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> tup
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
 
     raise NoisyGateUndefined(
-        f"Undefined gate and params: {gate_name}{params}\n"
-        "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
+        f"Undefined gate and params: {gate_name}{params}\n" "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
     )
 
 

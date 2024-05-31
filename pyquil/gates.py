@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """Standard Gate definitions to use in a ``Program``."""
+
 from collections.abc import Mapping, Sequence
 from numbers import Real
 from typing import Callable, Optional, Union, no_type_check

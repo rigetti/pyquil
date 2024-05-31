@@ -1,4 +1,5 @@
 """Tools for estimating the expectation value of operators on a quantum computer."""
+
 import logging
 from collections.abc import Generator, Mapping
 from math import pi
@@ -149,7 +150,6 @@ def _generate_experiment_programs(
     programs = []
     meas_qubits = []
     for settings in tomo_experiment:
-
         # Prepare a state according to the amalgam of all setting.in_state
         total_prog = Program()
         if active_reset:

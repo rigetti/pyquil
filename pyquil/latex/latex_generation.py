@@ -28,7 +28,7 @@ from pyquil.quil import Program
 
 @deprecated(
     version="4.0",
-    reason="This module has been moved -- please import it as 'from pyquil.latex import to_latex' going forward"
+    reason="This module has been moved -- please import it as 'from pyquil.latex import to_latex' going forward",
 )
 def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
     """Produce a circuit diagram in LaTeX for a given pyQuil Program."""

@@ -66,6 +66,5 @@ __all__ = [
     "QVM",
     "WavefunctionSimulator",
     "QCSQuantumProcessor",
-    "ExecutionOptionsBuilder"
+    "ExecutionOptionsBuilder",
 ]
-

@@ -113,6 +113,7 @@ Specialized gates / internal utility gates:
     P1 - project-onto-one
     :math:`\begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}`
 """  # noqa: E501
+
 import cmath
 
 import numpy as np

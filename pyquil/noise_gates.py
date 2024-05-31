@@ -1,4 +1,5 @@
 """Utility functions for generating noise gates compatible with a QVM's instruction set architecture."""
+
 import logging
 from typing import Optional
 

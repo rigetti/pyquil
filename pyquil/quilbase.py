@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """Contains the core pyQuil objects that correspond to Quil instructions."""
+
 import abc
 from collections.abc import Container, Iterable, Sequence
 from typing import (
@@ -669,7 +670,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
 
     @staticmethod
     def _convert_to_matrix_specification(
-        matrix: Union[list[list[Expression]], np.ndarray, np.matrix]
+        matrix: Union[list[list[Expression]], np.ndarray, np.matrix],
     ) -> quil_rs.GateSpecification:
         to_rs_matrix = np.vectorize(_convert_to_rs_expression, otypes=["O"])
         return quil_rs.GateSpecification.from_matrix(to_rs_matrix(np.asarray(matrix)))

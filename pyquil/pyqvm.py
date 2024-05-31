@@ -1,4 +1,5 @@
 """A pure Python implementation of the Quantum Virtual Machine (QVM)."""
+
 ##############################################################################
 # Copyright 2018 Rigetti Computing
 #

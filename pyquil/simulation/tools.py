@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """Miscellaneous tools that are helpful for simulation."""
+
 from collections.abc import Sequence
 from typing import Union, cast
 
@@ -351,10 +352,12 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np
 
     .. code-block:: python
 
-       [[ 0.+0.j,  0.+0.j,  0.+0.j,  0.-2.j],
-        [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j],
-        [ 0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j],
-        [ 0.+2.j,  0.+0.j,  0.+0.j,  0.+0.j]]
+       [
+           [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 - 2.0j],
+           [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+           [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+           [0.0 + 2.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j],
+       ]
 
     Developer note: Quil and the QVM like qubits to be ordered such that qubit 0 is on the right.
     Therefore, in ``qubit_adjacent_lifted_gate``, ``lifted_pauli``, and ``lifted_state_operator``,

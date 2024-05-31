@@ -1,4 +1,5 @@
 """An implementation of an AbstractQuantumProcessor based on a NetworkX graph topology."""
+
 from typing import Any, Optional
 
 import networkx as nx

@@ -9,9 +9,4 @@ from pyquil.quil import Program
 
 __version__ = pyquil_version
 
-__all__ = [
-    "get_qc",
-    "list_quantum_computers",
-    "Program",
-    "__version__"
-]
+__all__ = ["get_qc", "list_quantum_computers", "Program", "__version__"]

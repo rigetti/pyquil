@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """The main entry point to the LaTeX generation functionality in pyQuil."""
+
 from typing import Optional
 
 from pyquil.latex._diagram import DiagramBuilder, DiagramSettings

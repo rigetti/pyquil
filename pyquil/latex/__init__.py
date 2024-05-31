@@ -1,4 +1,5 @@
 """Generate LaTeX diagrams from a ``Program``."""
+
 __all__ = [
     "DiagramSettings",
     "display",

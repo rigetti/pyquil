@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """Module for creating and defining Quil programs."""
+
 import functools
 import types
 import warnings
@@ -230,18 +231,18 @@ class Program:
             >>> from pyquil import Program
             >>> from pyquil.gates import H
             >>> p = Program()
-            >>> p.inst(H(0)) # A single instruction
+            >>> p.inst(H(0))  # A single instruction
             Program { ... }
-            >>> p.inst(H(0), H(1)) # Multiple instructions
+            >>> p.inst(H(0), H(1))  # Multiple instructions
             Program { ... }
-            >>> p.inst([H(0), H(1)]) # A list of instructions
+            >>> p.inst([H(0), H(1)])  # A list of instructions
             Program { ... }
-            >>> p.inst(H(i) for i in range(4)) # A generator of instructions
+            >>> p.inst(H(i) for i in range(4))  # A generator of instructions
             Program { ... }
-            >>> p.inst("H 0") # A string representing an instruction
+            >>> p.inst("H 0")  # A string representing an instruction
             Program { ... }
             >>> q = Program()
-            >>> p.inst(q) # Another program
+            >>> p.inst(q)  # Another program
             Program { ... }
 
         It can also be chained:

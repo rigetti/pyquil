@@ -1,4 +1,5 @@
 """Waveform templates that are commonly useful when working with pulse programs."""
+
 from typing import Optional
 
 import numpy as np

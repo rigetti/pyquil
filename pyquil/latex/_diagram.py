@@ -287,7 +287,7 @@ def split_on_terminal_measures(
                 if instr.command == PRAGMA_END_GROUP:
                     warn(
                         "Alignment of terminal MEASURE operations may" "conflict with gate group declaration.",
-                        stacklevel=2
+                        stacklevel=2,
                     )
                     in_group = True
                 elif instr.command == PRAGMA_BEGIN_GROUP:
@@ -357,9 +357,7 @@ class DiagramBuilder:
                     else:
                         self._build_generic_unitary()
             elif isinstance(instr, UNSUPPORTED_INSTRUCTION_CLASSES):
-                raise ValueError(
-                    "LaTeX output does not currently support" f"the following instruction: {instr.out()}"
-                )
+                raise ValueError("LaTeX output does not currently support" f"the following instruction: {instr.out()}")
             else:
                 self.index += 1
 

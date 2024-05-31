@@ -18,6 +18,7 @@
 This schema is widely useful for defining and executing many common types of algorithms / applications, including state
 and process tomography, and the variational quantum eigensolver.
 """
+
 import json
 import logging
 import warnings

@@ -934,7 +934,7 @@ def local_forest_runtime(
     >>> from pyquil.gates import CNOT, Z
     >>> from pyquil.api import local_forest_runtime
     >>>
-    >>> qvm = get_qc('9q-square-qvm')
+    >>> qvm = get_qc("9q-square-qvm")
     >>> prog = Program(Z(0), CNOT(0, 1))
     >>>
     >>> with local_forest_runtime():  # doctest: +SKIP
@@ -962,14 +962,14 @@ def local_forest_runtime(
     # If the host we should listen to is 0.0.0.0, we replace it
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):  # noqa: S104: prevents connection to 0.0.0.0
-        warning_msg = (f"Unable to start qvm server, since the specified port {qvm_port} is in use.")
+        warning_msg = f"Unable to start qvm server, since the specified port {qvm_port} is in use."
         warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         qvm_cmd = ["qvm", "-S", "--host", host, "-p", str(qvm_port)]
         qvm = subprocess.Popen(qvm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603: input valid
 
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):  # noqa: S104: prevents connection to 0.0.0.0
-        warning_msg = (f"Unable to start quilc server, since the specified port {quilc_port} is in use.")
+        warning_msg = f"Unable to start quilc server, since the specified port {quilc_port} is in use."
         warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         quilc_cmd = ["quilc", "--host", host, "-p", str(quilc_port), "-R"]

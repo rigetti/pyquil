@@ -1,4 +1,5 @@
 """Convert a QCS Instruction Set Architecture to a NetworkX graph."""
+
 import networkx as nx
 from qcs_sdk.qpu.isa import InstructionSetArchitecture
 

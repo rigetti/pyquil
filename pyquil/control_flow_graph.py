@@ -1,4 +1,5 @@
 """Classes that represent the control flow graph of a Quil program."""
+
 from typing import Optional
 
 from quil import program as quil_rs

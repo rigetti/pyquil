@@ -18,6 +18,7 @@
 An ExperimentResult encapsulates the outcome of a collection of measurements that are aimed at estimating the
 expectation value of some observable.
 """
+
 import logging
 from dataclasses import dataclass
 from typing import Any, Optional, Union
@@ -62,7 +63,6 @@ class ExperimentResult:
         calibration_counts: Optional[int] = None,
         additional_results: Optional[list["ExperimentResult"]] = None,
     ):
-
         object.__setattr__(self, "setting", setting)
         object.__setattr__(self, "expectation", expectation)
         object.__setattr__(self, "total_counts", total_counts)
@@ -143,7 +143,10 @@ def correct_experiment_result(
         raise ValueError("Standard error not present in result or calibration.")
 
     corrected_variance = ratio_variance(
-        result.expectation, result.std_err**2, calibration.expectation, calibration.std_err**2  # type: ignore
+        result.expectation,
+        result.std_err**2,
+        calibration.expectation,
+        calibration.std_err**2,  # type: ignore
     )
 
     # recursively apply to additional results

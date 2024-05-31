@@ -1,4 +1,5 @@
 """A module containing utilities for working with Quil-T calibrations."""
+
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Optional, Union
@@ -95,9 +96,9 @@ def match_calibration(
         instruction = _convert_to_rs_instruction(instr)
         gate = instruction.to_gate()
         calibration_set = CalibrationSet([calibration.to_calibration_definition()], [])
-        matched_calibration: Optional[
-            Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition]
-        ] = calibration_set.get_match_for_gate(gate)
+        matched_calibration: Optional[Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition]] = (
+            calibration_set.get_match_for_gate(gate)
+        )
         return _convert_to_calibration_match(gate, matched_calibration)
 
     if calibration.is_measure_calibration_definition() and instruction.is_measurement():

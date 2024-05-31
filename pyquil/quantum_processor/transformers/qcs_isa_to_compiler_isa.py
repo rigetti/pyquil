@@ -1,4 +1,5 @@
 """Transforms a QCS ``InstructionSetArchitecture`` into a ``CompilerISA``."""
+
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import Optional, Union, cast

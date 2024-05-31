@@ -1,4 +1,5 @@
 """Diagnostic utilities for pyQuil and QCS."""
+
 from qcs_sdk import diagnostics
 
 import pyquil

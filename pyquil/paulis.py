@@ -385,7 +385,7 @@ class PauliTerm:
     def compact_str(self) -> str:
         """Return string representation of the Pauli term that is more compact than ``str(term)``.
 
-        >>> term = 2.0 * sX(1)* sZ(2)
+        >>> term = 2.0 * sX(1) * sZ(2)
         >>> str(term)
         '(2+0j)*X1*Z2'
         >>> term.compact_str()
@@ -481,7 +481,7 @@ class PauliTerm:
         If an iterable of qubits is provided, each character in the resulting string represents
         a Pauli operator on the corresponding qubit.
 
-        >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
+        >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.0j)
         >>> p.pauli_string()
         'XY'
         >>> p.pauli_string(qubits=[0])
@@ -759,7 +759,7 @@ class PauliSum:
     def compact_str(self) -> str:
         """Return a string representation of the PauliSum that is more compact than ``str(pauli_sum)``.
 
-        >>> pauli_sum = 2.0 * sX(1)* sZ(2) + 1.5 * sY(2)
+        >>> pauli_sum = 2.0 * sX(1) * sZ(2) + 1.5 * sY(2)
         >>> str(pauli_sum)
         '(2+0j)*X1*Z2 + (1.5+0j)*Y2'
         >>> pauli_sum.compact_str()
@@ -950,17 +950,17 @@ def exponentiate_pauli_sum(
 
     >>> from numpy import pi
     >>> phi = pi
-    >>> coeff = phi/(-4*pi) # -0.25
-    >>> hamiltonian = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1*PauliTerm("Z", 0) - 1*PauliTerm("Z", 1)
-    >>> exponentiate_pauli_sum(coeff*hamiltonian)
+    >>> coeff = phi / (-4 * pi)  # -0.25
+    >>> hamiltonian = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
+    >>> exponentiate_pauli_sum(coeff * hamiltonian)
     array([[...]])
 
     To produce the Quil XY(theta) gate, you can use:
 
-    >>> theta = pi/2
-    >>> coeff = theta/(-4*pi)
+    >>> theta = pi / 2
+    >>> coeff = theta / (-4 * pi)
     >>> hamiltonian = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
-    >>> exponentiate_pauli_sum(coeff*hamiltonian)
+    >>> exponentiate_pauli_sum(coeff * hamiltonian)
     array([[...]])
 
     A global phase is applied to the unitary such that the [0,0] element is always real.
