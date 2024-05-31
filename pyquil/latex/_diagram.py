@@ -430,7 +430,7 @@ class DiagramBuilder:
             raise RuntimeError("Internal error: working_instructions is None.")
         instr = self.working_instructions[self.index]
         if not isinstance(instr, Gate):
-            raise RuntimeError("Internal error: expected a Gate instruction.")
+            raise RuntimeError("Internal error: expected a Gate instruction, got ({type(instr)}).")
         source, target = qubit_indices(instr)
         if self.diagram is None:
             raise RuntimeError("Internal error: expected diagram to exist.")
