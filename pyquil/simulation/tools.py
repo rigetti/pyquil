@@ -217,7 +217,13 @@ def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> tuple[np.
         right = not right
 
     if not np.allclose(qubit_arr[final_map[-1] : final_map[0] + 1][::-1], qubit_inds):
-        raise ValueError("Permutation matrix not constructed correctly")
+        segment_values = qubit_arr[final_map[-1] : final_map[0] + 1][::-1]
+        raise ValueError(
+            f"Permutation matrix not constructed correctly. "
+            f"Expected array segment {segment_values} to match qubit indices {qubit_inds}. "
+            f"Segment values: {segment_values}, Expected values: {qubit_inds}"
+        )
+
     return perm, qubit_arr[::-1], start_i
 
 
