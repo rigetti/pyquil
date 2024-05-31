@@ -122,7 +122,7 @@ class Wavefunction:
         return outcome_dict
 
     def pretty_print(self, decimal_digits: int = 2) -> str:
-        """Return a more human-friendly string representation of the wavefunction.
+        """Return a human-friendly string representation of the wavefunction.
 
         Ignores all outcomes with approximately zero amplitude (up to a certain number of decimal digits) and rounding
         the amplitudes to decimal_digits.
