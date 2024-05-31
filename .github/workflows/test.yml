@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -33,10 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -52,10 +52,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -71,10 +71,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -118,7 +118,7 @@ jobs:
       pull-requests: write # allows coverage bot to comment
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -147,19 +147,19 @@ jobs:
           token:  ${{ secrets.GITHUB_TOKEN }}
 
   check-docker-image:
-    name: Check types
+    name: Check docker image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
       - uses: actions/cache@v2
         with:
           path: .venv
           key: poetry-${{ hashFiles('poetry.lock') }}
-      - name: Check types
+      - name: Check wheel installation
         run: |
           sudo apt update
           pip wheel . -w wheels
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
