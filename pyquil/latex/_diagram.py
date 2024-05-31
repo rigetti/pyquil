@@ -452,7 +452,7 @@ class DiagramBuilder:
             raise RuntimeError("Internal error: working_instructions is None.")
         instr = self.working_instructions[self.index]
         if not isinstance(instr, Gate):
-            raise RuntimeError("Internal error: expected a Gate instruction.")
+            raise RuntimeError("Internal error: expected a Gate instruction, got ({type(instr)}).")
         qubits = qubit_indices(instr)
         dagger = sum(m == "DAGGER" for m in instr.modifiers) % 2 == 1
         if self.diagram is None:
