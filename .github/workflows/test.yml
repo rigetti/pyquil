@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - uses: actions/cache@v2
@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - uses: actions/cache@v2
@@ -53,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - uses: actions/cache@v2
@@ -72,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - uses: actions/cache@v2
@@ -84,6 +84,22 @@ jobs:
           sudo apt update
           . scripts/ci_install_deps
           poetry run make check-types
+
+  check-dependencies:
+    name: Check for vulnerabilities
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    - name: Install OSV scanner
+      run: |
+        pip install osv-scanner
+    - name: Run OSV scanner
+      run: |
+        osv-scanner --lockfile=./poetry.lock
 
   test-doctest:
     name: Run Doctests
