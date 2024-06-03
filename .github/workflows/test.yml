@@ -97,7 +97,7 @@ jobs:
         go install github.com/google/osv-scanner/cmd/osv-scanner@latest
     - name: Run OSV scanner
       run: |
-        osv-scanner --lockfile=./poetry.lock
+        osv-scanner --lockfile=../poetry.lock
 
   test-doctest:
     name: Run Doctests
