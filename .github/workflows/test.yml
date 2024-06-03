@@ -86,21 +86,22 @@ jobs:
           poetry run make check-types
 
   check-dependencies:
+
     name: Check dependencies for vulnerabilities
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: Set up Go
+      uses: actions/setup-go@v4
       with:
-        python-version: '3.9'
+        go-version: '1.22'
     - name: Install OSV scanner
       run: |
-        pip install osv-scanner
+        go install github.com/google/osv-scanner/cmd/osv-scanner@latest
+      env:
+        GOBIN: $HOME/go/bin
     - name: Run OSV scanner
       run: |
-        osv-scanner --lockfile=./poetry.lock
+        $HOME/go/bin/osv-scanner --lockfile=./poetry.lock
 
   test-doctest:
     name: Run Doctests
