@@ -90,6 +90,7 @@ jobs:
     name: Check dependencies for vulnerabilities
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v2
     - name: Set up Go
       uses: actions/setup-go@v5
     - name: Install OSV scanner
@@ -97,7 +98,7 @@ jobs:
         go install github.com/google/osv-scanner/cmd/osv-scanner@latest
     - name: Run OSV scanner
       run: |
-        osv-scanner --lockfile=../poetry.lock
+        osv-scanner --lockfile=./poetry.lock
 
   test-doctest:
     name: Run Doctests
