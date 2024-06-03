@@ -86,7 +86,8 @@ jobs:
           poetry run make check-types
 
   check-dependencies:
-    name: Check for vulnerabilities
+    name: Check dependencies for vulnerabilities
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
