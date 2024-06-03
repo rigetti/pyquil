@@ -19,7 +19,7 @@ packages = [{ include = "pyquil" }]
 exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
-python = "^3.9,<=3.12"
+python = "^3.9,<=3.13"
 numpy = "^1.25"
 scipy = "^1.11"
 rpcq = "^3.11.0"
