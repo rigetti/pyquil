@@ -3203,5 +3203,5 @@ latex = ["ipython"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.9,<=3.13"
-content-hash = "e54a17364a4e174b5f41ae1437b19404cee4edf6a735647d05f8e91b2146baff"
+python-versions = "^3.9,<=3.14"
+content-hash = "aa08be6cc81654a552ea596c6c9e355c3df38fe7165a6164299d70e540a095dd"
