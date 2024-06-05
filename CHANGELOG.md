@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.11.0 (2024-06-05)
+
+### Features
+
+#### Drop support for Python 3.8, update dependencies (#1782)
+
 ## 4.11.0-rc.0 (2024-06-05)
 
 ### Features
