@@ -3,32 +3,32 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 from pytest_mock import MockerFixture
-from qcs_sdk import ResultData, ExecutionData, RegisterData
+from qcs_sdk import ExecutionData, RegisterData, ResultData
 from qcs_sdk.qvm import QVMResultData
 
 from pyquil.api._qam import QAMExecutionResult
-from pyquil.gates import RZ, RX, I, CZ
+from pyquil.gates import CZ, RX, RZ, I
 from pyquil.noise import (
-    pauli_kraus_map,
-    damping_kraus_map,
-    dephasing_kraus_map,
-    tensor_kraus_maps,
-    _get_program_gates,
-    _decoherence_noise_model,
-    add_decoherence_noise,
-    combine_kraus_maps,
-    damping_after_dephasing,
     INFINITY,
-    apply_noise_model,
-    _noise_model_program_header,
+    NO_NOISE,
     KrausModel,
     NoiseModel,
-    corrupt_bitstring_probs,
-    correct_bitstring_probs,
-    estimate_bitstring_probs,
+    _decoherence_noise_model,
+    _get_program_gates,
+    _noise_model_program_header,
+    add_decoherence_noise,
+    apply_noise_model,
     bitstring_probs_to_z_moments,
+    combine_kraus_maps,
+    correct_bitstring_probs,
+    corrupt_bitstring_probs,
+    damping_after_dephasing,
+    damping_kraus_map,
+    dephasing_kraus_map,
     estimate_assignment_probs,
-    NO_NOISE,
+    estimate_bitstring_probs,
+    pauli_kraus_map,
+    tensor_kraus_maps,
 )
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate

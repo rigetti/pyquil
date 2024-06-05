@@ -1,3 +1,4 @@
+# serializer version: 1
 # name: test_transpile_qasm_2
   '''
   DECLARE ro BIT[2]

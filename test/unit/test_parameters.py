@@ -4,13 +4,13 @@ import numpy as np
 
 from pyquil.quilatom import (
     Parameter,
-    quil_sin,
-    quil_cos,
-    quil_sqrt,
-    quil_exp,
     _contained_parameters,
     format_parameter,
     quil_cis,
+    quil_cos,
+    quil_exp,
+    quil_sin,
+    quil_sqrt,
     substitute,
     substitute_array,
 )

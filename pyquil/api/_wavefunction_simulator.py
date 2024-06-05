@@ -13,10 +13,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Dict, List, Union, Optional, Set, cast, Tuple
+from typing import Optional, Union, cast
 
 import numpy as np
-
 from qcs_sdk import QCSClient, qvm
 from qcs_sdk.qvm import QVMOptions
 
@@ -35,14 +34,13 @@ class WavefunctionSimulator:
     def __init__(
         self,
         *,
-        gate_noise: Optional[Tuple[float, float, float]] = None,
-        measurement_noise: Optional[Tuple[float, float, float]] = None,
+        gate_noise: Optional[tuple[float, float, float]] = None,
+        measurement_noise: Optional[tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
         timeout: float = 10.0,
         client_configuration: Optional[QCSClient] = None,
     ) -> None:
-        """
-        A simulator that propagates a wavefunction representation of a quantum state.
+        """Return a simulator that propagates a wavefunction representation of a quantum state.
 
         :param gate_noise: A tuple of three numbers [Px, Py, Pz] indicating the probability of an X,
             Y, or Z gate getting applied to each qubit after a gate application or reset.
@@ -53,7 +51,6 @@ class WavefunctionSimulator:
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-
         validate_noise_probabilities(gate_noise)
         validate_noise_probabilities(measurement_noise)
         self.gate_noise = gate_noise
@@ -71,8 +68,7 @@ class WavefunctionSimulator:
         self._qvm_client = qvm.QVMClient.new_http(self._client.qvm_url)
 
     def wavefunction(self, quil_program: Program, memory_map: Optional[MemoryMap] = None) -> Wavefunction:
-        """
-        Simulate a Quil program and return the wavefunction.
+        """Simulate a Quil program and return the wavefunction.
 
         .. note:: If your program contains measurements or noisy gates, this method may not do what
             you want. If the execution of ``quil_program`` is **non-deterministic** then the
@@ -84,12 +80,11 @@ class WavefunctionSimulator:
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
 
-                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           This is expected to be of type dict[str, list[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
         :return: A Wavefunction object representing the state of the QVM.
         """
-
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
@@ -107,11 +102,10 @@ class WavefunctionSimulator:
     def expectation(
         self,
         prep_prog: Program,
-        pauli_terms: Union[PauliSum, List[PauliTerm]],
-        memory_map: Optional[Dict[str, List[Union[int, float]]]] = None,
+        pauli_terms: Union[PauliSum, list[PauliTerm]],
+        memory_map: Optional[dict[str, list[Union[int, float]]]] = None,
     ) -> Union[float, np.ndarray]:
-        """
-        Calculate the expectation value of Pauli operators given a state prepared by prep_program.
+        """Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
         If ``pauli_terms`` is a ``PauliSum`` then the returned value is a single ``float``,
         otherwise the returned value is an array of values, one for each ``PauliTerm`` in the
@@ -128,12 +122,11 @@ class WavefunctionSimulator:
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
 
-                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           This is expected to be of type dict[str, list[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
         :return: Either a float or array floats depending on ``pauli_terms``.
         """
-
         is_pauli_sum = False
         if isinstance(pauli_terms, PauliSum):
             progs, coeffs = pauli_terms.get_programs()
@@ -158,12 +151,11 @@ class WavefunctionSimulator:
     def run_and_measure(
         self,
         quil_program: Program,
-        qubits: Optional[List[int]] = None,
+        qubits: Optional[list[int]] = None,
         trials: int = 1,
         memory_map: Optional[MemoryMap] = None,
     ) -> np.ndarray:
-        """
-        Run a Quil program once to determine the final wavefunction, and measure multiple times.
+        """Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
         Alternatively, consider using ``wavefunction`` and calling ``sample_bitstrings`` on the
         resulting object.
@@ -187,13 +179,13 @@ class WavefunctionSimulator:
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
 
-                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           This is expected to be of type dict[str, list[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
         :return: An array of measurement results (0 or 1) of shape (trials, len(qubits))
         """
         if qubits is None:
-            qubits = sorted(cast(Set[int], quil_program.get_qubits(indices=True)))
+            qubits = sorted(cast(set[int], quil_program.get_qubits(indices=True)))
 
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
@@ -215,8 +207,8 @@ class WavefunctionSimulator:
     ) -> Program:
         p = Program()
 
-        # we stupidly allowed memory_map to be of type Dict[MemoryReference, Any], whereas qc.run
-        # takes a memory initialization argument of type Dict[str, List[Union[int, float]]. until
+        # we stupidly allowed memory_map to be of type dict[MemoryReference, Any], whereas qc.run
+        # takes a memory initialization argument of type dict[str, list[Union[int, float]]. until
         # we are in a position to remove this, we support both styles of input.
 
         if len(memory_map.keys()) == 0:
@@ -226,7 +218,7 @@ class WavefunctionSimulator:
                 for index, value in enumerate(arr):
                     p += MOVE(MemoryReference(name, offset=index), value)
         else:
-            raise TypeError("Bad memory_map type; expected Dict[str, List[Union[int, float]]].")
+            raise TypeError("Bad memory_map type; expected dict[str, list[Union[int, float]]].")
 
         p += quil_program
 

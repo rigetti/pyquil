@@ -2,11 +2,11 @@ import numpy as np
 
 from pyquil.experiment import plusX
 from pyquil.experiment._result import (
+    ExperimentResult,
+    ExperimentSetting,
     bitstrings_to_expectations,
     correct_experiment_result,
     ratio_variance,
-    ExperimentResult,
-    ExperimentSetting,
 )
 from pyquil.paulis import sZ
 

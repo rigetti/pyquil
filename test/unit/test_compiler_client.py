@@ -17,13 +17,13 @@
 try:
     from unittest.mock import AsyncMock
 except ImportError:  # 3.7 requires this backport of AsyncMock
-    from mock import AsyncMock
+    from unittest.mock import AsyncMock
 
-from qcs_sdk import QCSClient
-from _pytest.monkeypatch import MonkeyPatch
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 from pytest import raises
 from pytest_mock import MockerFixture
+from qcs_sdk import QCSClient
 
 from pyquil.api._compiler_client import (
     CompilerClient,

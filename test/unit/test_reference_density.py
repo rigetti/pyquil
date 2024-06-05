@@ -4,10 +4,9 @@ import pytest
 
 import pyquil.simulation.matrices as qmats
 from pyquil import Program
-from pyquil.api import QCSClient
-from pyquil.api import QuantumComputer
-from pyquil.experiment import ExperimentSetting, Experiment, zeros_state
-from pyquil.gates import CNOT, H, I, MEASURE, PHASE, RX, RY, RZ, X
+from pyquil.api import QCSClient, QuantumComputer
+from pyquil.experiment import Experiment, ExperimentSetting, zeros_state
+from pyquil.gates import CNOT, MEASURE, PHASE, RX, RY, RZ, H, I, X
 from pyquil.operator_estimation import measure_observables
 from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.pyqvm import PyQVM

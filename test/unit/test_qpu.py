@@ -1,16 +1,15 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
-
-from pyquil.api import ConnectionStrategy, ExecutionOptions, RegisterMatrixConversionError, ExecutionOptionsBuilder
-from pyquil.api._qpu import QPU
-from pyquil.api._abstract_compiler import EncryptedProgram
-from pyquil.quil import Program
-from qcs_sdk.qpu.api import Register, ExecutionResult, ExecutionResults
+import pytest
 from qcs_sdk.qpu import MemoryValues
+from qcs_sdk.qpu.api import ExecutionResult, ExecutionResults, Register
 from rpcq.messages import ParameterSpec
 
+from pyquil.api import ConnectionStrategy, ExecutionOptions, ExecutionOptionsBuilder, RegisterMatrixConversionError
+from pyquil.api._abstract_compiler import EncryptedProgram
+from pyquil.api._qpu import QPU
+from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 
 
@@ -134,8 +133,7 @@ class TestQPUExecutionOptions:
     def test_submit_with_class_options(
         self, mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
     ):
-        """
-        Asserts that a ``QPU``'s execution_options property is used for submission, appears in the returned
+        """Asserts that a ``QPU``'s execution_options property is used for submission, appears in the returned
         ``QPUExecuteResponse``, and is used for retrieval of results when execution options are not provided to
         ``QPU.execute``.
         """
@@ -172,8 +170,7 @@ class TestQPUExecutionOptions:
     def test_submit_with_options(
         self, mock_submit: MagicMock, mock_retrieve_results: MagicMock, mock_encrypted_program: EncryptedProgram
     ):
-        """
-        Asserts that execution_options provided to ``QPU.execute`` are used for submission, appear in the returned
+        """Asserts that execution_options provided to ``QPU.execute`` are used for submission, appear in the returned
         ``QPUExecuteResponse``, and are used for retrieval of results.
         """
         qpu = QPU(quantum_processor_id="test")

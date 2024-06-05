@@ -13,38 +13,37 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from dataclasses import dataclass
 from collections import defaultdict
+from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union, List, Iterable
+from typing import Any, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
-from qcs_sdk.qpu import ReadoutValues, QPUResultData
-from rpcq.messages import ParameterSpec
-
-from pyquil.api import QuantumExecutable, EncryptedProgram
-
-from pyquil.api._qam import MemoryMap, QAM, QAMExecutionResult
-from pyquil.quilatom import (
-    MemoryReference,
-)
-from qcs_sdk import QCSClient, ResultData, ExecutionData
+from qcs_sdk import ExecutionData, QCSClient, ResultData
+from qcs_sdk.qpu import QPUResultData, ReadoutValues
 from qcs_sdk.qpu.api import (
-    retrieve_results,
-    cancel_job,
     ConnectionStrategy,
-    ExecutionResult,
     ExecutionOptions,
     ExecutionOptionsBuilder,
+    ExecutionResult,
+    cancel_job,
+    retrieve_results,
     submit_with_parameter_batch,
 )
 from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
+from rpcq.messages import ParameterSpec
+
+from pyquil.api import EncryptedProgram, QuantumExecutable
+from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
+from pyquil.quilatom import (
+    MemoryReference,
+)
 
 
 def decode_buffer(buffer: ExecutionResult) -> Union[NDArray[np.complex64], NDArray[np.int32]]:
-    """
-    Translate a DataBuffer into a numpy array.
+    """Translate a DataBuffer into a numpy array.
 
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
     :return: NumPy array of decoded data
@@ -57,10 +56,10 @@ def decode_buffer(buffer: ExecutionResult) -> Union[NDArray[np.complex64], NDArr
 
 
 def _extract_memory_regions(
-    memory_descriptors: Dict[str, ParameterSpec],
-    ro_sources: Dict[MemoryReference, str],
-    buffers: Dict[str, np.ndarray],
-) -> Dict[str, np.ndarray]:
+    memory_descriptors: dict[str, ParameterSpec],
+    ro_sources: dict[MemoryReference, str],
+    buffers: dict[str, np.ndarray],
+) -> dict[str, np.ndarray]:
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
     num_shots = first.shape[0]
@@ -77,7 +76,7 @@ def _extract_memory_regions(
         except KeyError as e:
             raise ValueError(f"Unexpected memory type {spec.type}.") from e
 
-    regions: Dict[str, np.ndarray] = {}
+    regions: dict[str, np.ndarray] = {}
 
     for mref, key in ro_sources.items():
         # Translation sometimes introduces ro_sources that the user didn't ask for.
@@ -126,8 +125,7 @@ class QPU(QAM[QPUExecuteResponse]):
         endpoint_id: Optional[str] = None,
         execution_options: Optional[ExecutionOptions] = None,
     ) -> None:
-        """
-        A connection to the QPU.
+        """Connect to the QPU.
 
         :param quantum_processor_id: Processor to run against.
         :param priority: The priority with which to insert jobs into the QPU queue. Lower integers
@@ -143,8 +141,8 @@ class QPU(QAM[QPUExecuteResponse]):
         self.priority = priority
 
         self._client_configuration = client_configuration or QCSClient.load()
-        self._last_results: Dict[str, np.ndarray] = {}
-        self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
+        self._last_results: dict[str, np.ndarray] = {}
+        self._memory_results: dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
         if execution_options is None:
             execution_options_builder = ExecutionOptionsBuilder.default()
@@ -167,10 +165,10 @@ class QPU(QAM[QPUExecuteResponse]):
         execution_options: Optional[ExecutionOptions] = None,
         **__: Any,
     ) -> QPUExecuteResponse:
-        """
-        Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
-        job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
-        results.
+        """Enqueue a job for execution on the QPU.
+
+        Returns a ``QPUExecuteResponse``, a job descriptor which should be passed directly to ``QPU.get_result`` to
+        retrieve results.
 
         :param:
             execution_options: An optional `ExecutionOptions` enum that can be used
@@ -179,7 +177,10 @@ class QPU(QAM[QPUExecuteResponse]):
         """
         memory_map = memory_map or {}
         responses = self.execute_with_memory_map_batch(executable, [memory_map], execution_options)
-        assert len(responses) == 1, "Request to execute job with a single memory map returned multiple responses"
+
+        if len(responses) != 1:
+            raise RuntimeError("Request to execute a single job returned 0, or more than 1 responses.")
+
         return responses[0]
 
     def execute_with_memory_map_batch(
@@ -188,9 +189,8 @@ class QPU(QAM[QPUExecuteResponse]):
         memory_maps: Iterable[MemoryMap],
         execution_options: Optional[ExecutionOptions] = None,
         **__: Any,
-    ) -> List[QPUExecuteResponse]:
-        """
-        Execute a compiled program on a QPU with multiple sets of `memory_maps`.
+    ) -> list[QPUExecuteResponse]:
+        """Execute a compiled program on a QPU with multiple sets of `memory_maps`.
 
         See the documentation of `qcs_sdk.qpu.api.submit_with_parameter_batch` for more information.
 
@@ -202,13 +202,8 @@ class QPU(QAM[QPUExecuteResponse]):
         """
         executable = executable.copy()
 
-        assert isinstance(
-            executable, EncryptedProgram
-        ), "QPU#execute requires an rpcq.EncryptedProgram. Create one with QuantumComputer#compile"
-
-        assert (
-            executable.ro_sources is not None
-        ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
+        if not isinstance(executable, EncryptedProgram):
+            raise ValueError("QPU#execute requires an rpcq.EncryptedProgram. Create one with QuantumComputer#compile")
 
         patch_values = []
         for memory_map in memory_maps:
@@ -234,8 +229,7 @@ class QPU(QAM[QPUExecuteResponse]):
         return responses
 
     def cancel(self, execute_response: QPUExecuteResponse) -> None:
-        """
-        Cancel a job that has yet to begin executing.
+        """Cancel a job that has yet to begin executing.
 
         This action is *not* atomic, and will attempt to cancel a job even if it cannot be cancelled. A
         job can be cancelled only if it has not yet started executing.
@@ -254,10 +248,7 @@ class QPU(QAM[QPUExecuteResponse]):
         )
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
-        """
-        Retrieve results from execution on the QPU.
-        """
-
+        """Retrieve results from execution on the QPU."""
         results = retrieve_results(
             job_id=execute_response.job_id,
             quantum_processor_id=self.quantum_processor_id,

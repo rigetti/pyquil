@@ -15,16 +15,15 @@
 ##############################################################################
 
 import itertools
-from typing import Dict, List, Tuple, cast
+from typing import cast
 
 import numpy as np
 
 from pyquil.paulis import PauliTerm
 
 
-def euler_angles_RX(theta: float) -> Tuple[float, float, float]:
-    """
-    A tuple of angles which corresponds to a ZXZXZ-decomposed ``RX`` gate.
+def euler_angles_RX(theta: float) -> tuple[float, float, float]:
+    """Tuple of angles which corresponds to a ZXZXZ-decomposed ``RX`` gate.
 
     :param theta: The angle parameter for the ``RX`` gate.
     :return: The corresponding Euler angles for that gate.
@@ -32,9 +31,8 @@ def euler_angles_RX(theta: float) -> Tuple[float, float, float]:
     return (np.pi / 2, theta, -np.pi / 2)
 
 
-def euler_angles_RY(theta: float) -> Tuple[float, float, float]:
-    """
-    A tuple of angles which corresponds to a ZXZXZ-decomposed ``RY`` gate.
+def euler_angles_RY(theta: float) -> tuple[float, float, float]:
+    """Tuple of angles which corresponds to a ZXZXZ-decomposed ``RY`` gate.
 
     :param theta: The angle parameter for the ``RY`` gate.
     :return: The corresponding Euler angles for that gate.
@@ -58,21 +56,18 @@ def pauli_term_to_euler_memory_map(
     term: PauliTerm,
     *,
     prefix: str,
-    tuple_x: Tuple[float, float, float],
-    tuple_y: Tuple[float, float, float],
-    tuple_z: Tuple[float, float, float],
+    tuple_x: tuple[float, float, float],
+    tuple_y: tuple[float, float, float],
+    tuple_z: tuple[float, float, float],
     suffix_alpha: str = "alpha",
     suffix_beta: str = "beta",
     suffix_gamma: str = "gamma",
-) -> Dict[str, List[float]]:
-    """
-    Given a ``PauliTerm``, create a memory map corresponding to a collection of ZXZXZ-decomposed
-    single-qubit gates. The intent is that these gate are used to prepare an eigenstate of the
-    ``PauliTerm`` or measure in the eigenbasis of the ``PauliTerm``, which is more clearly
-    discernible from the calling functions ``pauli_term_to_preparation_memory_map`` (for state
-    preparation) and ``pauli_term_to_measurement_memory_map`` (for measuring in different bases).
-    This function is not really meant to be used by itself, but rather by the aforementioned
-    calling functions.
+) -> dict[str, list[float]]:
+    """Create a memory map for a `PauliTerm` using ZXZXZ-decomposed single-qubit gates.
+
+    This memory map is intended for use in preparing an eigenstate of the `PauliTerm` or measuring in its eigenbasis.
+    It is primarily used by the `pauli_term_to_preparation_memory_map` and `pauli_term_to_measurement_memory_map`
+    functions.
 
     :param term: The ``PauliTerm`` in question.
     :param prefix: The prefix for the declared memory region labels. For example, if the prefix
@@ -94,8 +89,8 @@ def pauli_term_to_euler_memory_map(
         of angles as values).
     """
     # no need to provide a memory map when no rotations are necessary
-    if ("X" not in term.pauli_string(cast(List[int], term.get_qubits()))) and (
-        "Y" not in term.pauli_string(cast(List[int], term.get_qubits()))
+    if ("X" not in term.pauli_string(cast(list[int], term.get_qubits()))) and (
+        "Y" not in term.pauli_string(cast(list[int], term.get_qubits()))
     ):
         return {}
 
@@ -104,7 +99,7 @@ def pauli_term_to_euler_memory_map(
     gamma_label = f"{prefix}_{suffix_gamma}"
 
     # assume the pauli indices are equivalent to the memory region
-    memory_size = max(cast(List[int], term.get_qubits())) + 1
+    memory_size = max(cast(list[int], term.get_qubits())) + 1
 
     memory_map = {
         alpha_label: [0.0] * memory_size,
@@ -115,7 +110,8 @@ def pauli_term_to_euler_memory_map(
     tuples = {"X": tuple_x, "Y": tuple_y, "Z": tuple_z, "I": tuple_z}
 
     for qubit, operator in term:
-        assert isinstance(qubit, int)
+        if not isinstance(qubit, int):
+            raise TypeError("qubit must be an int")
         if operator not in tuples:
             raise ValueError(f"Unknown operator {operator}")
         memory_map[alpha_label][qubit] = tuples[operator][0]
@@ -125,11 +121,10 @@ def pauli_term_to_euler_memory_map(
     return memory_map
 
 
-def pauli_term_to_preparation_memory_map(term: PauliTerm, label: str = "preparation") -> Dict[str, List[float]]:
-    """
-    Given a ``PauliTerm``, create a memory map corresponding to the ZXZXZ-decomposed single-qubit
-    gates that prepare the plus one eigenstate of the ``PauliTerm``. For example, if we have the
-    following program:
+def pauli_term_to_preparation_memory_map(term: PauliTerm, label: str = "preparation") -> dict[str, list[float]]:
+    """Create a memory map for ZXZXZ-decomposed single-qubit gates to prepare the plus one eigenstate of the PauliTerm.
+
+    For example, if we have the following program:
 
         RZ(preparation_alpha[0]) 0
         RX(pi/2) 0
@@ -150,11 +145,10 @@ def pauli_term_to_preparation_memory_map(term: PauliTerm, label: str = "preparat
     return pauli_term_to_euler_memory_map(term, prefix=label, tuple_x=P_X, tuple_y=P_Y, tuple_z=P_Z)
 
 
-def pauli_term_to_measurement_memory_map(term: PauliTerm, label: str = "measurement") -> Dict[str, List[float]]:
-    """
-    Given a ``PauliTerm``, create a memory map corresponding to the ZXZXZ-decomposed single-qubit
-    gates that allow for measurement in the eigenbasis of the ``PauliTerm``. For example, if we
-    have the following program:
+def pauli_term_to_measurement_memory_map(term: PauliTerm, label: str = "measurement") -> dict[str, list[float]]:
+    """Create a memory map for ZXZXZ-decomposed single-qubit gates to measure in the eigenbasis of the PauliTerm.
+
+    For example, if we have the following program:
 
         RZ(measurement_alpha[0]) 0
         RX(pi/2) 0
@@ -177,10 +171,11 @@ def pauli_term_to_measurement_memory_map(term: PauliTerm, label: str = "measurem
 
 
 def merge_memory_map_lists(
-    mml1: List[Dict[str, List[float]]], mml2: List[Dict[str, List[float]]]
-) -> List[Dict[str, List[float]]]:
-    """
-    Given two lists of memory maps, produce the "cartesian product" of the memory maps:
+    mml1: list[dict[str, list[float]]], mml2: list[dict[str, list[float]]]
+) -> list[dict[str, list[float]]]:
+    """Given two lists of memory maps, produce the "cartesian product" of the memory maps.
+
+    For example:
 
         merge_memory_map_lists([{a: 1}, {a: 2}], [{b: 3, c: 4}, {b: 5, c: 6}])
 

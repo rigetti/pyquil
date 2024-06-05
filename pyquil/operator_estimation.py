@@ -1,43 +1,36 @@
+"""Tools for estimating the expectation value of operators on a quantum computer."""
+
 import logging
+from collections.abc import Generator, Mapping
 from math import pi
 from numbers import Complex
-from typing import Callable, Generator, List, Mapping, Tuple, Optional, cast
+from typing import Callable, Optional, cast
 
 import numpy as np
 
 from pyquil.api import QuantumComputer
-from pyquil.quil import Program
-from pyquil.quilatom import QubitDesignator
 
 # import the full public API of the pyquil experiment module
 from pyquil.experiment._group import (
-    _max_weight_state,
     _max_weight_operator,
-    construct_tpb_graph,
+    _max_weight_state,
+)
+from pyquil.experiment._group import (
     group_settings as group_experiments,
+)
+from pyquil.experiment._group import (
     group_settings_clique_removal as group_experiments_clique_removal,
+)
+from pyquil.experiment._group import (
     group_settings_greedy as group_experiments_greedy,
 )
 from pyquil.experiment._main import (
     Experiment,
-    OperatorEncoder,
 )
 from pyquil.experiment._result import ExperimentResult, ratio_variance
 from pyquil.experiment._setting import (
-    _OneQState,
     ExperimentSetting,
-    SIC0,
-    SIC1,
-    SIC2,
-    SIC3,
-    TensorProductState,
-    minusX,
-    minusY,
-    minusZ,
-    plusX,
-    plusY,
-    plusZ,
-    zeros_state,
+    _OneQState,
 )
 from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET, RX, RY, RZ, X
@@ -46,6 +39,13 @@ from pyquil.quil import Program
 from pyquil.quilatom import QubitDesignator
 
 log = logging.getLogger(__name__)
+
+__all__ = [
+    "group_experiments",
+    "group_experiments_clique_removal",
+    "group_experiments_greedy",
+    "measure_observables",
+]
 
 
 def _one_q_sic_prep(index: int, qubit: QubitDesignator) -> Program:
@@ -109,11 +109,10 @@ def _one_q_state_prep(oneq_state: _OneQState) -> Program:
 
 
 def _local_pauli_eig_meas(op: str, idx: QubitDesignator) -> Program:
-    """
-    Generate gate sequence to measure in the eigenbasis of a Pauli operator, assuming
-    we are only able to measure in the Z eigenbasis. (Note: The unitary operations of this
-    Program are essentially the Hermitian conjugates of those in :py:func:`_one_q_pauli_prep`)
+    """Generate gate sequence to measure in a Pauli operator's eigenbasis using only Z eigenbasis measurements.
 
+    Note: The unitary operations of this Program are essentially the Hermitian conjugates of those in
+    :py:func:`_one_q_pauli_prep`
     """
     if op == "X":
         return Program(RY(-pi / 2, idx))
@@ -126,11 +125,11 @@ def _local_pauli_eig_meas(op: str, idx: QubitDesignator) -> Program:
 
 def _generate_experiment_programs(
     tomo_experiment: Experiment, active_reset: bool = False
-) -> Tuple[List[Program], List[List[int]]]:
-    """
-    Generate the programs necessary to estimate the observables in a TomographyExperiment.
-    Grouping of settings to be run in parallel, e.g. by a call to group_experiments, should be
-    done before this function is called.
+) -> tuple[list[Program], list[list[int]]]:
+    """Generate the programs necessary to estimate the observables in a TomographyExperiment.
+
+    Grouping of settings to be run in parallel, e.g. by a call to group_experiments, should be done before this function
+    is called.
 
     .. CAUTION::
         One must be careful with compilation of the output programs before the appropriate MEASURE
@@ -151,7 +150,6 @@ def _generate_experiment_programs(
     programs = []
     meas_qubits = []
     for settings in tomo_experiment:
-
         # Prepare a state according to the amalgam of all setting.in_state
         total_prog = Program()
         if active_reset:
@@ -176,12 +174,13 @@ def _generate_experiment_programs(
                 "so that groups of parallel settings have compatible observables."
             )
         for qubit, op_str in max_weight_out_op:
-            assert isinstance(qubit, int)
+            if not isinstance(qubit, int):
+                raise TypeError("Qubit must be an integer.")
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
         programs.append(total_prog)
 
-        meas_qubits.append(cast(List[int], max_weight_out_op.get_qubits()))
+        meas_qubits.append(cast(list[int], max_weight_out_op.get_qubits()))
     return programs, meas_qubits
 
 
@@ -191,8 +190,7 @@ def measure_observables(
     progress_callback: Optional[Callable[[int, int], None]] = None,
     calibrate_readout: Optional[str] = "plus-eig",
 ) -> Generator[ExperimentResult, None, None]:
-    """
-    Measure all the observables in a TomographyExperiment.
+    """Measure all the observables in a TomographyExperiment.
 
     :param qc: A QuantumComputer which can run quantum programs
     :param tomo_experiment: A suite of tomographic observables to measure
@@ -238,7 +236,8 @@ def measure_observables(
         for setting in settings:
             # Get the term's coefficient so we can multiply it in later.
             coeff = setting.out_operator.coefficient
-            assert isinstance(coeff, Complex)
+            if not isinstance(coeff, Complex):
+                raise TypeError("Coefficient must be a complex number.")
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
             coeff = coeff.real
@@ -299,14 +298,16 @@ def measure_observables(
                 raise ValueError("Calibration readout method must be either 'plus-eig' or None")
 
 
-def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
-    """
+def _ops_bool_to_prog(ops_bool: tuple[bool], qubits: list[int]) -> Program:
+    """Specify a program based on the operations to be carried out on the qubits.
+
     :param ops_bool: tuple of booleans specifying the operation to be carried out on `qubits`
     :param qubits: list specifying the qubits to be carried operations on
     :return: Program with the operations specified in `ops_bool` on the qubits specified in
         `qubits`
     """
-    assert len(ops_bool) == len(qubits), "Mismatch of qubits and operations"
+    if len(ops_bool) != len(qubits):
+        raise ValueError("Length of ops_bool must match length of qubits.")
     prog = Program()
     for i, op_bool in enumerate(ops_bool):
         if op_bool == 0:
@@ -324,8 +325,9 @@ def _stats_from_measurements(
     setting: ExperimentSetting,
     n_shots: int,
     coeff: float = 1.0,
-) -> Tuple[np.number, np.number]:
-    """
+) -> tuple[np.number, np.number]:
+    """Calculate statistics from the results of a measurement process.
+
     :param bs_results: results from running `qc.run`
     :param qubit_index_map: dict mapping qubit to classical register index
     :param setting: ExperimentSetting
@@ -348,8 +350,7 @@ def _stats_from_measurements(
 
 
 def _calibration_program(qc: QuantumComputer, tomo_experiment: Experiment, setting: ExperimentSetting) -> Program:
-    """
-    Program required for calibration in a tomography-like experiment.
+    """Program required for calibration in a tomography-like experiment.
 
     :param tomo_experiment: A suite of tomographic observables
     :param ExperimentSetting: The particular tomographic observable to measure
@@ -361,7 +362,7 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: Experiment, setti
     # Inherit any noisy attributes from main Program, including gate definitions
     # and applications which can be handy in creating simulating noisy channels
     calibr_prog = Program()
-    # Inherit readout errro instructions from main Program
+    # Inherit readout error instructions from main Program
     readout_povm_instruction = [i for i in tomo_experiment.program.out().split("\n") if "PRAGMA READOUT-POVM" in i]
     calibr_prog += readout_povm_instruction
     # Inherit any definitions of noisy gates from main Program
@@ -369,11 +370,13 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: Experiment, setti
     calibr_prog += kraus_instructions
     # Prepare the +1 eigenstate for the out operator
     for q, op in setting.out_operator.operations_as_set():
-        assert isinstance(q, int)
+        if not isinstance(q, int):
+            raise TypeError("Qubit must be an integer.")
         calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
     # Measure the out operator in this state
     for q, op in setting.out_operator.operations_as_set():
-        assert isinstance(q, int)
+        if not isinstance(q, int):
+            raise TypeError("Qubit must be an integer.")
         calibr_prog += _local_pauli_eig_meas(op, q)
 
     return calibr_prog

@@ -1,37 +1,46 @@
+"""A module containing utilities for working with Quil-T calibrations."""
+
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Union, Dict, Any, Optional, Sequence
+from typing import Any, Optional, Union
+
+import quil.expression as quil_expr
+import quil.instructions as quil_rs
+from quil.program import CalibrationSet
 
 from pyquil.quilatom import (
     ExpressionDesignator,
-    QubitDesignator,
     MemoryReference,
+    QubitDesignator,
     _convert_to_py_expression,
 )
 from pyquil.quilbase import (
     AbstractInstruction,
     DefCalibration,
     DefMeasureCalibration,
-    _convert_to_rs_instruction,
     _convert_to_py_qubit,
+    _convert_to_rs_instruction,
 )
-
-from quil.program import CalibrationSet
-import quil.instructions as quil_rs
-import quil.expression as quil_expr
 
 
 class CalibrationError(Exception):
+    """Base class for calibration errors."""
+
     pass
 
 
 class CalibrationDoesntMatch(CalibrationError):
+    """Raised when a calibration doesn't match an instruction."""
+
     pass
 
 
 @dataclass
 class CalibrationMatch:
+    """A match between a calibration definition and an instruction."""
+
     cal: Union[DefCalibration, DefMeasureCalibration]
-    settings: Dict[Union[QubitDesignator, ExpressionDesignator], Any]
+    settings: dict[Union[QubitDesignator, ExpressionDesignator], Any]
 
 
 def _convert_to_calibration_match(
@@ -55,7 +64,7 @@ def _convert_to_calibration_match(
     else:
         return None
 
-    settings: Dict[Union[QubitDesignator, ExpressionDesignator], Union[QubitDesignator, ExpressionDesignator]] = {
+    settings: dict[Union[QubitDesignator, ExpressionDesignator], Union[QubitDesignator, ExpressionDesignator]] = {
         _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
         for param, qubit in zip(parameter_qubits, target_qubits)
         if isinstance(param, MemoryReference) or param.is_variable()
@@ -87,9 +96,9 @@ def match_calibration(
         instruction = _convert_to_rs_instruction(instr)
         gate = instruction.to_gate()
         calibration_set = CalibrationSet([calibration.to_calibration_definition()], [])
-        matched_calibration: Optional[
-            Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition]
-        ] = calibration_set.get_match_for_gate(gate)
+        matched_calibration: Optional[Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition]] = (
+            calibration_set.get_match_for_gate(gate)
+        )
         return _convert_to_calibration_match(gate, matched_calibration)
 
     if calibration.is_measure_calibration_definition() and instruction.is_measurement():

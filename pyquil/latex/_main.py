@@ -13,9 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-The main entry point to the LaTeX generation functionality in pyQuil.
-"""
+"""The main entry point to the LaTeX generation functionality in pyQuil."""
+
 from typing import Optional
 
 from pyquil.latex._diagram import DiagramBuilder, DiagramSettings
@@ -23,8 +22,7 @@ from pyquil.quil import Program
 
 
 def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
-    """
-    Translates a given pyQuil Program to a TikZ picture in a LaTeX document.
+    """Translate a given pyQuil Program to a TikZ picture in a LaTeX document.
 
     Here are some high points of the generation procedure (see ``pyquil/latex/_diagram.py``):
 
@@ -61,8 +59,7 @@ def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> st
 
 
 def header() -> str:
-    """
-    Writes the LaTeX header using the settings file.
+    """Write the LaTeX header using the settings file.
 
     The header includes all packages and defines all tikz styles.
 
@@ -81,8 +78,7 @@ def header() -> str:
 
 
 def footer() -> str:
-    """
-    Return the footer of the LaTeX document.
+    """Return the footer of the LaTeX document.
 
     :return: LaTeX document footer.
     """
@@ -90,16 +86,13 @@ def footer() -> str:
 
 
 def body(circuit: Program, settings: DiagramSettings) -> str:
-    """
-    Return the body of the LaTeX document, including the entire circuit in
-    TikZ format.
+    """Return the body of the LaTeX document, including the entire circuit in TikZ format.
 
     :param circuit: The circuit to be drawn, represented as a pyquil program.
     :param settings: Options controlling rendering and layout.
 
     :return: LaTeX string to draw the entire circuit.
     """
-
     diagram = DiagramBuilder(circuit, settings).build()
 
     # flush lines

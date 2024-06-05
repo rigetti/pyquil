@@ -13,11 +13,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Module containing the Wavefunction object and methods for working with wavefunctions.
-"""
+"""Module containing the Wavefunction object and methods for working with wavefunctions."""
+
 import itertools
-from typing import Dict, Iterator, List, Optional, Sequence, cast
+from collections.abc import Iterator, Sequence
+from typing import Optional, cast
 
 import numpy as np
 
@@ -25,10 +25,8 @@ OCTETS_PER_DOUBLE_FLOAT = 8
 OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 
-class Wavefunction(object):
-    """
-    Encapsulate a wavefunction representing a quantum state
-    as returned by :py:class:`~pyquil.api.WavefunctionSimulator`.
+class Wavefunction:
+    """Encapsulate a wavefunction representing a quantum state as returned by :py:class:`~pyquil.api.WavefunctionSimulator`.
 
     .. note::
 
@@ -40,8 +38,7 @@ class Wavefunction(object):
     """
 
     def __init__(self, amplitude_vector: np.ndarray):
-        """
-        Initializes a wavefunction
+        """Initialize a Wavefunction.
 
         :param amplitude_vector: A numpy array of complex amplitudes
         """
@@ -51,14 +48,11 @@ class Wavefunction(object):
         self.amplitudes: np.ndarray = np.asarray(amplitude_vector)
         sumprob = np.sum(self.probabilities())
         if not np.isclose(sumprob, 1.0):
-            raise ValueError(
-                "The wavefunction is not normalized. " "The probabilities sum to {} instead of 1".format(sumprob)
-            )
+            raise ValueError("The wavefunction is not normalized. " f"The probabilities sum to {sumprob} instead of 1")
 
     @staticmethod
     def zeros(qubit_num: int) -> "Wavefunction":
-        """
-        Constructs the groundstate wavefunction for a given number of qubits.
+        """Construct the groundstate wavefunction for a given number of qubits.
 
         :param qubit_num:
         :return: A Wavefunction in the ground state
@@ -69,8 +63,8 @@ class Wavefunction(object):
 
     @staticmethod
     def from_bit_packed_string(coef_string: bytes) -> "Wavefunction":
-        """
-        From a bit packed string, unpacks to get the wavefunction
+        """Unpack the bit string to get a Wavefunction.
+
         :param coef_string:
         """
         num_cfloat = len(coef_string) // OCTETS_PER_COMPLEX_DOUBLE
@@ -93,13 +87,11 @@ class Wavefunction(object):
         return self.pretty_print(decimal_digits=10)
 
     def probabilities(self) -> np.ndarray:
-        """Returns an array of probabilities in lexicographical order"""
+        """Return an array of probabilities in lexicographical order."""
         return np.abs(self.amplitudes) ** 2  # type: ignore
 
-    def get_outcome_probs(self) -> Dict[str, float]:
-        """
-        Parses a wavefunction (array of complex amplitudes) and returns a dictionary of
-        outcomes and associated probabilities.
+    def get_outcome_probs(self) -> dict[str, float]:
+        """Parse a wavefunction (array of complex amplitudes) and return a dictionary of outcomes and associated probabilities.
 
         :return: A dict with outcomes as keys and probabilities as values.
         :rtype: dict
@@ -111,9 +103,8 @@ class Wavefunction(object):
             outcome_dict[outcome] = abs(amplitude) ** 2
         return outcome_dict
 
-    def pretty_print_probabilities(self, decimal_digits: int = 2) -> Dict[str, float]:
-        """
-        TODO: This doesn't seem like it is named correctly...
+    def pretty_print_probabilities(self, decimal_digits: int = 2) -> dict[str, float]:
+        """TODO: This doesn't seem like it is named correctly...
 
         Prints outcome probabilities, ignoring all outcomes with approximately zero probabilities
         (up to a certain number of decimal digits) and rounding the probabilities to decimal_digits.
@@ -131,10 +122,10 @@ class Wavefunction(object):
         return outcome_dict
 
     def pretty_print(self, decimal_digits: int = 2) -> str:
-        """
-        Returns a string repr of the wavefunction, ignoring all outcomes with approximately zero
-        amplitude (up to a certain number of decimal digits) and rounding the amplitudes to
-        decimal_digits.
+        """Return a human-friendly string representation of the wavefunction.
+
+        Ignores all outcomes with approximately zero amplitude (up to a certain number of decimal digits) and rounding
+        the amplitudes to decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
         :return: A string representation of the wavefunction.
@@ -147,16 +138,13 @@ class Wavefunction(object):
             amplitude = round(amplitude.real, decimal_digits) + round(amplitude.imag, decimal_digits) * 1.0j
             if amplitude != 0.0:
                 outcome_dict[outcome] = amplitude
-                pp_string += str(amplitude) + "|{}> + ".format(outcome)
+                pp_string += str(amplitude) + f"|{outcome}> + "
         if len(pp_string) >= 3:
             pp_string = pp_string[:-3]  # remove the dangling + if it is there
         return pp_string
 
     def plot(self, qubit_subset: Optional[Sequence[int]] = None) -> None:
-        """
-        TODO: calling this will error because of matplotlib
-
-        Plots a bar chart with bitstring on the x axis and probability on the y axis.
+        """Plot a bar chart with bitstring on the x-axis and probability on the y-axis.
 
         :param qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.
         """
@@ -168,17 +156,16 @@ class Wavefunction(object):
             qubit_num = len(self)
             for i in qubit_subset:
                 if i > (2**qubit_num - 1):
-                    raise IndexError("Index {} too large for {} qubits.".format(i, qubit_num))
+                    raise IndexError(f"Index {i} too large for {qubit_num} qubits.")
                 else:
                     sub_dict[get_bitstring_from_index(i, qubit_num)] = prob_dict[get_bitstring_from_index(i, qubit_num)]
             prob_dict = sub_dict
-        plt.bar(range(len(prob_dict)), prob_dict.values(), align="center", color="#6CAFB7")
-        plt.xticks(range(len(prob_dict)), prob_dict.keys())
+        plt.bar(range(len(prob_dict)), list(prob_dict.values()), align="center", color="#6CAFB7")
+        plt.xticks(range(len(prob_dict)), list(prob_dict.keys()))
         plt.show()
 
     def sample_bitstrings(self, n_samples: int) -> np.ndarray:
-        """
-        Sample bitstrings from the distribution defined by the wavefunction.
+        """Sample bitstrings from the distribution defined by the wavefunction.
 
         :param n_samples: The number of bitstrings to sample
         :return: An array of shape (n_samples, n_qubits)
@@ -190,21 +177,20 @@ class Wavefunction(object):
 
 
 def get_bitstring_from_index(index: int, qubit_num: int) -> str:
-    """
-    Returns the bitstring in lexical order that corresponds to the given index in 0 to 2^(qubit_num)
+    """Get the bitstring in lexical order that corresponds to the given index in 0 to 2^(qubit_num).
+
     :param int index:
     :param int qubit_num:
     :return: the bitstring
     :rtype: str
     """
     if index > (2**qubit_num - 1):
-        raise IndexError("Index {} too large for {} qubits.".format(index, qubit_num))
+        raise IndexError(f"Index {index} too large for {qubit_num} qubits.")
     return bin(index)[2:].rjust(qubit_num, "0")
 
 
-def _octet_bits(o: int) -> List[int]:
-    """
-    Get the bits of an octet.
+def _octet_bits(o: int) -> list[int]:
+    """Get the bits of an octet.
 
     :param o: The octets.
     :return: The bits as a list in LSB-to-MSB order.

@@ -40,7 +40,7 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 
 .. note::
 
-    pyQuil requires Python 3.8 or later.
+    pyQuil requires Python 3.9 or later.
 
 .. testcode:: verify-min-version
     :hide:
@@ -58,7 +58,7 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 .. testoutput:: verify-min-version
     :hide:
 
-    ^3.8...
+    ^3.9...
 
 .. note::
 

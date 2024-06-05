@@ -6,12 +6,13 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import os
+import subprocess
+
 import sphinx_rtd_theme
 from sphinx.ext.doctest import doctest
-from pyquil import __version__
 
-import subprocess
-import os
+from pyquil import __version__
 
 project = "pyQuil"
 copyright = "2021, Rigetti Computing"
@@ -37,7 +38,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinxcontrib.jquery",
     "nbsphinx",
-    "recommonmark",
+    "myst_parser",
 ]
 
 templates_path = ["_templates"]
@@ -119,7 +120,6 @@ suppress_warnings = [
 
 dirname = os.path.dirname(__file__)
 
-
 def builder_inited_handler(app):
     import pandoc
 
@@ -129,16 +129,26 @@ def builder_inited_handler(app):
     input = pandoc.read(source=None, file=infile, format="markdown")
     pandoc.write(input, file=outfile, format="rst")
 
-    subprocess.call(
+    result = subprocess.run(
         [
             "sphinx-apidoc",
             "--module-first",
             "--force",
+            "--append-syspath",
             "--separate",
             f"--output-dir={dirname}/apidocs",
             f"{dirname}/../../pyquil",
-        ]
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
     )
+    if result.returncode == 0:
+        print("sphinx-apidoc ran successfully.")
+    else:
+        print(f"sphinx-apidoc failed with return code {result.returncode}.")
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
 
 
 def setup(app):

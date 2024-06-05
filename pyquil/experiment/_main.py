@@ -13,26 +13,21 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+"""Schema definition of a Experiment, a collection of ExperimentSetting objects and a main program body (or ansatz).
+
+This schema is widely useful for defining and executing many common types of algorithms / applications, including state
+and process tomography, and the variational quantum eigensolver.
 """
-Schema definition of a Experiment, which is a collection of ExperimentSetting
-objects and a main program body (or ansatz). This schema is widely useful for defining
-and executing many common types of algorithms / applications, including state and process
-tomography, and the variational quantum eigensolver.
-"""
+
 import json
 import logging
 import warnings
+from collections.abc import Generator, Mapping, Sequence
 from json import JSONEncoder
 from typing import (
     Any,
     Callable,
-    Dict,
-    Generator,
-    List,
-    Mapping,
     Optional,
-    Sequence,
-    Set,
     Union,
     cast,
 )
@@ -43,19 +38,18 @@ from pyquil.experiment._memory import (
     pauli_term_to_preparation_memory_map,
 )
 from pyquil.experiment._program import (
+    measure_qubits,
+    parameterized_readout_symmetrization,
     parameterized_single_qubit_measurement_basis,
     parameterized_single_qubit_state_preparation,
-    parameterized_readout_symmetrization,
-    measure_qubits,
 )
 from pyquil.experiment._result import ExperimentResult
-from pyquil.experiment._setting import ExperimentSetting, _OneQState, TensorProductState
+from pyquil.experiment._setting import ExperimentSetting, TensorProductState, _OneQState
 from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import Program
 from pyquil.quilbase import Reset, ResetQubit
-
 
 log = logging.getLogger(__name__)
 
@@ -77,8 +71,7 @@ def _abbrev_program(program: Program, max_len: int = 10) -> str:
 
 
 def _remove_reset_from_program(program: Program) -> Program:
-    """
-    Trim the RESET from a program because in measure_observables it is re-added.
+    """Trim the RESET from a program because in measure_observables it is re-added.
 
     :param program: Program to remove RESET(s) from.
     :return: Trimmed Program.
@@ -93,8 +86,7 @@ def _remove_reset_from_program(program: Program) -> Program:
 
 
 class Experiment:
-    """
-    A tomography-like experiment.
+    """A tomography-like experiment.
 
     Many near-term quantum algorithms involve:
 
@@ -144,29 +136,30 @@ class Experiment:
 
     def __init__(
         self,
-        settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
+        settings: Union[list[ExperimentSetting], list[list[ExperimentSetting]]],
         program: Program,
         *,
         symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
         calibration: int = CalibrationMethod.PLUS_EIGENSTATE,
     ):
         if len(settings) == 0:
-            s: List[List[ExperimentSetting]] = []
+            s: list[list[ExperimentSetting]] = []
         else:
             if isinstance(settings[0], ExperimentSetting):
                 # convenience wrapping in lists of length 1
-                s = [[expt] for expt in cast(List[ExperimentSetting], settings)]
+                s = [[expt] for expt in cast(list[ExperimentSetting], settings)]
             else:
-                s = cast(List[List[ExperimentSetting]], settings)
+                s = cast(list[list[ExperimentSetting]], settings)
 
         self._settings = s
         self.program = program
         self.symmetrization = SymmetrizationLevel(symmetrization)
         if self.symmetrization != SymmetrizationLevel.EXHAUSTIVE:
-            if type(calibration) == int and calibration != 0:
+            if isinstance(calibration, int) and calibration != 0:
                 warnings.warn(
                     "Calibration is only supported for exhaustive symmetrization, "
-                    "thus setting self.calibration = 0 (CalibrationMethod.NONE)."
+                    "thus setting self.calibration = 0 (CalibrationMethod.NONE).",
+                    stacklevel=2,
                 )
             self.calibration = CalibrationMethod.NONE
         else:
@@ -182,51 +175,51 @@ class Experiment:
     def __len__(self) -> int:
         return len(self._settings)
 
-    def __getitem__(self, item: int) -> List[ExperimentSetting]:
+    def __getitem__(self, item: int) -> list[ExperimentSetting]:
         return self._settings[item]
 
-    def __setitem__(self, key: int, value: List[ExperimentSetting]) -> None:
+    def __setitem__(self, key: int, value: list[ExperimentSetting]) -> None:
         self._settings[key] = value
 
     def __delitem__(self, key: int) -> None:
         self._settings.__delitem__(key)
 
-    def __iter__(self) -> Generator[List[ExperimentSetting], None, None]:
+    def __iter__(self) -> Generator[list[ExperimentSetting], None, None]:
         yield from self._settings
 
-    def __reversed__(self) -> Generator[List[ExperimentSetting], None, None]:
+    def __reversed__(self) -> Generator[list[ExperimentSetting], None, None]:
         yield from reversed(self._settings)
 
-    def __contains__(self, item: List[ExperimentSetting]) -> bool:
+    def __contains__(self, item: list[ExperimentSetting]) -> bool:
         return item in self._settings
 
-    def append(self, expts: Union[ExperimentSetting, List[ExperimentSetting]]) -> None:
+    def append(self, expts: Union[ExperimentSetting, list[ExperimentSetting]]) -> None:
         if not isinstance(expts, list):
             expts = [expts]
         self._settings.append(expts)
 
-    def count(self, expt: List[ExperimentSetting]) -> int:
+    def count(self, expt: list[ExperimentSetting]) -> int:
         return self._settings.count(expt)
 
-    def index(self, expt: List[ExperimentSetting], start: int = 0, stop: int = 0) -> int:
+    def index(self, expt: list[ExperimentSetting], start: int = 0, stop: int = 0) -> int:
         return self._settings.index(expt, start, stop)
 
-    def extend(self, expts: List[List[ExperimentSetting]]) -> None:
+    def extend(self, expts: list[list[ExperimentSetting]]) -> None:
         self._settings.extend(expts)
 
-    def insert(self, index: int, expt: List[ExperimentSetting]) -> None:
+    def insert(self, index: int, expt: list[ExperimentSetting]) -> None:
         self._settings.insert(index, expt)
 
-    def pop(self, index: int = 0) -> List[ExperimentSetting]:
+    def pop(self, index: int = 0) -> list[ExperimentSetting]:
         return self._settings.pop(index)
 
-    def remove(self, expt: List[ExperimentSetting]) -> None:
+    def remove(self, expt: list[ExperimentSetting]) -> None:
         self._settings.remove(expt)
 
     def reverse(self) -> None:
         self._settings.reverse()
 
-    def sort(self, key: Optional[Callable[[List[ExperimentSetting]], Any]] = None, reverse: bool = False) -> None:
+    def sort(self, key: Optional[Callable[[list[ExperimentSetting]], Any]] = None, reverse: bool = False) -> None:
         return self._settings.sort(key=key, reverse=reverse)
 
     def setting_strings(self) -> Generator[str, None, None]:
@@ -256,7 +249,7 @@ class Experiment:
         string += f"settings:\n{self.settings_string(abbrev_after=20)}"
         return string
 
-    def serializable(self) -> Dict[str, Any]:
+    def serializable(self) -> dict[str, Any]:
         return {
             "type": "Experiment",
             "settings": self._settings,
@@ -271,20 +264,18 @@ class Experiment:
             return False
         return self.serializable() == other.serializable()
 
-    def get_meas_qubits(self) -> List[int]:
-        """
-        Return the sorted list of qubits that are involved in the all the out_operators of the
-        settings for this ``Experiment`` object.
-        """
-        meas_qubits: Set[int] = set()
+    def get_meas_qubits(self) -> list[int]:
+        """Return the sorted list of qubits involved in all out_operators of this Experiment object's settings."""
+        meas_qubits: set[int] = set()
         for settings in self:
-            assert len(settings) == 1
-            meas_qubits.update(cast(List[int], settings[0].out_operator.get_qubits()))
+            if len(settings) != 1:
+                raise ValueError("Can't get the measured qubits of grouped ExperimentSettings.")
+            meas_qubits.update(cast(list[int], settings[0].out_operator.get_qubits()))
         return sorted(meas_qubits)
 
-    def get_meas_registers(self, qubits: Optional[Sequence[int]] = None) -> List[int]:
-        """
-        Return the sorted list of memory registers corresponding to the list of qubits provided.
+    def get_meas_registers(self, qubits: Optional[Sequence[int]] = None) -> list[int]:
+        """Return the sorted list of memory registers corresponding to the list of qubits provided.
+
         If no qubits are provided, just returns the list of numbers from 0 to n-1 where n is the
         number of qubits resulting from the ``get_meas_qubits`` method.
         """
@@ -299,10 +290,7 @@ class Experiment:
         return sorted(meas_registers)
 
     def generate_experiment_program(self) -> Program:
-        """
-        Generate a parameterized program containing the main body program along with some additions
-        to support the various state preparation, measurement, and symmetrization specifications of
-        this ``Experiment``.
+        """Generate a parameterized program with the main body and additions for state prep, measurement, and symmetrization.
 
         State preparation and measurement are achieved via ZXZXZ-decomposed single-qubit gates,
         where the angles of each ``RZ`` rotation are declared parameters that can be assigned at
@@ -324,7 +312,8 @@ class Experiment:
             p += RESET()
 
         for settings in self:
-            assert len(settings) == 1
+            if len(settings) != 1:
+                raise ValueError("Can't generate a program for grouped ExperimentSettings.")
             if ("X" in str(settings[0].in_state)) or ("Y" in str(settings[0].in_state)):
                 if "DECLARE preparation_alpha" in self.program.out():
                     raise ValueError('Memory "preparation_alpha" has been declared already.')
@@ -338,7 +327,8 @@ class Experiment:
         p += self.program
 
         for settings in self:
-            assert len(settings) == 1
+            if len(settings) != 1:
+                raise ValueError("Can't generate a program for grouped ExperimentSettings.")
             if ("X" in str(settings[0].out_operator)) or ("Y" in str(settings[0].out_operator)):
                 if "DECLARE measurement_alpha" in self.program.out():
                     raise ValueError('Memory "measurement_alpha" has been declared already.')
@@ -362,11 +352,11 @@ class Experiment:
 
         return p
 
-    def build_setting_memory_map(self, setting: ExperimentSetting) -> Dict[str, List[float]]:
-        """
-        Build the memory map corresponding to the state preparation and measurement specifications
-        encoded in the provided ``ExperimentSetting``, taking into account the full set of qubits
-        that are present in the ``Experiment`` object.
+    def build_setting_memory_map(self, setting: ExperimentSetting) -> dict[str, list[float]]:
+        """Build the memory map for state prep and measurement specs in the ExperimentSetting, considering all qubits.
+
+        The memory map is built corresponding to the state preparation and measurement specifications encoded in the
+        provided ExperimentSetting, taking into account the full set of qubits present in the Experiment object.
 
         :return: Memory map for state prep and measurement.
         """
@@ -382,10 +372,10 @@ class Experiment:
 
     def build_symmetrization_memory_maps(
         self, qubits: Sequence[int], label: str = "symmetrization"
-    ) -> List[Dict[str, List[float]]]:
-        """
-        Build a list of memory maps to be used in a program that is trying to perform readout
-        symmetrization via parametric compilation. For example, if we have the following program:
+    ) -> list[dict[str, list[float]]]:
+        """Build a list of memory maps for readout symmetrization in a program using parametric compilation.
+
+        For example, if we have the following program:
 
             RX(symmetrization[0]) 0
             RX(symmetrization[1]) 1
@@ -414,8 +404,9 @@ class Experiment:
         if self.symmetrization != SymmetrizationLevel.EXHAUSTIVE:
             raise ValueError("We only support exhaustive symmetrization for now.")
 
-        import numpy as np
         import itertools
+
+        import numpy as np
 
         assignments = itertools.product(np.array([0, np.pi]), repeat=len(symm_registers))
         memory_maps = []
@@ -427,25 +418,24 @@ class Experiment:
         return memory_maps
 
     def generate_calibration_experiment(self) -> "Experiment":
-        """
-        Generate another ``Experiment`` object that can be used to calibrate the various multi-qubit
-        observables involved in this ``Experiment``. This is achieved by preparing the plus-one
-        (minus-one) eigenstate of each ``out_operator``, and measuring the resulting expectation
-        value of the same ``out_operator``. Ideally, this would always give +1 (-1), but when
-        symmetric readout error is present the effect is to scale the resultant expectations by some
-        constant factor. Determining this scale factor is what we call *readout calibration*, and
-        then the readout error in subsequent measurements can then be mitigated by simply dividing
-        by the scale factor.
+        """Generate an Experiment for calibrating multi-qubit observables to mitigate readout errors.
 
-        :return: A new ``Experiment`` that can calibrate the readout error of all the
-            observables involved in this experiment.
+        Generate another Experiment object to calibrate the various multi-qubit observables involved in this Experiment.
+        This is done by preparing the plus-one (minus-one) eigenstate of each out_operator and measuring the resulting
+        expectation value of the same out_operator. Ideally, this should always yield +1 (-1), but the presence of
+        symmetric readout error scales the results by a constant factor. Determining this scale factor is known as
+        readout calibration, allowing for error mitigation in subsequent measurements by dividing by the scale factor.
+
+        :return: A new ``Experiment`` that can calibrate the readout error of all the observables involved in
+            this experiment.
         """
         if self.calibration != CalibrationMethod.PLUS_EIGENSTATE:
             raise ValueError('We currently only support the "plus eigenstate" calibration method.')
 
         calibration_settings = []
         for settings in self:
-            assert len(settings) == 1
+            if len(settings) != 1:
+                raise ValueError("Can't generate calibration experiment with grouped ExperimentSettings.")
             calibration_settings.append(
                 ExperimentSetting(
                     in_state=_pauli_to_product_state(settings[0].out_operator),
@@ -471,9 +461,7 @@ class Experiment:
 
 
 def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
-    """
-    Convert a Pauli term to a TensorProductState.
-    """
+    """Convert a Pauli term to a TensorProductState."""
     if is_identity(in_state):
         return TensorProductState()
     else:
@@ -497,8 +485,7 @@ class OperatorEncoder(JSONEncoder):
 
 
 def to_json(fn: str, obj: Any) -> str:
-    """
-    Convenience method to save pyquil.experiment objects as a JSON file.
+    """Save pyquil.experiment objects as a JSON file.
 
     See :py:func:`read_json`.
     """
@@ -521,8 +508,7 @@ def _operator_object_hook(obj: Mapping[str, Any]) -> Union[Mapping[str, Any], Ex
 
 
 def read_json(fn: str) -> Any:
-    """
-    Convenience method to read pyquil.experiment objects from a JSON file.
+    """Read pyquil.experiment objects from a JSON file.
 
     See :py:func:`to_json`.
     """

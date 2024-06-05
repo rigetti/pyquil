@@ -24,30 +24,30 @@ from operator import mul
 import numpy as np
 import pytest
 
-from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+from pyquil.gates import CNOT, PHASE, RX, RZ, H, X
 from pyquil.paulis import (
-    PauliTerm,
-    PauliSum,
-    exponential_map,
-    exponentiate_commuting_pauli_sum,
-    exponentiate_pauli_sum,
     ID,
-    exponentiate,
-    trotterize,
-    is_zero,
+    ZERO,
+    PauliSum,
+    PauliTerm,
     check_commutation,
     commuting_sets,
-    term_with_coeff,
+    exponential_map,
+    exponentiate,
+    exponentiate_commuting_pauli_sum,
+    exponentiate_pauli_sum,
+    is_identity,
+    is_zero,
     sI,
     sX,
     sY,
     sZ,
-    ZERO,
-    is_identity,
+    term_with_coeff,
+    trotterize,
 )
 from pyquil.quil import Program
-from pyquil.simulation.tools import program_unitary, unitary_equal
 from pyquil.simulation import matrices
+from pyquil.simulation.tools import program_unitary, unitary_equal
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):

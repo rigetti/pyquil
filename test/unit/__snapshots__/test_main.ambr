@@ -1,3 +1,4 @@
+# serializer version: 1
 # name: test_remove_reset_from_program
   '''
   DEFGATE XGATE AS MATRIX:

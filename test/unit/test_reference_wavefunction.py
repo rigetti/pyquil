@@ -11,21 +11,21 @@ from pyquil.api import WavefunctionSimulator
 from pyquil.gates import (
     CNOT,
     CPHASE,
-    H,
     HALT,
-    I,
     MEASURE,
     MOVE,
     PHASE,
+    QUANTUM_GATES,
     RESET,
     RX,
     RY,
     RZ,
     SWAP,
+    H,
+    I,
     X,
-    QUANTUM_GATES,
 )
-from pyquil.paulis import PauliTerm, exponentiate, sZ, sX, sI, sY
+from pyquil.paulis import PauliTerm, exponentiate, sI, sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
@@ -898,7 +898,7 @@ def _generate_random_program(n_qubits, length, include_measures=False):
             elif param == "angle":
                 param_val = random.uniform(-2 * pi, 2 * pi)
             else:
-                raise ValueError("Unknown gate parameter {}".format(param))
+                raise ValueError(f"Unknown gate parameter {param}")
 
             param_vals.append(param_val)
 

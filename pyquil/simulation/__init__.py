@@ -1,3 +1,5 @@
+"""Functions and classes for running simulations."""
+
 __all__ = [
     "get_measure_probabilities",
     "NumpyWavefunctionSimulator",

@@ -13,76 +13,70 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from fractions import Fraction
+"""Classes that represent the atomic building blocks of Quil expressions."""
+
 import inspect
+from collections.abc import Iterable, Mapping, Sequence
+from fractions import Fraction
 from numbers import Number
 from typing import (
     Any,
     Callable,
     ClassVar,
-    Dict,
-    List,
-    Iterable,
-    Mapping,
     NoReturn,
     Optional,
-    Set,
-    Sequence,
-    Tuple,
-    Type,
     Union,
     cast,
 )
-from typing_extensions import Self
-from deprecated.sphinx import deprecated
 
 import numpy as np
-
-import quil.instructions as quil_rs
 import quil.expression as quil_rs_expr
+import quil.instructions as quil_rs
+from deprecated.sphinx import deprecated
+from typing_extensions import Self
 
 
-class QuilAtom(object):
-    """
-    Abstract class for atomic elements of Quil.
-    """
+class QuilAtom:
+    """Abstract class for atomic elements of Quil."""
 
     def out(self) -> str:
+        """Return the element as a valid Quil string."""
         raise NotImplementedError()
 
     def __str__(self) -> str:
+        """Get a string representation of the element, possibly not valid Quil."""
         raise NotImplementedError()
 
     def __eq__(self, other: object) -> bool:
+        """Return True if the other object is equal to this one."""
         raise NotImplementedError()
 
-    def __ne__(self, other: object) -> bool:
-        return not self.__eq__(other)
-
     def __hash__(self) -> int:
+        """Return a hash of the object."""
         raise NotImplementedError()
 
 
 class Qubit(QuilAtom):
-    """
-    Representation of a qubit.
+    """Representation of a qubit.
 
     :param index: Index of the qubit.
     """
 
     def __init__(self, index: int):
+        """Initialize a qubit."""
         if not (isinstance(index, int) and index >= 0):
             raise TypeError("Addr index must be a non-negative int")
         self.index = index
 
     def out(self) -> str:
+        """Return the element as a valid Quil string."""
         return str(self.index)
 
     def __str__(self) -> str:
         return str(self.index)
 
     def __repr__(self) -> str:
-        return "<Qubit {0}>".format(self.index)
+        return f"<Qubit {self.index}>"
 
     def __hash__(self) -> int:
         return hash(self.index)
@@ -92,21 +86,25 @@ class Qubit(QuilAtom):
 
 
 class FormalArgument(QuilAtom):
-    """
-    Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM
-    or DEFCAL form.
-    """
+    """Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM or DEFCAL form."""
 
     def __init__(self, name: str):
+        """Initialize a formal argument."""
         if not isinstance(name, str):
             raise TypeError("Formal arguments must be named by a string.")
         self.name = name
 
     def out(self) -> str:
+        """Return the element as a valid Quil string."""
         return str(self)
 
     @property
+    @deprecated(
+        "Getting the index of a FormalArgument is invalid. This method will be removed in a future release.",
+        version="4.0",
+    )
     def index(self) -> NoReturn:
+        """Formal arguments do not have an index. Using this property raises a RuntimeError."""
         raise RuntimeError(f"Cannot derive an index from a FormalArgument {self}")
 
     def __str__(self) -> str:
@@ -123,24 +121,31 @@ class FormalArgument(QuilAtom):
 
 
 class QubitPlaceholder(QuilAtom):
+    """A placeholder for a qubit.
+
+    This is useful for constructing circuits without assigning qubits to specific indices.
+    Qubit placeholders must be resolved to actual qubits before they can be used in a program.
+    """
+
     def __init__(self, placeholder: Optional[quil_rs.QubitPlaceholder] = None):
+        """Initialize a qubit placeholder, or get a new handle for an existing placeholder."""
         if placeholder is not None:
             self._placeholder = placeholder
         else:
             self._placeholder = quil_rs.QubitPlaceholder()
 
     @staticmethod
-    def register(n: int) -> List["QubitPlaceholder"]:
-        """Return a 'register' of ``n`` QubitPlaceholders.
+    def register(n: int) -> list["QubitPlaceholder"]:
+        r"""Return a 'register' of ``n`` QubitPlaceholders.
 
         >>> from pyquil import Program
         >>> from pyquil.gates import H
         >>> from pyquil.quil import address_qubits
         >>> from pyquil.quilatom import QubitPlaceholder
-        >>> qs = QubitPlaceholder.register(8) # a qubyte
+        >>> qs = QubitPlaceholder.register(8)  # a qubyte
         >>> prog = Program(H(q) for q in qs)
         >>> address_qubits(prog).out()
-        'H 0\\nH 1\\nH 2\\nH 3\\nH 4\\nH 5\\nH 6\\nH 7\\n'
+        'H 0\nH 1\nH 2\nH 3\nH 4\nH 5\nH 6\nH 7\n'
         >>>
 
         The returned register is a Python list of QubitPlaceholder objects, so all
@@ -151,11 +156,13 @@ class QubitPlaceholder(QuilAtom):
         return [QubitPlaceholder() for _ in range(n)]
 
     def out(self) -> str:
-        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
+        """Raise a RuntimeError, as Qubit placeholders are not valid Quil."""
+        raise RuntimeError(f"Qubit {self} has not been assigned an index")
 
     @property
     def index(self) -> NoReturn:
-        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
+        """Raise a RuntimeError, as Qubit placeholders do not have an index."""
+        raise RuntimeError(f"Qubit {self} has not been assigned an index")
 
     def __str__(self) -> str:
         return f"q{id(self)}"
@@ -198,7 +205,7 @@ def _convert_to_rs_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, QubitPlace
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> List[quil_rs.Qubit]:
+def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> list[quil_rs.Qubit]:
     return [_convert_to_rs_qubit(qubit) for qubit in qubits]
 
 
@@ -215,13 +222,12 @@ def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, quil_rs.Qu
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def _convert_to_py_qubits(qubits: Iterable[Union[QubitDesignator, quil_rs.Qubit]]) -> List[QubitDesignator]:
+def _convert_to_py_qubits(qubits: Iterable[Union[QubitDesignator, quil_rs.Qubit]]) -> list[QubitDesignator]:
     return [_convert_to_py_qubit(qubit) for qubit in qubits]
 
 
 def unpack_qubit(qubit: Union[QubitDesignator, FormalArgument]) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
-    """
-    Get a qubit from an object.
+    """Get a qubit from an object.
 
     :param qubit: the qubit designator to unpack.
     :return: A Qubit or QubitPlaceholder instance
@@ -239,8 +245,7 @@ def unpack_qubit(qubit: Union[QubitDesignator, FormalArgument]) -> Union[Qubit, 
 
 
 def qubit_index(qubit: QubitDesignator) -> int:
-    """
-    Get the index of a QubitDesignator.
+    """Get the index of a QubitDesignator.
 
     :param qubit: the qubit designator.
     :return: An int that is the qubit index.
@@ -256,13 +261,12 @@ def qubit_index(qubit: QubitDesignator) -> int:
 # Like the Tuple, the List must be length 2, where the first item is a string and the second an
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
-# List[Any] here.
-MemoryReferenceDesignator = Union["MemoryReference", quil_rs.MemoryReference, Tuple[str, int], List[Any], str]
+# list[Any] here.
+MemoryReferenceDesignator = Union["MemoryReference", quil_rs.MemoryReference, tuple[str, int], list[Any], str]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
-    """
-    Get the address for a classical register.
+    """Get the address for a classical register.
 
     :param c: A list of length 2, a pair, a string (to be interpreted as name[0]), or a
         MemoryReference.
@@ -287,13 +291,13 @@ def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
 
 
 class Label(QuilAtom):
-    """
-    Representation of a label.
+    """Representation of a label.
 
     :param label_name: The label name.
     """
 
     def __init__(self, label_name: str):
+        """Initialize a new label."""
         self.target = quil_rs.Target.from_fixed(label_name)
 
     @staticmethod
@@ -301,10 +305,12 @@ class Label(QuilAtom):
         return Label(target.to_fixed())
 
     def out(self) -> str:
+        """Return the label as a valid Quil string."""
         return self.target.to_quil()
 
     @property
     def name(self) -> str:
+        """Return the label name."""
         return self.target.to_fixed()
 
     @name.setter
@@ -327,7 +333,14 @@ class Label(QuilAtom):
 
 
 class LabelPlaceholder(QuilAtom):
+    """A placeholder for a Quil label.
+
+    This is useful for constructing circuits without needing to name them.
+    All placeholders must be resolved to actual labels before they can be used in a program.
+    """
+
     def __init__(self, prefix: str = "L", *, placeholder: Optional[quil_rs.TargetPlaceholder] = None):
+        """Initialize a new label placeholder."""
         if placeholder:
             self.target = quil_rs.Target.from_placeholder(placeholder)
         else:
@@ -339,9 +352,11 @@ class LabelPlaceholder(QuilAtom):
 
     @property
     def prefix(self) -> str:
+        """Get the prefix of the label placeholder."""
         return self.target.to_placeholder().base_label
 
     def out(self) -> str:
+        """Raise a RuntimeError, as label placeholders are not valid Quil."""
         raise RuntimeError("Label has not been assigned a name")
 
     def __str__(self) -> str:
@@ -363,7 +378,7 @@ ParameterDesignator = Union["Expression", "MemoryReference", int, float, complex
 
 
 def _convert_to_rs_expression(
-    parameter: Union[ParameterDesignator, quil_rs_expr.Expression]
+    parameter: Union[ParameterDesignator, quil_rs_expr.Expression],
 ) -> quil_rs_expr.Expression:
     if isinstance(parameter, quil_rs_expr.Expression):
         return parameter
@@ -375,16 +390,16 @@ def _convert_to_rs_expression(
 
 
 def _convert_to_rs_expressions(
-    parameters: Sequence[Union[ParameterDesignator, quil_rs_expr.Expression]]
-) -> List[quil_rs_expr.Expression]:
+    parameters: Sequence[Union[ParameterDesignator, quil_rs_expr.Expression]],
+) -> list[quil_rs_expr.Expression]:
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
 
 @deprecated(version="4.0", reason="This function has been superseded by the `quil` package and will be removed soon.")
 def format_parameter(element: ParameterDesignator) -> str:
-    """
-    Formats a particular parameter. Essentially the same as built-in formatting except using 'i'
-    instead of 'j' for the imaginary number.
+    """Format a particular parameter.
+
+    Essentially the same as built-in formatting except using 'i' instead of 'j' for the imaginary number.
 
     :param element: The parameter to format for Quil output.
     """
@@ -403,10 +418,12 @@ def format_parameter(element: ParameterDesignator) -> str:
             out += repr(r)
 
         if i == 1:
-            assert np.isclose(r, 0, atol=1e-14)
+            if not np.isclose(r, 0, atol=1e-14):
+                raise ValueError(f"Invalid complex number: {element}")
             out = "i"
         elif i == -1:
-            assert np.isclose(r, 0, atol=1e-14)
+            if not np.isclose(r, 0, atol=1e-14):
+                raise ValueError(f"Invalid complex number: {element}")
             out = "-i"
         elif i < 0:
             out += repr(i) + "i"
@@ -420,7 +437,7 @@ def format_parameter(element: ParameterDesignator) -> str:
         return str(element)
     elif isinstance(element, Expression):
         return _expression_to_string(element)
-    raise AssertionError("Invalid parameter: %r" % element)
+    raise AssertionError(f"Invalid parameter: {element}")
 
 
 ExpressionValueDesignator = Union[int, float, complex]
@@ -434,7 +451,7 @@ def _convert_to_py_expression(
         ExpressionValueDesignator,
         quil_rs_expr.Expression,
         quil_rs.MemoryReference,
-    ]
+    ],
 ) -> ExpressionDesignator:
     if isinstance(expression, (Expression, Number)):
         return expression
@@ -475,15 +492,16 @@ def _convert_to_py_expression(
 def _convert_to_py_expressions(
     expressions: Sequence[
         Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
-    ]
+    ],
 ) -> Sequence[ExpressionDesignator]:
     return [_convert_to_py_expression(expression) for expression in expressions]
 
 
-class Expression(object):
-    """
-    Expression involving some unbound parameters. Parameters in Quil are represented as a label
-    like '%x' for the parameter named 'x'. An example expression therefore may be '%x*(%y/4)'.
+class Expression:
+    """Expression involving some unbound parameters.
+
+    Parameters in Quil are represented as a label like '%x' for the parameter named 'x'. An example expression therefore
+    may be '%x*(%y/4)'.
 
     Expressions may also have function calls, supported functions in Quil are sin, cos, sqrt, exp,
     and cis.
@@ -538,8 +556,7 @@ class Expression(object):
         return self
 
     def _evaluate(self) -> np.complex128:
-        """
-        Attempts to evaluate the expression to by simplifying it to a complex number.
+        """Attempt to evaluate the expression to by simplifying it to a complex number.
 
         Expression simplification can be slow, especially for large recursive expressions.
         This method will raise a ValueError if the expression cannot be simplified to a complex
@@ -552,8 +569,7 @@ class Expression(object):
         return np.complex128(expr.to_number())
 
     def __float__(self) -> float:
-        """
-        Returns a copy of the expression as a float by attempting to simplify the expression.
+        """Return a copy of the expression as a float by attempting to simplify the expression.
 
         Expression simplification can be slow, especially for large recursive expressions.
         This cast will raise a ValueError if simplification doesn't result in a real number.
@@ -564,8 +580,7 @@ class Expression(object):
         return float(value.real)
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
-        """
-        Implements the numpy array protocol for this expression.
+        """Implement the numpy array protocol for this expression.
 
         If the dtype is not object, then there will be an attempt to simplify the expression to a
         complex number. If the expression cannot be simplified to one, then fallback to the
@@ -589,10 +604,10 @@ ParameterSubstitutionsMapDesignator = Mapping[Union["Parameter", "MemoryReferenc
 
 
 def substitute(expr: ExpressionDesignator, d: ParameterSubstitutionsMapDesignator) -> ExpressionDesignator:
-    """
-    Using a dictionary of substitutions ``d``, try and explicitly evaluate as much of ``expr`` as
-    possible. This supports substitution of both parameters and memory references. Each memory
-    reference must be individually assigned a value at each memory offset to be substituted.
+    r"""Explicitly evaluate as much of ``expr`` as possible, using substitutions from `d`.
+
+    This supports substitution of both parameters and memory references. Each memory reference must be individually
+    assigned a value at each memory offset to be substituted.
 
     :param expr: The expression whose parameters or memory references are to be substituted.
     :param d: Numerical substitutions for parameters or memory references.
@@ -604,8 +619,7 @@ def substitute(expr: ExpressionDesignator, d: ParameterSubstitutionsMapDesignato
 
 
 def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParameterSubstitutionsMapDesignator) -> np.ndarray:
-    """
-    Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
+    """Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
     :param a: The array of expressions whose parameters or memory references are to be substituted.
     :param d: Numerical substitutions for parameters or memory references, for all array elements.
@@ -616,14 +630,14 @@ def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParameterSub
 
 
 class Parameter(QuilAtom, Expression):
-    """
-    Parameters in Quil are represented as a label like '%x' for the parameter named 'x'.
-    """
+    """Parameters in Quil are represented as a label like '%x' for the parameter named 'x'."""
 
     def __init__(self, name: str):
+        """Initialize a new parameter."""
         self.name = name
 
     def out(self) -> str:
+        """Return the parameter as a valid Quil string."""
         return "%" + self.name
 
     def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["Parameter", ExpressionValueDesignator]:
@@ -640,9 +654,7 @@ class Parameter(QuilAtom, Expression):
 
 
 class Function(Expression):
-    """
-    Supported functions in Quil are sin, cos, sqrt, exp, and cis
-    """
+    """Base class for standard Quil functions."""
 
     def __init__(
         self,
@@ -650,6 +662,7 @@ class Function(Expression):
         expression: ExpressionDesignator,
         fn: Callable[[ExpressionValueDesignator], ExpressionValueDesignator],
     ):
+        """Initialize a new function."""
         self.name = name
         self.expression = expression
         self.fn = fn
@@ -681,22 +694,28 @@ class Function(Expression):
 
 
 def quil_sin(expression: ExpressionDesignator) -> Function:
+    """Quil COS() function."""
     return Function("SIN", expression, np.sin)
 
 
 def quil_cos(expression: ExpressionDesignator) -> Function:
+    """Quil SIN() function."""
     return Function("COS", expression, np.cos)
 
 
 def quil_sqrt(expression: ExpressionDesignator) -> Function:
+    """Quil SQRT() function."""
     return Function("SQRT", expression, np.sqrt)
 
 
 def quil_exp(expression: ExpressionDesignator) -> Function:
+    """Quil EXP() function."""
     return Function("EXP", expression, np.exp)
 
 
 def quil_cis(expression: ExpressionDesignator) -> Function:
+    """Quil CIS() function."""
+
     def _cis(x: ExpressionValueDesignator) -> complex:
         # numpy doesn't ship with type stubs, so mypy assumes anything coming from numpy has type
         # Any, hence we need to cast the return type to complex here to satisfy the type checker.
@@ -706,15 +725,19 @@ def quil_cis(expression: ExpressionDesignator) -> Function:
 
 
 class BinaryExp(Expression):
+    """A Quil binary expression."""
+
     operator: ClassVar[str]
     precedence: ClassVar[int]
     associates: ClassVar[str]
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
+        """Perform the operation on the two expressions."""
         raise NotImplementedError
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
+        """Initialize a new binary expression."""
         self.op1 = op1
         self.op2 = op2
 
@@ -748,74 +771,94 @@ class BinaryExp(Expression):
 
 
 class Add(BinaryExp):
+    """The addition operation."""
+
     operator = " + "
     precedence = 1
     associates = "both"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Add", ExpressionValueDesignator]:
+        """Perform the addition operation."""
         return a + b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
-        super(Add, self).__init__(op1, op2)
+        """Initialize a new addition operation between two expressions."""
+        super().__init__(op1, op2)
 
 
 class Sub(BinaryExp):
+    """The subtraction operation."""
+
     operator = " - "
     precedence = 1
     associates = "left"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Sub", ExpressionValueDesignator]:
+        """Perform the subtraction operation."""
         return a - b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
-        super(Sub, self).__init__(op1, op2)
+        """Initialize a new addition operation between two expressions."""
+        super().__init__(op1, op2)
 
 
 class Mul(BinaryExp):
+    """The multiplication operation."""
+
     operator = "*"
     precedence = 2
     associates = "both"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Mul", ExpressionValueDesignator]:
+        """Perform the multiplication operation."""
         return a * b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
-        super(Mul, self).__init__(op1, op2)
+        """Initialize a new multiplication operation between two expressions."""
+        super().__init__(op1, op2)
 
 
 class Div(BinaryExp):
+    """The division operation."""
+
     operator = "/"
     precedence = 2
     associates = "left"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Div", ExpressionValueDesignator]:
+        """Perform the division operation."""
         return a / b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
-        super(Div, self).__init__(op1, op2)
+        """Initialize a new division operation between two expressions."""
+        super().__init__(op1, op2)
 
 
 class Pow(BinaryExp):
+    """The exponentiation operation."""
+
     operator = "^"
     precedence = 3
     associates = "right"
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Pow", ExpressionValueDesignator]:
+        """Perform the exponentiation operation."""
         return a**b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
-        super(Pow, self).__init__(op1, op2)
+        """Initialize a new exponentiation operation between two expressions."""
+        super().__init__(op1, op2)
 
 
 def _expression_to_string(expression: ExpressionDesignator) -> str:
-    """
-    Recursively converts an expression to a string taking into account precedence and associativity
-    for placing parenthesis.
+    """Convert an expression to a string.
+
+    This operation is recursive, and takes into account precedence and associativity when placing parenthesis.
 
     :param expression: expression involving parameters
     :return: string such as '%x*(%y-4)'
@@ -841,7 +884,7 @@ def _expression_to_string(expression: ExpressionDesignator) -> str:
         # extra care to insert parens. Similarly, complex numbers need
         # to be wrapped in parens so the imaginary part is captured.
         # See gh-943,1734.
-        elif (isinstance(expression.op2, float) and (("pi" in right and right != "pi"))) or isinstance(
+        elif (isinstance(expression.op2, float) and ("pi" in right and right != "pi")) or isinstance(
             expression.op2, complex
         ):
             right = "(" + right + ")"
@@ -855,9 +898,8 @@ def _expression_to_string(expression: ExpressionDesignator) -> str:
         return format_parameter(expression)
 
 
-def _contained_parameters(expression: ExpressionDesignator) -> Set[Parameter]:
-    """
-    Determine which parameters are contained in this expression.
+def _contained_parameters(expression: ExpressionDesignator) -> set[Parameter]:
+    """Determine which parameters are contained in this expression.
 
     :param expression: expression involving parameters
     :return: set of parameters contained in this expression
@@ -873,10 +915,10 @@ def _contained_parameters(expression: ExpressionDesignator) -> Set[Parameter]:
 
 
 def _check_for_pi(element: float) -> str:
-    """
-    Check to see if there exists a rational number r = p/q
-    in reduced form for which the difference between element/np.pi
-    and r is small and q <= 8.
+    """Return the float as a string, expressing the float as a multiple of pi if possible.
+
+    More specifically, check to see if there exists a rational number r = p/q in reduced form for which the difference
+    between element/np.pi and r is small and q <= 8.
 
     :param element: the number to check
     :return element: pretty print string if true, else standard representation.
@@ -900,8 +942,7 @@ def _check_for_pi(element: float) -> str:
 
 
 class MemoryReference(QuilAtom, Expression):
-    """
-    Representation of a reference to a classical memory address.
+    """Representation of a reference to a classical memory address.
 
     :param name: The name of the variable
     :param offset: Everything in Quil is a C-style array, so every memory reference has an offset.
@@ -912,6 +953,7 @@ class MemoryReference(QuilAtom, Expression):
     """
 
     def __init__(self, name: str, offset: int = 0, declared_size: Optional[int] = None):
+        """Initialize a new memory reference."""
         if not isinstance(offset, int) or offset < 0:
             raise TypeError("MemoryReference offset must be a non-negative int")
         self.name = name
@@ -933,19 +975,20 @@ class MemoryReference(QuilAtom, Expression):
         return quil_rs.MemoryReference(self.name, self.offset)
 
     def out(self) -> str:
+        """Return the memory reference as a valid Quil string."""
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:
-            return "{}".format(self.name)
+            return f"{self.name}"
         else:
-            return "{}[{}]".format(self.name, self.offset)
+            return f"{self.name}[{self.offset}]"
 
     def __str__(self) -> str:
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:
-            return "{}".format(self.name)
+            return f"{self.name}"
         else:
-            return "{}[{}]".format(self.name, self.offset)
+            return f"{self.name}[{self.offset}]"
 
     def __repr__(self) -> str:
-        return "<MRef {}[{}]>".format(self.name, self.offset)
+        return f"<MRef {self.name}[{self.offset}]>"
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, MemoryReference) and other.name == self.name and other.offset == self.offset
@@ -975,9 +1018,8 @@ class MemoryReference(QuilAtom, Expression):
         return self
 
 
-def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
-    """
-    Determine which memory references are contained in this expression.
+def _contained_mrefs(expression: ExpressionDesignator) -> set[MemoryReference]:
+    """Determine which memory references are contained in this expression.
 
     :param expression: expression involving parameters
     :return: set of parameters contained in this expression
@@ -993,11 +1035,10 @@ def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
 
 
 class Frame(quil_rs.FrameIdentifier):
-    """
-    Representation of a frame descriptor.
-    """
+    """Representation of a frame descriptor."""
 
     def __new__(cls, qubits: Sequence[QubitDesignator], name: str) -> Self:
+        """Initialize a new Frame."""
         return super().__new__(cls, name, _convert_to_rs_qubits(qubits))
 
     @classmethod
@@ -1005,40 +1046,49 @@ class Frame(quil_rs.FrameIdentifier):
         return super().__new__(cls, frame.name, frame.qubits)
 
     @property  # type: ignore[override]
-    def qubits(self) -> Tuple[QubitDesignator, ...]:
+    def qubits(self) -> tuple[QubitDesignator, ...]:
+        """Get the qubits in the frame."""
         return tuple(_convert_to_py_qubits(super().qubits))
 
     @qubits.setter
-    def qubits(self, qubits: Tuple[Qubit, FormalArgument]) -> None:
+    def qubits(self, qubits: tuple[Qubit, FormalArgument]) -> None:
         quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
     def out(self) -> str:
+        """Return the frame as a valid Quil string."""
         return super().to_quil()
 
     def __str__(self) -> str:
+        """Return the frame as a string."""
         return super().to_quil_or_debug()
 
 
 class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
-    def __new__(cls, name: str, parameters: Optional[Dict[str, ParameterDesignator]] = None) -> Self:
+    """A waveform invocation."""
+
+    def __new__(cls, name: str, parameters: Optional[dict[str, ParameterDesignator]] = None) -> Self:
+        """Initialize a new waveform invocation."""
         if parameters is None:
             parameters = {}
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
         return super().__new__(cls, name, rs_parameters)
 
     @property  # type: ignore[override]
-    def parameters(self) -> Dict[str, ParameterDesignator]:
+    def parameters(self) -> dict[str, ParameterDesignator]:
+        """The parameters in the waveform invocation."""
         return {key: _convert_to_py_expression(value) for key, value in super().parameters.items()}
 
     @parameters.setter
-    def parameters(self, parameters: Dict[str, ParameterDesignator]) -> None:
+    def parameters(self, parameters: dict[str, ParameterDesignator]) -> None:
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in parameters.items()}
         quil_rs.WaveformInvocation.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
 
     def out(self) -> str:
+        """Return the waveform invocation as a valid Quil string."""
         return self.to_quil()
 
     def __str__(self) -> str:
+        """Return the frame as a string."""
         return super().to_quil_or_debug()
 
 
@@ -1047,29 +1097,25 @@ class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
     reason="The WaveformReference class will be removed, consider using WaveformInvocation instead.",
 )
 class WaveformReference(WaveformInvocation):
-    """
-    Representation of a Waveform reference.
-    """
+    """Representation of a Waveform reference."""
 
     def __new__(cls, name: str) -> Self:
+        """Initialize a new waveform reference."""
         return super().__new__(cls, name, {})
 
 
 def _template_waveform_property(
-    name: str, *, dtype: Optional[Union[Type[int], Type[float]]] = None, doc: Optional[str] = None
+    name: str, *, dtype: Optional[Union[type[int], type[float]]] = None, doc: Optional[str] = None
 ) -> property:
-    """
-    Helper method for initializing getters, setters, and deleters for
-    parameters on a ``TemplateWaveform``. Should only be used inside of
-    ``TemplateWaveform`` or one its base classes.
+    """Initialize a getters, setters, and deleter for a parameter on a ``TemplateWaveform``.
 
-    Parameters:
-        name - The name of the property
-        dtype - `dtype` is an optional parameter that takes the int or float type, and attempts
-            to convert the underlying complex value by casting the real part to `dtype`. If set, this
-            function will raise an error if the complex number has a non-zero imaginary part.
-        doc - Docstring for the property.
+    Should only be used inside of ``TemplateWaveform`` or one its base classes.
 
+    :param name: The name of the property
+    :param dtype: An optional parameter that takes the int or float type, and attempts
+            to convert the underlying complex value by casting the real part to `dtype`. If set, this function will
+            raise an error if the complex number has a non-zero imaginary part.
+    :param doc: Docstring for the property.
     """
 
     def fget(self: "TemplateWaveform") -> Optional[ParameterDesignator]:
@@ -1103,6 +1149,8 @@ def _template_waveform_property(
 
 
 class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
+    """Base class for creating waveform templates."""
+
     NAME: ClassVar[str]
 
     def __new__(
@@ -1112,20 +1160,24 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         duration: float,
         **kwargs: Union[Optional[ParameterDesignator], Optional[ExpressionDesignator]],
     ) -> Self:
+        """Initialize a new TemplateWaveform."""
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
         rs_parameters["duration"] = _convert_to_rs_expression(duration)
         return super().__new__(cls, name, rs_parameters)
 
     def out(self) -> str:
+        """Return the waveform as a valid Quil string."""
         return str(self)
 
     def get_parameter(self, name: str) -> Optional[ParameterDesignator]:
+        """Get a parameter in the waveform by name."""
         parameter = super().parameters.get(name, None)
         if parameter is None:
             return None
         return _convert_to_py_expression(parameter)
 
     def set_parameter(self, name: str, value: Optional[ParameterDesignator]) -> None:
+        """Set a parameter with a value."""
         parameters = super().parameters
         if value is None:
             parameters.pop(name, None)
@@ -1136,14 +1188,12 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
     duration = _template_waveform_property("duration", dtype=float)
 
     def num_samples(self, rate: float) -> int:
-        """The number of samples in the reference implementation of the waveform.
+        """Return the number of samples in the reference implementation of the waveform.
 
-        Note: this does not include any hardware-enforced alignment (cf.
-        documentation for `samples`).
+        Note: this does not include any hardware-enforced alignment (cf. documentation for `samples`).
 
         :param rate: The sample rate, in Hz.
         :return: The number of samples.
-
         """
         duration = self.duration.real
         if self.duration.imag != 0.0:
@@ -1151,7 +1201,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         return int(np.ceil(duration * rate))
 
     def samples(self, rate: float) -> np.ndarray:
-        """A reference implementation of waveform sample generation.
+        """Generate samples of the waveform.
 
         Note: this is close but not always exactly equivalent to the actual IQ
         values produced by the waveform generators on Rigetti hardware. The
@@ -1166,22 +1216,23 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
 
     @classmethod
     def _from_rs_waveform_invocation(cls, waveform: quil_rs.WaveformInvocation) -> "TemplateWaveform":
-        """
-        The ``quil`` package has no equivalent to ``TemplateWaveform``s, this function checks the name and
-        properties of a ``quil`` ``WaveformInvocation`` to see if they potentially match a subclass of
-        ``TemplateWaveform``. If a match is found and construction succeeds, then that type is returned.
-        Otherwise, a generic ``WaveformInvocation`` is returned.
+        """Build a TemplateWaveform from a ``quil`` waveform invocation.
+
+        The ``quil`` package has no equivalent to ``TemplateWaveform``s, this function checks the name and properties of
+        a ``quil`` ``WaveformInvocation`` to see if they potentially match a subclass of ``TemplateWaveform``. If a
+        match is found and construction succeeds, then that type is returned. Otherwise, a generic
+        ``WaveformInvocation`` is returned.
         """
         from pyquil.quiltwaveforms import (
+            BoxcarAveragerKernel,
+            DragGaussianWaveform,
+            ErfSquareWaveform,
             FlatWaveform,
             GaussianWaveform,
-            DragGaussianWaveform,
             HrmGaussianWaveform,
-            ErfSquareWaveform,
-            BoxcarAveragerKernel,
         )
 
-        template: Type["TemplateWaveform"]  # mypy needs a type annotation here to understand this.
+        template: type[TemplateWaveform]  # mypy needs a type annotation here to understand this.
         for template in [
             FlatWaveform,
             GaussianWaveform,
