@@ -11,7 +11,7 @@ check-all: check-format check-types check-style
 
 .PHONY: check-format
 check-format:
-	black --check --diff pyquil
+	ruff format --check --diff pyquil
 
 .PHONY: check-types
 check-types:
@@ -19,7 +19,7 @@ check-types:
 
 .PHONY: check-style
 check-style:
-	flake8 pyquil
+	ruff check pyquil
 
 .PHONY: clean
 clean:
@@ -55,7 +55,7 @@ docker: Dockerfile
 
 .PHONY: format
 format:
-	black $(if $(format_file), $(format_file), pyquil)
+	ruff format $(if $(format_file), $(format_file), pyquil)
 
 .PHONY: info
 info:

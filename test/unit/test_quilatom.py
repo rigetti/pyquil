@@ -1,10 +1,11 @@
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
+import numpy as np
 import pytest
 from syrupy.assertion import SnapshotAssertion
-import numpy as np
 
-from pyquil.quilatom import Add, FormalArgument, Frame, Qubit, Label, LabelPlaceholder, QubitPlaceholder, Parameter
+from pyquil.quilatom import Add, FormalArgument, Frame, Label, LabelPlaceholder, Parameter, Qubit, QubitPlaceholder
 
 
 @pytest.mark.parametrize(

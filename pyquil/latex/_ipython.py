@@ -22,14 +22,13 @@ from typing import Any, Optional
 
 from IPython.display import Image
 
-from pyquil.latex._main import to_latex
 from pyquil.latex._diagram import DiagramSettings
+from pyquil.latex._main import to_latex
 from pyquil.quil import Program
 
 
 def display(circuit: Program, settings: Optional[DiagramSettings] = None, **image_options: Any) -> Image:
-    """
-    Displays a PyQuil circuit as an IPython image object.
+    """Display a PyQuil circuit as an IPython image object.
 
     .. note::
 
@@ -60,11 +59,11 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None, **imag
             texfile.write(to_latex(circuit, settings))
 
         result = subprocess.run(
-            [pdflatex_path, "-halt-on-error", "-output-directory", tmpdir, texfile.name],
+            [pdflatex_path, "-halt-on-error", "-output-directory", tmpdir, texfile.name],  # noqa: S603 - valid input
             stdout=subprocess.PIPE,
         )
         if result.returncode != 0:
-            msg = "'pdflatex' terminated with return code {}.".format(result.returncode)
+            msg = f"'pdflatex' terminated with return code {result.returncode}."
             # NOTE: pdflatex writes all error messages to stdout
             if result.stdout:
                 msg += " Transcript:\n\n" + result.stdout.decode("utf-8")
@@ -73,9 +72,9 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None, **imag
         png = os.path.join(tmpdir, "diagram.png")
         pdf = os.path.join(tmpdir, "diagram.pdf")
 
-        result = subprocess.run([convert_path, "-density", "300", pdf, png], stderr=subprocess.PIPE)
+        result = subprocess.run([convert_path, "-density", "300", pdf, png], stderr=subprocess.PIPE)  # noqa: S603
         if result.returncode != 0:
-            msg = "'convert' terminated with return code {}.".format(result.returncode)
+            msg = f"'convert' terminated with return code {result.returncode}."
             if result.stderr:
                 msg += " Transcript:\n\n" + result.stderr.decode("utf-8")
             raise RuntimeError(msg)

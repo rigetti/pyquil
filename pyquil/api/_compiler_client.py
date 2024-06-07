@@ -13,33 +13,31 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from dataclasses import dataclass
 import json
-from typing import List, Optional
+from dataclasses import dataclass
+from typing import Optional
 
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import (
-    get_version_info,
-    compile_program,
     CompilerOpts,
-    TargetDevice,
-    conjugate_pauli_by_clifford,
-    generate_randomized_benchmarking_sequence,
     ConjugateByCliffordRequest,
     ConjugatePauliByCliffordResponse,
-    RandomizedBenchmarkingRequest,
     GenerateRandomizedBenchmarkingSequenceResponse,
     NativeQuilMetadata,
     QuilcClient,
+    RandomizedBenchmarkingRequest,
+    TargetDevice,
+    compile_program,
+    conjugate_pauli_by_clifford,
+    generate_randomized_benchmarking_sequence,
+    get_version_info,
 )
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
 
 @dataclass
 class CompileToNativeQuilRequest:
-    """
-    Request to compile to native Quil.
-    """
+    """Request to compile to native Quil."""
 
     program: str
     """Program to compile."""
@@ -53,11 +51,9 @@ class CompileToNativeQuilRequest:
 
 @dataclass
 class NativeQuilMetadataResponse:
-    """
-    Metadata for a native Quil program.
-    """
+    """Metadata for a native Quil program."""
 
-    final_rewiring: List[int]
+    final_rewiring: list[int]
     """Output qubit index relabeling due to SWAP insertion."""
 
     gate_depth: Optional[int]
@@ -87,9 +83,7 @@ class NativeQuilMetadataResponse:
 
 @dataclass
 class CompileToNativeQuilResponse:
-    """
-    Compile to native Quil response.
-    """
+    """Compile to native Quil response."""
 
     native_program: str
     """Native Quil program."""
@@ -99,9 +93,7 @@ class CompileToNativeQuilResponse:
 
 
 class CompilerClient:
-    """
-    Client for making requests to a Quil compiler.
-    """
+    """Client for making requests to a Quil compiler."""
 
     def __init__(
         self,
@@ -110,8 +102,7 @@ class CompilerClient:
         request_timeout: float = 10.0,
         quilc_client: Optional[QuilcClient] = None,
     ) -> None:
-        """
-        Instantiate a new compiler client.
+        """Instantiate a new compiler client.
 
         :param client_configuration: Configuration for client.
         :param request_timeout: Timeout for requests, in seconds.
@@ -132,16 +123,11 @@ class CompilerClient:
         self.timeout = request_timeout
 
     def get_version(self) -> str:
-        """
-        Get version info for compiler server.
-        """
-
+        """Get version info for compiler server."""
         return get_version_info(client=self.quilc_client)
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
-        """
-        Compile Quil program to native Quil.
-        """
+        """Compile Quil program to native Quil."""
         target_device_json = json.dumps(request.target_quantum_processor.asdict())  # type: ignore
         target_device = TargetDevice.from_json(target_device_json)
 
@@ -154,15 +140,11 @@ class CompilerClient:
         return CompileToNativeQuilResponse(native_program=result.program, metadata=result.native_quil_metadata)
 
     def conjugate_pauli_by_clifford(self, request: ConjugateByCliffordRequest) -> ConjugatePauliByCliffordResponse:
-        """
-        Conjugate a Pauli element by a Clifford element.
-        """
+        """Conjugate a Pauli element by a Clifford element."""
         return conjugate_pauli_by_clifford(request=request, client=self.quilc_client)
 
     def generate_randomized_benchmarking_sequence(
         self, request: RandomizedBenchmarkingRequest
     ) -> GenerateRandomizedBenchmarkingSequenceResponse:
-        """
-        Generate a randomized benchmarking sequence.
-        """
+        """Generate a randomized benchmarking sequence."""
         return generate_randomized_benchmarking_sequence(request=request, client=self.quilc_client)

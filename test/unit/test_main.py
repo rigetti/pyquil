@@ -1,23 +1,22 @@
 import numpy as np
 
 from pyquil import Program
-from pyquil.experiment._main import _remove_reset_from_program, _pauli_to_product_state
+from pyquil.experiment import (
+    Experiment,
+    ExperimentSetting,
+    TensorProductState,
+    plusZ,
+    read_json,
+    to_json,
+)
+from pyquil.experiment._main import _pauli_to_product_state, _remove_reset_from_program
 from pyquil.experiment._program import (
     parameterized_readout_symmetrization,
     parameterized_single_qubit_measurement_basis,
     parameterized_single_qubit_state_preparation,
 )
-from pyquil.experiment import (
-    ExperimentSetting,
-    TensorProductState,
-    Experiment,
-    plusZ,
-    read_json,
-    to_json,
-)
 from pyquil.gates import MEASURE, RESET, X, Y
 from pyquil.paulis import sI, sX, sY, sZ
-
 
 EXPERIMENT_REPR = """
 shots: 1

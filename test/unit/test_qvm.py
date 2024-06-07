@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
-
-from qcs_sdk.qvm import QVMError, QVMClient
+from qcs_sdk.qvm import QVMClient, QVMError
 
 from pyquil import Program
 from pyquil.api import QVM

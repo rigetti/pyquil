@@ -13,8 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-r"""
-Standard gate set, as detailed in Quil whitepaper (arXiV:1608:03355v2)
+r"""Standard gate set, as detailed in Quil whitepaper (arXiV:1608:03355v2).
 
 Currently includes:
     I - identity :math:`\begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}`
@@ -88,10 +87,10 @@ Currently includes:
     SQISW - XY(:math: `\pi/2`)-interaction
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\frac{1}{\sqrt{2}}&\frac{i}{\sqrt{2}}&0 \\ \frac{i}{\sqrt{2}}&\frac{1}{\sqrt{2}} \\  0&0&0&1 \end{pmatrix}`
 
-    FSIM(:math:`\theta, \phi`) - XX+YY interaction with conditonal phase on \|11\>
+    FSIM(:math:`\theta, \phi`) - XX+YY interaction with conditional phase on \|11\>
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\frac{\theta}{2})&i\sin(\frac{\theta}{2})&0 \\ 0&i\sin(\frac{\theta}{2})&\cos(\frac{\theta}{2})&0 \\  0&0&0&e^{i \phi} \end{pmatrix}`
 
-    PHASEDFSIM(:math:`\theta, \zeta, \chi, \gamma, \phi`) - XX+YY interaction with conditonal phase on \|11\>
+    PHASEDFSIM(:math:`\theta, \zeta, \chi, \gamma, \phi`) - XX+YY interaction with conditional phase on \|11\>
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\ e^{-i(\gamma+\zeta)}\cos(\frac{\theta}{2})&ie^{-i(\gamma-\chi)}\sin(\frac{\theta}{2})&0 \\ 0&ie^{-i(\gamma+\chi)}\sin(\frac{\theta}{2})&e^{-i(\gamma-\zeta)}\cos(\frac{\theta}{2})&0 \\  0&0&0&e^{ i\phi - 2i\gamma} \end{pmatrix}`
 
     RXX(:math:`\phi`) - XX-interaction
@@ -114,12 +113,12 @@ Specialized gates / internal utility gates:
     P1 - project-onto-one
     :math:`\begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}`
 """  # noqa: E501
+
 import cmath
-from typing import Tuple
 
 import numpy as np
 
-I = np.array([[1.0, 0.0], [0.0, 1.0]])
+I = np.array([[1.0, 0.0], [0.0, 1.0]])  # noqa: E741
 
 X = np.array([[0.0, 1.0], [1.0, 0.0]])
 
@@ -356,28 +355,22 @@ QUANTUM_GATES = {
 }
 
 
-def relaxation_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Return the amplitude damping Kraus operators
-    """
+def relaxation_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
+    """Return the amplitude damping Kraus operators."""
     k0 = np.array([[1.0, 0.0], [0.0, np.sqrt(1 - p)]])
     k1 = np.array([[0.0, np.sqrt(p)], [0.0, 0.0]])
     return k0, k1
 
 
-def dephasing_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Return the phase damping Kraus operators
-    """
+def dephasing_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
+    """Return the phase damping Kraus operators."""
     k0 = np.eye(2) * np.sqrt(1 - p / 2)
     k1 = np.sqrt(p / 2) * Z
     return k0, k1
 
 
-def depolarizing_operators(p: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Return the phase damping Kraus operators
-    """
+def depolarizing_operators(p: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Return the phase damping Kraus operators."""
     k0 = np.sqrt(1.0 - p) * I
     k1 = np.sqrt(p / 3.0) * X
     k2 = np.sqrt(p / 3.0) * Y
@@ -385,28 +378,22 @@ def depolarizing_operators(p: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray
     return k0, k1, k2, k3
 
 
-def phase_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Return the phase flip kraus operators
-    """
+def phase_flip_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
+    """Return the phase flip kraus operators."""
     k0 = np.sqrt(1 - p) * I
     k1 = np.sqrt(p) * Z
     return k0, k1
 
 
-def bit_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Return the phase flip kraus operators
-    """
+def bit_flip_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
+    """Return the phase flip kraus operators."""
     k0 = np.sqrt(1 - p) * I
     k1 = np.sqrt(p) * X
     return k0, k1
 
 
-def bitphase_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Return the bitphase flip kraus operators
-    """
+def bitphase_flip_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
+    """Return the bitphase flip kraus operators."""
     k0 = np.sqrt(1 - p) * I
     k1 = np.sqrt(p) * Y
     return k0, k1

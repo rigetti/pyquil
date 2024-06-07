@@ -13,14 +13,17 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+"""Definition of an ExperimentSetting.
+
+Each ExperimentSetting corresponds to preparing a collection of qubits in a TensorProductState and measuring them in a
+PauliTerm-defined basis.
 """
-Schema definition of an ExperimentSetting, which corresponds to preparing a collection of qubits
-in a TensorProductState and measuring them in a PauliTerm-defined basis.
-"""
+
 import logging
 import re
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Any, FrozenSet, Generator, Iterable, List, Optional, cast
+from typing import Any, Optional, cast
 
 from pyquil.paulis import PauliTerm, sI
 
@@ -29,8 +32,7 @@ log = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class _OneQState:
-    """
-    A description of a named one-qubit quantum state.
+    """A description of a named one-qubit quantum state.
 
     This can be used to generate pre-rotations for quantum process tomography. For example,
     X0_14 will generate the +1 eigenstate of the X operator on qubit 14. X1_14 will generate the
@@ -54,12 +56,9 @@ class _OneQState:
 
 @dataclass(frozen=True)
 class TensorProductState:
-    """
-    A description of a multi-qubit quantum state that is a tensor product of many _OneQStates
-    states.
-    """
+    """A description of a multi-qubit quantum state that is a tensor product of many _OneQStates states."""
 
-    states: List[_OneQState]
+    states: list[_OneQState]
 
     def __init__(self, states: Optional[Iterable[_OneQState]] = None):
         if states is None:
@@ -88,7 +87,7 @@ class TensorProductState:
     def __len__(self) -> int:
         return len(self.states)
 
-    def states_as_set(self) -> FrozenSet[_OneQState]:
+    def states_as_set(self) -> frozenset[_OneQState]:
         return frozenset(self.states)
 
     def __eq__(self, other: Any) -> bool:
@@ -153,8 +152,7 @@ def zeros_state(qubits: Iterable[int]) -> TensorProductState:
 
 @dataclass(frozen=True, init=False)
 class ExperimentSetting:
-    """
-    Input and output settings for a tomography-like experiment.
+    """Input and output settings for a tomography-like experiment.
 
     Many near-term quantum algorithms take the following form:
 
@@ -174,13 +172,13 @@ class ExperimentSetting:
 
     in_state: TensorProductState
     out_operator: PauliTerm
-    additional_expectations: Optional[List[List[int]]] = None
+    additional_expectations: Optional[list[list[int]]] = None
 
     def __init__(
         self,
         in_state: TensorProductState,
         out_operator: PauliTerm,
-        additional_expectations: Optional[List[List[int]]] = None,
+        additional_expectations: Optional[list[list[int]]] = None,
     ):
         object.__setattr__(self, "in_state", in_state)
         object.__setattr__(self, "out_operator", out_operator)
@@ -211,7 +209,7 @@ class ExperimentSetting:
 
     @classmethod
     def from_str(cls, s: str) -> "ExperimentSetting":
-        """The opposite of str(expt)"""
+        """Opposite of str(expt)."""
         instr, outstr = s.split("→")
         return ExperimentSetting(
             in_state=TensorProductState.from_str(instr),

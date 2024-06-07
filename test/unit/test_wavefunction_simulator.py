@@ -2,10 +2,9 @@ import numpy as np
 import pytest
 
 from pyquil import Program
-from pyquil.api import WavefunctionSimulator
-from pyquil.api import QCSClient
-from pyquil.gates import H, CNOT
-from pyquil.paulis import PauliSum, sZ, sX
+from pyquil.api import QCSClient, WavefunctionSimulator
+from pyquil.gates import CNOT, H
+from pyquil.paulis import PauliSum, sX, sZ
 
 
 def test_wavefunction(client_configuration: QCSClient):

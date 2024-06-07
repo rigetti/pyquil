@@ -1,3 +1,4 @@
+# serializer version: 1
 # name: test_with_loop
   '''
   DECLARE ro BIT[1]

@@ -22,7 +22,6 @@ def patch_rpcq_client(*, mocker: MockerFixture, return_value: Any) -> MagicMock:
     :param return_value: The response that should come back from calling client.call()
     :return the instance of MagicMock standing in for rpc.Client that other functions will use.
     """
-
     client = mocker.MagicMock()
     client.call.return_value = return_value
 
@@ -55,3 +54,6 @@ class DummyCompiler(AbstractCompiler):
 
     def native_quil_to_executable(self, nq_program: Program):
         return nq_program
+
+    def reset(self):
+        pass

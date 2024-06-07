@@ -1,4 +1,5 @@
 import pytest
+
 from pyquil.gates import (
     CNOT,
     CPHASE,
@@ -6,26 +7,26 @@ from pyquil.gates import (
     CPHASE01,
     CPHASE10,
     CZ,
-    H,
-    I,
+    FSIM,
     ISWAP,
     PHASE,
+    PHASEDFSIM,
     PSWAP,
     RX,
+    RXX,
     RY,
+    RYY,
     RZ,
-    S,
+    RZZ,
+    SQISW,
     SWAP,
+    H,
+    I,
+    S,
     T,
     X,
     Y,
     Z,
-    SQISW,
-    FSIM,
-    PHASEDFSIM,
-    RZZ,
-    RXX,
-    RYY,
 )
 from pyquil.quilbase import _strip_modifiers
 
@@ -62,7 +63,7 @@ def five_param_twoq_gate(request):
 
 def test_oneq_gate(oneq_gate):
     g = oneq_gate(234)
-    assert g.out() == "{} 234".format(g.name)
+    assert g.out() == f"{g.name} 234"
 
     func_name = oneq_gate.__name__
     assert g.name == func_name
@@ -70,12 +71,12 @@ def test_oneq_gate(oneq_gate):
 
 def test_oneq_gate_kwarg(oneq_gate):
     g = oneq_gate(qubit=234)
-    assert g.out() == "{} 234".format(g.name)
+    assert g.out() == f"{g.name} 234"
 
 
 def test_param_oneq_gate(param_oneq_gate):
     g = param_oneq_gate(0.2, 234)
-    assert g.out() == "{}(0.2) 234".format(g.name)
+    assert g.out() == f"{g.name}(0.2) 234"
 
     func_name = param_oneq_gate.__name__
     assert g.name == func_name
@@ -83,12 +84,12 @@ def test_param_oneq_gate(param_oneq_gate):
 
 def test_param_oneq_gate_kwarg(param_oneq_gate):
     g = param_oneq_gate(angle=0.2, qubit=234)
-    assert g.out() == "{}(0.2) 234".format(g.name)
+    assert g.out() == f"{g.name}(0.2) 234"
 
 
 def test_twoq_gate(twoq_gate):
     g = twoq_gate(234, 567)
-    assert g.out() == "{} 234 567".format(g.name)
+    assert g.out() == f"{g.name} 234 567"
 
     func_name = twoq_gate.__name__
     assert g.name == func_name
@@ -104,12 +105,12 @@ def test_twoq_gate_kwarg(twoq_gate):
         raise ValueError()
 
     g = twoq_gate(**qubits)
-    assert g.out() == "{} 234 567".format(g.name)
+    assert g.out() == f"{g.name} 234 567"
 
 
 def test_param_twoq_gate(param_twoq_gate):
     g = param_twoq_gate(0.2, 234, 567)
-    assert g.out() == "{}(0.2) 234 567".format(g.name)
+    assert g.out() == f"{g.name}(0.2) 234 567"
 
     func_name = param_twoq_gate.__name__
     assert g.name == func_name
@@ -117,7 +118,7 @@ def test_param_twoq_gate(param_twoq_gate):
 
 def test_two_param_twoq_gate(two_param_twoq_gate):
     g = two_param_twoq_gate(0.2, 0.4, 234, 567)
-    assert g.out() == "{}(0.2, 0.4) 234 567".format(g.name)
+    assert g.out() == f"{g.name}(0.2, 0.4) 234 567"
 
     func_name = two_param_twoq_gate.__name__
     assert g.name == func_name
@@ -125,7 +126,7 @@ def test_two_param_twoq_gate(two_param_twoq_gate):
 
 def test_five_param_twoq_gate(five_param_twoq_gate):
     g = five_param_twoq_gate(0.2, 0.4, 0.1, 0.3, 0.5, 234, 567)
-    assert g.out() == "{}(0.2, 0.4, 0.1, 0.3, 0.5) 234 567".format(g.name)
+    assert g.out() == f"{g.name}(0.2, 0.4, 0.1, 0.3, 0.5) 234 567"
 
     func_name = five_param_twoq_gate.__name__
     assert g.name == func_name
@@ -140,7 +141,7 @@ def test_param_twoq_gate_kwarg(param_twoq_gate):
     else:
         raise ValueError()
     g = param_twoq_gate(0.2, **qubits)
-    assert g.out() == "{}(0.2) 234 567".format(g.name)
+    assert g.out() == f"{g.name}(0.2) 234 567"
 
 
 def test_controlled_gate():

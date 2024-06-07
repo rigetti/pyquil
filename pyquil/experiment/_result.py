@@ -13,13 +13,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+"""Definition of an ExperimentResult.
+
+An ExperimentResult encapsulates the outcome of a collection of measurements that are aimed at estimating the
+expectation value of some observable.
 """
-Schema definition of an ExperimentResult, which encapsulates the outcome of a collection of
-measurements that are aimed at estimating the expectation value of some observable.
-"""
+
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -30,8 +32,7 @@ log = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class ExperimentResult:
-    """An expectation and standard deviation for the measurement of one experiment setting
-    in a tomographic experiment.
+    """An expectation and standard deviation for the measurement of one experiment setting in a tomographic experiment.
 
     In the case of readout error calibration, we also include
     expectation, standard deviation and count for the calibration results, as well as the
@@ -47,7 +48,7 @@ class ExperimentResult:
     calibration_expectation: Optional[Union[float, complex]] = None
     calibration_std_err: Optional[Union[float, complex]] = None
     calibration_counts: Optional[int] = None
-    additional_results: Optional[List["ExperimentResult"]] = None
+    additional_results: Optional[list["ExperimentResult"]] = None
 
     def __init__(
         self,
@@ -60,9 +61,8 @@ class ExperimentResult:
         calibration_expectation: Optional[Union[float, complex]] = None,
         calibration_std_err: Optional[Union[float, complex]] = None,
         calibration_counts: Optional[int] = None,
-        additional_results: Optional[List["ExperimentResult"]] = None,
+        additional_results: Optional[list["ExperimentResult"]] = None,
     ):
-
         object.__setattr__(self, "setting", setting)
         object.__setattr__(self, "expectation", expectation)
         object.__setattr__(self, "total_counts", total_counts)
@@ -80,7 +80,7 @@ class ExperimentResult:
     def __repr__(self) -> str:
         return f"ExperimentResult[{self}]"
 
-    def serializable(self) -> Dict[str, Any]:
+    def serializable(self) -> dict[str, Any]:
         return {
             "type": "ExperimentResult",
             "setting": self.setting,
@@ -96,12 +96,11 @@ class ExperimentResult:
 
 
 def bitstrings_to_expectations(
-    bitstrings: np.ndarray, joint_expectations: Optional[List[List[int]]] = None
+    bitstrings: np.ndarray, joint_expectations: Optional[list[list[int]]] = None
 ) -> np.ndarray:
-    """
-    Given an array of bitstrings (each of which is represented as an array of bits), map them to
-    expectation values and return the desired joint expectation values. If no joint expectations
-    are desired, then just the 1 -> -1, 0 -> 1 mapping is performed.
+    """Given an array of bitstrings, map them to expectation values and return the desired joint expectation values.
+
+    If no joint expectations are desired, then just the 1 -> -1, 0 -> 1 mapping is performed.
 
     :param bitstrings: Array of bitstrings to map.
     :param joint_expectations: Joint expectation values to calculate. Each entry is a list which
@@ -131,9 +130,7 @@ def correct_experiment_result(
     result: ExperimentResult,
     calibration: ExperimentResult,
 ) -> ExperimentResult:
-    """
-    Given a raw, unmitigated result and its associated readout calibration, produce the result
-    absent readout error.
+    """Given a raw, unmitigated result and its associated readout calibration, produce the result absent readout error.
 
     :param result: An ``ExperimentResult`` object with unmitigated readout error.
     :param calibration: An ``ExperimentResult`` object resulting from running readout calibration
@@ -142,16 +139,23 @@ def correct_experiment_result(
     """
     corrected_expectation = result.expectation / calibration.expectation
 
-    # combine standard errors (are we assuming the counts are the same?)
-    assert result.std_err is not None and calibration.std_err is not None
+    if result.std_err is None or calibration.std_err is None:
+        raise ValueError("Standard error not present in result or calibration.")
+
     corrected_variance = ratio_variance(
-        result.expectation, result.std_err**2, calibration.expectation, calibration.std_err**2  # type: ignore
+        result.expectation,
+        result.std_err**2,
+        calibration.expectation,
+        calibration.std_err**2,
     )
 
     # recursively apply to additional results
     additional_results = None
     if result.additional_results is not None and calibration.additional_results:
-        assert len(result.additional_results) == len(calibration.additional_results)
+        if len(result.additional_results) != len(calibration.additional_results):
+            len_result = len(result.additional_results)
+            len_calibration = len(calibration.additional_results)
+            raise ValueError(f"Length of results ({len_result}) should match calibration ({len_calibration}).")
         additional_results = [
             correct_experiment_result(r, c) for r, c in zip(result.additional_results, calibration.additional_results)
         ]
@@ -171,12 +175,13 @@ def correct_experiment_result(
 
 
 def ratio_variance(
-    a: Union[float, np.ndarray],
-    var_a: Union[float, np.ndarray],
-    b: Union[float, np.ndarray],
-    var_b: Union[float, np.ndarray],
-) -> Union[float, np.ndarray]:
-    r"""
+    a: Union[float, complex, np.number, np.ndarray],
+    var_a: Union[float, complex, np.number, np.ndarray],
+    b: Union[float, complex, np.number, np.ndarray],
+    var_b: Union[float, complex, np.number, np.ndarray],
+) -> Union[float, complex, np.number, np.ndarray]:
+    r"""Compute the variance on the ratio Y = A/B.
+
     Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the
     mean of the random variables as a = E[A] and b = E[B] while the variances are var_a = Var[A]
     and var_b = Var[B] and the covariance as Cov[A,B]. The following expression approximates the
@@ -204,4 +209,5 @@ def ratio_variance(
     :param b: Mean of 'B', to be used as the numerator in a ratio.
     :param var_b: Variance in 'B'
     """
-    return var_a / b**2 + (a**2 * var_b) / b**4
+    result = var_a / b**2 + (a**2 * var_b) / b**4
+    return result

@@ -2,15 +2,14 @@ import functools
 from operator import mul
 
 import numpy as np
-import pytest
 
 from pyquil.experiment._main import _pauli_to_product_state
 from pyquil.experiment._setting import (
-    ExperimentSetting,
     SIC0,
     SIC1,
     SIC2,
     SIC3,
+    ExperimentSetting,
     TensorProductState,
     minusX,
     minusY,

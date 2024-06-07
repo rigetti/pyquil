@@ -1,6 +1,7 @@
 import numpy as np
-from pyquil.gates import RZ, RX, I, CZ, ISWAP, CPHASE
-from pyquil.noise_gates import _get_qvm_noise_supported_gates, THETA
+
+from pyquil.gates import CPHASE, CZ, ISWAP, RX, RZ, I
+from pyquil.noise_gates import THETA, _get_qvm_noise_supported_gates
 
 
 def test_get_qvm_noise_supported_gates_from_compiler_isa(compiler_isa):

@@ -1,20 +1,20 @@
+"""Waveform templates that are commonly useful when working with pulse programs."""
+
 from typing import Optional
-from typing_extensions import Self
 
 import numpy as np
 from scipy.special import erf
+from typing_extensions import Self
 
 from pyquil.quilatom import (
     TemplateWaveform,
-    _update_envelope,
     _template_waveform_property,
+    _update_envelope,
 )
 
 
 class FlatWaveform(TemplateWaveform):
-    """
-    A flat (constant) waveform.
-    """
+    """A flat (constant) waveform."""
 
     NAME = "flat"
 
@@ -26,6 +26,7 @@ class FlatWaveform(TemplateWaveform):
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
     ) -> Self:
+        """Initialize a new FlatWaveform."""
         return super().__new__(cls, cls.NAME, duration=duration, iq=iq, scale=scale, phase=phase, detuning=detuning)
 
     iq = _template_waveform_property("iq", doc="A raw IQ value.")
@@ -34,6 +35,7 @@ class FlatWaveform(TemplateWaveform):
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
+        """Get the samples of the waveform at a given sample rate."""
         iqs = np.full(self.num_samples(rate), self.iq, dtype=np.complex128)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
@@ -52,6 +54,7 @@ class GaussianWaveform(TemplateWaveform):
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
     ) -> Self:
+        """Initialize a new GaussianWaveform."""
         return super().__new__(
             cls, cls.NAME, duration=duration, fwhm=fwhm, t0=t0, scale=scale, phase=phase, detuning=detuning
         )
@@ -67,6 +70,7 @@ class GaussianWaveform(TemplateWaveform):
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
+        """Get the samples of the waveform at a given sample rate."""
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
         iqs = np.exp(-0.5 * (ts - self.t0) ** 2 / sigma**2)
@@ -89,6 +93,7 @@ class DragGaussianWaveform(TemplateWaveform):
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
     ) -> Self:
+        """Initialize a new DragGaussianWaveform."""
         return super().__new__(
             cls,
             cls.NAME,
@@ -117,6 +122,7 @@ class DragGaussianWaveform(TemplateWaveform):
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
+        """Get the samples of the waveform at a given sample rate."""
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
         env = np.exp(-0.5 * (ts - self.t0) ** 2 / sigma**2)
@@ -147,6 +153,7 @@ class HrmGaussianWaveform(TemplateWaveform):
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
     ) -> Self:
+        """Initialize a new HrmGaussianWaveform."""
         return super().__new__(
             cls,
             cls.NAME,
@@ -180,6 +187,7 @@ class HrmGaussianWaveform(TemplateWaveform):
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
+        """Get the samples of the waveform at a given sample rate."""
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
         exponent_of_t = 0.5 * (ts - self.t0) ** 2 / sigma**2
@@ -212,6 +220,7 @@ class ErfSquareWaveform(TemplateWaveform):
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
     ) -> Self:
+        """Initialize a new ErfSquareWaveform."""
         return super().__new__(
             cls,
             cls.NAME,
@@ -243,6 +252,7 @@ class ErfSquareWaveform(TemplateWaveform):
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
+        """Get the samples of the waveform at a given sample rate."""
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         fwhm = 0.5 * self.risetime
         t1 = fwhm
@@ -256,6 +266,7 @@ class ErfSquareWaveform(TemplateWaveform):
 
 
 class BoxcarAveragerKernel(TemplateWaveform):
+    """A boxcar averaging kernel."""
 
     NAME = "boxcar_kernel"
 
@@ -266,6 +277,7 @@ class BoxcarAveragerKernel(TemplateWaveform):
         phase: Optional[float] = None,
         detuning: Optional[float] = None,
     ) -> Self:
+        """Initialize a new BoxcarAveragerKernel."""
         return super().__new__(cls, cls.NAME, duration=duration, scale=scale, phase=phase, detuning=detuning)
 
     scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
@@ -275,6 +287,7 @@ class BoxcarAveragerKernel(TemplateWaveform):
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
     def samples(self, rate: float) -> np.ndarray:
+        """Get the samples of the waveform at a given sample rate."""
         n = self.num_samples(rate)
         iqs = np.full(n, 1.0 / n, dtype=np.complex128)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)

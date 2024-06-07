@@ -13,12 +13,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from deprecated.sphinx import deprecated
-from deprecated.sphinx import versionadded
+"""Standard Gate definitions to use in a ``Program``."""
+
+from collections.abc import Mapping, Sequence
 from numbers import Real
-from typing import Callable, Mapping, Optional, Tuple, Union, Sequence, no_type_check
+from typing import Callable, Optional, Union, no_type_check
 
 import numpy as np
+from deprecated.sphinx import deprecated, versionadded
 
 from pyquil.quilatom import (
     Expression,
@@ -27,64 +29,62 @@ from pyquil.quilatom import (
     MemoryReference,
     MemoryReferenceDesignator,
     ParameterDesignator,
-    QubitDesignator,
     Qubit,
+    QubitDesignator,
+    Waveform,
     unpack_classical_reg,
     unpack_qubit,
-    Waveform,
 )
 from pyquil.quilbase import (
     AbstractInstruction,
-    Declare,
-    Gate,
-    Halt,
-    Reset,
-    ResetQubit,
-    Measurement,
-    Nop,
-    Wait,
-    ClassicalNeg,
-    ClassicalNot,
+    Capture,
+    ClassicalAdd,
     ClassicalAnd,
-    ClassicalInclusiveOr,
-    ClassicalExclusiveOr,
+    ClassicalConvert,
+    ClassicalDiv,
     ClassicalEqual,
+    ClassicalExchange,
+    ClassicalExclusiveOr,
     ClassicalGreaterEqual,
     ClassicalGreaterThan,
+    ClassicalInclusiveOr,
     ClassicalLessEqual,
     ClassicalLessThan,
-    ClassicalMove,
-    ClassicalExchange,
-    ClassicalConvert,
     ClassicalLoad,
-    ClassicalStore,
-    ClassicalAdd,
-    ClassicalSub,
+    ClassicalMove,
     ClassicalMul,
-    ClassicalDiv,
-    Pulse,
-    SetFrequency,
-    ShiftFrequency,
-    SetPhase,
-    ShiftPhase,
-    SwapPhases,
-    SetScale,
-    Capture,
-    RawCapture,
+    ClassicalNeg,
+    ClassicalNot,
+    ClassicalStore,
+    ClassicalSub,
+    Declare,
     DelayFrames,
     DelayQubits,
-    FenceAll,
     Fence,
+    FenceAll,
+    Gate,
+    Halt,
+    Measurement,
+    Nop,
+    Pulse,
+    RawCapture,
+    Reset,
+    ResetQubit,
+    SetFrequency,
+    SetPhase,
+    SetScale,
+    ShiftFrequency,
+    ShiftPhase,
+    SwapPhases,
+    Wait,
 )
 
 
 def unpack_reg_val_pair(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: Union[MemoryReferenceDesignator, int, float],
-) -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
-    """
-    Helper function for typechecking / type-coercing arguments to constructors for binary classical
-    operators.
+) -> tuple[MemoryReference, Union[MemoryReference, int, float]]:
+    """Type check/coerce arguments to constructors for binary classical operators.
 
     :param classical_reg1: Specifier for the classical memory address to be modified.
     :param classical_reg2: Specifier for the second argument: a classical memory address or an
@@ -101,10 +101,8 @@ def prepare_ternary_operands(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
-) -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
-    """
-    Helper function for typechecking / type-coercing arguments to constructors for ternary
-    classical operators.
+) -> tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
+    """Type check/coerce arguments to constructors for ternary classical operators.
 
     :param classical_reg1: Specifier for the classical memory address to be modified.
     :param classical_reg2: Specifier for the left operand: a classical memory address.
@@ -124,8 +122,8 @@ def prepare_ternary_operands(
     return classical_reg1, classical_reg2, classical_reg3
 
 
-def I(qubit: QubitDesignator) -> Gate:
-    """Produces the I identity gate::
+def I(qubit: QubitDesignator) -> Gate:  # noqa: E743 - I is not ambiguous in this case
+    """Produce a single-qubit identity gate (I).
 
         I = [1, 0]
             [0, 1]
@@ -142,7 +140,7 @@ def I(qubit: QubitDesignator) -> Gate:
 
 
 def X(qubit: QubitDesignator) -> Gate:
-    """Produces the X ("NOT") gate::
+    """Produce the X ("NOT") gate.
 
         X = [[0, 1],
              [1, 0]]
@@ -156,7 +154,7 @@ def X(qubit: QubitDesignator) -> Gate:
 
 
 def Y(qubit: QubitDesignator) -> Gate:
-    """Produces the Y gate::
+    """Produce the Y gate.
 
         Y = [[0, 0 - 1j],
              [0 + 1j, 0]]
@@ -170,7 +168,7 @@ def Y(qubit: QubitDesignator) -> Gate:
 
 
 def Z(qubit: QubitDesignator) -> Gate:
-    """Produces the Z gate::
+    """Produce the Z gate.
 
         Z = [[1,  0],
              [0, -1]]
@@ -184,12 +182,12 @@ def Z(qubit: QubitDesignator) -> Gate:
 
 
 def H(qubit: QubitDesignator) -> Gate:
-    """Produces the Hadamard gate::
+    """Produce the Hadamard gate.
 
         H = (1 / sqrt(2)) * [[1,  1],
                              [1, -1]]
 
-    Produces the H instruction. This gate is a single qubit Hadamard gate.
+    Produce the H instruction. This gate is a single qubit Hadamard gate.
 
     :param qubit: The qubit apply the gate to.
     :returns: A Gate object.
@@ -198,7 +196,7 @@ def H(qubit: QubitDesignator) -> Gate:
 
 
 def S(qubit: QubitDesignator) -> Gate:
-    """Produces the S gate::
+    """Produce the S gate.
 
         S = [[1, 0],
              [0, 1j]]
@@ -212,7 +210,7 @@ def S(qubit: QubitDesignator) -> Gate:
 
 
 def T(qubit: QubitDesignator) -> Gate:
-    """Produces the T gate::
+    """Produce the T gate.
 
         T = [[1, 0],
              [0, exp(1j * pi / 4)]]
@@ -226,7 +224,7 @@ def T(qubit: QubitDesignator) -> Gate:
 
 
 def RX(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
-    """Produces the RX gate::
+    """Produce the RX gate.
 
         RX(phi) = [[cos(phi / 2), -1j * sin(phi / 2)],
                    [-1j * sin(phi / 2), cos(phi / 2)]]
@@ -241,7 +239,7 @@ def RX(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
 
 
 def RY(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
-    """Produces the RY gate::
+    """Produce the RY gate.
 
         RY(phi) = [[cos(phi / 2), -sin(phi / 2)],
                    [sin(phi / 2), cos(phi / 2)]]
@@ -256,7 +254,7 @@ def RY(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
 
 
 def RZ(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
-    """Produces the RZ gate::
+    """Produce the RZ gate.
 
         RZ(phi) = [[cos(phi / 2) - 1j * sin(phi / 2), 0]
                    [0, cos(phi / 2) + 1j * sin(phi / 2)]]
@@ -271,7 +269,7 @@ def RZ(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
 
 
 def U(theta: ParameterDesignator, phi: ParameterDesignator, lam: ParameterDesignator, qubit: QubitDesignator) -> Gate:
-    """Produces a generic single-qubit rotation::
+    """Produce a generic single-qubit rotation.
 
         U(theta, phi, lam) = [[              cos(theta / 2),  -1 * exp(1j*lam) * sin(theta / 2)]
                               [exp(1j*phi) * sin(theta / 2), exp(1j*(phi+lam)) * cos(theta / 2)]]
@@ -288,7 +286,7 @@ def U(theta: ParameterDesignator, phi: ParameterDesignator, lam: ParameterDesign
 
 
 def PHASE(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
-    """Produces the PHASE gate::
+    """Produce the PHASE gate.
 
         PHASE(phi) = [[1, 0],
                       [0, exp(1j * phi)]]
@@ -303,7 +301,7 @@ def PHASE(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
 
 
 def CZ(control: QubitDesignator, target: QubitDesignator) -> Gate:
-    """Produces a controlled-Z gate::
+    """Produce a controlled-Z gate.
 
         CZ = [[1, 0, 0,  0],
               [0, 1, 0,  0],
@@ -322,7 +320,7 @@ def CZ(control: QubitDesignator, target: QubitDesignator) -> Gate:
 
 
 def CNOT(control: QubitDesignator, target: QubitDesignator) -> Gate:
-    """Produces a controlled-NOT (controlled-X) gate::
+    """Produce a controlled-NOT (controlled-X) gate.
 
         CNOT = [[1, 0, 0, 0],
                 [0, 1, 0, 0],
@@ -340,7 +338,7 @@ def CNOT(control: QubitDesignator, target: QubitDesignator) -> Gate:
 
 
 def CCNOT(control1: QubitDesignator, control2: QubitDesignator, target: QubitDesignator) -> Gate:
-    """Produces a doubly-controlled NOT gate::
+    """Produce a doubly-controlled NOT gate.
 
         CCNOT = [[1, 0, 0, 0, 0, 0, 0, 0],
                  [0, 1, 0, 0, 0, 0, 0, 0],
@@ -365,7 +363,7 @@ def CCNOT(control1: QubitDesignator, control2: QubitDesignator, target: QubitDes
 
 
 def CPHASE00(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
-    """Produces a controlled-phase gate that phases the ``|00>`` state::
+    """Produce a controlled-phase gate that phases the ``|00>`` state.
 
         CPHASE00(phi) = diag([exp(1j * phi), 1, 1, 1])
 
@@ -382,7 +380,7 @@ def CPHASE00(angle: ParameterDesignator, control: QubitDesignator, target: Qubit
 
 
 def CPHASE01(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
-    """Produces a controlled-phase gate that phases the ``|01>`` state::
+    """Produce a controlled-phase gate that phases the ``|01>`` state.
 
         CPHASE01(phi) = diag([1.0, exp(1j * phi), 1.0, 1.0])
 
@@ -400,7 +398,7 @@ def CPHASE01(angle: ParameterDesignator, control: QubitDesignator, target: Qubit
 
 
 def CPHASE10(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
-    """Produces a controlled-phase gate that phases the ``|10>`` state::
+    """Produce a controlled-phase gate that phases the ``|10>`` state.
 
         CPHASE10(phi) = diag([1, 1, exp(1j * phi), 1])
 
@@ -426,7 +424,7 @@ def CPHASE(
     control: QubitDesignator,
     target: QubitDesignator,
 ) -> Gate:
-    """Produces a controlled-phase instruction::
+    """Produce a controlled-phase instruction.
 
         CPHASE(phi) = diag([1, 1, 1, exp(1j * phi)])
 
@@ -446,7 +444,7 @@ def CPHASE(
 
 
 def SWAP(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces a SWAP gate which swaps the state of two qubits::
+    """Produce a SWAP gate which swaps the state of two qubits.
 
         SWAP = [[1, 0, 0, 0],
                 [0, 0, 1, 0],
@@ -462,7 +460,7 @@ def SWAP(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
 
 
 def CSWAP(control: QubitDesignator, target_1: QubitDesignator, target_2: QubitDesignator) -> Gate:
-    """Produces a controlled-SWAP gate. This gate conditionally swaps the state of two qubits::
+    """Produce a controlled-SWAP gate. This gate conditionally swaps the state of two qubits.
 
         CSWAP = [[1, 0, 0, 0, 0, 0, 0, 0],
                  [0, 1, 0, 0, 0, 0, 0, 0],
@@ -484,7 +482,7 @@ def CSWAP(control: QubitDesignator, target_1: QubitDesignator, target_2: QubitDe
 
 
 def ISWAP(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces an ISWAP gate::
+    """Produce an ISWAP gate.
 
         ISWAP = [[1, 0,  0,  0],
                  [0, 0,  1j, 0],
@@ -502,7 +500,7 @@ def ISWAP(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
 
 
 def PSWAP(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces a parameterized SWAP gate::
+    """Produce a parameterized SWAP gate.
 
         PSWAP(phi) = [[1, 0,             0,             0],
                       [0, 0,             exp(1j * phi), 0],
@@ -520,7 +518,7 @@ def PSWAP(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) 
 
 
 def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces a parameterized ISWAP gate::
+    """Produce a parameterized ISWAP gate.
 
         XY(phi) = [[1,               0,               0, 0],
                    [0,      cos(phi/2), 1j * sin(phi/2), 0],
@@ -536,7 +534,7 @@ def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> 
 
 
 def SQISW(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces a SQISW gate::
+    """Produce a SQISW gate.
 
         SQiSW = [[1,               0,               0, 0],
                  [0,     1 / sqrt(2),    1j / sqrt(2), 0],
@@ -551,7 +549,7 @@ def SQISW(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
 
 
 def FSIM(theta: ParameterDesignator, phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces an fsim (Fermionic simulation) gate:
+    """Produce an fsim (Fermionic simulation) gate.
 
         FSIM(theta, phi) = [[1,                 0,                 0,           0],
                             [0,      cos(theta/2), 1j * sin(theta/2),           0],
@@ -576,7 +574,7 @@ def PHASEDFSIM(
     q1: QubitDesignator,
     q2: QubitDesignator,
 ) -> Gate:
-    """Produces an phasedfsim (Fermionic simulation) gate:
+    """Produce an phasedfsim (Fermionic simulation) gate.
 
         PHASEDFSIM(theta, zeta, chi, gamma, phi) = [
             [1, 0, 0, 0],
@@ -597,7 +595,7 @@ def PHASEDFSIM(
 
 
 def RZZ(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces a RZZ(phi) gate:
+    """Produce a RZZ gate.
 
         RZZ(phi) = [[ exp(-1j*phi/2),             0,             0,              0],
                     [              0, exp(1j*phi/2),             0,              0],
@@ -613,7 +611,7 @@ def RZZ(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> G
 
 
 def RXX(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces a RXX(phi) gate:
+    """Produce a RXX gate.
 
         RXX(phi) = [[     cos(phi/2),              0,              0, -1j*sin(phi/2)],
                     [              0,     cos(phi/2), -1j*sin(phi/2),              0],
@@ -629,7 +627,7 @@ def RXX(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> G
 
 
 def RYY(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces a RYY(phi) gate:
+    """Produce a RYY gate.
 
         RYY(phi) = [[    cos(phi/2),              0,              0, 1j*sin(phi/2)],
                     [             0,     cos(phi/2), -1j*sin(phi/2),             0],
@@ -654,8 +652,7 @@ memory is being manipulated by a CPU in a hybrid classical/quantum algorithm.
 
 
 def RESET(qubit_index: Optional[QubitDesignator] = None) -> Union[Reset, ResetQubit]:
-    """
-    Reset all qubits or just one specific qubit.
+    """Reset all qubits or just one specific qubit.
 
     :param qubit_index: The qubit to reset.
         This can be a qubit's index, a Qubit, or a QubitPlaceholder.
@@ -689,7 +686,7 @@ def DECLARE(
     memory_type: str = "BIT",
     memory_size: int = 1,
     shared_region: Optional[str] = None,
-    offsets: Optional[Sequence[Tuple[int, str]]] = None,
+    offsets: Optional[Sequence[tuple[int, str]]] = None,
 ) -> Declare:
     return Declare(
         name=name,
@@ -701,8 +698,7 @@ def DECLARE(
 
 
 def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> Measurement:
-    """
-    Produce a MEASURE instruction.
+    """Produce a MEASURE instruction.
 
     :param qubit: The qubit to measure.
     :param classical_reg: The classical register to measure into, or None.
@@ -717,8 +713,7 @@ def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesig
 
 
 def NEG(classical_reg: MemoryReferenceDesignator) -> ClassicalNeg:
-    """
-    Produce a NEG instruction.
+    """Produce a NEG instruction.
 
     :param classical_reg: A classical memory address to modify.
     :return: A ClassicalNeg instance.
@@ -727,8 +722,7 @@ def NEG(classical_reg: MemoryReferenceDesignator) -> ClassicalNeg:
 
 
 def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
-    """
-    Produce a NOT instruction.
+    """Produce a NOT instruction.
 
     :param classical_reg: A classical register to modify.
     :return: A ClassicalNot instance.
@@ -739,8 +733,7 @@ def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
 def AND(
     classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
 ) -> ClassicalAnd:
-    """
-    Produce an AND instruction.
+    """Produce an AND instruction.
 
     NOTE: The order of operands was reversed in pyQuil <=1.9 .
 
@@ -749,37 +742,38 @@ def AND(
     :return: A ClassicalAnd instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
-    assert isinstance(right, (MemoryReference, int))  # placate mypy
+    if not isinstance(right, (MemoryReference, int)):
+        raise TypeError("Right operand of AND must be a memory address or integer.")
     return ClassicalAnd(left, right)
 
 
 def IOR(
     classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
 ) -> ClassicalInclusiveOr:
-    """
-    Produce an inclusive OR instruction.
+    """Produce an inclusive OR instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
     :return: A ClassicalInclusiveOr instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
-    assert isinstance(right, (MemoryReference, int))  # placate mypy
+    if not isinstance(right, (MemoryReference, int)):
+        raise TypeError("Right operand of AND must be a memory address or integer.")
     return ClassicalInclusiveOr(left, right)
 
 
 def XOR(
     classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
 ) -> ClassicalExclusiveOr:
-    """
-    Produce an exclusive OR instruction.
+    """Produce an exclusive OR instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
     :return: A ClassicalExclusiveOr instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
-    assert isinstance(right, (MemoryReference, int))  # placate mypy
+    if not isinstance(right, (MemoryReference, int)):
+        raise TypeError("Right operand of AND must be a memory address or integer.")
     return ClassicalExclusiveOr(left, right)
 
 
@@ -787,8 +781,7 @@ def MOVE(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalMove:
-    """
-    Produce a MOVE instruction.
+    """Produce a MOVE instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
@@ -799,8 +792,7 @@ def MOVE(
 
 
 def EXCHANGE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalExchange:
-    """
-    Produce an EXCHANGE instruction.
+    """Produce an EXCHANGE instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register, which gets modified.
@@ -814,8 +806,7 @@ def EXCHANGE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryRe
 def LOAD(
     target_reg: MemoryReferenceDesignator, region_name: str, offset_reg: MemoryReferenceDesignator
 ) -> ClassicalLoad:
-    """
-    Produce a LOAD instruction.
+    """Produce a LOAD instruction.
 
     :param target_reg: LOAD storage target.
     :param region_name: Named region of memory to load from.
@@ -830,8 +821,7 @@ def STORE(
     offset_reg: MemoryReferenceDesignator,
     source: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalStore:
-    """
-    Produce a STORE instruction.
+    """Produce a STORE instruction.
 
     :param region_name: Named region of memory to store to.
     :param offset_reg: Offset into memory region. Must be a MemoryReference.
@@ -844,8 +834,7 @@ def STORE(
 
 
 def CONVERT(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalConvert:
-    """
-    Produce a CONVERT instruction.
+    """Produce a CONVERT instruction.
 
     :param classical_reg1: MemoryReference to store to.
     :param classical_reg2: MemoryReference to read from.
@@ -855,8 +844,7 @@ def CONVERT(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryRef
 
 
 def ADD(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalAdd:
-    """
-    Produce an ADD instruction.
+    """Produce an ADD instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
         target.
@@ -868,8 +856,7 @@ def ADD(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
 
 
 def SUB(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalSub:
-    """
-    Produce a SUB instruction.
+    """Produce a SUB instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
         target.
@@ -881,8 +868,7 @@ def SUB(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
 
 
 def MUL(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMul:
-    """
-    Produce a MUL instruction.
+    """Produce a MUL instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
         target.
@@ -894,8 +880,7 @@ def MUL(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
 
 
 def DIV(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalDiv:
-    """
-    Produce an DIV instruction.
+    """Produce an DIV instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
         target.
@@ -911,8 +896,7 @@ def EQ(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalEqual:
-    """
-    Produce an EQ instruction.
+    """Produce an EQ instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -931,8 +915,7 @@ def LT(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalLessThan:
-    """
-    Produce an LT instruction.
+    """Produce an LT instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -950,8 +933,7 @@ def LE(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalLessEqual:
-    """
-    Produce an LE instruction.
+    """Produce an LE instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -969,8 +951,7 @@ def GT(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalGreaterThan:
-    """
-    Produce an GT instruction.
+    """Produce an GT instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -988,8 +969,7 @@ def GE(
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> ClassicalGreaterEqual:
-    """
-    Produce an GE instruction.
+    """Produce an GE instruction.
 
     :param classical_reg1: Memory address to which to store the comparison result.
     :param classical_reg2: Left comparison operand.
@@ -1003,8 +983,7 @@ def GE(
 
 
 def PULSE(frame: Frame, waveform: Waveform, nonblocking: bool = False) -> Pulse:
-    """
-    Produce a PULSE instruction.
+    """Produce a PULSE instruction.
 
     :param frame: The frame on which to apply the pulse.
     :param waveform: The pulse waveform.
@@ -1015,8 +994,7 @@ def PULSE(frame: Frame, waveform: Waveform, nonblocking: bool = False) -> Pulse:
 
 
 def SET_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> SetFrequency:
-    """
-    Produce a SET-FREQUENCY instruction.
+    """Produce a SET-FREQUENCY instruction.
 
     :param frame: The frame on which to set the frequency.
     :param freq: The frequency value, in Hz.
@@ -1026,8 +1004,7 @@ def SET_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> SetFrequency:
 
 
 def SHIFT_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> ShiftFrequency:
-    """
-    Produce a SHIFT-FREQUENCY instruction.
+    """Produce a SHIFT-FREQUENCY instruction.
 
     :param frame: The frame on which to shift the frequency.
     :param freq: The value, in Hz, to add to the existing frequency.
@@ -1037,8 +1014,7 @@ def SHIFT_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> ShiftFrequency:
 
 
 def SET_PHASE(frame: Frame, phase: ParameterDesignator) -> SetPhase:
-    """
-    Produce a SET-PHASE instruction.
+    """Produce a SET-PHASE instruction.
 
     :param frame: The frame on which to set the phase.
     :param phase: The new phase value, in radians.
@@ -1048,8 +1024,7 @@ def SET_PHASE(frame: Frame, phase: ParameterDesignator) -> SetPhase:
 
 
 def SHIFT_PHASE(frame: Frame, phase: ParameterDesignator) -> ShiftPhase:
-    """
-    Produce a SHIFT-PHASE instruction.
+    """Produce a SHIFT-PHASE instruction.
 
     :param frame: The frame on which to shift the phase.
     :param phase: The value, in radians, to add to the existing phase.
@@ -1060,8 +1035,7 @@ def SHIFT_PHASE(frame: Frame, phase: ParameterDesignator) -> ShiftPhase:
 
 @versionadded(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
 def SWAP_PHASES(frameA: Frame, frameB: Frame) -> SwapPhases:
-    """
-    Produce a SWAP-PHASES instruction.
+    """Produce a SWAP-PHASES instruction.
 
     :param frameA: A frame.
     :param frameB: A frame.
@@ -1072,15 +1046,12 @@ def SWAP_PHASES(frameA: Frame, frameB: Frame) -> SwapPhases:
 
 @deprecated(version="3.5.1", reason="The correct instruction is SWAP-PHASES, not SWAP-PHASE")
 def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhases:
-    """
-    Alias of :func:`SWAP_PHASES`.
-    """
+    """Alias of :func:`SWAP_PHASES`."""
     return SWAP_PHASES(frameA, frameB)
 
 
 def SET_SCALE(frame: Frame, scale: ParameterDesignator) -> SetScale:
-    """
-    Produce a SET-SCALE instruction.
+    """Produce a SET-SCALE instruction.
 
     :param frame: The frame on which to set the scale.
     :param scale: The scaling factor.
@@ -1095,8 +1066,7 @@ def CAPTURE(
     memory_region: MemoryReferenceDesignator,
     nonblocking: bool = False,
 ) -> Capture:
-    """
-    Produce a CAPTURE instruction.
+    """Produce a CAPTURE instruction.
 
     :param frame: The frame on which to capture an IQ value.
     :param kernel: The integrating kernel for the capture.
@@ -1114,8 +1084,7 @@ def RAW_CAPTURE(
     memory_region: MemoryReferenceDesignator,
     nonblocking: bool = False,
 ) -> RawCapture:
-    """
-    Produce a RAW-CAPTURE instruction.
+    """Produce a RAW-CAPTURE instruction.
 
     :param frame: The frame on which to capture raw values.
     :param duration: The duration of the capture, in seconds.
@@ -1133,8 +1102,7 @@ def RAW_CAPTURE(
 # type T.
 @no_type_check
 def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
-    """
-    Produce a DELAY instruction.
+    """Produce a DELAY instruction.
 
     Note: There are two variants of DELAY. One applies to specific frames on some
     qubit, e.g. `DELAY 0 "rf" "ff" 1.0` delays the `"rf"` and `"ff"` frames on 0.
@@ -1166,8 +1134,7 @@ def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
 
 
 def FENCE(*qubits: Union[int, Qubit, FormalArgument]) -> Union[FenceAll, Fence]:
-    """
-    Produce a FENCE instruction.
+    """Produce a FENCE instruction.
 
     Note: If no qubits are specified, then this is interpreted as a global FENCE.
 

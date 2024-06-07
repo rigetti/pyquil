@@ -13,20 +13,22 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Any, Dict, Optional
-from typing_extensions import TypeAlias
+from typing import Any, Optional
 from warnings import warn
 
 from qcs_sdk import QCSClient
+from qcs_sdk.compiler.quilc import QuilcClient
 from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
 from qcs_sdk.qpu.translation import (
+    TranslationBackend,
     get_quilt_calibrations,
     translate,
-    TranslationOptions as _TranslationOptions,
-    TranslationBackend,
 )
-from qcs_sdk.compiler.quilc import QuilcClient
+from qcs_sdk.qpu.translation import (
+    TranslationOptions as _TranslationOptions,
+)
 from rpcq.messages import ParameterSpec
+from typing_extensions import TypeAlias
 
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
 from pyquil.quantum_processor import AbstractQuantumProcessor
@@ -55,16 +57,15 @@ def parse_mref(val: str) -> MemoryReference:
             return MemoryReference(name, int(offset[:-1]))
         else:
             return MemoryReference(val)
-    except Exception:
-        raise ValueError(f"Unable to parse memory reference {val}.")
+    except Exception as e:
+        raise ValueError(f"Unable to parse memory reference {val}.") from e
 
 
-def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
+def _collect_memory_descriptors(program: Program) -> dict[str, ParameterSpec]:
     """Collect Declare instructions that are important for building the patch table.
 
     :return: A dictionary of variable names to specs about the declared region.
     """
-
     return {
         instr.name: ParameterSpec(type=instr.memory_type, length=instr.memory_size)
         for instr in program
@@ -73,9 +74,7 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 
 class QPUCompiler(AbstractCompiler):
-    """
-    Client to communicate with the compiler and translation service.
-    """
+    """Client to communicate with the compiler and translation service."""
 
     api_options: Optional[QPUCompilerAPIOptions]
 
@@ -89,8 +88,7 @@ class QPUCompiler(AbstractCompiler):
         api_options: Optional[QPUCompilerAPIOptions] = None,
         quilc_client: Optional[QuilcClient] = None,
     ) -> None:
-        """
-        Instantiate a new QPU compiler client.
+        """Instantiate a new QPU compiler client.
 
         :param quantum_processor_id: Processor to target.
         :param quantum_processor: Quantum processor to use as compilation target.
@@ -112,8 +110,7 @@ class QPUCompiler(AbstractCompiler):
     def native_quil_to_executable(
         self, nq_program: Program, *, api_options: Optional[QPUCompilerAPIOptions] = None, **kwargs: Any
     ) -> QuantumExecutable:
-        """
-        Convert a native Quil program into an executable binary which can be executed by a QPU.
+        """Convert a native Quil program into an executable binary which can be executed by a QPU.
 
         If `api_options` is provided, it overrides the options set on `self`.
         """
@@ -149,8 +146,7 @@ class QPUCompiler(AbstractCompiler):
         return Program(response)
 
     def get_calibration_program(self, force_refresh: bool = False) -> Program:
-        """
-        Get the Quil-T calibration program associated with the underlying QPU.
+        """Get the Quil-T calibration program associated with the underlying QPU.
 
         This will return a cached reference of the calibration program if present.
         Otherwise (or if forcing a refresh), it will fetch and store the
@@ -168,28 +164,23 @@ class QPUCompiler(AbstractCompiler):
         hardware.
 
         :param force_refresh: Whether or not to fetch a new calibration program before returning.
-        :returns: A Program object containing the calibration definitions."""
+        :returns: A Program object containing the calibration definitions.
+        """
         if force_refresh or self._calibration_program is None:
             try:
                 self._calibration_program = self._fetch_calibration_program()
             except Exception as ex:
                 raise RuntimeError("Could not fetch calibrations") from ex
 
-        assert self._calibration_program is not None
         return self._calibration_program
 
     def reset(self) -> None:
-        """
-        Reset the state of the QPUCompiler.
-        """
-        super().reset()
+        """Reset the state of the QPUCompiler."""
         self._calibration_program = None
 
 
 class QVMCompiler(AbstractCompiler):
-    """
-    Client to communicate with the compiler.
-    """
+    """Client to communicate with the compiler."""
 
     def __init__(
         self,
@@ -199,8 +190,7 @@ class QVMCompiler(AbstractCompiler):
         client_configuration: Optional[QCSClient] = None,
         quilc_client: Optional[QuilcClient] = None,
     ) -> None:
-        """
-        Client to communicate with compiler.
+        """Client to communicate with compiler.
 
         :param quantum_processor: Quantum processor to use as compilation target.
         :param timeout: Number of seconds to wait for a response from the client.
@@ -216,6 +206,9 @@ class QVMCompiler(AbstractCompiler):
     def native_quil_to_executable(self, nq_program: Program, **kwargs: Any) -> QuantumExecutable:
         return nq_program
 
+    def reset(self) -> None:
+        pass
+
 
 class IncompatibleBackendForQuantumProcessorIDWarning(Warning):
     pass
@@ -224,8 +217,7 @@ class IncompatibleBackendForQuantumProcessorIDWarning(Warning):
 def select_backend_for_quantum_processor_id(
     quantum_processor_id: str, backend: Optional[TranslationBackend]
 ) -> TranslationBackend:
-    """
-    Check that the translation backend is supported for the quantum processor.
+    """Check that the translation backend is supported for the quantum processor.
 
     If the translation backend is not supported by the quantum processor, a supported
     translation backend is returned.
@@ -245,6 +237,7 @@ def select_backend_for_quantum_processor_id(
         warn(
             "Backend V2 is not supported for Aspen processors. Backend has been changed to V1.",
             IncompatibleBackendForQuantumProcessorIDWarning,
+            stacklevel=2,
         )
         return TranslationBackend.V1
 
@@ -252,6 +245,7 @@ def select_backend_for_quantum_processor_id(
         warn(
             "Backend V1 is only supported for Aspen processors. Backend has been changed to V2.",
             IncompatibleBackendForQuantumProcessorIDWarning,
+            stacklevel=2,
         )
         return TranslationBackend.V2
 

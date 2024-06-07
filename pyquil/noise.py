@@ -13,24 +13,24 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Module for creating and verifying noisy gate and readout definitions.
-"""
+"""Module for creating and verifying noisy gate and readout definitions."""
+
 import sys
 from collections import namedtuple
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, TYPE_CHECKING, Union, cast
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import numpy as np
 
 from pyquil.external.rpcq import CompilerISA
-from pyquil.gates import I, RX, MEASURE
+from pyquil.gates import MEASURE, RX, I
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
-from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator
-from pyquil.quilbase import Pragma, Gate, Declare
+from pyquil.quilatom import MemoryReference, ParameterDesignator, format_parameter
+from pyquil.quilbase import Declare, Gate, Pragma
 
 if TYPE_CHECKING:
-    from pyquil.quil import Program
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
+    from pyquil.quil import Program
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
@@ -39,8 +39,7 @@ _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops
 
 
 class KrausModel(_KrausModel):
-    """
-    Encapsulate a single gate's noise model.
+    """Encapsulate a single gate's noise model.
 
     :ivar str gate: The name of the gate.
     :ivar Sequence[float] params: Optional parameters for the gate.
@@ -51,9 +50,8 @@ class KrausModel(_KrausModel):
     """
 
     @staticmethod
-    def unpack_kraus_matrix(m: Union[List[Any], np.ndarray]) -> np.ndarray:
-        """
-        Helper to optionally unpack a JSON compatible representation of a complex Kraus matrix.
+    def unpack_kraus_matrix(m: Union[list[Any], np.ndarray]) -> np.ndarray:
+        """Unpack a JSON compatible representation of a complex Kraus matrix.
 
         :param m: The representation of a Kraus operator. Either a complex
             square matrix (as numpy array or nested lists) or a JSON-able pair of real matrices
@@ -69,9 +67,8 @@ class KrausModel(_KrausModel):
             raise ValueError("Need square matrix.")
         return matrix
 
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Create a dictionary representation of a KrausModel.
+    def to_dict(self) -> dict[str, Any]:
+        """Create a dictionary representation of a KrausModel.
 
         For example::
 
@@ -79,26 +76,31 @@ class KrausModel(_KrausModel):
                 "gate": "RX",
                 "params": np.pi,
                 "targets": [0],
-                "kraus_ops": [            # In this example single Kraus op = ideal RX(pi) gate
-                    [[[0,   0],           # element-wise real part of matrix
-                      [0,   0]],
-                      [[0, -1],           # element-wise imaginary part of matrix
-                      [-1, 0]]]
+                "kraus_ops": [  # In this example single Kraus op = ideal RX(pi) gate
+                    [
+                        [
+                            [0, 0],  # element-wise real part of matrix
+                            [0, 0],
+                        ],
+                        [
+                            [0, -1],  # element-wise imaginary part of matrix
+                            [-1, 0],
+                        ],
+                    ]
                 ],
-                "fidelity": 1.0
+                "fidelity": 1.0,
             }
 
         :return: A JSON compatible dictionary representation.
-        :rtype: Dict[str,Any]
+        :rtype: dict[str,Any]
         """
         res = self._asdict()
         res["kraus_ops"] = [[k.real.tolist(), k.imag.tolist()] for k in self.kraus_ops]
         return res
 
     @staticmethod
-    def from_dict(d: Dict[str, Any]) -> "KrausModel":
-        """
-        Recreate a KrausModel from the dictionary representation.
+    def from_dict(d: dict[str, Any]) -> "KrausModel":
+        """Recreate a KrausModel from the dictionary representation.
 
         :param d: The dictionary representing the KrausModel. See `to_dict` for an
             example.
@@ -108,27 +110,23 @@ class KrausModel(_KrausModel):
         return KrausModel(d["gate"], d["params"], d["targets"], kraus_ops, d["fidelity"])
 
     def __eq__(self, other: object) -> bool:
+        """Return True if both KrausModels are equal."""
         return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
-
-    def __neq__(self, other: object) -> bool:
-        return not self.__eq__(other)
 
 
 _NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
 
 
 class NoiseModel(_NoiseModel):
-    """
-    Encapsulate the QPU noise model containing information about the noisy gates.
+    """Encapsulate the QPU noise model containing information about the noisy gates.
 
     :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
-    :ivar Dict[int,np.array] assignment_probs: The single qubit readout assignment
+    :ivar dict[int,np.array] assignment_probs: The single qubit readout assignment
         probability matrices keyed by qubit id.
     """
 
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Create a JSON serializable representation of the noise model.
+    def to_dict(self) -> dict[str, Any]:
+        """Create a JSON serializable representation of the noise model.
 
         For example::
 
@@ -152,9 +150,8 @@ class NoiseModel(_NoiseModel):
         }
 
     @staticmethod
-    def from_dict(d: Dict[str, Any]) -> "NoiseModel":
-        """
-        Re-create the noise model from a dictionary representation.
+    def from_dict(d: dict[str, Any]) -> "NoiseModel":
+        """Re-create the noise model from a dictionary representation.
 
         :param d: The dictionary representation.
         :return: The restored noise model.
@@ -164,9 +161,8 @@ class NoiseModel(_NoiseModel):
             assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
         )
 
-    def gates_by_name(self, name: str) -> List[KrausModel]:
-        """
-        Return all defined noisy gates of a particular gate name.
+    def gates_by_name(self, name: str) -> list[KrausModel]:
+        """Return all defined noisy gates of a particular gate name.
 
         :param str name: The gate name.
         :return: A list of noise models representing that gate.
@@ -174,38 +170,33 @@ class NoiseModel(_NoiseModel):
         return [g for g in self.gates if g.gate == name]
 
     def __eq__(self, other: object) -> bool:
+        """Return True if NoiseModels are equal."""
         return isinstance(other, NoiseModel) and self.to_dict() == other.to_dict()
-
-    def __neq__(self, other: object) -> bool:
-        return not self.__eq__(other)
 
 
 def _check_kraus_ops(n: int, kraus_ops: Sequence[np.ndarray]) -> None:
-    """
-    Verify that the Kraus operators are of the correct shape and satisfy the correct normalization.
+    """Verify that the Kraus operators are of the correct shape and satisfy the correct normalization.
 
     :param n: Number of qubits
     :param kraus_ops: The Kraus operators as numpy.ndarrays.
     """
     for k in kraus_ops:
         if not np.shape(k) == (2**n, 2**n):
-            raise ValueError("Kraus operators for {0} qubits must have shape {1}x{1}: {2}".format(n, 2**n, k))
+            raise ValueError(f"Kraus operators for {n} qubits must have shape {2**n}x{2**n}: {k}")
 
     kdk_sum = sum(np.transpose(k).conjugate().dot(k) for k in kraus_ops)
     if not np.allclose(kdk_sum, np.eye(2**n), atol=1e-3):
-        raise ValueError("Kraus operator not correctly normalized: sum_j K_j^*K_j == {}".format(kdk_sum))
+        raise ValueError(f"Kraus operator not correctly normalized: sum_j K_j^*K_j == {kdk_sum}")
 
 
-def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[np.ndarray]) -> List[Pragma]:
-    """
-    Generate the pragmas to define a Kraus map for a specific gate on some qubits.
+def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[np.ndarray]) -> list[Pragma]:
+    """Generate the pragmas to define a Kraus map for a specific gate on some qubits.
 
     :param name: The name of the gate.
     :param qubit_indices: The qubits
     :param kraus_ops: The Kraus operators as matrices.
     :return: A QUIL string with PRAGMA ADD-KRAUS ... statements.
     """
-
     pragmas = [
         Pragma(
             "ADD-KRAUS",
@@ -219,9 +210,8 @@ def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Se
 
 def append_kraus_to_gate(
     kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray
-) -> List[Union[np.number, np.ndarray]]:
-    """
-    Follow a gate ``gate_matrix`` by a Kraus map described by ``kraus_ops``.
+) -> list[Union[np.number, np.ndarray]]:
+    """Follow a gate ``gate_matrix`` by a Kraus map described by ``kraus_ops``.
 
     :param kraus_ops: The Kraus operators.
     :param gate_matrix: The unitary gate.
@@ -230,9 +220,8 @@ def append_kraus_to_gate(
     return [kj.dot(gate_matrix) for kj in kraus_ops]
 
 
-def pauli_kraus_map(probabilities: Sequence[float]) -> List[np.ndarray]:
-    r"""
-    Generate the Kraus operators corresponding to a pauli channel.
+def pauli_kraus_map(probabilities: Sequence[float]) -> list[np.ndarray]:
+    r"""Generate the Kraus operators corresponding to a pauli channel.
 
     :params probabilities: The 4^num_qubits list of probabilities specifying the
         desired pauli channel. There should be either 4 or 16 probabilities specified in the
@@ -270,10 +259,8 @@ def pauli_kraus_map(probabilities: Sequence[float]) -> List[np.ndarray]:
     return [coeff * op for coeff, op in zip(np.sqrt(probabilities), operators)]
 
 
-def damping_kraus_map(p: float = 0.10) -> List[np.ndarray]:
-    """
-    Generate the Kraus operators corresponding to an amplitude damping
-    noise channel.
+def damping_kraus_map(p: float = 0.10) -> list[np.ndarray]:
+    """Generate the Kraus operators corresponding to an amplitude damping noise channel.
 
     :param p: The one-step damping probability.
     :return: A list [k1, k2] of the Kraus operators that parametrize the map.
@@ -285,9 +272,8 @@ def damping_kraus_map(p: float = 0.10) -> List[np.ndarray]:
     return [residual_kraus, damping_op]
 
 
-def dephasing_kraus_map(p: float = 0.10) -> List[np.ndarray]:
-    """
-    Generate the Kraus operators corresponding to a dephasing channel.
+def dephasing_kraus_map(p: float = 0.10) -> list[np.ndarray]:
+    """Generate the Kraus operators corresponding to a dephasing channel.
 
     :params float p: The one-step dephasing probability.
     :return: A list [k1, k2] of the Kraus operators that parametrize the map.
@@ -296,10 +282,8 @@ def dephasing_kraus_map(p: float = 0.10) -> List[np.ndarray]:
     return [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * np.diag([1, -1])]
 
 
-def tensor_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.ndarray]:
-    """
-    Generate the Kraus map corresponding to the composition
-    of two maps on different qubits.
+def tensor_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.ndarray]:
+    """Generate the Kraus map corresponding to the composition of two maps on different qubits.
 
     :param k1: The Kraus operators for the first qubit.
     :param k2: The Kraus operators for the second qubit.
@@ -308,11 +292,8 @@ def tensor_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.nda
     return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]
 
 
-def combine_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.ndarray]:
-    """
-    Generate the Kraus map corresponding to the composition
-    of two maps on the same qubits with k1 being applied to the state
-    after k2.
+def combine_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.ndarray]:
+    """Generate the Kraus map for two composed maps, with k1 applied after k2 on the same qubits.
 
     :param k1: The list of Kraus operators that are applied second.
     :param k2: The list of Kraus operators that are applied first.
@@ -321,18 +302,16 @@ def combine_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.nd
     return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]
 
 
-def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> List[np.ndarray]:
-    """
-    Generate the Kraus map corresponding to the composition
-    of a dephasing channel followed by an amplitude damping channel.
+def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> list[np.ndarray]:
+    """Generate the Kraus map for a dephasing channel followed by an amplitude damping channel.
 
     :param T1: The amplitude damping time
     :param T2: The dephasing time
     :param gate_time: The gate duration.
     :return: A list of Kraus operators.
     """
-    assert T1 >= 0
-    assert T2 >= 0
+    if T1 < 0 or T2 < 0:
+        raise ValueError("T1 and T2 must be non-negative.")
 
     if T1 != INFINITY:
         damping = damping_kraus_map(p=1 - np.exp(-float(gate_time) / float(T1)))
@@ -363,9 +342,8 @@ class NoisyGateUndefined(Exception):
     pass
 
 
-def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tuple[np.ndarray, str]:
-    """
-    Look up the numerical gate representation and a proposed 'noisy' name.
+def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> tuple[np.ndarray, str]:
+    """Look up the numerical gate representation and a proposed 'noisy' name.
 
     :param gate_name: The Quil gate name
     :param params: The gate parameters.
@@ -374,7 +352,8 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tup
     """
     params = tuple(params)
     if gate_name == "I":
-        assert params == ()
+        if params != ():
+            raise ValueError(f"Identity gate does not take parameters: {params}")
         return np.eye(2), "NOISY-I"
     if gate_name == "RX":
         (angle,) = params
@@ -390,18 +369,17 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tup
         elif np.isclose(angle, -np.pi, atol=ANGLE_TOLERANCE):
             return np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180"
     elif gate_name == "CZ":
-        assert params == ()
+        if params != ():
+            raise ValueError(f"CZ gate does not take parameters: {params}")
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
 
     raise NoisyGateUndefined(
-        "Undefined gate and params: {}{}\n"
-        "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ".format(gate_name, params)
+        f"Undefined gate and params: {gate_name}{params}\n" "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
     )
 
 
-def _get_program_gates(prog: "Program") -> List[Gate]:
-    """
-    Get all gate applications appearing in prog.
+def _get_program_gates(prog: "Program") -> list[Gate]:
+    """Get all gate applications appearing in prog.
 
     :param prog: The program
     :return: A list of all Gates in prog (without duplicates).
@@ -411,14 +389,13 @@ def _get_program_gates(prog: "Program") -> List[Gate]:
 
 def _decoherence_noise_model(
     gates: Sequence[Gate],
-    T1: Union[Dict[int, float], float] = 30e-6,
-    T2: Union[Dict[int, float], float] = 30e-6,
+    T1: Union[dict[int, float], float] = 30e-6,
+    T2: Union[dict[int, float], float] = 30e-6,
     gate_time_1q: float = 50e-9,
     gate_time_2q: float = 150e-09,
-    ro_fidelity: Union[Dict[int, float], float] = 0.95,
+    ro_fidelity: Union[dict[int, float], float] = 0.95,
 ) -> NoiseModel:
-    """
-    The default noise parameters
+    """Return default noise model.
 
     - T1 = 30 us
     - T2 = 30 us
@@ -514,8 +491,8 @@ def decoherence_noise_with_asymmetric_ro(isa: CompilerISA, p00: float = 0.975, p
 
 
 def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
-    """
-    Generate the header for a pyquil Program that uses ``noise_model`` to overload noisy gates.
+    """Generate the header for a pyquil Program that uses ``noise_model`` to overload noisy gates.
+
     The program header consists of 3 sections:
 
         - The ``DEFGATE`` statements that define the meaning of the newly introduced "noisy" gate
@@ -530,7 +507,7 @@ def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
     from pyquil.quil import Program
 
     p = Program()
-    defgates: Set[str] = set()
+    defgates: set[str] = set()
     for k in noise_model.gates:
         # obtain ideal gate matrix and new, noisy name by looking it up in the NOISY_GATES dict
         try:
@@ -542,7 +519,7 @@ def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
                 defgates.add(new_name)
         except NoisyGateUndefined:
             print(
-                "WARNING: Could not find ideal gate definition for gate {}".format(k.gate),
+                f"WARNING: Could not find ideal gate definition for gate {k.gate}",
                 file=sys.stderr,
             )
             new_name = k.gate
@@ -557,8 +534,7 @@ def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
 
 
 def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
-    """
-    Apply a noise model to a program and generated a 'noisy-fied' version of the program.
+    """Apply a noise model to a program and generated a 'noisy-fied' version of the program.
 
     :param prog: A Quil Program object.
     :param noise_model: A NoiseModel, either generated from an ISA or
@@ -581,14 +557,13 @@ def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
 
 def add_decoherence_noise(
     prog: "Program",
-    T1: Union[Dict[int, float], float] = 30e-6,
-    T2: Union[Dict[int, float], float] = 30e-6,
+    T1: Union[dict[int, float], float] = 30e-6,
+    T2: Union[dict[int, float], float] = 30e-6,
     gate_time_1q: float = 50e-9,
     gate_time_2q: float = 150e-09,
-    ro_fidelity: Union[Dict[int, float], float] = 0.95,
+    ro_fidelity: Union[dict[int, float], float] = 0.95,
 ) -> "Program":
-    """
-    Add generic damping and dephasing noise to a program.
+    """Add generic damping and dephasing noise to a program.
 
     This high-level function is provided as a convenience to investigate the effects of a
     generic noise model on a program. For more fine-grained control, please investigate
@@ -636,9 +611,7 @@ def add_decoherence_noise(
 
 
 def _bitstring_probs_by_qubit(p: np.ndarray) -> np.ndarray:
-    """
-    Ensure that an array ``p`` with bitstring probabilities has a separate axis for each qubit such
-    that ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    """Ensure array p has a separate axis for each qubit so ``p[i,j,...,k]`` gives the probability of bitstring ``ij...k``.
 
     This should not allocate much memory if ``p`` is already in ``C``-contiguous order (row-major).
 
@@ -653,8 +626,7 @@ def _bitstring_probs_by_qubit(p: np.ndarray) -> np.ndarray:
 
 
 def estimate_bitstring_probs(results: np.ndarray) -> np.ndarray:
-    """
-    Given an array of single shot results estimate the probability distribution over all bitstrings.
+    """Given an array of single shot results estimate the probability distribution over all bitstrings.
 
     :param results: A 2d array where the outer axis iterates over shots
         and the inner axis over bits.
@@ -671,7 +643,8 @@ _CHARS = "klmnopqrstuvwxyzabcdefgh0123456789"
 
 
 def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarray:
-    """
+    """Apply local 2x2 matrices to each index in a 2D array of single shot results using assignment probability matrices.
+
     Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
     and a list of assignment probability matrices (one for each bit in the readout, ordered like
     the inner axis of results) apply local 2x2 matrices to each bit index.
@@ -702,8 +675,9 @@ def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarr
     return p_corrected
 
 
-def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.ndarray]) -> np.ndarray:
-    """
+def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.ndarray]) -> np.ndarray:
+    """Given a 2D array of bitstring probabilities and assignment matrices, compute the corrupted probabilities.
+
     Given a 2d array of true bitstring probabilities (outer axis iterates over shots, inner axis
     over bits) and a list of assignment probability matrices (one for each bit in the readout,
     ordered like the inner axis of results) compute the corrupted probabilities.
@@ -725,8 +699,9 @@ def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.nda
     return _apply_local_transforms(p, assignment_probabilities)
 
 
-def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.ndarray]) -> np.ndarray:
-    """
+def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.ndarray]) -> np.ndarray:
+    """Given a 2D array of corrupted bitstring probabilities and assignment matrices, compute the corrected probabilities.
+
     Given a 2d array of corrupted bitstring probabilities (outer axis iterates over shots, inner
     axis over bits) and a list of assignment probability matrices (one for each bit in the readout)
     compute the corrected probabilities.
@@ -749,8 +724,7 @@ def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.nda
 
 
 def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:
-    """
-    Convert between bitstring probabilities and joint Z moment expectations.
+    """Convert between bitstring probabilities and joint Z moment expectations.
 
     :param p: An array that enumerates bitstring probabilities. When
         flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
@@ -772,8 +746,8 @@ def estimate_assignment_probs(
     qc: "PyquilApiQuantumComputer",
     p0: Optional["Program"] = None,
 ) -> np.ndarray:
-    """
-    Estimate the readout assignment probabilities for a given qubit ``q``.
+    """Estimate the readout assignment probabilities for a given qubit ``q``.
+
     The returned matrix is of the form::
 
             [[p00 p01]
@@ -816,8 +790,9 @@ def estimate_assignment_probs(
     return np.array([[p00, 1 - p11], [1 - p00, p11]])
 
 
-def _run(qc: "PyquilApiQuantumComputer", program: "Program") -> List[List[int]]:
+def _run(qc: "PyquilApiQuantumComputer", program: "Program") -> list[list[int]]:
     result = qc.run(qc.compiler.native_quil_to_executable(program))
     bitstrings = result.readout_data.get("ro")
-    assert bitstrings is not None
-    return cast(List[List[int]], bitstrings.tolist())
+    if bitstrings is None:
+        raise ValueError("No readout data found in result.")
+    return cast(list[list[int]], bitstrings.tolist())

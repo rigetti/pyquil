@@ -1,6 +1,6 @@
 from pyquil.control_flow_graph import BasicBlock
-from pyquil.quilbase import AbstractInstruction
 from pyquil.quil import Program
+from pyquil.quilbase import AbstractInstruction
 
 
 def test_control_flow_graph():

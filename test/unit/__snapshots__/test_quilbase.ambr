@@ -1,3 +1,4 @@
+# serializer version: 1
 # name: TestArithmeticBinaryOp.test_out[ADD-left0-right0]
   'ADD a[0] b[0]'
 # ---

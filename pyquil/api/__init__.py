@@ -13,55 +13,58 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Sub-package for facilitating connections to the QVM / QPU.
-"""
-
-__all__ = [
-    "AbstractCompiler",
-    "BenchmarkConnection",
-    "EncryptedProgram",
-    "ExecutionOptions",
-    "get_qc",
-    "list_quantum_computers",
-    "local_forest_runtime",
-    "MemoryMap",
-    "QAM",
-    "QAMExecutionResult",
-    "QCSClient",
-    "QCSQuantumProcessor",
-    "QPU",
-    "QPUCompiler",
-    "QPUCompilerAPIOptions",
-    "QuantumComputer",
-    "QuantumExecutable",
-    "QVM",
-    "QVMCompiler",
-    "WavefunctionSimulator",
-]
+"""Sub-package for facilitating connections to the QVM / QPU."""
 
 from qcs_sdk import QCSClient, RegisterMatrixConversionError
-from qcs_sdk.qpu.api import ExecutionOptions, ExecutionOptionsBuilder, ConnectionStrategy
 from qcs_sdk.qpu import RawQPUReadoutData
+from qcs_sdk.qpu.api import ConnectionStrategy, ExecutionOptions, ExecutionOptionsBuilder
 from qcs_sdk.qvm import RawQVMReadoutData
 
 from pyquil.api._benchmark import BenchmarkConnection
 from pyquil.api._compiler import (
-    QVMCompiler,
-    QPUCompiler,
-    QuantumExecutable,
-    EncryptedProgram,
     AbstractCompiler,
+    EncryptedProgram,
+    QPUCompiler,
     QPUCompilerAPIOptions,
+    QuantumExecutable,
+    QVMCompiler,
 )
-from pyquil.api._qam import QAM, QAMExecutionResult, MemoryMap
+from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
     QuantumComputer,
-    list_quantum_computers,
     get_qc,
+    list_quantum_computers,
     local_forest_runtime,
 )
 from pyquil.api._qvm import QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
 from pyquil.quantum_processor import QCSQuantumProcessor
+
+__all__ = [
+    "QCSClient",
+    "RegisterMatrixConversionError",
+    "RawQPUReadoutData",
+    "RawQVMReadoutData",
+    "ConnectionStrategy",
+    "ExecutionOptions",
+    "BenchmarkConnection",
+    "AbstractCompiler",
+    "EncryptedProgram",
+    "QPUCompiler",
+    "QPUCompilerAPIOptions",
+    "QuantumExecutable",
+    "QVMCompiler",
+    "QAM",
+    "MemoryMap",
+    "QAMExecutionResult",
+    "QPU",
+    "QuantumComputer",
+    "get_qc",
+    "list_quantum_computers",
+    "local_forest_runtime",
+    "QVM",
+    "WavefunctionSimulator",
+    "QCSQuantumProcessor",
+    "ExecutionOptionsBuilder",
+]

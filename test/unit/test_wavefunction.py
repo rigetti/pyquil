@@ -1,11 +1,12 @@
-import pytest
-import numpy as np
 import itertools
 
+import numpy as np
+import pytest
+
 from pyquil.wavefunction import (
-    get_bitstring_from_index,
     Wavefunction,
     _octet_bits,
+    get_bitstring_from_index,
 )
 
 

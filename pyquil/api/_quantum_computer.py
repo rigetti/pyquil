@@ -18,32 +18,26 @@ import re
 import socket
 import subprocess
 import warnings
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
-from math import pi, log
+from math import log, pi
 from typing import (
     Any,
-    Tuple,
-    Iterator,
-    Iterable,
     Optional,
-    Set,
     Union,
     cast,
-    List,
 )
 
 import networkx as nx
 import numpy as np
-
 from qcs_sdk import QCSClient
-from qcs_sdk.qpu import list_quantum_processors
 from qcs_sdk.compiler.quilc import QuilcClient
+from qcs_sdk.qpu import list_quantum_processors
 from qcs_sdk.qvm import QVMClient
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
-
-from pyquil.api._qam import QAM, QAMExecutionResult, MemoryMap
+from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
@@ -51,17 +45,18 @@ from pyquil.experiment._memory import merge_memory_map_lists
 from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
 from pyquil.experiment._setting import ExperimentSetting
 from pyquil.external.rpcq import CompilerISA
-from pyquil.gates import RX, MEASURE
-from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
+from pyquil.gates import MEASURE, RX
+from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import PauliTerm
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import (
     AbstractQuantumProcessor,
-    QCSQuantumProcessor,
     NxQuantumProcessor,
+    QCSQuantumProcessor,
     get_qcs_quantum_processor,
 )
 from pyquil.quil import Program
+from pyquil.quilatom import QubitDesignator
 
 
 class QuantumComputer:
@@ -73,8 +68,7 @@ class QuantumComputer:
         compiler: AbstractCompiler,
         symmetrize_readout: bool = False,
     ) -> None:
-        """
-        A quantum computer for running quantum programs.
+        """Use a quantum computer to run quantum programs.
 
         A quantum computer has various characteristics like supported gates, qubits, qubit
         topologies, gate fidelities, and more. A quantum computer also has the ability to
@@ -98,31 +92,25 @@ class QuantumComputer:
 
     @property
     def quantum_processor(self) -> AbstractQuantumProcessor:
-        """
-        The quantum processor associated with this quantum computer.
-        """
+        """The quantum processor associated with this quantum computer."""
         return self.compiler.quantum_processor
 
-    def qubits(self) -> List[int]:
-        """
-        Return a sorted list of this QuantumComputer's quantum_processor's qubits
+    def qubits(self) -> list[int]:
+        """Return a sorted list of the quantum_processor's qubits.
 
         See :py:func:`AbstractQuantumProcessor.qubits` for more.
         """
         return self.compiler.quantum_processor.qubits()
 
     def qubit_topology(self) -> nx.graph:
-        """
-        Return a NetworkX graph representation of this QuantumComputer's quantum_processor's qubit
-        connectivity.
+        """Return a NetworkX graph representation of this QuantumComputer's quantum_processor's qubit connectivity.
 
         See :py:func:`AbstractQuantumProcessor.qubit_topology` for more.
         """
         return self.compiler.quantum_processor.qubit_topology()
 
     def to_compiler_isa(self) -> CompilerISA:
-        """
-        Return a ``CompilerISA`` for this QuantumComputer's quantum_processor.
+        """Return a ``CompilerISA`` for this QuantumComputer's quantum_processor.
 
         See :py:func:`AbstractQuantumProcessor.to_compiler_isa` for more.
         """
@@ -131,9 +119,7 @@ class QuantumComputer:
     def run(
         self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **kwargs: Any
     ) -> QAMExecutionResult:
-        """
-        Run a quil executable. All parameters in the executable must have values applied using
-        ``Program#write_memory``.
+        """Run a quil executable.
 
         :param executable: The program to run, previously compiled as needed for its target QAM.
         :param memory_map: A mapping of memory regions to a list containing the values to be written into that memory
@@ -144,10 +130,10 @@ class QuantumComputer:
 
     def run_with_memory_map_batch(
         self, executable: QuantumExecutable, memory_maps: Iterable[MemoryMap], **kwargs: Any
-    ) -> List[QAMExecutionResult]:
-        """
-        Run a QuantumExecutable with one or more memory_maps, returning a list of results corresponding to the length
-        and order of the given MemoryMaps.
+    ) -> list[QAMExecutionResult]:
+        """Run a QuantumExecutable with one or more memory_map.
+
+        Returns a list of results corresponding to the length and order of the given MemoryMaps.
 
         How these programs are batched and executed is determined by the executor. See their respective documentation
         for details.
@@ -158,10 +144,8 @@ class QuantumComputer:
         handles = self.qam.execute_with_memory_map_batch(executable, memory_maps, **kwargs)
         return [self.qam.get_result(handle) for handle in handles]
 
-    def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
-        """
-        Perform readout calibration on the various multi-qubit observables involved in the provided
-        ``Experiment``.
+    def calibrate(self, experiment: Experiment) -> list[ExperimentResult]:
+        """Perform readout calibration on the various multi-qubit observables involved in the provided ``Experiment``.
 
         :param experiment: The ``Experiment`` to calibrate readout error for.
         :return: A list of ``ExperimentResult`` objects that contain the expectation values that
@@ -174,9 +158,10 @@ class QuantumComputer:
         self,
         experiment: Experiment,
         memory_map: Optional[MemoryMap] = None,
-    ) -> List[ExperimentResult]:
-        """
-        Run an ``Experiment`` on a QVM or QPU backend. An ``Experiment`` is composed of:
+    ) -> list[ExperimentResult]:
+        """Run an ``Experiment`` on a QVM or QPU backend.
+
+        An ``Experiment`` is composed of:
 
             - A main ``Program`` body (or ansatz).
             - A collection of ``ExperimentSetting`` objects, each of which encodes a particular
@@ -222,7 +207,6 @@ class QuantumComputer:
         :return: A list of ``ExperimentResult`` objects containing the statistics gathered
             according to the specifications of the ``Experiment``.
         """
-
         experiment_program = experiment.generate_experiment_program()
         executable = self.compile(experiment_program)
 
@@ -236,7 +220,7 @@ class QuantumComputer:
                 raise ValueError("We only support length-1 settings for now.")
             setting = settings[0]
 
-            qubits = cast(List[int], setting.out_operator.get_qubits())
+            qubits = cast(list[int], setting.out_operator.get_qubits())
             experiment_setting_memory_map = experiment.build_setting_memory_map(setting)
             symmetrization_memory_maps = experiment.build_symmetrization_memory_maps(qubits)
             merged_memory_maps = merge_memory_map_lists([experiment_setting_memory_map], symmetrization_memory_maps)
@@ -246,7 +230,8 @@ class QuantumComputer:
                 final_memory_map = {**memory_map, **merged_memory_map}
                 executable_copy = executable.copy()
                 bitstrings = self.run(executable_copy, memory_map=final_memory_map).readout_data.get("ro")
-                assert bitstrings is not None
+                if bitstrings is None:
+                    raise ValueError("No readout data returned.")
 
                 if "symmetrization" in final_memory_map:
                     bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
@@ -289,38 +274,36 @@ class QuantumComputer:
         program: Program,
         trials: int,
         symm_type: int = 3,
-        meas_qubits: Optional[List[int]] = None,
+        meas_qubits: Optional[Sequence[QubitDesignator]] = None,
     ) -> np.ndarray:
-        r"""
-        Run a quil program in such a way that the readout error is made symmetric. Enforcing
-        symmetric readout error is useful in simplifying the assumptions in some near
-        term error mitigation strategies, see ``measure_observables`` for more information.
+        r"""Run a quil program in such a way that the readout error is made symmetric.
 
-        The simplest example is for one qubit. In a noisy quantum_processor, the probability of accurately
-        reading the 0 state might be higher than that of the 1 state; due to e.g. amplitude
-        damping. This makes correcting for readout more difficult. In the simplest case, this
-        function runs the program normally ``(trials//2)`` times. The other half of the time,
-        it will insert an ``X`` gate prior to any ``MEASURE`` instruction and then flip the
+        Enforcing symmetric readout error is useful in simplifying the assumptions in some near term error mitigation
+        strategies, see ``measure_observables`` for more information.
+
+        The simplest example is for one qubit. In a noisy quantum_processor, the probability of accurately reading the
+        0 state might be higher than that of the 1 state; due to e.g. amplitude damping. This makes correcting for
+        readout more difficult. In the simplest case, this function runs the program normally ``(trials//2)`` times.
+        The other half of the time, it will insert an ``X`` gate prior to any ``MEASURE`` instruction and then flip th
         measured classical bit back. Overall this has the effect of symmetrizing the readout error.
 
-        The details. Consider preparing the input bitstring ``|i>`` (in the computational basis) and
-        measuring in the Z basis. Then the Confusion matrix for the readout error is specified by
-        the probabilities
+        The details. Consider preparing the input bitstring ``|i>`` (in the computational basis) and measuring in the
+        Z basis. Then the Confusion matrix for the readout error is specified by the probabilities
 
              p(j|i) := Pr(measured = j | prepared = i ).
 
         In the case of a single qubit i,j \in [0,1] then:
-        there is no readout error if p(0|0) = p(1|1) = 1.
-        the readout error is symmetric if p(0|0) = p(1|1) = 1 - epsilon.
-        the readout error is asymmetric if p(0|0) != p(1|1).
 
-        If your quantum computer has this kind of asymmetric readout error then
-        ``qc.run_symmetrized_readout`` will symmetrize the readout error.
+        * there is no readout error if p(0|0) = p(1|1) = 1.
+        * the readout error is symmetric if p(0|0) = p(1|1) = 1 - epsilon.
+        * the readout error is asymmetric if p(0|0) != p(1|1).
 
-        The readout error above is only asymmetric on a single bit. In practice the confusion
-        matrix on n bits need not be symmetric, e.g. for two qubits p(ij|ij) != 1 - epsilon for
-        all i,j. In these situations a more sophisticated means of symmetrization is needed; and
-        we use orthogonal arrays (OA) built from Hadamard matrices.
+        If your quantum computer has this kind of asymmetric readout error then ``qc.run_symmetrized_readout`` will
+        symmetrize the readout error.
+
+        The readout error above is only asymmetric on a single bit. In practice the confusion matrix on n bits need not
+        be symmetric, e.g. for two qubits p(ij|ij) != 1 - epsilon for all i,j. In these situations a more sophisticated
+        means of symmetrization is needed; and we use orthogonal arrays (OA) built from Hadamard matrices.
 
         The symmetrization types are specified by an int; the types available are:
         -1 -- exhaustive symmetrization uses every possible combination of flips
@@ -331,11 +314,10 @@ class QuantumComputer:
         In the context of readout symmetrization the strength of the orthogonal array enforces
         the symmetry of the marginal confusion matrices.
 
-        By default a strength 3 OA is used; this ensures expectations of the form
-        ``<b_k . b_j . b_i>`` for bits any bits i,j,k will have symmetric readout errors. Here
-        expectation of a random variable x as is denote ``<x> = sum_i Pr(i) x_i``. It turns out that
-        a strength 3 OA is also a strength 2 and strength 1 OA it also ensures ``<b_j . b_i>`` and
-        ``<b_i>`` have symmetric readout errors for any bits b_j and b_i.
+        By default a strength 3 OA is used; this ensures expectations of the form ``<b_k . b_j . b_i>`` for bits any
+        bits i,j,k will have symmetric readout errors. Here expectation of a random variable x as is denote
+        ``<x> = sum_i Pr(i) x_i``. It turns out that a strength 3 OA is also a strength 2 and strength 1 OA it also
+        ensures ``<b_j . b_i>`` and ``<b_i>`` have symmetric readout errors for any bits b_j and b_i.
 
         :param program: The program to run symmetrized readout on.
         :param trials: The minimum number of times to run the program; it is recommend that this
@@ -352,7 +334,7 @@ class QuantumComputer:
             )
 
         if meas_qubits is None:
-            meas_qubits = list(cast(Set[int], program.get_qubits()))
+            meas_qubits = list(program.get_qubit_indices())
 
         # It is desirable to have hundreds or thousands of trials more than the minimum
         trials = _check_min_num_trials_for_symmetrized_readout(len(meas_qubits), trials, symm_type)
@@ -383,19 +365,17 @@ class QuantumComputer:
         *,
         protoquil: Optional[bool] = None,
     ) -> QuantumExecutable:
-        """
-        A high-level interface to program compilation.
+        """Provide a high-level interface for program compilation.
 
-        Compilation currently consists of two stages. Please see the :py:class:`AbstractCompiler`
-        docs for more information. This function does all stages of compilation.
+        Compilation currently consists of two stages. Please see the :py:class:`AbstractCompiler` docs for more
+        information. This function does all stages of compilation.
 
-        Right now both ``to_native_gates`` and ``optimize`` must be either both set or both
-        unset. More modular compilation passes may be available in the future.
+        Right now both ``to_native_gates`` and ``optimize`` must be either both set or both unset. More modular
+        compilation passes may be available in the future.
 
-        Additionally, a call to compile also calls the ``reset`` method if one is running
-        on the QPU. This is a bit of a sneaky hack to guard against stale compiler connections,
-        but shouldn't result in any material hit to performance (especially when taking advantage
-        of parametric compilation for hybrid applications).
+        Additionally, a call to compile also calls the ``reset`` method if one is running on the QPU. This is a bit of
+        a sneaky hack to guard against stale compiler connections, but shouldn't result in any material hit to
+        performance (especially when taking advantage of parametric compilation for hybrid applications).
 
         :param program: A Program
         :param to_native_gates: Whether to compile non-native gates to native gates.
@@ -404,9 +384,10 @@ class QuantumComputer:
             to protoquil (executable on QPU). A value of ``None`` means defer to server.
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
-
         flags = [to_native_gates, optimize]
-        assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
+        if any(flags) and not all(flags):
+            raise ValueError("Must turn to_native_gates and optimize on or off together")
+
         quilc = all(flags)
 
         if quilc:
@@ -428,9 +409,8 @@ def list_quantum_computers(
     qvms: bool = True,
     timeout: float = 10.0,
     client_configuration: Optional[QCSClient] = None,
-) -> List[str]:
-    """
-    List the names of available quantum computers
+) -> list[str]:
+    """List the names of available quantum computers.
 
     :param qpus: Whether to include QPUs in the list.
     :param qvms: Whether to include QVMs in the list.
@@ -438,7 +418,7 @@ def list_quantum_computers(
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
     """
     client_configuration = client_configuration or QCSClient.load()
-    qc_names: List[str] = []
+    qc_names: list[str] = []
     if qpus:
         qc_names += list_quantum_processors(client=client_configuration, timeout=timeout)
 
@@ -448,9 +428,8 @@ def list_quantum_computers(
     return qc_names
 
 
-def _parse_name(name: str, as_qvm: Optional[bool], noisy: Optional[bool]) -> Tuple[str, Optional[str], bool]:
-    """
-    Try to figure out whether we're getting a (noisy) qvm, and the associated qpu name.
+def _parse_name(name: str, as_qvm: Optional[bool], noisy: Optional[bool]) -> tuple[str, Optional[str], bool]:
+    """Try to figure out whether we're getting a (noisy) qvm, and the associated qpu name.
 
     See :py:func:`get_qc` for examples of valid names + flags.
     """
@@ -525,10 +504,11 @@ def _get_qvm_or_pyqvm(
     if qvm_type == "qvm":
         return QVM(noise_model=noise_model, timeout=execution_timeout, client=qvm_client)
     elif qvm_type == "pyqvm":
-        assert quantum_processor is not None
+        if quantum_processor is None:
+            raise ValueError("Cannot construct a PyQVM without a quantum_processor.")
         return PyQVM(n_qubits=quantum_processor.qubit_topology().number_of_nodes())
 
-    raise ValueError("Unknown qvm type {}".format(qvm_type))
+    raise ValueError(f"Unknown qvm type {qvm_type}")
 
 
 def _get_qvm_qc(
@@ -556,7 +536,6 @@ def _get_qvm_qc(
     :param execution_timeout: Time limit for execution requests, in seconds.
     :return: A QuantumComputer backed by a QVM with the above options.
     """
-
     return QuantumComputer(
         name=name,
         qam=_get_qvm_or_pyqvm(
@@ -633,8 +612,7 @@ def _get_9q_square_qvm(
     quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMClient] = None,
 ) -> QuantumComputer:
-    """
-    A nine-qubit 3x3 square lattice.
+    """Nine-qubit 3x3 square lattice.
 
     This uses a "generic" lattice not tied to any specific quantum_processor. 9 qubits is large enough
     to do vaguely interesting algorithms and small enough to simulate quickly.
@@ -673,8 +651,7 @@ def _get_unrestricted_qvm(
     quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMClient] = None,
 ) -> QuantumComputer:
-    """
-    A qvm with a fully-connected topology.
+    """QVM with a fully-connected topology.
 
     This is obviously the least realistic QVM, but who am I to tell users what they want.
 
@@ -713,8 +690,7 @@ def _get_qvm_based_on_real_quantum_processor(
     quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMClient] = None,
 ) -> QuantumComputer:
-    """
-    A qvm with a based on a real quantum_processor.
+    """QVM based on a real quantum_processor.
 
     This is the most realistic QVM.
 
@@ -757,8 +733,7 @@ def get_qc(
     quilc_client: Optional[QuilcClient] = None,
     qvm_client: Optional[QVMClient] = None,
 ) -> QuantumComputer:
-    """
-    Get a quantum computer.
+    """Get a quantum computer.
 
     A quantum computer is an object of type :py:class:`QuantumComputer` and can be backed
     either by a QVM simulator ("Quantum/Quil Virtual Machine") or a physical Rigetti QPU ("Quantum
@@ -939,14 +914,14 @@ def local_forest_runtime(
     qvm_port: int = 5000,
     quilc_port: int = 5555,
     use_protoquil: bool = False,
-) -> Iterator[Tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]]:
-    """A context manager for local QVM and QUIL compiler.
+) -> Iterator[tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]]:
+    """Context manager for local QVM and QUIL compiler.
 
     You must first have installed the `qvm` and `quilc` executables from
     the forest SDK. [https://www.rigetti.com/forest]
 
     This context manager will ensure that the designated ports are not used, start up `qvm` and
-    `quilc` proccesses if possible and terminate them when the context is exited.
+    `quilc` processes if possible and terminate them when the context is exited.
     If one of the ports is in use, a ``RuntimeWarning`` will be issued and the `qvm`/`quilc` process
     won't be started.
 
@@ -959,7 +934,7 @@ def local_forest_runtime(
     >>> from pyquil.gates import CNOT, Z
     >>> from pyquil.api import local_forest_runtime
     >>>
-    >>> qvm = get_qc('9q-square-qvm')
+    >>> qvm = get_qc("9q-square-qvm")
     >>> prog = Program(Z(0), CNOT(0, 1))
     >>>
     >>> with local_forest_runtime():  # doctest: +SKIP
@@ -981,21 +956,20 @@ def local_forest_runtime(
         ports is in use, the process won't be started and the respective
         value in the tuple will be ``None``.
     """
-
     qvm: Optional[subprocess.Popen] = None
     quilc: Optional[subprocess.Popen] = None
 
     # If the host we should listen to is 0.0.0.0, we replace it
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
-    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):
-        warning_msg = ("Unable to start qvm server, since the specified port {} is in use.").format(qvm_port)
+    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):  # noqa: S104: prevents connection to 0.0.0.0
+        warning_msg = f"Unable to start qvm server, since the specified port {qvm_port} is in use."
         warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         qvm_cmd = ["qvm", "-S", "--host", host, "-p", str(qvm_port)]
-        qvm = subprocess.Popen(qvm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        qvm = subprocess.Popen(qvm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603: input valid
 
-    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):
-        warning_msg = ("Unable to start quilc server, since the specified port {} is in use.").format(quilc_port)
+    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):  # noqa: S104: prevents connection to 0.0.0.0
+        warning_msg = f"Unable to start quilc server, since the specified port {quilc_port} is in use."
         warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         quilc_cmd = ["quilc", "--host", host, "-p", str(quilc_port), "-R"]
@@ -1003,7 +977,7 @@ def local_forest_runtime(
         if use_protoquil:
             quilc_cmd += ["-P"]
 
-        quilc = subprocess.Popen(quilc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        quilc = subprocess.Popen(quilc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
 
     # Return context
     try:
@@ -1017,10 +991,8 @@ def local_forest_runtime(
             quilc.terminate()
 
 
-def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
-    """
-    Generate a pre-measurement program that flips the qubit state according to the flip_array of
-    bools.
+def _flip_array_to_prog(flip_array: tuple[bool], qubits: Sequence[QubitDesignator]) -> Program:
+    """Generate a pre-measurement program that flips the qubit state according to the flip_array of bools.
 
     This is used, for example, in symmetrization to produce programs which flip a select subset
     of qubits immediately before measurement.
@@ -1030,7 +1002,9 @@ def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
     :param qubits: list specifying the qubits in order corresponding to the flip_array
     :return: Program which flips each qubit (i.e. instructs RX(pi, q)) according to the flip_array.
     """
-    assert len(flip_array) == len(qubits), "Mismatch of qubits and operations"
+    if len(flip_array) != len(qubits):
+        raise ValueError("Mismatch of qubits and operations")
+
     prog = Program()
     for qubit, flip_output in zip(qubits, flip_array):
         if flip_output == 0:
@@ -1043,11 +1017,9 @@ def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
 
 
 def _symmetrization(
-    program: Program, meas_qubits: List[int], symm_type: int = 3
-) -> Tuple[List[Program], List[np.ndarray]]:
-    """
-    For the input program generate new programs which flip the measured qubits with an X gate in
-    certain combinations in order to symmetrize readout.
+    program: Program, meas_qubits: Sequence[QubitDesignator], symm_type: int = 3
+) -> tuple[list[Program], list[np.ndarray]]:
+    """Generate new programs that flip the measured qubits with an X gate in order to symmetrize readout.
 
     An expanded list of programs is returned along with a list of bools which indicates which
     qubits are flipped in each program.
@@ -1101,10 +1073,8 @@ def _symmetrization(
     return symm_programs, flip_arrays
 
 
-def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[np.ndarray]) -> np.ndarray:
-    """
-    Given bitarray results from a series of symmetrization programs, appropriately flip output
-    bits and consolidate results into new bitarrays.
+def _consolidate_symmetrization_outputs(outputs: list[np.ndarray], flip_arrays: list[np.ndarray]) -> np.ndarray:
+    """Flip output bits and consolidate results into new bitarrays from symmetrization program bitarray results.
 
     :param outputs: a list of the raw bitarrays resulting from running a list of symmetrized
         programs; for example, the results returned from _measure_bitstrings
@@ -1114,7 +1084,8 @@ def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: 
         the symmetrized outputs of the original programs passed into a symmetrization method. See
         estimate_observables for example usage.
     """
-    assert len(outputs) == len(flip_arrays)
+    if len(outputs) != len(flip_arrays):
+        raise ValueError("The length of outputs must equal the length of flip_arrays")
 
     output = []
     for bitarray, flip_array in zip(outputs, flip_arrays):
@@ -1127,11 +1098,9 @@ def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: 
 
 
 def _measure_bitstrings(
-    qc: QuantumComputer, programs: List[Program], meas_qubits: List[int], num_shots: int = 600
-) -> List[np.ndarray]:
-    """
-    Wrapper for appending measure instructions onto each program, running the program,
-    and accumulating the resulting bitarrays.
+    qc: QuantumComputer, programs: list[Program], meas_qubits: Sequence[QubitDesignator], num_shots: int = 600
+) -> list[np.ndarray]:
+    """Append measure instructions, run the program, and accumulate the resulting bitarrays.
 
     :param qc: a quantum computer object on which to run each program
     :param programs: a list of programs to run
@@ -1153,17 +1122,18 @@ def _measure_bitstrings(
         executable = qc.compiler.native_quil_to_executable(prog)
         result = qc.run(executable)
         shot_values = result.readout_data.get("ro")
-        assert shot_values is not None
+        if shot_values is None:
+            raise RuntimeError("Got no readout data from the quantum computer.")
         results.append(shot_values)
     return results
 
 
 def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarray:
-    """
-    Given a strength and number of qubits this function returns an Orthogonal Array (OA)
-    on 'n' or more qubits. Sometimes the size of the returned array is larger than num_qubits;
-    typically the next power of two relative to num_qubits. This is corrected later in the code
-    flow.
+    """Return an Orthogonal Array (OA) based on the given strength and number of qubits.
+
+    Given a strength and number of qubits, this function returns an Orthogonal Array (OA) on 'n' or more qubits.
+    Sometimes, the size of the returned array is larger than the number of qubits; typically, it is the next power of
+    two relative to the number of qubits. This is corrected later in the code flow.
 
     :param num_qubits: the minimum number of qubits the OA should act on.
     :param strength: the statistical "strength" of the OA
@@ -1195,8 +1165,8 @@ def _next_power_of_2(x: int) -> int:
 # The code below is directly copied from scipy see https://bit.ly/2RjAHJz, the docstrings have
 # been modified.
 def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:  # type: ignore
-    """
-    Construct a Hadamard matrix.
+    """Construct a Hadamard matrix.
+
     Constructs an n-by-n Hadamard matrix, using Sylvester's
     construction.  `n` must be a power of 2.
 
@@ -1226,6 +1196,7 @@ def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:  # type: ignore
            [ 1, -1,  1, -1],
            [ 1,  1, -1, -1],
            [ 1, -1, -1,  1]])
+
     """
     if n < 1:
         lg2 = 0
@@ -1244,9 +1215,7 @@ def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:  # type: ignore
 
 
 def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
-    r"""
-    Given a number of qubits this function returns an Orthogonal Array (OA)
-    on 'n' qubits where n is the next power of two relative to num_qubits.
+    r"""Return an Orthogonal Array (OA) on 'n' qubits where n is the next power of two relative to num_qubits.
 
     Specifically it returns the OA(2n, n, 2, 3).
 
@@ -1274,9 +1243,7 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
 
 
 def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
-    r"""
-    Given a number of qubits this function returns an Orthogonal Array (OA) on 'n-1' qubits
-    where n-1 is the next integer lambda so that 4*lambda -1 is larger than num_qubits.
+    r"""Return an Orthogonal Array (OA) on 'n-1' qubits where 4*(n-1) - 1 exceeds num_qubits.
 
     Specifically it returns the OA(n, n − 1, 2, 2).
 
@@ -1308,9 +1275,7 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
 
 
 def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, symm_type: int) -> int:
-    """
-    This function sets the minimum number of trials; it is desirable to have hundreds or
-    thousands of trials more than the minimum.
+    """Set the minimum number of trials; it is desirable to have hundreds or thousands of trials more than the minimum.
 
     :param num_qubits: number of qubits to symmetrize
     :param trials: number of trials

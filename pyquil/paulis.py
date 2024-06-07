@@ -13,55 +13,43 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Module for working with Pauli algebras.
-"""
+"""Module for working with Pauli algebras."""
 
-import re
-from itertools import product
-import numpy as np
 import copy
-
+import re
+import warnings
+from collections import OrderedDict
+from collections.abc import Hashable, Iterable, Iterator, Sequence
+from functools import reduce
+from itertools import product
+from numbers import Complex, Number
 from typing import (
     Callable,
-    Dict,
-    FrozenSet,
-    Hashable,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Sequence,
-    Set,
-    Tuple,
     Union,
     cast,
 )
+
+import numpy as np
+import quil.instructions as quil_rs
 from numpy.typing import NDArray
-from functools import reduce
 from scipy.linalg import expm
 
 from pyquil.quilatom import (
-    Qubit,
-    QubitPlaceholder,
-    FormalArgument,
     Expression,
     ExpressionDesignator,
-    MemoryReference,
+    FormalArgument,
+    QubitDesignator,
+    QubitPlaceholder,
     _convert_to_py_expression,
-    _convert_to_rs_expression,
     _convert_to_py_qubits,
+    _convert_to_rs_expression,
 )
 
-import quil.instructions as quil_rs
-
+from .gates import CNOT, PHASE, QUANTUM_GATES, RX, RZ, H, X
 from .quil import Program
-from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
-from numbers import Number, Complex
-from collections import OrderedDict
-import warnings
 
-PauliTargetDesignator = Union[int, FormalArgument, Qubit, QubitPlaceholder]
+PauliTargetDesignator = QubitDesignator
 PauliDesignator = Union["PauliTerm", "PauliSum"]
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
@@ -112,7 +100,10 @@ PAULI_COEFF = {
 
 
 class UnequalLengthWarning(Warning):
+    """Warning issued when multiplying PauliTerms of different lengths."""
+
     def __init__(self, *args: object, **kwargs: object):
+        """Initialize the warning."""
         super().__init__(*args, **kwargs)
 
 
@@ -134,7 +125,7 @@ def _valid_qubit(index: Optional[Union[PauliTargetDesignator, QubitPlaceholder]]
     )
 
 
-class PauliTerm(object):
+class PauliTerm:
     """A term is a product of Pauli operators operating on different qubits."""
 
     def __init__(
@@ -143,8 +134,7 @@ class PauliTerm(object):
         index: Optional[PauliTargetDesignator],
         coefficient: ExpressionDesignator = 1.0,
     ):
-        """Create a new Pauli Term with a Pauli operator at a particular index and a leading
-        coefficient.
+        """Create a new Pauli Term with a Pauli operator at a particular index and a leading coefficient.
 
         :param op: The Pauli operator as a string "X", "Y", "Z", or "I"
         :param index: The qubit index that that operator is applied to.
@@ -153,11 +143,12 @@ class PauliTerm(object):
         if op not in PAULI_OPS:
             raise ValueError(f"{op} is not a valid Pauli operator")
 
-        self._ops: Dict[PauliTargetDesignator, str] = OrderedDict()
+        self._ops: dict[PauliTargetDesignator, str] = OrderedDict()
         if op != "I":
             if not _valid_qubit(index):
                 raise ValueError(f"{index} is not a valid qubit")
-            assert index is not None
+            if index is None:
+                raise ValueError("PauliTerm index cannot be None")
             self._ops[index] = op
 
         if isinstance(coefficient, Number):
@@ -177,8 +168,7 @@ class PauliTerm(object):
         return quil_rs.PauliTerm(arguments, _convert_to_rs_expression(self.coefficient))
 
     def id(self, sort_ops: bool = True) -> str:
-        """
-        Returns an identifier string for the PauliTerm (ignoring the coefficient).
+        """Return an identifier string for the PauliTerm (ignoring the coefficient).
 
         Don't use this to compare terms. This function will not work with qubits that
         aren't sortable.
@@ -201,14 +191,14 @@ class PauliTerm(object):
                 "`PauliTerm.id()` will not work on PauliTerms where the qubits are not "
                 "sortable and should be avoided in favor of `operations_as_set`.",
                 FutureWarning,
+                stacklevel=2,
             )
-            return "".join("{}{}".format(self._ops[q], q) for q in sorted(self._ops.keys()))  # type: ignore
+            return "".join(f"{self._ops[q]}{q}" for q in sorted(self._ops.keys()))  # type: ignore
         else:
-            return "".join("{}{}".format(p, q) for q, p in self._ops.items())
+            return "".join(f"{p}{q}" for q, p in self._ops.items())
 
-    def operations_as_set(self) -> FrozenSet[Tuple[PauliTargetDesignator, str]]:
-        """
-        Return a frozenset of operations in this term.
+    def operations_as_set(self) -> frozenset[tuple[PauliTargetDesignator, str]]:
+        """Return a frozenset of operations in this term.
 
         Use this in place of :py:func:`id` if the order of operations in the term does not
         matter.
@@ -218,8 +208,9 @@ class PauliTerm(object):
         return frozenset(self._ops.items())
 
     def __eq__(self, other: object) -> bool:
+        """Return True if two PauliTerms are equal."""
         if not isinstance(other, (PauliTerm, PauliSum)):
-            raise TypeError("Can't compare PauliTerm with object of type {}.".format(type(other)))
+            raise TypeError(f"Can't compare PauliTerm with object of type {type(other)}.")
         elif isinstance(other, PauliSum):
             return other == self
         else:
@@ -228,7 +219,9 @@ class PauliTerm(object):
             )
 
     def __hash__(self) -> int:
-        assert isinstance(self.coefficient, Complex)
+        """Return a hash of the PauliTerm."""
+        if not isinstance(self.coefficient, Complex):
+            raise ValueError("PauliTerm cannot be hashed if the coefficient is not a complex number.")
         return hash(
             (
                 round(self.coefficient.real * HASH_PRECISION),
@@ -238,17 +231,14 @@ class PauliTerm(object):
         )
 
     def __len__(self) -> int:
-        """
-        The length of the PauliTerm is the number of Pauli operators in the term. A term that
-        consists of only a scalar has a length of zero.
+        """Length of the PauliTerm is the number of Pauli operators in the term.
+
+        A term that consists of only a scalar has a length of zero.
         """
         return len(self._ops)
 
     def copy(self) -> "PauliTerm":
-        """
-        Properly creates a new PauliTerm, with a completely new dictionary
-        of operators
-        """
+        """Create a new PauliTerm, with a completely new dictionary of operators."""
         new_term = PauliTerm("I", 0, 1.0)  # create new object
         # manually copy all attributes over
         for key in self.__dict__.keys():
@@ -262,16 +252,19 @@ class PauliTerm(object):
 
     @property
     def program(self) -> Program:
+        """Create Program from the PauliTerm."""
         return Program([QUANTUM_GATES[gate](q) for q, gate in self])
 
-    def get_qubits(self) -> List[PauliTargetDesignator]:
-        """Gets all the qubits that this PauliTerm operates on."""
+    def get_qubits(self) -> list[PauliTargetDesignator]:
+        """Get all the qubits that this PauliTerm operates on."""
         return list(self._ops.keys())
 
     def __getitem__(self, i: PauliTargetDesignator) -> str:
+        """Get the Pauli operator for a particular target."""
         return self._ops.get(i, "I")
 
-    def __iter__(self) -> Iterator[Tuple[PauliTargetDesignator, str]]:
+    def __iter__(self) -> Iterator[tuple[PauliTargetDesignator, str]]:
+        """Iterate over the quibit indices and Pauli operators in the term."""
         for i in self.get_qubits():
             yield i, self[i]
 
@@ -294,8 +287,7 @@ class PauliTerm(object):
         return new_term
 
     def __mul__(self, term: Union[PauliDesignator, ExpressionDesignator]) -> PauliDesignator:
-        """Multiplies this Pauli Term with another PauliTerm, PauliSum, or number according to the
-        Pauli algebra rules.
+        """Multiply this Pauli Term with another PauliTerm, PauliSum, or number according to the Pauli algebra rules.
 
         :param term: (PauliTerm or PauliSum or Number) A term to multiply by.
         :returns: The product of this PauliTerm and term.
@@ -319,11 +311,12 @@ class PauliTerm(object):
         :returns: A new PauliTerm
         """
         p = self * other
-        assert isinstance(p, PauliTerm)
+        if not isinstance(p, PauliTerm):
+            raise ValueError(f"PauliTerm multiplication should return a PauliTerm, got {type(other)}")
         return p
 
     def __pow__(self, power: int) -> "PauliTerm":
-        """Raises this PauliTerm to power.
+        """Raise the PauliTerm to power.
 
         :param power: The power to raise this PauliTerm to.
         :return: The power-fold product of power.
@@ -341,7 +334,7 @@ class PauliTerm(object):
         return result
 
     def __add__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
-        """Adds this PauliTerm with another one.
+        """Add this PauliTerm with another one.
 
         :param other: A PauliTerm object, a PauliSum object, or a Number
         :returns: A PauliSum object representing the sum of this PauliTerm and other
@@ -355,7 +348,7 @@ class PauliTerm(object):
             return self + PauliTerm("I", 0, other)
 
     def __radd__(self, other: ExpressionDesignator) -> "PauliSum":
-        """Adds this PauliTerm with a Number.
+        """Add this PauliTerm with a Number.
 
         :param other: A Number
         :returns: A new PauliSum
@@ -379,19 +372,20 @@ class PauliTerm(object):
         return other + -1.0 * self
 
     def __repr__(self) -> str:
+        """Get a string representation of the PauliTerm."""
         term_strs = []
         for index in self._ops.keys():
-            term_strs.append("%s%s" % (self[index], index))
+            term_strs.append(f"{self[index]}{index}")
 
         if len(term_strs) == 0:
             term_strs.append("I")
-        out = "%s*%s" % (self.coefficient, "*".join(term_strs))
+        out = f"{self.coefficient}*{'*'.join(term_strs)}"
         return out
 
     def compact_str(self) -> str:
-        """A string representation of the Pauli term that is more compact than ``str(term)``
+        """Return string representation of the Pauli term that is more compact than ``str(term)``.
 
-        >>> term = 2.0 * sX(1)* sZ(2)
+        >>> term = 2.0 * sX(1) * sZ(2)
         >>> str(term)
         '(2+0j)*X1*Z2'
         >>> term.compact_str()
@@ -401,11 +395,11 @@ class PauliTerm(object):
 
     @classmethod
     def from_list(
-        cls, terms_list: Sequence[Tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
+        cls, terms_list: Sequence[tuple[str, PauliTargetDesignator]], coefficient: ExpressionDesignator = 1.0
     ) -> "PauliTerm":
-        """
-        Allocates a Pauli Term from a list of operators and indices. This is more efficient than
-        multiplying together individual terms.
+        """Allocate a PauliTerm from a list of operators and indices.
+
+        This is more efficient than multiplying together individual terms.
 
         :param list terms_list: A list of tuples, e.g. [("X", 0), ("Y", 1)]
         :return: PauliTerm
@@ -416,10 +410,12 @@ class PauliTerm(object):
             )
 
         pterm = PauliTerm("I", 0)
-        assert all([op[0] in PAULI_OPS for op in terms_list])
+        if not all([op[0] in PAULI_OPS for op in terms_list]):
+            raise ValueError("All operators must be in ['X', 'Y', 'Z', 'I']")
 
         indices = [op[1] for op in terms_list]
-        assert all(_valid_qubit(index) for index in indices)
+        if not all(_valid_qubit(index) for index in indices):
+            raise ValueError("All qubit indices must be valid.")
 
         # this is because from_list doesn't call simplify in order to be more efficient.
         if len(set(indices)) != len(indices):
@@ -440,16 +436,16 @@ class PauliTerm(object):
 
     @classmethod
     def from_compact_str(cls, str_pauli_term: str) -> "PauliTerm":
-        """Construct a PauliTerm from the result of str(pauli_term)"""
+        """Construct a PauliTerm from the result of str(pauli_term)."""
         # split into str_coef, str_op at first '*'' outside parenthesis
         try:
             str_coef, str_op = re.split(r"\*(?![^(]*\))", str_pauli_term, maxsplit=1)
-        except ValueError:
+        except ValueError as e:
             raise ValueError(
                 "Could not separate the pauli string into "
                 f"coefficient and operator. {str_pauli_term} does"
                 " not match <coefficient>*<operator>"
-            )
+            ) from e
 
         # parse the coefficient into either a float or complex
         str_coef = str_coef.replace(" ", "")
@@ -458,12 +454,13 @@ class PauliTerm(object):
         except ValueError:
             try:
                 coef = complex(str_coef)
-            except ValueError:
-                raise ValueError(f"Could not parse the coefficient {str_coef}")
+            except ValueError as e:
+                raise ValueError(f"Could not parse the coefficient {str_coef}") from e
 
         op = sI() * coef
         if str_op == "I":
-            assert isinstance(op, PauliTerm)
+            if not isinstance(op, PauliTerm):
+                raise ValueError(f"Expected operation to be PauliTerm, got {type(op)}.")
             return op
 
         # parse the operator
@@ -474,18 +471,17 @@ class PauliTerm(object):
         for factor in re.finditer(r"([XYZ])(\d+)", str_op):
             op *= cls(factor.group(1), int(factor.group(2)))
 
-        assert isinstance(op, PauliTerm)
+        if not isinstance(op, PauliTerm):
+            raise ValueError(f"Expected operation to be PauliTerm, got {type(op)}.")
         return op
 
     def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
-        """
-        Return a string representation of this PauliTerm without its coefficient and with
-        implicit qubit indices.
+        """Return a string representation of this PauliTerm without its coefficient and with implicit qubit indices.
 
         If an iterable of qubits is provided, each character in the resulting string represents
         a Pauli operator on the corresponding qubit.
 
-        >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
+        >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.0j)
         >>> p.pauli_string()
         'XY'
         >>> p.pauli_string(qubits=[0])
@@ -496,7 +492,6 @@ class PauliTerm(object):
         :param iterable of qubits: The iterable of qubits to represent, given as ints.
         :return: The string representation of this PauliTerm, sans coefficient
         """
-
         if qubits is None:
             return "".join(self._ops.values())
         return "".join(self[q] for q in qubits)
@@ -504,22 +499,17 @@ class PauliTerm(object):
 
 # For convenience, a shorthand for several operators.
 def ID() -> PauliTerm:
-    """
-    The identity operator.
-    """
+    """Identity operator."""
     return PauliTerm("I", 0, 1)
 
 
 def ZERO() -> PauliTerm:
-    """
-    The zero operator.
-    """
+    """Zero operator."""
     return PauliTerm("I", 0, 0)
 
 
 def sI(q: Optional[int] = None) -> PauliTerm:
-    """
-    A function that returns the identity operator, optionally on a particular qubit.
+    """Return the identity operator, optionally on a particular qubit.
 
     This can be specified without a qubit.
 
@@ -530,8 +520,7 @@ def sI(q: Optional[int] = None) -> PauliTerm:
 
 
 def sX(q: int) -> PauliTerm:
-    """
-    A function that returns the sigma_X operator on a particular qubit.
+    """Return the sigma_X operator on a particular qubit.
 
     :param qubit_index: The index of the qubit
     :returns: A PauliTerm object
@@ -540,8 +529,7 @@ def sX(q: int) -> PauliTerm:
 
 
 def sY(q: int) -> PauliTerm:
-    """
-    A function that returns the sigma_Y operator on a particular qubit.
+    """Return the sigma_Y operator on a particular qubit.
 
     :param qubit_index: The index of the qubit
     :returns: A PauliTerm object
@@ -550,8 +538,7 @@ def sY(q: int) -> PauliTerm:
 
 
 def sZ(q: int) -> PauliTerm:
-    """
-    A function that returns the sigma_Z operator on a particular qubit.
+    """Return the sigma_Z operator on a particular qubit.
 
     :param qubit_index: The index of the qubit
     :returns: A PauliTerm object
@@ -560,8 +547,7 @@ def sZ(q: int) -> PauliTerm:
 
 
 def term_with_coeff(term: PauliTerm, coeff: ExpressionDesignator) -> PauliTerm:
-    """
-    Change the coefficient of a PauliTerm.
+    """Change the coefficient of a PauliTerm.
 
     :param term: A PauliTerm object
     :param coeff: The coefficient to set on the PauliTerm
@@ -575,11 +561,12 @@ def term_with_coeff(term: PauliTerm, coeff: ExpressionDesignator) -> PauliTerm:
     return new_pauli
 
 
-class PauliSum(object):
+class PauliSum:
     """A sum of one or more PauliTerms."""
 
     def __init__(self, terms: Sequence[PauliTerm]):
-        """
+        """Initialize a PauliSum with a list of PauliTerms.
+
         :param Sequence terms: A Sequence of PauliTerms.
         """
         if not (isinstance(terms, Sequence) and all([isinstance(term, PauliTerm) for term in terms])):
@@ -594,10 +581,10 @@ class PauliSum(object):
     def _from_rs_pauli_sum(cls, pauli_sum: quil_rs.PauliSum) -> "PauliSum":
         return cls([PauliTerm._from_rs_pauli_term(term) for term in pauli_sum.terms])
 
-    def _to_rs_pauli_sum(self, arguments: Optional[List[PauliTargetDesignator]] = None) -> quil_rs.PauliSum:
-        rs_arguments: List[str]
+    def _to_rs_pauli_sum(self, arguments: Optional[list[PauliTargetDesignator]] = None) -> quil_rs.PauliSum:
+        rs_arguments: list[str]
         if arguments is None:
-            argument_set: Dict[str, None] = {}
+            argument_set: dict[str, None] = {}
             for term_arguments in [term.get_qubits() for term in self.terms]:
                 argument_set.update({str(arg): None for arg in term_arguments})
             rs_arguments = list(argument_set.keys())
@@ -613,7 +600,7 @@ class PauliSum(object):
         :return: True if other is equivalent to this PauliSum, False otherwise.
         """
         if not isinstance(other, (PauliTerm, PauliSum)):
-            raise TypeError("Can't compare PauliSum with object of type {}.".format(type(other)))
+            raise TypeError(f"Can't compare PauliSum with object of type {type(other)}.")
         elif isinstance(other, PauliTerm):
             return self == PauliSum([other])
         elif len(self.terms) != len(other.terms):
@@ -622,31 +609,31 @@ class PauliSum(object):
         return set(self.terms) == set(other.terms)
 
     def __hash__(self) -> int:
+        """Return a hash value for the sum."""
         return hash(frozenset(self.terms))
 
     def __repr__(self) -> str:
+        """Return a string representation for the sum."""
         return " + ".join([str(term) for term in self.terms])
 
     def __len__(self) -> int:
-        """
-        The length of the PauliSum is the number of PauliTerms in the sum.
-        """
+        """Return the number of PauliTerms in the sum."""
         return len(self.terms)
 
     def __getitem__(self, item: int) -> PauliTerm:
-        """
+        """Get the PauliTerm at the given position the sum.
+
         :param item: The index of the term in the sum to return
         :return: The PauliTerm at the index-th position in the PauliSum
         """
         return self.terms[item]
 
     def __iter__(self) -> Iterator[PauliTerm]:
+        """Iterate over the PauliTerms in the sum."""
         return self.terms.__iter__()
 
     def __mul__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
-        """
-        Multiplies together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
-        is then simplified according to the Pauli Algebra rules.
+        """Multiply and simplify this PauliSum with another PauliSum, PauliTerm or Number object.
 
         :param other: a PauliSum, PauliTerm or Number object
         :return: A new PauliSum object given by the multiplication.
@@ -654,32 +641,31 @@ class PauliSum(object):
         if not isinstance(other, (Expression, Number, PauliTerm, PauliSum)):
             raise ValueError("Cannot multiply PauliSum by term that is not a Number, PauliTerm, or PauliSum")
 
-        other_terms: List[Union[PauliTerm, ExpressionDesignator]] = []
+        other_terms: list[Union[PauliTerm, ExpressionDesignator]] = []
         if isinstance(other, PauliSum):
             other_terms += other.terms
         else:
             other_terms += [other]
 
         new_terms = [lterm * rterm for lterm, rterm in product(self.terms, other_terms)]
-        new_sum = PauliSum(cast(List[PauliTerm], new_terms))
+        new_sum = PauliSum(cast(list[PauliTerm], new_terms))
         return new_sum.simplify()
 
     def __rmul__(self, other: ExpressionDesignator) -> "PauliSum":
-        """
-        Multiples together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
-        is then simplified according to the Pauli Algebra rules.
+        """Multiply and simplify this PauliSum with another PauliSum, PauliTerm or Number object.
 
         :param other: a PauliSum, PauliTerm or Number object
         :return: A new PauliSum object given by the multiplication.
         """
-        assert isinstance(other, Number)
+        if not isinstance(other, Number):
+            raise TypeError(f"Expected a Number object, got {type(other)}")
         new_terms = [term.copy() for term in self.terms]
         for term in new_terms:
             term.coefficient *= other
         return PauliSum(new_terms).simplify()
 
     def __pow__(self, power: int) -> "PauliSum":
-        """Raises this PauliSum to power.
+        """Raise this PauliSum to power.
 
         :param power: The power to raise this PauliSum to.
         :return: The power-th power of this PauliSum.
@@ -703,9 +689,7 @@ class PauliSum(object):
         return result
 
     def __add__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
-        """
-        Adds together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
-        is then simplified according to the Pauli Algebra rules.
+        """Add and simplify this PauliSum with another PauliSum, PauliTerm or Number objects.
 
         :param other: a PauliSum, PauliTerm or Number object
         :return: A new PauliSum object given by the addition.
@@ -724,20 +708,17 @@ class PauliSum(object):
         return new_sum.simplify()
 
     def __radd__(self, other: ExpressionDesignator) -> "PauliSum":
-        """
-        Adds together this PauliSum with a Number object. The new term
-        is then simplified according to the Pauli Algebra rules.
+        """Add and simplify this PauliSum with another PauliSum, PauliTerm or Number object.
 
         :param other: A Number
         :return: A new PauliSum object given by the addition.
         """
-        assert isinstance(other, Number)
+        if not isinstance(other, Number):
+            raise TypeError(f"Expected a Number object, got {type(other)}")
         return self + other
 
     def __sub__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
-        """
-        Finds the difference of this PauliSum with PauliSum, PauliTerm or Number objects. The new
-        term is then simplified according to the Pauli Algebra rules.
+        """Subtract and simplify this PauliSum with another PauliSum, PauliTerm or Number object.
 
         :param other: a PauliSum, PauliTerm or Number object
         :return: A new PauliSum object given by the subtraction.
@@ -745,36 +726,29 @@ class PauliSum(object):
         return self + -1.0 * other
 
     def __rsub__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
-        """
-        Finds the different of this PauliSum with PauliSum, PauliTerm or Number objects. The new
-        term is then simplified according to the Pauli Algebra rules.
+        """Subtract and simplify this PauliSum with another PauliSum, PauliTerm or Number object.
 
         :param other: a PauliSum, PauliTerm or Number object
         :return: A new PauliSum object given by the subtraction.
         """
         return other + -1.0 * self
 
-    def get_qubits(self) -> List[PauliTargetDesignator]:
-        """
-        The support of all the operators in the PauliSum object.
+    def get_qubits(self) -> list[PauliTargetDesignator]:
+        """Get the qubits that this PauliSum operates on.
 
         :returns: A list of all the qubits in the sum of terms.
         """
-        all_qubits: Set[PauliTargetDesignator] = set()
+        all_qubits: set[PauliTargetDesignator] = set()
         for term in self.terms:
             all_qubits.update(term.get_qubits())
         return _convert_to_py_qubits(set(all_qubits))
 
     def simplify(self) -> "PauliSum":
-        """
-        Simplifies the sum of Pauli operators according to Pauli algebra rules.
-        """
+        """Simplify the sum of Pauli operators according to Pauli algebra rules."""
         return simplify_pauli_sum(self)
 
-    def get_programs(self) -> Tuple[List[Program], np.ndarray]:
-        """
-        Get a Pyquil Program corresponding to each term in the PauliSum and a coefficient
-        for each program
+    def get_programs(self) -> tuple[list[Program], np.ndarray]:
+        """Get a Pyquil Program corresponding to each term in the PauliSum and a coefficient for each program.
 
         :return: (programs, coefficients)
         """
@@ -783,9 +757,9 @@ class PauliSum(object):
         return programs, coefficients
 
     def compact_str(self) -> str:
-        """A string representation of the PauliSum that is more compact than ``str(pauli_sum)``
+        """Return a string representation of the PauliSum that is more compact than ``str(pauli_sum)``.
 
-        >>> pauli_sum = 2.0 * sX(1)* sZ(2) + 1.5 * sY(2)
+        >>> pauli_sum = 2.0 * sX(1) * sZ(2) + 1.5 * sY(2)
         >>> str(pauli_sum)
         '(2+0j)*X1*Z2 + (1.5+0j)*Y2'
         >>> pauli_sum.compact_str()
@@ -795,7 +769,7 @@ class PauliSum(object):
 
     @classmethod
     def from_compact_str(cls, str_pauli_sum: str) -> "PauliSum":
-        """Construct a PauliSum from the result of str(pauli_sum)"""
+        """Construct a PauliSum from the result of str(pauli_sum)."""
         # split str_pauli_sum only at "+" outside of parenthesis to allow
         # e.g. "0.5*X0 + (0.5+0j)*Z2"
         str_terms = re.split(r"\+(?![^(]*\))", str_pauli_sum)
@@ -805,16 +779,14 @@ class PauliSum(object):
 
 
 def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
-    """
-    Simplify the sum of Pauli operators according to Pauli algebra rules.
+    """Simplify the sum of Pauli operators according to Pauli algebra rules.
 
     Warning: The simplified expression may re-order pauli operations, and may
     impact the observed performance when running on the QPU.
     """
-
     # You might want to use a defaultdict(list) here, but don't because
     # we want to do our best to preserve the order of terms.
-    like_terms: Dict[Hashable, List[PauliTerm]] = OrderedDict()
+    like_terms: dict[Hashable, list[PauliTerm]] = OrderedDict()
     for term in pauli_sum.terms:
         key = term.operations_as_set()
         if key in like_terms:
@@ -835,8 +807,8 @@ def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
 
 
 def check_commutation(pauli_list: Sequence[PauliTerm], pauli_two: PauliTerm) -> bool:
-    """
-    Check if commuting a PauliTerm commutes with a list of other terms by natural calculation.
+    """Check if commuting a PauliTerm commutes with a list of other terms by natural calculation.
+
     Uses the result in Section 3 of arXiv:1405.5749v2, modified slightly here to check for the
     number of anti-coincidences (which must always be even for commuting PauliTerms)
     instead of the no. of coincidences, as in the paper.
@@ -861,8 +833,8 @@ def check_commutation(pauli_list: Sequence[PauliTerm], pauli_two: PauliTerm) -> 
     return True
 
 
-def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
-    """Gather the Pauli terms of pauli_terms variable into commuting sets
+def commuting_sets(pauli_terms: PauliSum) -> list[list[PauliTerm]]:
+    """Gather the Pauli terms of pauli_terms variable into commuting sets.
 
     Uses algorithm defined in (Raeisi, Wiebe, Sanders, arXiv:1108.4318, 2011)
     to find commuting sets. Except uses commutation check from arXiv:1405.5749v2
@@ -870,7 +842,6 @@ def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
     :param pauli_terms: A PauliSum object
     :returns: List of lists where each list contains a commuting set
     """
-
     m_terms = len(pauli_terms.terms)
     m_s = 1
     groups = []
@@ -889,8 +860,7 @@ def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
 
 
 def is_identity(term: PauliDesignator) -> bool:
-    """
-    Tests to see if a PauliTerm or PauliSum is a scalar multiple of identity
+    """Return True if PauliTerm or PauliSum is a scalar multiple of identity, False otherwise.
 
     :param term: Either a PauliTerm or PauliSum
     :returns: True if the PauliTerm or PauliSum is a scalar multiple of identity, False otherwise
@@ -904,8 +874,7 @@ def is_identity(term: PauliDesignator) -> bool:
 
 
 def exponentiate(term: PauliTerm) -> Program:
-    """
-    Creates a pyQuil program that simulates the unitary evolution exp(-1j * term)
+    """Create a pyQuil program that simulates the unitary evolution exp(-1j * term).
 
     :param term: A pauli term to exponentiate
     :returns: A Program object
@@ -913,14 +882,14 @@ def exponentiate(term: PauliTerm) -> Program:
     return exponential_map(term)(1.0)
 
 
-def exponential_map(term: PauliTerm) -> Callable[[Union[float, MemoryReference]], Program]:
-    """
-    Returns a function f(alpha) that constructs the Program corresponding to exp(-1j*alpha*term).
+def exponential_map(term: PauliTerm) -> Callable[[float], Program]:
+    """Return a function f(alpha) that constructs the Program corresponding to exp(-1j*alpha*term).
 
     :param term: A pauli term to exponentiate
     :returns: A function that takes an angle parameter and returns a program.
     """
-    assert isinstance(term.coefficient, Complex)
+    if not isinstance(term.coefficient, Complex):
+        raise TypeError(f"PauliTerm coefficient type must be complex, got {type(term.coefficient)}")
 
     if not np.isclose(np.imag(term.coefficient), 0.0):
         raise TypeError("PauliTerm coefficient must be real")
@@ -946,10 +915,10 @@ def exponential_map(term: PauliTerm) -> Callable[[Union[float, MemoryReference]]
 
 def exponentiate_commuting_pauli_sum(
     pauli_sum: PauliSum,
-) -> Callable[[Union[float, MemoryReference]], Program]:
-    """
-    Returns a function that maps all substituent PauliTerms and sums them into a program. NOTE: Use
-    this function with care. Substituent PauliTerms should commute.
+) -> Callable[[float], Program]:
+    """Return a function that maps all substituent PauliTerms and sums them into a program.
+
+    NOTE: Use this function with care. Substituent PauliTerms should commute.
 
     :param pauli_sum: PauliSum to exponentiate.
     :returns: A function that parametrizes the exponential.
@@ -959,7 +928,7 @@ def exponentiate_commuting_pauli_sum(
 
     fns = [exponential_map(term) for term in pauli_sum]
 
-    def combined_exp_wrap(param: Union[float, MemoryReference]) -> Program:
+    def combined_exp_wrap(param: float) -> Program:
         return Program([f(param) for f in fns])
 
     return combined_exp_wrap
@@ -968,10 +937,10 @@ def exponentiate_commuting_pauli_sum(
 def exponentiate_pauli_sum(
     pauli_sum: Union[PauliSum, PauliTerm],
 ) -> NDArray[np.complex_]:
-    r"""
-    Exponentiates a sequence of PauliTerms, which may or may not commute. The Pauliterms must
-    have fixed (non-parametric) coefficients. The coefficients are interpreted in cycles
-    rather than radians or degrees.
+    r"""Exponentiate a sequence of PauliTerms, which may or may not commute.
+
+    The Pauliterms must have fixed (non-parametric) coefficients. The coefficients are interpreted in cycles rather than
+    radians or degrees.
 
     e^{-i\pi\sum_i \theta_i P_i}
 
@@ -981,23 +950,23 @@ def exponentiate_pauli_sum(
 
     >>> from numpy import pi
     >>> phi = pi
-    >>> coeff = phi/(-4*pi) # -0.25
-    >>> hamiltonian = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1*PauliTerm("Z", 0) - 1*PauliTerm("Z", 1)
-    >>> exponentiate_pauli_sum(coeff*hamiltonian)
+    >>> coeff = phi / (-4 * pi)  # -0.25
+    >>> hamiltonian = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
+    >>> exponentiate_pauli_sum(coeff * hamiltonian)
     array([[...]])
 
     To produce the Quil XY(theta) gate, you can use:
 
-    >>> theta = pi/2
-    >>> coeff = theta/(-4*pi)
+    >>> theta = pi / 2
+    >>> coeff = theta / (-4 * pi)
     >>> hamiltonian = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
-    >>> exponentiate_pauli_sum(coeff*hamiltonian)
+    >>> exponentiate_pauli_sum(coeff * hamiltonian)
     array([[...]])
 
     A global phase is applied to the unitary such that the [0,0] element is always real.
 
     :param pauli_sum: PauliSum to exponentiate.
-    :returns: The matrix exponetial of the PauliSum
+    :returns: The matrix exponent of the PauliSum
     """
     if isinstance(pauli_sum, PauliTerm):
         pauli_sum = PauliSum([pauli_sum])
@@ -1011,13 +980,15 @@ def exponentiate_pauli_sum(
 
     qubits = pauli_sum.get_qubits()
     for q in qubits:
-        assert isinstance(q, int)
+        if not isinstance(q, int):
+            raise ValueError("PauliSum must be defined on qubits, not placeholders.")
     qubits.sort()
 
     matrices = []
     for term in pauli_sum.terms:
         coeff = term.coefficient
-        assert isinstance(coeff, Number)
+        if not isinstance(coeff, Number):
+            raise ValueError("PauliSum must have fixed coefficients.")
         qubit_paulis = {qubit: pauli for qubit, pauli in term.operations_as_set()}
         paulis = [qubit_paulis[q] if q in qubit_paulis else "I" for q in qubits]
         matrix = float(np.real(coeff)) * reduce(np.kron, [pauli_matrices[p] for p in paulis])
@@ -1028,9 +999,9 @@ def exponentiate_pauli_sum(
 
 
 def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
-    """
-    Returns a Quil (Program()) object corresponding to the exponential of
-    the pauli_term object, i.e. exp[-1.0j * param * pauli_term]
+    """Return a Quil (Program()) object corresponding to the exponential of the pauli_term object.
+
+    For example, exp[-1.0j * param * pauli_term]
 
     :param pauli_term: A PauliTerm to exponentiate
     :param param: scalar, non-complex, value
@@ -1051,7 +1022,8 @@ def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
     highest_target_index = None
 
     for index, op in pauli_term:
-        assert isinstance(index, (int, QubitPlaceholder))
+        if not isinstance(index, (int, QubitPlaceholder)):
+            raise ValueError("PauliTerm indices must be qubits or qubit placeholders, got {type(index)}.")
         if "X" == op:
             change_to_z_basis.inst(H(index))
             change_to_original_basis.inst(H(index))
@@ -1070,7 +1042,8 @@ def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
     # building rotation circuit
     quil_prog += change_to_z_basis
     quil_prog += cnot_seq
-    assert isinstance(pauli_term.coefficient, Complex) and highest_target_index is not None
+    if not isinstance(pauli_term.coefficient, Complex) or highest_target_index is None:
+        raise ValueError("PauliTerm coefficient must be complex and highest_target_index must be set.")
     quil_prog.inst(RZ(2.0 * pauli_term.coefficient * param, highest_target_index))
     quil_prog += reverse_hack(cnot_seq)
     quil_prog += change_to_original_basis
@@ -1078,9 +1051,8 @@ def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
     return quil_prog
 
 
-def suzuki_trotter(trotter_order: int, trotter_steps: int) -> List[Tuple[float, int]]:
-    """
-    Generate trotterization coefficients for a given number of Trotter steps.
+def suzuki_trotter(trotter_order: int, trotter_steps: int) -> list[tuple[float, int]]:
+    """Generate trotterization coefficients for a given number of Trotter steps.
 
     U = exp(A + B) is approximated as exp(w1*o1)exp(w2*o2)... This method returns
     a list [(w1, o1), (w2, o2), ... , (wm, om)] of tuples where o=0 corresponds
@@ -1097,7 +1069,7 @@ def suzuki_trotter(trotter_order: int, trotter_steps: int) -> List[Tuple[float, 
     """
     p1 = p2 = p4 = p5 = 1.0 / (4 - (4 ** (1.0 / 3)))
     p3 = 1 - 4 * p1
-    trotter_dict: Dict[int, List[Tuple[float, int]]] = {
+    trotter_dict: dict[int, list[tuple[float, int]]] = {
         1: [(1, 0), (1, 1)],
         2: [(0.5, 0), (1, 1), (0.5, 0)],
         3: [
@@ -1133,18 +1105,19 @@ def suzuki_trotter(trotter_order: int, trotter_steps: int) -> List[Tuple[float, 
 
 
 def is_zero(pauli_object: PauliDesignator) -> bool:
-    """
-    Tests to see if a PauliTerm or PauliSum is zero.
+    """Return True if a PauliTerm or PauliSum is zero, False otherwise.
 
     :param pauli_object: Either a PauliTerm or PauliSum
     :returns: True if PauliTerm is zero, False otherwise
     """
     if isinstance(pauli_object, PauliTerm):
-        assert isinstance(pauli_object.coefficient, Complex)
+        if not isinstance(pauli_object.coefficient, Complex):
+            raise ValueError("PauliTerm coefficient must be fixed and complex.")
         return bool(np.isclose(pauli_object.coefficient, 0))
     elif isinstance(pauli_object, PauliSum):
-        assert isinstance(pauli_object.terms[0].coefficient, Complex)
-        return len(pauli_object.terms) == 1 and np.isclose(pauli_object.terms[0].coefficient, 0)
+        if not isinstance(pauli_object.terms[0].coefficient, Complex):
+            raise ValueError("PauliTerm coefficient must be fixed and complex.")
+        return len(pauli_object.terms) == 1 and bool(np.isclose(pauli_object.terms[0].coefficient, 0))
     else:
         raise TypeError("is_zero only checks PauliTerms and PauliSum objects!")
 
@@ -1155,9 +1128,7 @@ def trotterize(
     trotter_order: int = 1,
     trotter_steps: int = 1,
 ) -> Program:
-    """
-    Create a Quil program that approximates exp( (A + B)t) where A and B are
-    PauliTerm operators.
+    """Create a Quil program that approximates exp( (A + B)t) where A and B are PauliTerm operators.
 
     :param first_pauli_term: PauliTerm denoted `A`
     :param second_pauli_term: PauliTerm denoted `B`
@@ -1168,7 +1139,6 @@ def trotterize(
 
     :return: Quil program
     """
-
     if not (1 <= trotter_order < 5):
         raise ValueError("trotterize only accepts trotter_order in {1, 2, 3, 4}.")
 
