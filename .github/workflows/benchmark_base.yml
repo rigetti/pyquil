@@ -1,0 +1,29 @@
+on:
+  push:
+    branches: main
+
+jobs:
+  benchmark_base_branch:
+    name: Continuous Benchmarking with Bencher
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9' 
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
+      - uses: bencherdev/bencher@main
+      - name: Track base branch benchmarks with Bencher
+        run: |
+          bencher run \
+          --project pyquil \
+          --token '${{ secrets.BENCHER_API_TOKEN }}' \
+          --branch main \
+          --testbed ci-runner-linux \
+          --err \
+          -- file results.json \ 
+          poetry run pytest --benchmark-json results.json test/benchmarks 
