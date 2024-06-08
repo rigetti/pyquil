@@ -22,7 +22,7 @@ jobs:
           bencher run \
           --project pyquil \
           --token '${{ secrets.BENCHER_API_TOKEN }}' \
-          --branch main \
+          --branch master \
           --testbed ci-runner-linux \
           --err \
           -- file results.json \ 
