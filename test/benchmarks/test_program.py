@@ -1,5 +1,6 @@
+from typing import Callable
+
 import pytest
-from typing_extensions import Callable
 
 from pyquil.quil import Program
 
@@ -7,6 +8,11 @@ from pyquil.quil import Program
 @pytest.fixture
 def over_9000_program() -> Program:
     with open("test/benchmarks/fixtures/over-9000.quil") as f:
+        return Program(f.read())
+
+@pytest.fixture
+def large_program() -> Program:
+    with open("test/benchmarks/fixtures/large_with_calibrations.quil") as f:
         return Program(f.read())
 
 
@@ -27,3 +33,6 @@ def test_instructions(benchmark: Callable, over_9000_program: Program) -> None:
             _ = program.instructions
 
     benchmark(instructions, over_9000_program)
+
+def test_copy_everything_except_instructions(benchmark: Callable, large_program: Program) -> None:
+    benchmark(large_program.copy_everything_except_instructions)
