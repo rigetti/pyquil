@@ -6,7 +6,7 @@ DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
 .PHONY: all
 all: dist
 
-.phony: bench
+.PHONY: bench
 bench:
 	poetry run pytest -v test/benchmarks
 
