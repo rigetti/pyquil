@@ -6,6 +6,10 @@ DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
 .PHONY: all
 all: dist
 
+.phony: bench
+bench:
+	poetry run pytest -v test/benchmarks
+
 .PHONY: check-all
 check-all: check-format check-types check-style
 
