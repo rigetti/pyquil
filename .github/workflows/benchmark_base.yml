@@ -19,6 +19,7 @@ jobs:
       - uses: bencherdev/bencher@main
       - name: Track base branch benchmarks with Bencher
         run: |
+          . scripts/ci_install_deps
           bencher run \
           --project pyquil \
           --token '${{ secrets.BENCHER_API_TOKEN }}' \
