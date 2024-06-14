@@ -22,6 +22,8 @@ jobs:
       - uses: bencherdev/bencher@main
       - name: Track PR Benchmarks
         run: |
+          pwd
+          ls test/benchmarks
           bencher run \
           --project pyquil \
           --token '${{ secrets.BENCHER_API_TOKEN }}' \
