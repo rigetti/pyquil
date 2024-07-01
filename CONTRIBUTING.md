@@ -270,6 +270,33 @@ code, run all of the slow tests, and also calculate code coverage, you could run
 pytest --cov=pyquil --use-seed=False --runslow <path/to/test-file-or-dir>
 ```
 
+#### Benchmarks
+
+We use benchmarks to ensure the performance of pyQuil is tracked over time, preventing unintended 
+regressions. Benchmarks are written and run using [pytest-benchmark](https://pytest-benchmark.readthedocs.io/en/latest/).
+This plugin provides a fixture called `benchmark` that can be used to benchmark a Python function.
+
+For organization, all benchmarks are located in the `test/benchmarks` directory. To run the 
+benchmarks, use the command:
+
+```
+pytest -v test/benchmarks  # or use the Makefile: `make bench`
+```
+
+Note that benchmark results are unique to your machine. They can't be directly compared to benchmark
+results on another machine unless it's a machine with identical specifications running in a similar
+environment. To track performance over time in a controlled way, we use _continuous benchmarking_.
+When a PR is opened, CI will run the benchmarks and compare the results to the most recent results
+on the `master` branch. Since CI always uses the same image and workflow, the results should be
+reasonably consistent. That said, the runners could share resources or do something else unexpected
+that impacts the benchmarks. If you get unexpected results, you may want to re-run the benchmark
+to see if the results are consistent. When opening or reviewing a PR, you should evaluate the results
+and ensure there are no unexpected regressions.
+
+Continuous benchmarking is implemented with 
+[bencher](https://bencher.dev/docs/tutorial/quick-start/). See their documentation for more
+information.
+
 ### Building the Docs
 
 The [pyQuil docs](https://pyquil.readthedocs.io) build automatically as part of the CI pipeline.
