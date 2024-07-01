@@ -32,7 +32,6 @@ from qcs_sdk.qpu.api import (
     retrieve_results,
     submit_with_parameter_batch,
 )
-from qcs_sdk.qpu.rewrite_arithmetic import build_patch_values
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import EncryptedProgram, QuantumExecutable
@@ -205,16 +204,11 @@ class QPU(QAM[QPUExecuteResponse]):
         if not isinstance(executable, EncryptedProgram):
             raise ValueError("QPU#execute requires an rpcq.EncryptedProgram. Create one with QuantumComputer#compile")
 
-        patch_values = []
-        for memory_map in memory_maps:
-            memory_map = memory_map or {}
-            patch_values.append(build_patch_values(executable.recalculation_table, memory_map))
-
         effective_execution_options = execution_options or self.execution_options
 
         job_ids = submit_with_parameter_batch(
             program=executable.program,
-            patch_values=patch_values,
+            patch_values=memory_maps,
             quantum_processor_id=self.quantum_processor_id,
             client=self._client_configuration,
             execution_options=effective_execution_options,

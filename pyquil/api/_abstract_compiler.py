@@ -55,9 +55,6 @@ class EncryptedProgram:
     ro_sources: dict[MemoryReference, str]
     """Readout sources, mapped by memory reference."""
 
-    recalculation_table: list[str]
-    """A mapping from memory references to the original gate arithmetic."""
-
     def copy(self) -> "EncryptedProgram":
         """Return a deep copy of this EncryptedProgram."""
         return dataclasses.replace(self)
