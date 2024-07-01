@@ -15,6 +15,7 @@ jobs:
       - uses: bencherdev/bencher@main
       - name: Track base branch benchmarks with Bencher
         run: |
+          sudo apt update
           . scripts/ci_install_deps
           bencher run \
           --project pyquil \
