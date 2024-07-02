@@ -31,7 +31,6 @@ def mock_encrypted_program():
             MemoryReference("ro", 1): "q1",
             MemoryReference("ro"): "q0",
         },
-        recalculation_table=[],
     )
 
 
