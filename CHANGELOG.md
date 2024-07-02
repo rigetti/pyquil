@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.12.0-rc.0 (2024-07-02)
+
+### Features
+
+#### Remove unused rewrite arithmetic logic, deprecate recalculation_table (#1787)
+
 ## 4.11.0 (2024-06-05)
 
 ### Features
