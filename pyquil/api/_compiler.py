@@ -18,7 +18,6 @@ from warnings import warn
 
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import QuilcClient
-from qcs_sdk.qpu.rewrite_arithmetic import rewrite_arithmetic
 from qcs_sdk.qpu.translation import (
     TranslationBackend,
     get_quilt_calibrations,
@@ -115,13 +114,8 @@ class QPUCompiler(AbstractCompiler):
         If `api_options` is provided, it overrides the options set on `self`.
         """
         program = nq_program.out()
-        recalculation_table = []
         backend = api_options.backend if api_options is not None else None
         backend = select_backend_for_quantum_processor_id(self.quantum_processor_id, backend)
-        if backend is TranslationBackend.V1:
-            rewrite_response = rewrite_arithmetic(nq_program.out())
-            program = rewrite_response.program
-            recalculation_table = list(rewrite_response.recalculation_table)
 
         translated_program = translate(
             native_quil=program,
@@ -136,7 +130,6 @@ class QPUCompiler(AbstractCompiler):
             program=translated_program.program,
             memory_descriptors=_collect_memory_descriptors(nq_program),
             ro_sources={parse_mref(mref): source for mref, source in ro_sources.items() or []},
-            recalculation_table=recalculation_table,
         )
 
     def _fetch_calibration_program(self) -> Program:
