@@ -15,11 +15,13 @@
 ##############################################################################
 import dataclasses
 import json
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
 from typing import Any, Optional, Union
 
+from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import CompilationResult, CompilerOpts, QuilcClient, TargetDevice, compile_program
 from rpcq.messages import ParameterSpec
@@ -55,9 +57,36 @@ class EncryptedProgram:
     ro_sources: dict[MemoryReference, str]
     """Readout sources, mapped by memory reference."""
 
+    _recalculation_table: list[str] = field(default_factory=list, repr=False, init=False)
+    """A mapping from memory references to the original gate arithmetic."""
+
     def copy(self) -> "EncryptedProgram":
         """Return a deep copy of this EncryptedProgram."""
         return dataclasses.replace(self)
+
+    def __post_init__(self) -> None:
+        if any(f.name == 'recalculation_table' for f in fields(self)):
+            warnings.warn(
+                "The recalculation_table field is no longer used. It will be removed in future versions.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+
+    @property
+    @deprecated(
+        version="4.12.0",
+        reason="The recalculation_table field is no longer used. It will be removed in future versions.",
+    )
+    def recalculation_table(self) -> list[str]:
+        return self._recalculation_table
+
+    @recalculation_table.setter
+    @deprecated(
+        version="4.12.0",
+        reason="The recalculation_table field is no longer used. It will be removed in future versions.",
+    )
+    def recalculation_table(self, value: list[str]) -> None:
+        self._recalculation_table = value
 
 
 QuantumExecutable = Union[EncryptedProgram, Program]
