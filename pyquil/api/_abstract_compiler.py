@@ -65,11 +65,11 @@ class EncryptedProgram:
         return dataclasses.replace(self)
 
     def __post_init__(self) -> None:
-        if any(f.name == 'recalculation_table' for f in fields(self)):
+        if any(f.name == "recalculation_table" for f in fields(self)):
             warnings.warn(
                 "The recalculation_table field is no longer used. It will be removed in future versions.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
     @property
