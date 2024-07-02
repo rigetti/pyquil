@@ -16,29 +16,10 @@ jobs:
         with:
           path: .venv
           key: poetry-${{ hashFiles('poetry.lock') }}
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.6.1 python3 -
-          echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-      - name: Verify Poetry installation
-        run: poetry --version
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.in-project true
-          poetry config installer.parallel false
-      - name: Debugging information
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "Contents of current directory:"
-          ls -al
-          echo "Poetry environment info:"
-          poetry env info
-      - name: Install dependencies
-        run: |
-          poetry install -vv
       - uses: bencherdev/bencher@main
       - name: Track base branch benchmarks with Bencher
         run: |
+          . scripts/ci_install_deps
           bencher run \
           --project pyquil \
           --token '${{ secrets.BENCHER_API_TOKEN }}' \
@@ -46,4 +27,5 @@ jobs:
           --testbed ci-runner-linux \
           --err \
           --file results.json \ 
-          poetry run pytest --benchmark-json results.json test/benchmarks 
+          --adapter python_pytest \
+          "poetry run pytest --benchmark-json results.json test/benchmarks"
