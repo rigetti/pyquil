@@ -1,6 +1,6 @@
 on:
   push:
-    branches: main
+    branches: master
 
 jobs:
   benchmark_base_branch:
@@ -25,6 +25,7 @@ jobs:
           --token '${{ secrets.BENCHER_API_TOKEN }}' \
           --branch master \
           --testbed ci-runner-linux \
+          --adapter python_pytest \
           --err \
-          --file results.json \ 
-          poetry run pytest --benchmark-json results.json test/benchmarks 
+          --file results.json \
+          "poetry run pytest --benchmark-json results.json test/benchmarks"
