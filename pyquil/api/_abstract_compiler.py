@@ -83,7 +83,7 @@ class EncryptedProgram:
     @recalculation_table.setter
     @deprecated(
         version="4.12.0",
-        reason="The recalculation_table field is no longer used. It will be removed in future versions.",
+        reason="The recalculation_table field is no longer used. Recalculation is now performed by the execution service. This field will be removed in future versions.",
     )
     def recalculation_table(self, value: list[str]) -> None:
         self._recalculation_table = value
