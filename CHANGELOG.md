@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.13.0-rc.0 (2024-07-15)
+
+### Features
+
+#### Update qcs-sdk-python (#1790)
+
 ## 4.12.0 (2024-07-03)
 
 ### Features
