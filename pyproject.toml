@@ -24,7 +24,7 @@ numpy = "^1.25"
 scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
-qcs-sdk-python = "0.18.0"
+qcs-sdk-python = "0.19.0"
 packaging = "^23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
@@ -48,7 +48,7 @@ docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "myst-parser", "pandoc", "matp
 
 [tool.poetry.group.dev.dependencies]
 typing-extensions = "^4.12.0"
-setuptools = {version = "^69.0.2", python = ">=3.12"}
+setuptools = {version = "^70.0.0", python = ">=3.12"}
 ruff = "^0.4.6"
 pytest = "^8.2.0"
 pytest-cov = "^5.0.0"
