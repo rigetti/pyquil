@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.13.1 (2024-07-25)
+
+### Fixes
+
+#### Client configuration is passed to all qcs_sdk methods (#1792)
+
 ## 4.13.1-rc.0 (2024-07-25)
 
 ### Fixes
