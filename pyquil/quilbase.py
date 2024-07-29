@@ -1164,7 +1164,7 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
     @left.setter
     def left(self, left: MemoryReference) -> None:
         quil_rs.Arithmetic.destination.__set__(  # type: ignore[attr-defined]
-            self, quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference())
+            self, left._to_rs_memory_reference()
         )
 
     @property
@@ -1536,7 +1536,7 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
 
     @right.setter
     def right(self, right: MemoryReference) -> None:
-        quil_rs.Comparison.rhs.__set__(self, right._to_rs_memory_reference())  # type: ignore
+        quil_rs.Comparison.rhs.__set__(self, quil_rs.ComparisonOperand(right._to_rs_memory_reference())) # type: ignore
 
     def out(self) -> str:
         """Return the instruction as a valid Quil string."""

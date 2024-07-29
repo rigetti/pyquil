@@ -1629,7 +1629,7 @@ class TestClassicalComparison:
 
     def test_pickle(self, comparison: ClassicalComparison):
         pickled = pickle.dumps(comparison)
-        unpickled = pickle.loads(comparison)
+        unpickled = pickle.loads(pickled)
         assert unpickled == comparison
 
 
@@ -1719,10 +1719,10 @@ class TestArithmeticBinaryOp:
         rs_classical_arithmetic = _convert_to_rs_instruction(arithmetic)
         assert arithmetic == _convert_to_py_instruction(rs_classical_arithmetic)
 
-    def test_pickle(self, arithmetic: UnaryClassicalInstruction):
+    def test_pickle(self, arithmetic: UnaryClassicalInstruction, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(arithmetic)
         unpickled = pickle.loads(pickled)
-        assert unpickled == arithmetic
+        assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(

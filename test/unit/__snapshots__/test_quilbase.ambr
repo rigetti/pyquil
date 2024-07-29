@@ -11,6 +11,18 @@
 # name: TestArithmeticBinaryOp.test_out[SUB-left1-1]
   'SUB b[1] 1'
 # ---
+# name: TestArithmeticBinaryOp.test_pickle[ADD-left0-right0]
+  Arithmetic { operator: Add, destination: MemoryReference { name: "a", index: 0 }, source: MemoryReference(MemoryReference { name: "b", index: 0 }) }
+# ---
+# name: TestArithmeticBinaryOp.test_pickle[DIV-left3-4.2]
+  Arithmetic { operator: Divide, destination: MemoryReference { name: "c", index: 2 }, source: LiteralReal(4.2) }
+# ---
+# name: TestArithmeticBinaryOp.test_pickle[MUL-left2-1.0]
+  Arithmetic { operator: Multiply, destination: MemoryReference { name: "c", index: 2 }, source: LiteralInteger(1) }
+# ---
+# name: TestArithmeticBinaryOp.test_pickle[SUB-left1-1]
+  Arithmetic { operator: Subtract, destination: MemoryReference { name: "b", index: 1 }, source: LiteralInteger(1) }
+# ---
 # name: TestCapture.test_out[Blocking]
   'CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
 # ---
