@@ -1149,9 +1149,8 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> Self:
         """Initialize the operands of the binary arithmetic instruction."""
-        left_operand = quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference())
         right_operand = _to_rs_arithmetic_operand(right)
-        return super().__new__(cls, cls.op, left_operand, right_operand)
+        return super().__new__(cls, cls.op, left._to_rs_memory_reference(), right_operand)
 
     @classmethod
     def _from_rs_arithmetic(cls, arithmetic: quil_rs.Arithmetic) -> "ArithmeticBinaryOp":
@@ -1160,7 +1159,7 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
     @property
     def left(self) -> MemoryReference:
         """The left hand side of the binary expression."""
-        return MemoryReference._from_rs_memory_reference(super().destination.to_memory_reference())
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
     @left.setter
     def left(self, left: MemoryReference) -> None:
@@ -1486,12 +1485,12 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
         right: Union[MemoryReference, int, float],
     ) -> "ClassicalComparison":
         """Initialize a new comparison instruction."""
-        operands = (target._to_rs_memory_reference(), left._to_rs_memory_reference(), cls._to_comparison_operand(right))
-        return super().__new__(cls, cls.op, operands)
+        rs_target, rs_left, rs_right = (target._to_rs_memory_reference(), left._to_rs_memory_reference(), cls._to_comparison_operand(right))
+        return super().__new__(cls, cls.op, rs_target, rs_left, rs_right)
 
     @classmethod
     def _from_rs_comparison(cls, comparison: quil_rs.Comparison) -> Self:
-        return super().__new__(cls, comparison.operator, comparison.operands)
+        return super().__new__(cls, comparison.operator, comparison.destination, comparison.lhs, comparison.rhs)
 
     @staticmethod
     def _to_comparison_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ComparisonOperand:
@@ -1515,35 +1514,29 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
     @property
     def target(self) -> MemoryReference:
         """The target of the comparison."""
-        return MemoryReference._from_rs_memory_reference(super().operands[0])
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
     @target.setter
     def target(self, target: MemoryReference) -> None:
-        operands = list(super().operands)
-        operands[0] = target._to_rs_memory_reference()
-        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+        quil_rs.Comparison.destination.__set__(self, target._to_rs_memory_reference())  # type: ignore
 
     @property
     def left(self) -> MemoryReference:
         """The left hand side of the comparison."""
-        return MemoryReference._from_rs_memory_reference(super().operands[1])
+        return MemoryReference._from_rs_memory_reference(super().lhs)
 
     @left.setter
     def left(self, left: MemoryReference) -> None:
-        operands = list(super().operands)
-        operands[1] = left._to_rs_memory_reference()
-        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+        quil_rs.Comparison.lhs.__set__(self, left._to_rs_memory_reference())  # type: ignore
 
     @property
     def right(self) -> Union[MemoryReference, int, float]:
         """The right hand side of the comparison."""
-        return self._to_py_operand(super().operands[2])
+        return self._to_py_operand(super().rhs)
 
     @right.setter
     def right(self, right: MemoryReference) -> None:
-        operands = list(super().operands)
-        operands[2] = self._to_comparison_operand(right)
-        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+        quil_rs.Comparison.rhs.__set__(self, right._to_rs_memory_reference())  # type: ignore
 
     def out(self) -> str:
         """Return the instruction as a valid Quil string."""
