@@ -1068,24 +1068,19 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int]) -> Self:
         """Initialize the operands of the binary logical instruction."""
-        operands = cls._to_rs_binary_operands(left, right)
-        return super().__new__(cls, cls.op, operands)
+        destination = left._to_rs_memory_reference()
+        source = cls._to_rs_binary_operand(right)
+        return super().__new__(cls, cls.op, destination, source)
 
     @classmethod
     def _from_rs_binary_logic(cls, binary_logic: quil_rs.BinaryLogic) -> "LogicalBinaryOp":
-        return super().__new__(cls, binary_logic.operator, binary_logic.operands)
+        return super().__new__(cls, binary_logic.operator, binary_logic.destination, binary_logic.source)
 
     @staticmethod
     def _to_rs_binary_operand(operand: Union[MemoryReference, int]) -> quil_rs.BinaryOperand:
         if isinstance(operand, MemoryReference):
             return quil_rs.BinaryOperand.from_memory_reference(operand._to_rs_memory_reference())
         return quil_rs.BinaryOperand.from_literal_integer(operand)
-
-    @staticmethod
-    def _to_rs_binary_operands(left: MemoryReference, right: Union[MemoryReference, int]) -> quil_rs.BinaryOperands:
-        left_operand = left._to_rs_memory_reference()
-        right_operand = LogicalBinaryOp._to_rs_binary_operand(right)
-        return quil_rs.BinaryOperands(left_operand, right_operand)
 
     @staticmethod
     def _to_py_binary_operand(operand: quil_rs.BinaryOperand) -> Union[MemoryReference, int]:
@@ -1096,24 +1091,22 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
     @property
     def left(self) -> MemoryReference:
         """The left hand side of the binary expression."""
-        return MemoryReference._from_rs_memory_reference(super().operands.memory_reference)
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
     @left.setter
     def left(self, left: MemoryReference) -> None:
-        operands = super().operands
-        operands.memory_reference = left._to_rs_memory_reference()
-        quil_rs.BinaryLogic.operands.__set__(self, operands)  # type: ignore[attr-defined]
+        destination = left._to_rs_memory_reference()
+        quil_rs.BinaryLogic.destination.__set__(self, destination)  # type: ignore[attr-defined]
 
     @property
     def right(self) -> Union[MemoryReference, int]:
         """The right hand side of the binary expression."""
-        return self._to_py_binary_operand(super().operands.operand)
+        return self._to_py_binary_operand(super().source)
 
     @right.setter
     def right(self, right: Union[MemoryReference, int]) -> None:
-        operands = super().operands
-        operands.operand = self._to_rs_binary_operand(right)
-        quil_rs.BinaryLogic.operands.__set__(self, operands)  # type: ignore[attr-defined]
+        source = self._to_rs_binary_operand(right)
+        quil_rs.BinaryLogic.source.__set__(self, source)  # type: ignore[attr-defined]
 
     def out(self) -> str:
         """Return the instruction as a valid Quil string. Raises an error if the instruction contains placeholders."""

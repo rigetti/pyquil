@@ -1,12 +1,21 @@
+import pickle
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-from qcs_sdk.qpu import MemoryValues
+from qcs_sdk import ExecutionData, ResultData
+from qcs_sdk.qpu import MemoryValues, QPUResultData, ReadoutValues
 from qcs_sdk.qpu.api import ExecutionResult, ExecutionResults, Register
 from rpcq.messages import ParameterSpec
 
-from pyquil.api import ConnectionStrategy, ExecutionOptions, ExecutionOptionsBuilder, RegisterMatrixConversionError
+from pyquil.api import (
+    ConnectionStrategy,
+    ExecutionOptions,
+    ExecutionOptionsBuilder,
+    QAMExecutionResult,
+    QPUExecuteResponse,
+    RegisterMatrixConversionError,
+)
 from pyquil.api._abstract_compiler import EncryptedProgram
 from pyquil.api._qpu import QPU
 from pyquil.quil import Program
@@ -198,3 +207,44 @@ class TestQPUExecutionOptions:
             client=qpu._client_configuration,
             execution_options=execution_options,
         )
+
+def test_pickle_qam_execution_result(mock_encrypted_program):
+    mappings = {
+        "ro[0]": "q0",
+        "ro[1]": "q1"
+    }
+    readout_values = {
+        "q0": ReadoutValues.from_integer([1, 1]),
+        "q1": ReadoutValues.from_real([1.1, 1.2]),
+        "q2": ReadoutValues.from_complex([complex(3, 4), complex(2.35, 4.21)]),
+    }
+    memory_values = {
+        "int": MemoryValues([2, 3, 4]),
+        "real": MemoryValues([5.0, 6.0, 7.0]),
+    }
+    result = QAMExecutionResult(
+        executable=mock_encrypted_program,
+        data=ExecutionData(
+            # result_data=ResultData.from_qvm(
+            #     QVMResultData.from_memory_map({
+            #         "int": RegisterData.from_i8([[1, 2, 3], [4, 5, 6]]),
+            #         "float": RegisterData.from_f64([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
+            #     })
+            # )
+            result_data=ResultData.from_qpu(QPUResultData(mappings=mappings, readout_values=readout_values, memory_values=memory_values))
+        )
+    )
+
+    pickled_result = pickle.dumps(result)
+    unpickled_result = pickle.loads(pickled_result)
+    assert unpickled_result == result
+
+def test_pickle_qpu_execute_response(mock_encrypted_program):
+    response = QPUExecuteResponse(
+        job_id="some-job-id",
+        _executable=mock_encrypted_program,
+        execution_options=ExecutionOptions.default()
+    )
+    pickled_response = pickle.dumps(response)
+    unpickled_response = pickle.loads(pickled_response)
+    assert unpickled_response == response

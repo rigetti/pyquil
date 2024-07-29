@@ -24,7 +24,7 @@ numpy = "^1.25"
 scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
-qcs-sdk-python = "0.19.0"
+qcs-sdk-python = "0.19.1"
 packaging = "^23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
@@ -116,6 +116,12 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.per-file-ignores]
+"test/**/*.py" = [
+    "D",    # docstrings are not enforced in tests
+    "S101", # asserts are allowed in tests
+]
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning:pyquil.*:", "ignore::DeprecationWarning:test.unit.*:"]

@@ -30,7 +30,7 @@ from pyquil.api._compiler import (
     QVMCompiler,
 )
 from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
-from pyquil.api._qpu import QPU
+from pyquil.api._qpu import QPU, QPUExecuteResponse
 from pyquil.api._quantum_computer import (
     QuantumComputer,
     get_qc,
@@ -59,6 +59,7 @@ __all__ = [
     "MemoryMap",
     "QAMExecutionResult",
     "QPU",
+    "QPUExecuteResponse",
     "QuantumComputer",
     "get_qc",
     "list_quantum_computers",
