@@ -122,6 +122,7 @@ class QPUCompiler(AbstractCompiler):
             num_shots=nq_program.num_shots,
             quantum_processor_id=self.quantum_processor_id,
             translation_options=api_options or self.api_options,
+            client=self._client_configuration,
         )
 
         ro_sources = translated_program.ro_sources or {}
@@ -135,6 +136,7 @@ class QPUCompiler(AbstractCompiler):
     def _fetch_calibration_program(self) -> Program:
         response = get_quilt_calibrations(
             quantum_processor_id=self.quantum_processor_id,
+            client=self._client_configuration,
         )
         return Program(response)
 
