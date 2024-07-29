@@ -225,13 +225,13 @@ def test_pickle_qam_execution_result(mock_encrypted_program):
     result = QAMExecutionResult(
         executable=mock_encrypted_program,
         data=ExecutionData(
-            # result_data=ResultData.from_qvm(
-            #     QVMResultData.from_memory_map({
-            #         "int": RegisterData.from_i8([[1, 2, 3], [4, 5, 6]]),
-            #         "float": RegisterData.from_f64([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
-            #     })
-            # )
-            result_data=ResultData.from_qpu(QPUResultData(mappings=mappings, readout_values=readout_values, memory_values=memory_values))
+            result_data=ResultData.from_qpu(
+                QPUResultData(
+                    mappings=mappings,
+                    readout_values=readout_values,
+                    memory_values=memory_values
+                )
+            )
         )
     )
 

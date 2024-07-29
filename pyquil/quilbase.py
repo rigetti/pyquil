@@ -1485,7 +1485,11 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
         right: Union[MemoryReference, int, float],
     ) -> "ClassicalComparison":
         """Initialize a new comparison instruction."""
-        rs_target, rs_left, rs_right = (target._to_rs_memory_reference(), left._to_rs_memory_reference(), cls._to_comparison_operand(right))
+        rs_target, rs_left, rs_right = (
+            target._to_rs_memory_reference(),
+            left._to_rs_memory_reference(),
+            cls._to_comparison_operand(right),
+        )
         return super().__new__(cls, cls.op, rs_target, rs_left, rs_right)
 
     @classmethod
@@ -1536,7 +1540,7 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
 
     @right.setter
     def right(self, right: MemoryReference) -> None:
-        quil_rs.Comparison.rhs.__set__(self, quil_rs.ComparisonOperand(right._to_rs_memory_reference())) # type: ignore
+        quil_rs.Comparison.rhs.__set__(self, quil_rs.ComparisonOperand(right._to_rs_memory_reference()))  # type: ignore
 
     def out(self) -> str:
         """Return the instruction as a valid Quil string."""

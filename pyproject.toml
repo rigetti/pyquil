@@ -122,6 +122,7 @@ docstring-code-line-length = "dynamic"
 "test/**/*.py" = [
     "D",    # docstrings are not enforced in tests
     "S101", # asserts are allowed in tests
+    "S301", # we only deserialize our own data to ensure compatibility with the pickle module
 ]
 
 [tool.pytest.ini_options]
