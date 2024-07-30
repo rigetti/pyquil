@@ -5,7 +5,11 @@ from typing import Optional
 from quil import program as quil_rs
 from typing_extensions import Self, override
 
-from pyquil.quilbase import AbstractInstruction, _convert_to_py_instruction, _convert_to_py_instructions
+from pyquil.quilbase import (
+    AbstractInstruction,
+    _convert_to_py_instruction,
+    _convert_to_py_instructions,
+)
 
 
 class BasicBlock(quil_rs.BasicBlock):

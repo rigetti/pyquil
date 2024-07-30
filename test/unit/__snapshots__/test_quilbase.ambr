@@ -11,6 +11,18 @@
 # name: TestArithmeticBinaryOp.test_out[SUB-left1-1]
   'SUB b[1] 1'
 # ---
+# name: TestArithmeticBinaryOp.test_pickle[ADD-left0-right0]
+  Arithmetic { operator: Add, destination: MemoryReference { name: "a", index: 0 }, source: MemoryReference(MemoryReference { name: "b", index: 0 }) }
+# ---
+# name: TestArithmeticBinaryOp.test_pickle[DIV-left3-4.2]
+  Arithmetic { operator: Divide, destination: MemoryReference { name: "c", index: 2 }, source: LiteralReal(4.2) }
+# ---
+# name: TestArithmeticBinaryOp.test_pickle[MUL-left2-1.0]
+  Arithmetic { operator: Multiply, destination: MemoryReference { name: "c", index: 2 }, source: LiteralInteger(1) }
+# ---
+# name: TestArithmeticBinaryOp.test_pickle[SUB-left1-1]
+  Arithmetic { operator: Subtract, destination: MemoryReference { name: "b", index: 1 }, source: LiteralInteger(1) }
+# ---
 # name: TestCapture.test_out[Blocking]
   'CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
 # ---
@@ -19,6 +31,15 @@
 # ---
 # name: TestCapture.test_out[TemplateWaveform]
   'NONBLOCKING CAPTURE 123 q "FRAMEX" flat(duration: 2.5, iq: 1+2.0i) ro[0]'
+# ---
+# name: TestCapture.test_pickle[Blocking]
+  Capture { blocking: true, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, memory_reference: MemoryReference { name: "ro", index: 0 }, waveform: WaveformInvocation { name: "WAVEFORMY", parameters: {} } }
+# ---
+# name: TestCapture.test_pickle[NonBlocking]
+  Capture { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, memory_reference: MemoryReference { name: "ro", index: 0 }, waveform: WaveformInvocation { name: "WAVEFORMY", parameters: {} } }
+# ---
+# name: TestCapture.test_pickle[TemplateWaveform]
+  Capture { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, memory_reference: MemoryReference { name: "ro", index: 0 }, waveform: WaveformInvocation { name: "flat", parameters: {"duration": Number(Complex { re: 2.5, im: 0.0 }), "iq": Infix(InfixExpression { left: Number(Complex { re: 1.0, im: 0.0 }), operator: Plus, right: Number(Complex { re: 0.0, im: 2.0 }) })} } }
 # ---
 # name: TestClassicalComparison.test_out[EQ-target0-left0-right0]
   'EQ t[0] y[0] z[0]'
@@ -175,12 +196,6 @@
   DEFCIRCUIT NiftyCircuit(%theta) a:
   	DECLARE ro BIT[1]
   	MEASURE a ro[0]
-  	DEFGATE ParameterizedGate(%theta) AS MATRIX:
-  		%theta, 0, 0, 0
-  		0, %theta, 0, 0
-  		0, 0, %theta, 0
-  		0, 0, 0, %theta
-  	
   
   '''
 # ---
@@ -189,6 +204,8 @@
 # ---
 # name: TestDefFrame.test_out[Frame-Only].1
   set({
+    '\tDIRECTION: "direction"',
+    '\tINITIAL-FREQUENCY: 0',
   })
 # ---
 # name: TestDefFrame.test_out[With-Optionals]
@@ -209,6 +226,8 @@
 # ---
 # name: TestDefFrame.test_str[Frame-Only].1
   set({
+    '\tDIRECTION: "direction"',
+    '\tINITIAL-FREQUENCY: 0',
   })
 # ---
 # name: TestDefFrame.test_str[With-Optionals]
@@ -271,6 +290,18 @@
   	0, 0, 0, cos(%X)
   
   '''
+# ---
+# name: TestDefGate.test_pickle[MixedTypes]
+  GateDefinition { name: "MixedTypes", parameters: ["X"], specification: Matrix([[Number(Complex { re: 0.0, im: 0.0 }), FunctionCall(FunctionCallExpression { function: Sine, expression: Variable("X") })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })]]) }
+# ---
+# name: TestDefGate.test_pickle[No-Params]
+  GateDefinition { name: "NoParamGate", parameters: [], specification: Matrix([[Number(Complex { re: 1.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 1.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 1.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 1.0, im: 0.0 })]]) }
+# ---
+# name: TestDefGate.test_pickle[ParameterlessExpression]
+  GateDefinition { name: "ParameterlessExpressions", parameters: [], specification: Matrix([[Number(Complex { re: 1.0, im: 0.0 }), Number(Complex { re: 1.2246467991473532e-16, im: 0.0 })], [Number(Complex { re: 1.2246467991473532e-16, im: 0.0 }), Prefix(PrefixExpression { operator: Minus, expression: Number(Complex { re: 1.0, im: 0.0 }) })]]) }
+# ---
+# name: TestDefGate.test_pickle[Params]
+  GateDefinition { name: "ParameterizedGate", parameters: ["X"], specification: Matrix([[FunctionCall(FunctionCallExpression { function: Cosine, expression: Variable("X") }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), FunctionCall(FunctionCallExpression { function: Cosine, expression: Variable("X") }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), FunctionCall(FunctionCallExpression { function: Cosine, expression: Variable("X") }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), FunctionCall(FunctionCallExpression { function: Cosine, expression: Variable("X") })]]) }
 # ---
 # name: TestDefGate.test_str[MixedTypes]
   '''
@@ -406,12 +437,6 @@
   
   '''
 # ---
-# name: TestDefWaveform.test_out[No-Params-Entries]
-  '''
-  DEFWAVEFORM Wavey:
-  	
-  '''
-# ---
 # name: TestDefWaveform.test_out[With-Param]
   '''
   DEFWAVEFORM Wavey(%x):
@@ -423,6 +448,12 @@
   DEFWAVEFORM Wavey(%x, %y):
   	1+2.0i, %x, 3*%y
   '''
+# ---
+# name: TestDefWaveform.test_pickle[With-Param]
+  WaveformDefinition { name: "Wavey", definition: Waveform { matrix: [Variable("x")], parameters: ["x"] } }
+# ---
+# name: TestDefWaveform.test_pickle[With-Params-Complex]
+  WaveformDefinition { name: "Wavey", definition: Waveform { matrix: [Infix(InfixExpression { left: Number(Complex { re: 1.0, im: 0.0 }), operator: Plus, right: Number(Complex { re: 0.0, im: 2.0 }) }), Variable("x"), Infix(InfixExpression { left: Number(Complex { re: 3.0, im: 0.0 }), operator: Star, right: Variable("y") })], parameters: ["x", "y"] } }
 # ---
 # name: TestDelayFrames.test_out[frames0-5.0]
   'DELAY 0 "frame" 5'
@@ -597,6 +628,30 @@
 # ---
 # name: TestPulse.test_out[NonBlocking]
   'NONBLOCKING PULSE 123 q "FRAMEX" WAVEFORMY'
+# ---
+# name: TestPulse.test_pickle[Blocking]
+  Pulse { blocking: true, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, waveform: WaveformInvocation { name: "WAVEFORMY", parameters: {} } }
+# ---
+# name: TestPulse.test_pickle[BoxcarAveragerKernel]
+  Pulse { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, waveform: WaveformInvocation { name: "boxcar_kernel", parameters: {"duration": Number(Complex { re: 2.5, im: 0.0 }), "scale": Number(Complex { re: 1.0, im: 0.0 })} } }
+# ---
+# name: TestPulse.test_pickle[DragGaussianWaveform]
+  Pulse { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, waveform: WaveformInvocation { name: "drag_gaussian", parameters: {"alpha": Number(Complex { re: 1.0, im: 0.0 }), "anh": Number(Complex { re: 0.1, im: 0.0 }), "duration": Number(Complex { re: 2.5, im: 0.0 }), "fwhm": Number(Complex { re: 1.0, im: 0.0 }), "t0": Number(Complex { re: 1.0, im: 0.0 })} } }
+# ---
+# name: TestPulse.test_pickle[ErfSquareWaveform]
+  Pulse { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, waveform: WaveformInvocation { name: "erf_square", parameters: {"duration": Number(Complex { re: 2.5, im: 0.0 }), "pad_left": Number(Complex { re: 1.0, im: 0.0 }), "pad_right": Number(Complex { re: 0.1, im: 0.0 }), "risetime": Number(Complex { re: 1.0, im: 0.0 }), "scale": Number(Complex { re: 1.0, im: 0.0 })} } }
+# ---
+# name: TestPulse.test_pickle[FlatWaveform]
+  Pulse { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, waveform: WaveformInvocation { name: "flat", parameters: {"duration": Number(Complex { re: 2.5, im: 0.0 }), "iq": Infix(InfixExpression { left: Number(Complex { re: 1.0, im: 0.0 }), operator: Plus, right: Number(Complex { re: 0.0, im: 2.0 }) })} } }
+# ---
+# name: TestPulse.test_pickle[GaussianWaveform]
+  Pulse { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, waveform: WaveformInvocation { name: "gaussian", parameters: {"duration": Number(Complex { re: 2.5, im: 0.0 }), "fwhm": Number(Complex { re: 1.0, im: 0.0 }), "phase": Number(Complex { re: 0.1, im: 0.0 }), "t0": Number(Complex { re: 1.0, im: 0.0 })} } }
+# ---
+# name: TestPulse.test_pickle[HrmGaussianWaveform]
+  Pulse { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, waveform: WaveformInvocation { name: "hrm_gaussian", parameters: {"alpha": Number(Complex { re: 1.0, im: 0.0 }), "anh": Number(Complex { re: 0.1, im: 0.0 }), "duration": Number(Complex { re: 2.5, im: 0.0 }), "fwhm": Number(Complex { re: 1.0, im: 0.0 }), "second_order_hrm_coeff": Number(Complex { re: 0.5, im: 0.0 }), "t0": Number(Complex { re: 1.0, im: 0.0 })} } }
+# ---
+# name: TestPulse.test_pickle[NonBlocking]
+  Pulse { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, waveform: WaveformInvocation { name: "WAVEFORMY", parameters: {} } }
 # ---
 # name: TestRawCapture.test_out[Blocking]
   'RAW-CAPTURE 123 q "FRAMEX" 0.5 ro[0]'

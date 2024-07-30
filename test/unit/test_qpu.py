@@ -1,12 +1,22 @@
+import pickle
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-from qcs_sdk.qpu import MemoryValues
+from qcs_sdk import ExecutionData, ResultData
+from qcs_sdk.qpu import MemoryValues, QPUResultData, ReadoutValues
 from qcs_sdk.qpu.api import ExecutionResult, ExecutionResults, Register
 from rpcq.messages import ParameterSpec
 
-from pyquil.api import ConnectionStrategy, ExecutionOptions, ExecutionOptionsBuilder, RegisterMatrixConversionError
+from pyquil.api import (
+    ConnectionStrategy,
+    ExecutionOptions,
+    ExecutionOptionsBuilder,
+    QAMExecutionResult,
+    QPUExecuteResponse,
+    RegisterMatrixConversionError,
+)
 from pyquil.api._abstract_compiler import EncryptedProgram
 from pyquil.api._qpu import QPU
 from pyquil.quil import Program
@@ -198,3 +208,37 @@ class TestQPUExecutionOptions:
             client=qpu._client_configuration,
             execution_options=execution_options,
         )
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        (
+            QAMExecutionResult(
+                executable=mock_encrypted_program,
+                data=ExecutionData(
+                    result_data=ResultData.from_qpu(
+                        QPUResultData(
+                            mappings={"ro[0]": "q0", "ro[1]": "q1"},
+                            readout_values={
+                                "q0": ReadoutValues.from_integer([1, 1]),
+                                "q1": ReadoutValues.from_real([1.1, 1.2]),
+                                "q2": ReadoutValues.from_complex([complex(3, 4), complex(2.35, 4.21)]),
+                            },
+                            memory_values={"int": MemoryValues([2, 3, 4]), "real": MemoryValues([5.0, 6.0, 7.0])},
+                        )
+                    )
+                ),
+            )
+        ),
+        (
+            QPUExecuteResponse(
+                job_id="some-job-id", _executable=mock_encrypted_program, execution_options=ExecutionOptions.default()
+            )
+        ),
+    ],
+)
+def test_pickle_execute_responses(input: Any):
+    pickled_response = pickle.dumps(input)
+    unpickled_response = pickle.loads(pickled_response)
+    assert unpickled_response == input

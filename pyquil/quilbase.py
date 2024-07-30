@@ -1068,24 +1068,19 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int]) -> Self:
         """Initialize the operands of the binary logical instruction."""
-        operands = cls._to_rs_binary_operands(left, right)
-        return super().__new__(cls, cls.op, operands)
+        destination = left._to_rs_memory_reference()
+        source = cls._to_rs_binary_operand(right)
+        return super().__new__(cls, cls.op, destination, source)
 
     @classmethod
     def _from_rs_binary_logic(cls, binary_logic: quil_rs.BinaryLogic) -> "LogicalBinaryOp":
-        return super().__new__(cls, binary_logic.operator, binary_logic.operands)
+        return super().__new__(cls, binary_logic.operator, binary_logic.destination, binary_logic.source)
 
     @staticmethod
     def _to_rs_binary_operand(operand: Union[MemoryReference, int]) -> quil_rs.BinaryOperand:
         if isinstance(operand, MemoryReference):
             return quil_rs.BinaryOperand.from_memory_reference(operand._to_rs_memory_reference())
         return quil_rs.BinaryOperand.from_literal_integer(operand)
-
-    @staticmethod
-    def _to_rs_binary_operands(left: MemoryReference, right: Union[MemoryReference, int]) -> quil_rs.BinaryOperands:
-        left_operand = left._to_rs_memory_reference()
-        right_operand = LogicalBinaryOp._to_rs_binary_operand(right)
-        return quil_rs.BinaryOperands(left_operand, right_operand)
 
     @staticmethod
     def _to_py_binary_operand(operand: quil_rs.BinaryOperand) -> Union[MemoryReference, int]:
@@ -1096,24 +1091,22 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
     @property
     def left(self) -> MemoryReference:
         """The left hand side of the binary expression."""
-        return MemoryReference._from_rs_memory_reference(super().operands.memory_reference)
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
     @left.setter
     def left(self, left: MemoryReference) -> None:
-        operands = super().operands
-        operands.memory_reference = left._to_rs_memory_reference()
-        quil_rs.BinaryLogic.operands.__set__(self, operands)  # type: ignore[attr-defined]
+        destination = left._to_rs_memory_reference()
+        quil_rs.BinaryLogic.destination.__set__(self, destination)  # type: ignore[attr-defined]
 
     @property
     def right(self) -> Union[MemoryReference, int]:
         """The right hand side of the binary expression."""
-        return self._to_py_binary_operand(super().operands.operand)
+        return self._to_py_binary_operand(super().source)
 
     @right.setter
     def right(self, right: Union[MemoryReference, int]) -> None:
-        operands = super().operands
-        operands.operand = self._to_rs_binary_operand(right)
-        quil_rs.BinaryLogic.operands.__set__(self, operands)  # type: ignore[attr-defined]
+        source = self._to_rs_binary_operand(right)
+        quil_rs.BinaryLogic.source.__set__(self, source)  # type: ignore[attr-defined]
 
     def out(self) -> str:
         """Return the instruction as a valid Quil string. Raises an error if the instruction contains placeholders."""
@@ -1156,9 +1149,8 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
 
     def __new__(cls, left: MemoryReference, right: Union[MemoryReference, int, float]) -> Self:
         """Initialize the operands of the binary arithmetic instruction."""
-        left_operand = quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference())
         right_operand = _to_rs_arithmetic_operand(right)
-        return super().__new__(cls, cls.op, left_operand, right_operand)
+        return super().__new__(cls, cls.op, left._to_rs_memory_reference(), right_operand)
 
     @classmethod
     def _from_rs_arithmetic(cls, arithmetic: quil_rs.Arithmetic) -> "ArithmeticBinaryOp":
@@ -1167,12 +1159,12 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
     @property
     def left(self) -> MemoryReference:
         """The left hand side of the binary expression."""
-        return MemoryReference._from_rs_memory_reference(super().destination.to_memory_reference())
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
     @left.setter
     def left(self, left: MemoryReference) -> None:
         quil_rs.Arithmetic.destination.__set__(  # type: ignore[attr-defined]
-            self, quil_rs.ArithmeticOperand.from_memory_reference(left._to_rs_memory_reference())
+            self, left._to_rs_memory_reference()
         )
 
     @property
@@ -1493,12 +1485,16 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
         right: Union[MemoryReference, int, float],
     ) -> "ClassicalComparison":
         """Initialize a new comparison instruction."""
-        operands = (target._to_rs_memory_reference(), left._to_rs_memory_reference(), cls._to_comparison_operand(right))
-        return super().__new__(cls, cls.op, operands)
+        rs_target, rs_left, rs_right = (
+            target._to_rs_memory_reference(),
+            left._to_rs_memory_reference(),
+            cls._to_comparison_operand(right),
+        )
+        return super().__new__(cls, cls.op, rs_target, rs_left, rs_right)
 
     @classmethod
     def _from_rs_comparison(cls, comparison: quil_rs.Comparison) -> Self:
-        return super().__new__(cls, comparison.operator, comparison.operands)
+        return super().__new__(cls, comparison.operator, comparison.destination, comparison.lhs, comparison.rhs)
 
     @staticmethod
     def _to_comparison_operand(operand: Union[MemoryReference, int, float]) -> quil_rs.ComparisonOperand:
@@ -1522,35 +1518,29 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
     @property
     def target(self) -> MemoryReference:
         """The target of the comparison."""
-        return MemoryReference._from_rs_memory_reference(super().operands[0])
+        return MemoryReference._from_rs_memory_reference(super().destination)
 
     @target.setter
     def target(self, target: MemoryReference) -> None:
-        operands = list(super().operands)
-        operands[0] = target._to_rs_memory_reference()
-        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+        quil_rs.Comparison.destination.__set__(self, target._to_rs_memory_reference())  # type: ignore
 
     @property
     def left(self) -> MemoryReference:
         """The left hand side of the comparison."""
-        return MemoryReference._from_rs_memory_reference(super().operands[1])
+        return MemoryReference._from_rs_memory_reference(super().lhs)
 
     @left.setter
     def left(self, left: MemoryReference) -> None:
-        operands = list(super().operands)
-        operands[1] = left._to_rs_memory_reference()
-        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+        quil_rs.Comparison.lhs.__set__(self, left._to_rs_memory_reference())  # type: ignore
 
     @property
     def right(self) -> Union[MemoryReference, int, float]:
         """The right hand side of the comparison."""
-        return self._to_py_operand(super().operands[2])
+        return self._to_py_operand(super().rhs)
 
     @right.setter
     def right(self, right: MemoryReference) -> None:
-        operands = list(super().operands)
-        operands[2] = self._to_comparison_operand(right)
-        quil_rs.Comparison.operands.__set__(self, tuple(operands))  # type: ignore
+        quil_rs.Comparison.rhs.__set__(self, quil_rs.ComparisonOperand(right._to_rs_memory_reference()))  # type: ignore
 
     def out(self) -> str:
         """Return the instruction as a valid Quil string."""

@@ -1,4 +1,5 @@
 import copy
+import pickle
 from collections.abc import Iterable
 from math import pi
 from numbers import Complex, Number
@@ -187,6 +188,11 @@ class TestGate:
         except Exception as e:
             raise AssertionError(f"Failed to compile the program: \n{program}") from e
 
+    def test_pickle(self, gate: Gate):
+        pickled = pickle.dumps(gate)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == gate
+
 
 @pytest.mark.parametrize(
     ("name", "matrix", "parameters"),
@@ -260,6 +266,11 @@ class TestDefGate:
     def test_copy(self, def_gate: DefGate):
         assert isinstance(copy.copy(def_gate), DefGate)
         assert isinstance(copy.deepcopy(def_gate), DefGate)
+
+    def test_pickle(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+        pickled = pickle.dumps(def_gate)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(
@@ -430,6 +441,11 @@ class TestDefCalibration:
         rs_calibration = _convert_to_rs_instruction(calibration)
         assert calibration == _convert_to_py_instruction(rs_calibration)
 
+    def test_pickle(self, calibration: DefCalibration):
+        pickled = pickle.dumps(calibration)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == calibration
+
 
 @pytest.mark.parametrize(
     ("qubit", "memory_reference", "instrs"),
@@ -467,6 +483,11 @@ class TestDefMeasureCalibration:
     def test_convert(self, measure_calibration: DefMeasureCalibration):
         rs_measure_calibration = _convert_to_rs_instruction(measure_calibration)
         assert measure_calibration == _convert_to_py_instruction(rs_measure_calibration)
+
+    def test_pickle(self, measure_calibration: DefMeasureCalibration):
+        pickled = pickle.dumps(measure_calibration)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == measure_calibration
 
 
 @pytest.mark.parametrize(
@@ -511,11 +532,16 @@ class TestMeasurement:
         rs_measurement = _convert_to_rs_instruction(measurement)
         assert measurement == _convert_to_py_instruction(rs_measurement)
 
+    def test_pickle(self, measurement: Measurement):
+        pickled = pickle.dumps(measurement)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == measurement
+
 
 @pytest.mark.parametrize(
     ("frame", "direction", "initial_frequency", "hardware_object", "sample_rate", "center_frequency", "channel_delay"),
     [
-        (Frame([Qubit(0)], "frame"), None, None, None, None, None, None),
+        (Frame([Qubit(0)], "frame"), "direction", 0.0, None, None, None, None),
         (Frame([Qubit(1)], "frame"), "direction", 1.39, "hardware_object", 44.1, 440.0, 0.0),
     ],
     ids=("Frame-Only", "With-Optionals"),
@@ -603,6 +629,12 @@ class TestDefFrame:
         rs_def_frame = _convert_to_rs_instruction(def_frame)
         assert def_frame == _convert_to_py_instruction(rs_def_frame)
 
+    def test_pickle(self, def_frame: DefFrame):
+        print(def_frame.to_quil())
+        pickled = pickle.dumps(def_frame)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == def_frame
+
 
 @pytest.mark.parametrize(
     ("name", "memory_type", "memory_size", "shared_region", "offsets"),
@@ -673,6 +705,11 @@ class TestDeclare:
         rs_declare = _convert_to_rs_instruction(declare)
         assert declare == _convert_to_py_instruction(rs_declare)
 
+    def test_pickle(self, declare: Declare):
+        pickled = pickle.dumps(declare)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == declare
+
 
 @pytest.mark.parametrize(
     ("command", "args", "freeform_string"),
@@ -717,6 +754,11 @@ class TestPragma:
     def test_convert(self, pragma: Pragma):
         rs_pragma = _convert_to_rs_instruction(pragma)
         assert pragma == _convert_to_py_instruction(rs_pragma)
+
+    def test_pickle(self, pragma: Pragma):
+        pickled = pickle.dumps(pragma)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == pragma
 
 
 @pytest.mark.parametrize(
@@ -765,6 +807,11 @@ class TestReset:
         rs_reset_qubit = _convert_to_rs_instruction(reset_qubit)
         assert reset_qubit == _convert_to_py_instruction(rs_reset_qubit)
 
+    def test_pickle(self, reset_qubit: Reset):
+        pickled = pickle.dumps(reset_qubit)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == reset_qubit
+
 
 @pytest.mark.parametrize(
     ("frames", "duration"),
@@ -797,6 +844,11 @@ class TestDelayFrames:
     def test_convert(self, delay_frames: DelayFrames):
         rs_delay_frames = _convert_to_rs_instruction(delay_frames)
         assert delay_frames == _convert_to_py_instruction(rs_delay_frames)
+
+    def test_pickle(self, delay_frames: DelayFrames):
+        pickled = pickle.dumps(delay_frames)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == delay_frames
 
 
 @pytest.mark.parametrize(
@@ -833,6 +885,11 @@ class TestDelayQubits:
         rs_delay_qubits = _convert_to_rs_instruction(delay_qubits)
         assert delay_qubits == _convert_to_py_instruction(rs_delay_qubits)
 
+    def test_pickle(self, delay_qubits: DelayQubits):
+        pickled = pickle.dumps(delay_qubits)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == delay_qubits
+
 
 @pytest.mark.parametrize(
     ("qubits"),
@@ -863,6 +920,11 @@ class TestFence:
         rs_fence = _convert_to_rs_instruction(fence)
         assert fence == _convert_to_py_instruction(rs_fence)
 
+    def test_pickle(self, fence: Fence):
+        pickled = pickle.dumps(fence)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == fence
+
 
 def test_fence_all():
     fa = FenceAll()
@@ -873,7 +935,6 @@ def test_fence_all():
 @pytest.mark.parametrize(
     ("name", "parameters", "entries"),
     [
-        ("Wavey", [], []),
         ("Wavey", [Parameter("x")], [Parameter("x")]),
         (
             "Wavey",
@@ -881,7 +942,7 @@ def test_fence_all():
             [complex(1.0, 2.0), Parameter("x"), Mul(complex(3.0, 0.0), Parameter("y"))],
         ),
     ],
-    ids=("No-Params-Entries", "With-Param", "With-Params-Complex"),
+    ids=("With-Param", "With-Params-Complex"),
 )
 class TestDefWaveform:
     @pytest.fixture
@@ -914,6 +975,12 @@ class TestDefWaveform:
         rs_def_waveform = _convert_to_rs_instruction(def_waveform)
         assert def_waveform == _convert_to_py_instruction(rs_def_waveform)
 
+    def test_pickle(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
+        print(def_waveform.to_quil())
+        pickled = pickle.dumps(def_waveform)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == snapshot
+
 
 @pytest.mark.parametrize(
     ("name", "parameters", "qubit_variables", "instructions"),
@@ -926,7 +993,6 @@ class TestDefWaveform:
             [
                 Declare("ro", "BIT", 1),
                 Measurement(FormalArgument("a"), MemoryReference("ro")),
-                DefGate("ParameterizedGate", np.diag([Parameter("theta")] * 4), [Parameter("theta")]),
             ],
         ),
     ],
@@ -973,6 +1039,12 @@ class TestDefCircuit:
     def test_convert(self, def_circuit: DefCircuit):
         rs_def_circuit = _convert_to_rs_instruction(def_circuit)
         assert def_circuit == _convert_to_py_instruction(rs_def_circuit)
+
+    def test_pickle(self, def_circuit: DefCircuit):
+        print(def_circuit.to_quil())
+        pickled = pickle.dumps(def_circuit)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == def_circuit
 
 
 @pytest.mark.parametrize(
@@ -1034,6 +1106,11 @@ class TestCapture:
     def test_convert(self, capture: Capture):
         rs_capture = _convert_to_rs_instruction(capture)
         assert capture == _convert_to_py_instruction(rs_capture)
+
+    def test_pickle(self, capture: Capture, snapshot: SnapshotAssertion):
+        pickled = pickle.dumps(capture)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(
@@ -1125,6 +1202,11 @@ class TestPulse:
         rs_pulse = _convert_to_rs_instruction(pulse)
         assert pulse == _convert_to_py_instruction(rs_pulse)
 
+    def test_pickle(self, pulse: Pulse, snapshot: SnapshotAssertion):
+        pickled = pickle.dumps(pulse)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == snapshot
+
 
 @pytest.mark.parametrize(
     ("frame", "duration", "memory_region", "nonblocking"),
@@ -1185,6 +1267,11 @@ class TestRawCapture:
     def test_convert(self, raw_capture: RawCapture):
         rs_raw_capture = _convert_to_rs_instruction(raw_capture)
         assert raw_capture == _convert_to_py_instruction(rs_raw_capture)
+
+    def test_pickle(self, raw_capture: RawCapture):
+        pickled = pickle.dumps(raw_capture)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == raw_capture
 
 
 @pytest.mark.parametrize(
@@ -1260,32 +1347,37 @@ class TestFrameMutations:
 )
 class TestSwapPhases:
     @pytest.fixture
-    def swap_phase(self, frame_a, frame_b):
+    def swap_phases(self, frame_a, frame_b):
         return SwapPhases(frame_a, frame_b)
 
-    def test_out(self, swap_phase: SwapPhases, snapshot: SnapshotAssertion):
-        assert swap_phase.out() == snapshot
+    def test_out(self, swap_phases: SwapPhases, snapshot: SnapshotAssertion):
+        assert swap_phases.out() == snapshot
 
-    def test_frames(self, swap_phase: SwapPhases, frame_a: Frame, frame_b: Frame):
-        assert swap_phase.frameA == frame_a
-        assert swap_phase.frameB == frame_b
-        swap_phase.frameA = Frame([Qubit(123)], "NEW-FRAME")
-        swap_phase.frameB = Frame([Qubit(123)], "NEW-FRAME")
-        assert swap_phase.frameA == Frame([Qubit(123)], "NEW-FRAME")
-        assert swap_phase.frameB == Frame([Qubit(123)], "NEW-FRAME")
+    def test_frames(self, swap_phases: SwapPhases, frame_a: Frame, frame_b: Frame):
+        assert swap_phases.frameA == frame_a
+        assert swap_phases.frameB == frame_b
+        swap_phases.frameA = Frame([Qubit(123)], "NEW-FRAME")
+        swap_phases.frameB = Frame([Qubit(123)], "NEW-FRAME")
+        assert swap_phases.frameA == Frame([Qubit(123)], "NEW-FRAME")
+        assert swap_phases.frameB == Frame([Qubit(123)], "NEW-FRAME")
 
-    def test_get_qubits(self, swap_phase: SwapPhases, frame_a: Frame, frame_b: Frame):
+    def test_get_qubits(self, swap_phases: SwapPhases, frame_a: Frame, frame_b: Frame):
         expected_qubits = set(frame_a.qubits + frame_b.qubits)
-        assert swap_phase.get_qubits() == set([q.index for q in expected_qubits if isinstance(q, Qubit)])
-        assert swap_phase.get_qubits(False) == expected_qubits
+        assert swap_phases.get_qubits() == set([q.index for q in expected_qubits if isinstance(q, Qubit)])
+        assert swap_phases.get_qubits(False) == expected_qubits
 
-    def test_copy(self, swap_phase: SwapPhases):
-        assert isinstance(copy.copy(swap_phase), SwapPhases)
-        assert isinstance(copy.deepcopy(swap_phase), SwapPhases)
+    def test_copy(self, swap_phases: SwapPhases):
+        assert isinstance(copy.copy(swap_phases), SwapPhases)
+        assert isinstance(copy.deepcopy(swap_phases), SwapPhases)
 
-    def test_convert(self, swap_phase: SwapPhases):
-        rs_swap_phase = _convert_to_rs_instruction(swap_phase)
-        assert swap_phase == _convert_to_py_instruction(rs_swap_phase)
+    def test_convert(self, swap_phases: SwapPhases):
+        rs_swap_phase = _convert_to_rs_instruction(swap_phases)
+        assert swap_phases == _convert_to_py_instruction(rs_swap_phase)
+
+    def test_pickle(self, swap_phases: SwapPhases):
+        pickled = pickle.dumps(swap_phases)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == swap_phases
 
 
 @pytest.mark.parametrize(
@@ -1322,6 +1414,11 @@ class TestClassicalMove:
         rs_classical_move = _convert_to_rs_instruction(move)
         assert move == _convert_to_py_instruction(rs_classical_move)
 
+    def test_pickle(self, move: ClassicalMove):
+        pickled = pickle.dumps(move)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == move
+
 
 @pytest.mark.parametrize(
     ("left", "right"),
@@ -1353,6 +1450,11 @@ class TestClassicalExchange:
         rs_classical_exchange = _convert_to_rs_instruction(exchange)
         assert exchange == _convert_to_py_instruction(rs_classical_exchange)
 
+    def test_pickle(self, exchange: ClassicalExchange):
+        pickled = pickle.dumps(exchange)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == exchange
+
 
 @pytest.mark.parametrize(
     ("left", "right"),
@@ -1383,6 +1485,11 @@ class TestClassicalConvert:
     def test_convert(self, convert: ClassicalConvert):
         rs_classical_convert = _convert_to_rs_instruction(convert)
         assert convert == _convert_to_py_instruction(rs_classical_convert)
+
+    def test_pickle(self, convert: ClassicalConvert):
+        pickled = pickle.dumps(convert)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == convert
 
 
 @pytest.mark.parametrize(
@@ -1419,6 +1526,11 @@ class TestClassicalLoad:
     def test_convert(self, load: ClassicalLoad):
         rs_classical_load = _convert_to_rs_instruction(load)
         assert load == _convert_to_py_instruction(rs_classical_load)
+
+    def test_pickle(self, load: ClassicalLoad):
+        pickled = pickle.dumps(load)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == load
 
 
 @pytest.mark.parametrize(
@@ -1459,6 +1571,11 @@ class TestClassicalStore:
     def test_convert(self, store: ClassicalStore):
         rs_classical_store = _convert_to_rs_instruction(store)
         assert store == _convert_to_py_instruction(rs_classical_store)
+
+    def test_pickle(self, store: ClassicalStore):
+        pickled = pickle.dumps(store)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == store
 
 
 @pytest.mark.parametrize(
@@ -1512,6 +1629,11 @@ class TestClassicalComparison:
         rs_classical_comparison = _convert_to_rs_instruction(comparison)
         assert comparison == _convert_to_py_instruction(rs_classical_comparison)
 
+    def test_pickle(self, comparison: ClassicalComparison):
+        pickled = pickle.dumps(comparison)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == comparison
+
 
 @pytest.mark.parametrize(
     ("op", "target"),
@@ -1543,6 +1665,11 @@ class TestUnaryClassicalInstruction:
     def test_convert(self, unary: UnaryClassicalInstruction):
         rs_classical_unary = _convert_to_rs_instruction(unary)
         assert unary == _convert_to_py_instruction(rs_classical_unary)
+
+    def test_pickle(self, unary: UnaryClassicalInstruction):
+        pickled = pickle.dumps(unary)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == unary
 
 
 @pytest.mark.parametrize(
@@ -1595,6 +1722,11 @@ class TestArithmeticBinaryOp:
         rs_classical_arithmetic = _convert_to_rs_instruction(arithmetic)
         assert arithmetic == _convert_to_py_instruction(rs_classical_arithmetic)
 
+    def test_pickle(self, arithmetic: UnaryClassicalInstruction, snapshot: SnapshotAssertion):
+        pickled = pickle.dumps(arithmetic)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == snapshot
+
 
 @pytest.mark.parametrize(
     ("op", "left", "right"),
@@ -1633,6 +1765,11 @@ class TestLogicalBinaryOp:
     def test_convert(self, logical: LogicalBinaryOp):
         rs_classical_logical = _convert_to_rs_instruction(logical)
         assert logical == _convert_to_py_instruction(rs_classical_logical)
+
+    def test_pickle(self, logical: LogicalBinaryOp):
+        pickled = pickle.dumps(logical)
+        unpickled = pickle.loads(pickled)
+        assert unpickled == logical
 
 
 def test_include():

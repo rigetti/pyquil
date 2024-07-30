@@ -19,12 +19,13 @@ packages = [{ include = "pyquil" }]
 exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
-python = "^3.9,<=3.14"
+python = "^3.9,<4.0"
 numpy = "^1.25"
 scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
-qcs-sdk-python = "0.19.0"
+qcs-sdk-python = "0.19.2"
+quil = ">=0.11.2"
 packaging = "^23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
@@ -116,6 +117,13 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.per-file-ignores]
+"test/**/*.py" = [
+    "D",    # docstrings are not enforced in tests
+    "S101", # asserts are allowed in tests
+    "S301", # we only deserialize our own data to ensure compatibility with the pickle module
+]
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning:pyquil.*:", "ignore::DeprecationWarning:test.unit.*:"]
