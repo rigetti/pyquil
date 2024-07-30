@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "4.13.1"
+version = "4.14.0-rc.0"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = ["Rigetti Computing <softapps@rigetti.com>"]
 readme = "README.md"
