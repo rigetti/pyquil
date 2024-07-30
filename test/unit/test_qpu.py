@@ -1,4 +1,5 @@
 import pickle
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -237,7 +238,7 @@ class TestQPUExecutionOptions:
         ),
     ],
 )
-def test_pickle_execute_responses(input):
+def test_pickle_execute_responses(input: Any):
     pickled_response = pickle.dumps(input)
     unpickled_response = pickle.loads(pickled_response)
     assert unpickled_response == input
