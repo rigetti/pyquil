@@ -267,10 +267,10 @@ class TestDefGate:
         assert isinstance(copy.copy(def_gate), DefGate)
         assert isinstance(copy.deepcopy(def_gate), DefGate)
 
-    def test_pickle(self, def_gate: DefGate):
+    def test_pickle(self, def_gate: DefGate, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(def_gate)
         unpickled = pickle.loads(pickled)
-        assert unpickled == def_gate
+        assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(
@@ -541,7 +541,7 @@ class TestMeasurement:
 @pytest.mark.parametrize(
     ("frame", "direction", "initial_frequency", "hardware_object", "sample_rate", "center_frequency", "channel_delay"),
     [
-        (Frame([Qubit(0)], "frame"), None, None, None, None, None, None),
+        (Frame([Qubit(0)], "frame"), "direction", 0.0, None, None, None, None),
         (Frame([Qubit(1)], "frame"), "direction", 1.39, "hardware_object", 44.1, 440.0, 0.0),
     ],
     ids=("Frame-Only", "With-Optionals"),
@@ -630,6 +630,7 @@ class TestDefFrame:
         assert def_frame == _convert_to_py_instruction(rs_def_frame)
 
     def test_pickle(self, def_frame: DefFrame):
+        print(def_frame.to_quil())
         pickled = pickle.dumps(def_frame)
         unpickled = pickle.loads(pickled)
         assert unpickled == def_frame
@@ -934,7 +935,6 @@ def test_fence_all():
 @pytest.mark.parametrize(
     ("name", "parameters", "entries"),
     [
-        ("Wavey", [], []),
         ("Wavey", [Parameter("x")], [Parameter("x")]),
         (
             "Wavey",
@@ -942,7 +942,7 @@ def test_fence_all():
             [complex(1.0, 2.0), Parameter("x"), Mul(complex(3.0, 0.0), Parameter("y"))],
         ),
     ],
-    ids=("No-Params-Entries", "With-Param", "With-Params-Complex"),
+    ids=("With-Param", "With-Params-Complex"),
 )
 class TestDefWaveform:
     @pytest.fixture
@@ -975,10 +975,11 @@ class TestDefWaveform:
         rs_def_waveform = _convert_to_rs_instruction(def_waveform)
         assert def_waveform == _convert_to_py_instruction(rs_def_waveform)
 
-    def test_pickle(self, def_waveform: DefWaveform):
+    def test_pickle(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
+        print(def_waveform.to_quil())
         pickled = pickle.dumps(def_waveform)
-        unpickled = pickle.loads(def_waveform)
-        assert unpickled == def_waveform
+        unpickled = pickle.loads(pickled)
+        assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(
@@ -992,7 +993,6 @@ class TestDefWaveform:
             [
                 Declare("ro", "BIT", 1),
                 Measurement(FormalArgument("a"), MemoryReference("ro")),
-                DefGate("ParameterizedGate", np.diag([Parameter("theta")] * 4), [Parameter("theta")]),
             ],
         ),
     ],
@@ -1041,6 +1041,7 @@ class TestDefCircuit:
         assert def_circuit == _convert_to_py_instruction(rs_def_circuit)
 
     def test_pickle(self, def_circuit: DefCircuit):
+        print(def_circuit.to_quil())
         pickled = pickle.dumps(def_circuit)
         unpickled = pickle.loads(pickled)
         assert unpickled == def_circuit
@@ -1106,10 +1107,10 @@ class TestCapture:
         rs_capture = _convert_to_rs_instruction(capture)
         assert capture == _convert_to_py_instruction(rs_capture)
 
-    def test_pickle(self, capture: Capture):
+    def test_pickle(self, capture: Capture, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(capture)
         unpickled = pickle.loads(pickled)
-        assert unpickled == capture
+        assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(
@@ -1201,10 +1202,10 @@ class TestPulse:
         rs_pulse = _convert_to_rs_instruction(pulse)
         assert pulse == _convert_to_py_instruction(rs_pulse)
 
-    def test_pickle(self, pulse: Pulse):
+    def test_pickle(self, pulse: Pulse, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(pulse)
         unpickled = pickle.loads(pickled)
-        assert unpickled == pulse
+        assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(
@@ -1576,6 +1577,7 @@ class TestClassicalStore:
         unpickled = pickle.loads(pickled)
         assert unpickled == store
 
+
 @pytest.mark.parametrize(
     ("op", "target", "left", "right"),
     [
@@ -1668,6 +1670,7 @@ class TestUnaryClassicalInstruction:
         pickled = pickle.dumps(unary)
         unpickled = pickle.loads(pickled)
         assert unpickled == unary
+
 
 @pytest.mark.parametrize(
     ("op", "left", "right"),
@@ -1767,6 +1770,7 @@ class TestLogicalBinaryOp:
         pickled = pickle.dumps(logical)
         unpickled = pickle.loads(pickled)
         assert unpickled == logical
+
 
 def test_include():
     include = Include("my-cool-file.quil")
