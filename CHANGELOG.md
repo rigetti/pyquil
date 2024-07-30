@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.14.0 (2024-07-30)
+
+### Features
+
+#### Instruction classes and execution results now support the pickle module (#1795)
+
 ## 4.14.0-rc.0 (2024-07-30)
 
 ### Features
