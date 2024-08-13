@@ -473,8 +473,21 @@ class TestDefMeasureCalibration:
 
     def test_instrs(self, measure_calibration: DefMeasureCalibration, instrs: List[AbstractInstruction]):
         assert measure_calibration.instrs == instrs
-        measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
-        assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]
+        measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
+        assert isinstance(measure_calibration.instrs[0], Gate)
+        assert not isinstance(measure_calibration.instrs[0], Fence)
+        assert isinstance(measure_calibration.instrs[1], Fence)
+        assert not isinstance(measure_calibration.instrs[1], Gate)
+        assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
+
+    def test_instructions(self, measure_calibration: DefMeasureCalibration, instrs: List[AbstractInstruction]):
+        assert measure_calibration.instructions == instrs
+        measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
+        assert isinstance(measure_calibration.instrs[0], Gate)
+        assert not isinstance(measure_calibration.instrs[0], Fence)
+        assert isinstance(measure_calibration.instrs[1], Fence)
+        assert not isinstance(measure_calibration.instrs[1], Gate)
+        assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
 
     def test_copy(self, measure_calibration: DefMeasureCalibration):
         assert isinstance(copy.copy(measure_calibration), DefMeasureCalibration)
