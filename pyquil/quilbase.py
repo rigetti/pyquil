@@ -23,6 +23,7 @@ from typing import (
     Callable,
     ClassVar,
     Optional,
+    TypeVar,
     Union,
 )
 
@@ -102,6 +103,22 @@ class AbstractInstruction(metaclass=_InstructionMeta):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+
+_T = TypeVar("_T", bound=type)
+
+
+def _add_reduce_method(cls: _T) -> _T:
+    def __reduce__(self: Any) -> tuple[Callable[[Any], AbstractInstruction], tuple[Any]]:
+        init_fn, args = super(cls, self).__reduce__()  # type: ignore
+        obj = init_fn(*args)
+        return (
+            _convert_to_py_instruction,
+            (obj,),
+        )
+
+    cls.__reduce__ = __reduce__  # type: ignore
+    return cls
 
 
 def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruction]) -> quil_rs.Instruction:
@@ -319,6 +336,7 @@ RESERVED_WORDS: Container[str] = [
 ]
 
 
+@_add_reduce_method
 class Gate(quil_rs.Gate, AbstractInstruction):
     """A quantum gate instruction."""
 
@@ -488,6 +506,7 @@ def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
     return stripped
 
 
+@_add_reduce_method
 class Measurement(quil_rs.Measurement, AbstractInstruction):
     """A Quil measurement instruction."""
 
@@ -565,6 +584,7 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
         return Measurement._from_rs_measurement(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class Reset(quil_rs.Reset, AbstractInstruction):
     """The RESET instruction."""
 
@@ -644,6 +664,7 @@ class ResetQubit(Reset):
         raise ValueError("reset.qubit should not be None")
 
 
+@_add_reduce_method
 class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     """A DEFGATE directive."""
 
@@ -840,6 +861,7 @@ class DefGateByPaulis(DefGate):
         return super().to_quil_or_debug()
 
 
+@_add_reduce_method
 class JumpTarget(quil_rs.Label, AbstractInstruction):
     """Representation of a target that can be jumped to."""
 
@@ -872,6 +894,7 @@ class JumpTarget(quil_rs.Label, AbstractInstruction):
         return JumpTarget._from_rs_label(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class JumpWhen(quil_rs.JumpWhen, AbstractInstruction):
     """The JUMP-WHEN instruction."""
 
@@ -923,6 +946,7 @@ class JumpWhen(quil_rs.JumpWhen, AbstractInstruction):
         return JumpWhen._from_rs_jump_when(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class JumpUnless(quil_rs.JumpUnless, AbstractInstruction):
     """The JUMP-UNLESS instruction."""
 
@@ -1011,6 +1035,7 @@ class Nop(SimpleInstruction):
     instruction = quil_rs.Instruction.new_nop()
 
 
+@_add_reduce_method
 class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
     """Base class for unary classical instructions."""
 
@@ -1061,6 +1086,7 @@ class ClassicalNot(UnaryClassicalInstruction):
     op = quil_rs.UnaryOperator.Not
 
 
+@_add_reduce_method
 class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
     """Base class for binary logical classical instructions."""
 
@@ -1142,6 +1168,7 @@ class ClassicalExclusiveOr(LogicalBinaryOp):
     op = quil_rs.BinaryOperator.Xor
 
 
+@_add_reduce_method
 class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
     """Base class for binary arithmetic classical instructions."""
 
@@ -1216,6 +1243,7 @@ class ClassicalDiv(ArithmeticBinaryOp):
     op = quil_rs.ArithmeticOperator.Divide
 
 
+@_add_reduce_method
 class ClassicalMove(quil_rs.Move, AbstractInstruction):
     """The MOVE instruction."""
 
@@ -1259,6 +1287,7 @@ class ClassicalMove(quil_rs.Move, AbstractInstruction):
         return ClassicalMove._from_rs_move(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
     """The EXCHANGE instruction."""
 
@@ -1306,6 +1335,7 @@ class ClassicalExchange(quil_rs.Exchange, AbstractInstruction):
         return ClassicalExchange._from_rs_exchange(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
     """The CONVERT instruction."""
 
@@ -1349,6 +1379,7 @@ class ClassicalConvert(quil_rs.Convert, AbstractInstruction):
         return ClassicalConvert._from_rs_convert(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class ClassicalLoad(quil_rs.Load, AbstractInstruction):
     """The LOAD instruction."""
 
@@ -1420,6 +1451,7 @@ def _to_py_arithmetic_operand(operand: quil_rs.ArithmeticOperand) -> Union[Memor
     return inner
 
 
+@_add_reduce_method
 class ClassicalStore(quil_rs.Store, AbstractInstruction):
     """The STORE instruction."""
 
@@ -1473,6 +1505,7 @@ class ClassicalStore(quil_rs.Store, AbstractInstruction):
         return ClassicalStore._from_rs_store(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
     """Base class for ternary comparison instructions."""
 
@@ -1588,6 +1621,7 @@ class ClassicalGreaterEqual(ClassicalComparison):
     op = quil_rs.ComparisonOperator.GreaterThanOrEqual
 
 
+@_add_reduce_method
 class Jump(quil_rs.Jump, AbstractInstruction):
     """Representation of an unconditional jump instruction (JUMP)."""
 
@@ -1624,6 +1658,7 @@ class Jump(quil_rs.Jump, AbstractInstruction):
         return Jump._from_rs_jump(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class Pragma(quil_rs.Pragma, AbstractInstruction):
     """A PRAGMA instruction.
 
@@ -1712,6 +1747,7 @@ class Pragma(quil_rs.Pragma, AbstractInstruction):
         return Pragma._from_rs_pragma(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class Declare(quil_rs.Declaration, AbstractInstruction):
     """A DECLARE directive.
 
@@ -1838,6 +1874,7 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
         return Declare._from_rs_declaration(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class Include(quil_rs.Include, AbstractInstruction):
     """An INCLUDE directive."""
 
@@ -1859,6 +1896,7 @@ class Include(quil_rs.Include, AbstractInstruction):
         return Include._from_rs_include(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class Pulse(quil_rs.Pulse, AbstractInstruction):
     """A PULSE instruction."""
 
@@ -1926,6 +1964,7 @@ class Pulse(quil_rs.Pulse, AbstractInstruction):
         return Pulse._from_rs_pulse(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
     """A SET-FREQUENCY instruction."""
 
@@ -1983,6 +2022,7 @@ class SetFrequency(quil_rs.SetFrequency, AbstractInstruction):
         return SetFrequency._from_rs_set_frequency(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
     """The SHIFT-FREQUENCY instruction."""
 
@@ -2040,6 +2080,7 @@ class ShiftFrequency(quil_rs.ShiftFrequency, AbstractInstruction):
         return ShiftFrequency._from_rs_shift_frequency(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class SetPhase(quil_rs.SetPhase, AbstractInstruction):
     """The SET-PHASE instruction."""
 
@@ -2097,6 +2138,7 @@ class SetPhase(quil_rs.SetPhase, AbstractInstruction):
         return SetPhase._from_rs_set_phase(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
     """The SHIFT-PHASE instruction."""
 
@@ -2154,6 +2196,7 @@ class ShiftPhase(quil_rs.ShiftPhase, AbstractInstruction):
         return ShiftPhase._from_rs_shift_phase(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class SwapPhases(quil_rs.SwapPhases, AbstractInstruction):
     """The SWAP-PHASES instruction."""
 
@@ -2211,6 +2254,7 @@ class SwapPhases(quil_rs.SwapPhases, AbstractInstruction):
         return SwapPhases._from_rs_swap_phases(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class SetScale(quil_rs.SetScale, AbstractInstruction):
     """The SET-SCALE instruction."""
 
@@ -2268,6 +2312,7 @@ class SetScale(quil_rs.SetScale, AbstractInstruction):
         return SetScale._from_rs_set_scale(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class Capture(quil_rs.Capture, AbstractInstruction):
     """The CAPTURE instruction."""
 
@@ -2352,6 +2397,7 @@ class Capture(quil_rs.Capture, AbstractInstruction):
         return Capture._from_rs_capture(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class RawCapture(quil_rs.RawCapture, AbstractInstruction):
     """The RAW-CAPTURE instruction."""
 
@@ -2440,6 +2486,7 @@ class RawCapture(quil_rs.RawCapture, AbstractInstruction):
         return RawCapture._from_rs_raw_capture(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class Delay(quil_rs.Delay, AbstractInstruction):
     """The DELAY instruction."""
 
@@ -2534,6 +2581,7 @@ class DelayQubits(Delay):
         return Delay._from_rs_delay.__func__(cls, delay)  # type: ignore
 
 
+@_add_reduce_method
 class Fence(quil_rs.Fence, AbstractInstruction):
     """The FENCE instruction."""
 
@@ -2579,6 +2627,7 @@ class FenceAll(Fence):
         return super().__new__(cls, [])
 
 
+@_add_reduce_method
 class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
     """A waveform definition."""
 
@@ -2637,6 +2686,7 @@ class DefWaveform(quil_rs.WaveformDefinition, AbstractInstruction):
         return DefWaveform._from_rs_waveform_definition(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
     """A circuit definition."""
 
@@ -2707,6 +2757,7 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
         return DefCircuit._from_rs_circuit_definition(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     """A calibration definition."""
 
@@ -2789,6 +2840,7 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
         return DefCalibration._from_rs_calibration(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstruction):
     """A measure calibration definition."""
 
@@ -2866,6 +2918,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
         return DefMeasureCalibration._from_rs_measure_calibration_definition(super().__deepcopy__(memo))
 
 
+@_add_reduce_method
 class DefFrame(quil_rs.FrameDefinition, AbstractInstruction):
     """A frame definition."""
 
