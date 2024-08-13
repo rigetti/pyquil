@@ -910,7 +910,7 @@ class TestDelayQubits:
     def test_pickle(self, delay_qubits: DelayQubits):
         pickled = pickle.dumps(delay_qubits)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unickled, DelayQubits)
+        assert isinstance(unpickled, DelayQubits)
         assert unpickled == delay_qubits
 
 
