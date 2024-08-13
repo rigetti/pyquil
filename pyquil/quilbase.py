@@ -110,7 +110,7 @@ _T = TypeVar("_T", bound=type)
 
 def _add_reduce_method(cls: _T) -> _T:
     def __reduce__(self: Any) -> tuple[Callable[[Any], AbstractInstruction], tuple[Any]]:
-        init_fn, args = super(self, cls).__reduce__()
+        init_fn, args = super(cls, self).__reduce__()  # type: ignore
         obj = init_fn(*args)
         return (
             _convert_to_py_instruction,
