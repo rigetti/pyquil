@@ -830,7 +830,7 @@ class TestReset:
     def test_pickle(self, reset_qubit: Reset):
         pickled = pickle.dumps(reset_qubit)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, Reset)
+        assert isinstance(unpickled, (Reset, ResetQubit))
         assert unpickled == reset_qubit
 
 
