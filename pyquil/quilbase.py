@@ -2843,6 +2843,15 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
     def instrs(self, instrs: list[AbstractInstruction]) -> None:
         quil_rs.MeasureCalibrationDefinition.instructions.__set__(self, _convert_to_rs_instructions(instrs))  # type: ignore[attr-defined] # noqa
 
+    @property  # type: ignore[override]
+    def instructions(self) -> list[AbstractInstruction]:
+        """The instructions in the calibration."""
+        return self.instrs
+
+    @instructions.setter
+    def instructions(self, instructions: list[AbstractInstruction]) -> None:
+        self.instrs = instructions
+
     def out(self) -> str:
         """Return the instruction as a valid Quil string."""
         return super().to_quil()
