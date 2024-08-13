@@ -271,7 +271,7 @@ class TestDefGate:
     def test_pickle(self, def_gate: DefGate, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(def_gate)
         unpickled = pickle.loads(pickled)
-        assert isinstance(def_gate, DefGate)
+        assert isinstance(unpickled, DefGate)
         assert unpickled == snapshot
 
 
@@ -446,7 +446,7 @@ class TestDefCalibration:
     def test_pickle(self, calibration: DefCalibration):
         pickled = pickle.dumps(calibration)
         unpickled = pickle.loads(pickled)
-        assert isinstance(calibration, DefCalibration)
+        assert isinstance(unpickled, DefCalibration)
         assert unpickled == calibration
 
 
@@ -503,6 +503,7 @@ class TestDefMeasureCalibration:
     def test_pickle(self, measure_calibration: DefMeasureCalibration):
         pickled = pickle.dumps(measure_calibration)
         unpickled = pickle.loads(pickled)
+        assert isinstance(unpickled, DefMeasureCalibration)
         assert unpickled == measure_calibration
 
 
@@ -551,7 +552,7 @@ class TestMeasurement:
     def test_pickle(self, measurement: Measurement):
         pickled = pickle.dumps(measurement)
         unpickled = pickle.loads(pickled)
-        assert isinstance(measurement, Measurement)
+        assert isinstance(unpickled, Measurement)
         assert unpickled == measurement
 
 
@@ -649,7 +650,7 @@ class TestDefFrame:
     def test_pickle(self, def_frame: DefFrame):
         pickled = pickle.dumps(def_frame)
         unpickled = pickle.loads(pickled)
-        assert isinstance(def_frame, DefFrame)
+        assert isinstance(unpickled, DefFrame)
         assert unpickled == def_frame
 
 
@@ -725,7 +726,7 @@ class TestDeclare:
     def test_pickle(self, declare: Declare):
         pickled = pickle.dumps(declare)
         unpickled = pickle.loads(pickled)
-        assert isinstance(declare, Declare)
+        assert isinstance(unpickled, Declare)
         assert unpickled == declare
 
 
@@ -776,7 +777,7 @@ class TestPragma:
     def test_pickle(self, pragma: Pragma):
         pickled = pickle.dumps(pragma)
         unpickled = pickle.loads(pickled)
-        assert isinstance(pragma, Pragma)
+        assert isinstance(unpickled, Pragma)
         assert unpickled == pragma
 
 
@@ -829,7 +830,7 @@ class TestReset:
     def test_pickle(self, reset_qubit: Reset):
         pickled = pickle.dumps(reset_qubit)
         unpickled = pickle.loads(pickled)
-        assert isinstance(reset_qubit, Reset)
+        assert isinstance(unpickled, Reset)
         assert unpickled == reset_qubit
 
 
@@ -868,7 +869,7 @@ class TestDelayFrames:
     def test_pickle(self, delay_frames: DelayFrames):
         pickled = pickle.dumps(delay_frames)
         unpickled = pickle.loads(pickled)
-        assert isinstance(delay_frames, DelayFrames)
+        assert isinstance(unpickled, DelayFrames)
         assert unpickled == delay_frames
 
 
@@ -909,7 +910,7 @@ class TestDelayQubits:
     def test_pickle(self, delay_qubits: DelayQubits):
         pickled = pickle.dumps(delay_qubits)
         unpickled = pickle.loads(pickled)
-        assert isinstance(delay_qubits, DelayQubits)
+        assert isinstance(unickled, DelayQubits)
         assert unpickled == delay_qubits
 
 
@@ -945,7 +946,7 @@ class TestFence:
     def test_pickle(self, fence: Fence):
         pickled = pickle.dumps(fence)
         unpickled = pickle.loads(pickled)
-        assert isinstance(fence, Fence)
+        assert isinstance(unpickled, Fence)
         assert unpickled == fence
 
 
@@ -1001,7 +1002,7 @@ class TestDefWaveform:
     def test_pickle(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(def_waveform)
         unpickled = pickle.loads(pickled)
-        assert isinstance(def_waveform, DefWaveform)
+        assert isinstance(unpickled, DefWaveform)
         assert unpickled == snapshot
 
 
@@ -1066,7 +1067,7 @@ class TestDefCircuit:
     def test_pickle(self, def_circuit: DefCircuit):
         pickled = pickle.dumps(def_circuit)
         unpickled = pickle.loads(pickled)
-        assert isinstance(def_circuit, DefCircuit)
+        assert isinstance(unpickled, DefCircuit)
         assert unpickled == def_circuit
 
 
@@ -1133,7 +1134,7 @@ class TestCapture:
     def test_pickle(self, capture: Capture, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(capture)
         unpickled = pickle.loads(pickled)
-        assert isinstance(capture, Capture)
+        assert isinstance(unpickled, Capture)
         assert unpickled == snapshot
 
 
@@ -1229,7 +1230,7 @@ class TestPulse:
     def test_pickle(self, pulse: Pulse, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(pulse)
         unpickled = pickle.loads(pickled)
-        assert isinstance(pulse, Pulse)
+        assert isinstance(unpickled, Pulse)
         assert unpickled == snapshot
 
 
@@ -1296,7 +1297,7 @@ class TestRawCapture:
     def test_pickle(self, raw_capture: RawCapture):
         pickled = pickle.dumps(raw_capture)
         unpickled = pickle.loads(pickled)
-        assert isinstance(raw_capture, RawCapture)
+        assert isinstance(unpickled, RawCapture)
         assert unpickled == raw_capture
 
 
@@ -1403,7 +1404,7 @@ class TestSwapPhases:
     def test_pickle(self, swap_phases: SwapPhases):
         pickled = pickle.dumps(swap_phases)
         unpickled = pickle.loads(pickled)
-        assert isinstance(swap_phases, SwapPhases)
+        assert isinstance(unpickled, SwapPhases)
         assert unpickled == swap_phases
 
 
@@ -1444,7 +1445,7 @@ class TestClassicalMove:
     def test_pickle(self, move: ClassicalMove):
         pickled = pickle.dumps(move)
         unpickled = pickle.loads(pickled)
-        assert isinstance(move, ClassicalMove)
+        assert isinstance(unpickled, ClassicalMove)
         assert unpickled == move
 
 
@@ -1481,7 +1482,7 @@ class TestClassicalExchange:
     def test_pickle(self, exchange: ClassicalExchange):
         pickled = pickle.dumps(exchange)
         unpickled = pickle.loads(pickled)
-        assert isinstance(exchange, ClassicalExchange)
+        assert isinstance(unpickled, ClassicalExchange)
         assert unpickled == exchange
 
 
@@ -1518,7 +1519,7 @@ class TestClassicalConvert:
     def test_pickle(self, convert: ClassicalConvert):
         pickled = pickle.dumps(convert)
         unpickled = pickle.loads(pickled)
-        assert isinstance(convert, ClassicalConvert)
+        assert isinstance(unpickled, ClassicalConvert)
         assert unpickled == convert
 
 
@@ -1560,7 +1561,7 @@ class TestClassicalLoad:
     def test_pickle(self, load: ClassicalLoad):
         pickled = pickle.dumps(load)
         unpickled = pickle.loads(pickled)
-        assert isinstance(load, ClassicalLoad)
+        assert isinstance(unpickled, ClassicalLoad)
         assert unpickled == load
 
 
@@ -1606,7 +1607,7 @@ class TestClassicalStore:
     def test_pickle(self, store: ClassicalStore):
         pickled = pickle.dumps(store)
         unpickled = pickle.loads(pickled)
-        assert isinstance(store, ClassicalStore)
+        assert isinstance(unpickled, ClassicalStore)
         assert unpickled == store
 
 
@@ -1664,7 +1665,7 @@ class TestClassicalComparison:
     def test_pickle(self, comparison: ClassicalComparison):
         pickled = pickle.dumps(comparison)
         unpickled = pickle.loads(pickled)
-        assert isinstance(comparison, ClassicalComparison)
+        assert isinstance(unpickled, ClassicalComparison)
         assert unpickled == comparison
 
 
