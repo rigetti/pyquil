@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.14.1-rc.0 (2024-08-13)
+
+### Fixes
+
+#### The DefMeasureCalibration `instructions` property returns `pyQuil` `AbstractInstrction`s instead of `quil` `Instruction`s (#1799)
+
 ## 4.14.0 (2024-07-30)
 
 ### Features
