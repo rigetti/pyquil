@@ -29,7 +29,7 @@ from typing import (
 
 import numpy as np
 from deprecated.sphinx import deprecated
-from typing_extensions import Self, Type
+from typing_extensions import Self
 
 from pyquil.quilatom import (
     Expression,
