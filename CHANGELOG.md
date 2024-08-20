@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.14.2 (2024-08-20)
+
+### Fixes
+
+#### Loosen qcs-sdk-python version requirement
+
 ## 4.14.2-rc.0 (2024-08-20)
 
 ### Fixes
