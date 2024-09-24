@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.14.3 (2024-09-24)
+
+### Fixes
+
+#### Update qcs-sdk-python, fixing edge cases that prevented access tokens from being refreshed properly (#1803)
+
 ## 4.14.3-rc.0 (2024-09-24)
 
 ### Fixes
