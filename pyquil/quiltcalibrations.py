@@ -50,16 +50,16 @@ def _convert_to_calibration_match(
     if isinstance(instruction, quil_rs.Gate) and isinstance(calibration, quil_rs.Calibration):
         target_qubits = instruction.qubits
         target_values: Sequence[Union[quil_expr.Expression, MemoryReference]] = instruction.parameters
-        parameter_qubits = calibration.qubits
-        parameter_values: Sequence[Union[quil_expr.Expression, MemoryReference]] = calibration.parameters
+        parameter_qubits = calibration.qubits()
+        parameter_values: Sequence[Union[quil_expr.Expression, MemoryReference]] = calibration.parameters()
         py_calibration: Union[DefCalibration, DefMeasureCalibration] = DefCalibration._from_rs_calibration(calibration)
     elif isinstance(instruction, quil_rs.Measurement) and isinstance(calibration, quil_rs.MeasureCalibrationDefinition):
         target_qubits = [instruction.qubit]
         target_values = (
             [] if not instruction.target else [MemoryReference._from_rs_memory_reference(instruction.target)]
         )
-        parameter_qubits = [] if not calibration.qubit else [calibration.qubit]
-        parameter_values = [MemoryReference._from_parameter_str(calibration.parameter)]
+        parameter_qubits = [] if not calibration.qubit() else [calibration.qubit()]
+        parameter_values = [MemoryReference._from_parameter_str(calibration.identifier.parameter)]
         py_calibration = DefMeasureCalibration._from_rs_measure_calibration_definition(calibration)
     else:
         return None

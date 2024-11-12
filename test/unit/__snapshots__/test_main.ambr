@@ -2,8 +2,8 @@
 # name: test_remove_reset_from_program
   '''
   DEFGATE XGATE AS MATRIX:
-  	0, 1
-  	1, 0
+      0, 1
+      1, 0
   
   X 0
   

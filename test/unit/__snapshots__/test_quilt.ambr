@@ -2,94 +2,94 @@
 # name: test_round_trip_calibration_program[cz]
   '''
   DEFCAL CZ 110 111:
-  	FENCE
-  	NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
-  	DELAY 110 "rf" 1.6e-7
-  	SHIFT-PHASE 110 "rf" 0.6
-  	DELAY 111 "rf" 1.6e-7
-  	SHIFT-PHASE 111 "rf" 0.4
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 0.3
-  	SHIFT-PHASE 110 117 "xy" 0.3
-  	SHIFT-PHASE 110 111 "xy" -0.2
-  	SHIFT-PHASE 111 112 "xy" -0.2
-  	SHIFT-PHASE 111 126 "xy" -0.2
+      FENCE
+      NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
+      DELAY 110 "rf" 1.6e-7
+      SHIFT-PHASE 110 "rf" 0.6
+      DELAY 111 "rf" 1.6e-7
+      SHIFT-PHASE 111 "rf" 0.4
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 0.3
+      SHIFT-PHASE 110 117 "xy" 0.3
+      SHIFT-PHASE 110 111 "xy" -0.2
+      SHIFT-PHASE 111 112 "xy" -0.2
+      SHIFT-PHASE 111 126 "xy" -0.2
   DEFCAL CZ 111 110:
-  	FENCE
-  	NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
-  	DELAY 110 "rf" 1.6e-7
-  	SHIFT-PHASE 110 "rf" 0.6
-  	DELAY 111 "rf" 1.6e-7
-  	SHIFT-PHASE 111 "rf" 0.4
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 0.3
-  	SHIFT-PHASE 110 117 "xy" 0.3
-  	SHIFT-PHASE 110 111 "xy" -0.2
-  	SHIFT-PHASE 111 112 "xy" -0.2
-  	SHIFT-PHASE 111 126 "xy" -0.2
+      FENCE
+      NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
+      DELAY 110 "rf" 1.6e-7
+      SHIFT-PHASE 110 "rf" 0.6
+      DELAY 111 "rf" 1.6e-7
+      SHIFT-PHASE 111 "rf" 0.4
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 0.3
+      SHIFT-PHASE 110 117 "xy" 0.3
+      SHIFT-PHASE 110 111 "xy" -0.2
+      SHIFT-PHASE 111 112 "xy" -0.2
+      SHIFT-PHASE 111 126 "xy" -0.2
   
   '''
 # ---
 # name: test_round_trip_calibration_program[cz_cphase]
   '''
   DEFCAL CZ 110 111:
-  	FENCE
-  	NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
-  	DELAY 110 "rf" 1.6e-7
-  	SHIFT-PHASE 110 "rf" 0.6
-  	DELAY 111 "rf" 1.6e-7
-  	SHIFT-PHASE 111 "rf" 0.4
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 0.3
-  	SHIFT-PHASE 110 117 "xy" 0.3
-  	SHIFT-PHASE 110 111 "xy" -0.2
-  	SHIFT-PHASE 111 112 "xy" -0.2
-  	SHIFT-PHASE 111 126 "xy" -0.2
+      FENCE
+      NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
+      DELAY 110 "rf" 1.6e-7
+      SHIFT-PHASE 110 "rf" 0.6
+      DELAY 111 "rf" 1.6e-7
+      SHIFT-PHASE 111 "rf" 0.4
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 0.3
+      SHIFT-PHASE 110 117 "xy" 0.3
+      SHIFT-PHASE 110 111 "xy" -0.2
+      SHIFT-PHASE 111 112 "xy" -0.2
+      SHIFT-PHASE 111 126 "xy" -0.2
   DEFCAL CZ 111 110:
-  	FENCE
-  	NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
-  	DELAY 110 "rf" 1.6e-7
-  	SHIFT-PHASE 110 "rf" 0.6
-  	DELAY 111 "rf" 1.6e-7
-  	SHIFT-PHASE 111 "rf" 0.4
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 0.3
-  	SHIFT-PHASE 110 117 "xy" 0.3
-  	SHIFT-PHASE 110 111 "xy" -0.2
-  	SHIFT-PHASE 111 112 "xy" -0.2
-  	SHIFT-PHASE 111 126 "xy" -0.2
+      FENCE
+      NONBLOCKING PULSE 110 111 "cz" q110_q111_cz/CZ
+      DELAY 110 "rf" 1.6e-7
+      SHIFT-PHASE 110 "rf" 0.6
+      DELAY 111 "rf" 1.6e-7
+      SHIFT-PHASE 111 "rf" 0.4
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 0.3
+      SHIFT-PHASE 110 117 "xy" 0.3
+      SHIFT-PHASE 110 111 "xy" -0.2
+      SHIFT-PHASE 111 112 "xy" -0.2
+      SHIFT-PHASE 111 126 "xy" -0.2
   DEFCAL CPHASE(%theta) 110 111:
-  	FENCE
-  	NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
-  	SHIFT-PHASE 110 111 "cphase" -1.2+(0.5*%theta)
-  	NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
-  	SHIFT-PHASE 110 111 "cphase" -1*(-1.2+(0.5*%theta))
-  	DELAY 110 "rf" 3.2e-7
-  	SHIFT-PHASE 110 "rf" 2.2
-  	DELAY 111 "rf" 3.2e-7
-  	SHIFT-PHASE 111 "rf" 1.2
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 1.1
-  	SHIFT-PHASE 110 117 "xy" 1.1
-  	SHIFT-PHASE 110 111 "xy" -0.6
-  	SHIFT-PHASE 111 112 "xy" -0.6
-  	SHIFT-PHASE 111 126 "xy" -0.6
+      FENCE
+      NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
+      SHIFT-PHASE 110 111 "cphase" -1.2+(0.5*%theta)
+      NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
+      SHIFT-PHASE 110 111 "cphase" -1*(-1.2+(0.5*%theta))
+      DELAY 110 "rf" 3.2e-7
+      SHIFT-PHASE 110 "rf" 2.2
+      DELAY 111 "rf" 3.2e-7
+      SHIFT-PHASE 111 "rf" 1.2
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 1.1
+      SHIFT-PHASE 110 117 "xy" 1.1
+      SHIFT-PHASE 110 111 "xy" -0.6
+      SHIFT-PHASE 111 112 "xy" -0.6
+      SHIFT-PHASE 111 126 "xy" -0.6
   DEFCAL CPHASE(%theta) 111 110:
-  	FENCE
-  	NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
-  	SHIFT-PHASE 110 111 "cphase" -1.2+(0.5*%theta)
-  	NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
-  	SHIFT-PHASE 110 111 "cphase" -1*(-1.2+(0.5*%theta))
-  	DELAY 110 "rf" 3.2e-7
-  	SHIFT-PHASE 110 "rf" 2.2
-  	DELAY 111 "rf" 3.2e-7
-  	SHIFT-PHASE 111 "rf" 1.2
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 1.1
-  	SHIFT-PHASE 110 117 "xy" 1.1
-  	SHIFT-PHASE 110 111 "xy" -0.6
-  	SHIFT-PHASE 111 112 "xy" -0.6
-  	SHIFT-PHASE 111 126 "xy" -0.6
+      FENCE
+      NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
+      SHIFT-PHASE 110 111 "cphase" -1.2+(0.5*%theta)
+      NONBLOCKING PULSE 110 111 "cphase" q110_q111_cphase/sqrtCPHASE
+      SHIFT-PHASE 110 111 "cphase" -1*(-1.2+(0.5*%theta))
+      DELAY 110 "rf" 3.2e-7
+      SHIFT-PHASE 110 "rf" 2.2
+      DELAY 111 "rf" 3.2e-7
+      SHIFT-PHASE 111 "rf" 1.2
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 1.1
+      SHIFT-PHASE 110 117 "xy" 1.1
+      SHIFT-PHASE 110 111 "xy" -0.6
+      SHIFT-PHASE 111 112 "xy" -0.6
+      SHIFT-PHASE 111 126 "xy" -0.6
   
   '''
 # ---
@@ -140,92 +140,92 @@
 # name: test_round_trip_calibration_program[rx]
   '''
   DEFCAL RX(pi/2) 0:
-  	FENCE 0
-  	NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.1, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.1, t0: 1e-8)
-  	FENCE 0
+      FENCE 0
+      NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.1, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.1, t0: 1e-8)
+      FENCE 0
   DEFCAL RX(-pi/2) 0:
-  	FENCE 0
-  	NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.2, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.2, t0: 1e-8)
-  	FENCE 0
+      FENCE 0
+      NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.2, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.2, t0: 1e-8)
+      FENCE 0
   DEFCAL RX(pi) 0:
-  	FENCE 0
-  	NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.3, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.3, t0: 1e-8)
-  	FENCE 0
+      FENCE 0
+      NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.3, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.3, t0: 1e-8)
+      FENCE 0
   DEFCAL RX(-pi) 0:
-  	FENCE 0
-  	NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.4, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.4, t0: 1e-8)
-  	FENCE 0
+      FENCE 0
+      NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.4, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.4, t0: 1e-8)
+      FENCE 0
   DEFCAL RX(pi/2) 3:
-  	FENCE 3
-  	NONBLOCKING PULSE 3 "rf" drag_gaussian(alpha: -0.1, anh: -100000000, detuning: 0, duration: 2e-8, fwhm: 1e-8, phase: 0, scale: 0.1, t0: 1e-8)
-  	FENCE 3
+      FENCE 3
+      NONBLOCKING PULSE 3 "rf" drag_gaussian(alpha: -0.1, anh: -100000000, detuning: 0, duration: 2e-8, fwhm: 1e-8, phase: 0, scale: 0.1, t0: 1e-8)
+      FENCE 3
   DEFCAL RX(-pi/2) 3:
-  	FENCE 3
-  	NONBLOCKING PULSE 3 "rf" drag_gaussian(alpha: -0.2, anh: -100000000, detuning: 0, duration: 2e-8, fwhm: 1e-8, phase: 0, scale: 0.2, t0: 1e-8)
-  	FENCE 3
+      FENCE 3
+      NONBLOCKING PULSE 3 "rf" drag_gaussian(alpha: -0.2, anh: -100000000, detuning: 0, duration: 2e-8, fwhm: 1e-8, phase: 0, scale: 0.2, t0: 1e-8)
+      FENCE 3
   DEFCAL RX(pi) 3:
-  	FENCE 3
-  	NONBLOCKING PULSE 3 "rf" drag_gaussian(alpha: -0.3, anh: -100000000, detuning: 0, duration: 2e-8, fwhm: 1e-8, phase: 0, scale: 0.3, t0: 1e-8)
-  	FENCE 3
+      FENCE 3
+      NONBLOCKING PULSE 3 "rf" drag_gaussian(alpha: -0.3, anh: -100000000, detuning: 0, duration: 2e-8, fwhm: 1e-8, phase: 0, scale: 0.3, t0: 1e-8)
+      FENCE 3
   DEFCAL RX(-pi) 3:
-  	FENCE 3
-  	NONBLOCKING PULSE 3 "rf" drag_gaussian(alpha: -0.4, anh: -100000000, detuning: 0, duration: 2e-8, fwhm: 1e-8, phase: 0, scale: 0.4, t0: 1e-8)
-  	FENCE 3
+      FENCE 3
+      NONBLOCKING PULSE 3 "rf" drag_gaussian(alpha: -0.4, anh: -100000000, detuning: 0, duration: 2e-8, fwhm: 1e-8, phase: 0, scale: 0.4, t0: 1e-8)
+      FENCE 3
   
   '''
 # ---
 # name: test_round_trip_calibration_program[xy]
   '''
   DEFCAL XY(%theta) 110 111:
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 0.4
-  	NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
-  	SHIFT-PHASE 110 111 "xy" -0.4
-  	SHIFT-PHASE 110 111 "xy" 1.8+(-0.5*%theta)
-  	NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
-  	SHIFT-PHASE 110 111 "xy" -1*(1.8+(-0.5*%theta))
-  	DELAY 110 "rf" 1.2e-7
-  	SHIFT-PHASE 110 "rf" 0.8
-  	DELAY 111 "rf" 1.2e-7
-  	SHIFT-PHASE 111 "rf" 0.4
-  	SHIFT-PHASE 111 "rf" 0.5*%theta
-  	SHIFT-PHASE 110 "rf" -0.5*%theta
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 0.4
-  	SHIFT-PHASE 110 117 "xy" 0.4
-  	SHIFT-PHASE 110 111 "xy" -0.2
-  	SHIFT-PHASE 111 112 "xy" -0.2
-  	SHIFT-PHASE 111 126 "xy" -0.2
-  	SHIFT-PHASE 110 111 "xy" -0.25*%theta
-  	SHIFT-PHASE 111 112 "xy" -0.25*%theta
-  	SHIFT-PHASE 111 126 "xy" -0.25*%theta
-  	SHIFT-PHASE 110 111 "xy" -0.25*%theta
-  	SHIFT-PHASE 110 117 "xy" -0.25*%theta
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 0.4
+      NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
+      SHIFT-PHASE 110 111 "xy" -0.4
+      SHIFT-PHASE 110 111 "xy" 1.8+(-0.5*%theta)
+      NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
+      SHIFT-PHASE 110 111 "xy" -1*(1.8+(-0.5*%theta))
+      DELAY 110 "rf" 1.2e-7
+      SHIFT-PHASE 110 "rf" 0.8
+      DELAY 111 "rf" 1.2e-7
+      SHIFT-PHASE 111 "rf" 0.4
+      SHIFT-PHASE 111 "rf" 0.5*%theta
+      SHIFT-PHASE 110 "rf" -0.5*%theta
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 0.4
+      SHIFT-PHASE 110 117 "xy" 0.4
+      SHIFT-PHASE 110 111 "xy" -0.2
+      SHIFT-PHASE 111 112 "xy" -0.2
+      SHIFT-PHASE 111 126 "xy" -0.2
+      SHIFT-PHASE 110 111 "xy" -0.25*%theta
+      SHIFT-PHASE 111 112 "xy" -0.25*%theta
+      SHIFT-PHASE 111 126 "xy" -0.25*%theta
+      SHIFT-PHASE 110 111 "xy" -0.25*%theta
+      SHIFT-PHASE 110 117 "xy" -0.25*%theta
   DEFCAL XY(%theta) 111 110:
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 0.4
-  	NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
-  	SHIFT-PHASE 110 111 "xy" -0.4
-  	SHIFT-PHASE 110 111 "xy" 1.8+(-0.5*%theta)
-  	NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
-  	SHIFT-PHASE 110 111 "xy" -1*(1.8+(-0.5*%theta))
-  	DELAY 110 "rf" 1.2e-7
-  	SHIFT-PHASE 110 "rf" 0.8
-  	DELAY 111 "rf" 1.2e-7
-  	SHIFT-PHASE 111 "rf" 0.4
-  	SHIFT-PHASE 111 "rf" 0.5*%theta
-  	SHIFT-PHASE 110 "rf" -0.5*%theta
-  	FENCE
-  	SHIFT-PHASE 110 111 "xy" 0.4
-  	SHIFT-PHASE 110 117 "xy" 0.4
-  	SHIFT-PHASE 110 111 "xy" -0.2
-  	SHIFT-PHASE 111 112 "xy" -0.2
-  	SHIFT-PHASE 111 126 "xy" -0.2
-  	SHIFT-PHASE 110 111 "xy" -0.25*%theta
-  	SHIFT-PHASE 111 112 "xy" -0.25*%theta
-  	SHIFT-PHASE 111 126 "xy" -0.25*%theta
-  	SHIFT-PHASE 110 111 "xy" -0.25*%theta
-  	SHIFT-PHASE 110 117 "xy" -0.25*%theta
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 0.4
+      NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
+      SHIFT-PHASE 110 111 "xy" -0.4
+      SHIFT-PHASE 110 111 "xy" 1.8+(-0.5*%theta)
+      NONBLOCKING PULSE 110 111 "xy" q110_q111_xy/sqrtiSWAP
+      SHIFT-PHASE 110 111 "xy" -1*(1.8+(-0.5*%theta))
+      DELAY 110 "rf" 1.2e-7
+      SHIFT-PHASE 110 "rf" 0.8
+      DELAY 111 "rf" 1.2e-7
+      SHIFT-PHASE 111 "rf" 0.4
+      SHIFT-PHASE 111 "rf" 0.5*%theta
+      SHIFT-PHASE 110 "rf" -0.5*%theta
+      FENCE
+      SHIFT-PHASE 110 111 "xy" 0.4
+      SHIFT-PHASE 110 117 "xy" 0.4
+      SHIFT-PHASE 110 111 "xy" -0.2
+      SHIFT-PHASE 111 112 "xy" -0.2
+      SHIFT-PHASE 111 126 "xy" -0.2
+      SHIFT-PHASE 110 111 "xy" -0.25*%theta
+      SHIFT-PHASE 111 112 "xy" -0.25*%theta
+      SHIFT-PHASE 111 126 "xy" -0.25*%theta
+      SHIFT-PHASE 110 111 "xy" -0.25*%theta
+      SHIFT-PHASE 110 117 "xy" -0.25*%theta
   
   '''
 # ---
