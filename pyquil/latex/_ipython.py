@@ -79,4 +79,4 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None, **imag
                 msg += " Transcript:\n\n" + result.stderr.decode("utf-8")
             raise RuntimeError(msg)
 
-        return Image(filename=png, **image_options)
+        return Image(filename=png, **image_options)  # type: ignore

@@ -58,7 +58,8 @@ def _convert_to_calibration_match(
         target_values = (
             [] if not instruction.target else [MemoryReference._from_rs_memory_reference(instruction.target)]
         )
-        parameter_qubits = [] if not calibration.qubit() else [calibration.qubit()]
+        calibration_qubit = calibration.qubit()
+        parameter_qubits = [] + [calibration_qubit] if calibration_qubit else []
         parameter_values = [MemoryReference._from_parameter_str(calibration.identifier.parameter)]
         py_calibration = DefMeasureCalibration._from_rs_measure_calibration_definition(calibration)
     else:

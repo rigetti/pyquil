@@ -98,7 +98,7 @@ indent-width = 4
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["D", "E4", "E7", "E9", "F", "I", "B", "S", "UP", "W"]
+select = ["D", "E4", "E7", "E9", "F", "I", "B", "S", "UP", "W", "NPY201"]
 ignore = [
   "D105",  # Allow missing documentation in dunder method.
   "D203",  # This conflicts with D211.

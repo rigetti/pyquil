@@ -2825,8 +2825,9 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     def instructions(self, instructions: list[AbstractInstruction]) -> None:
         self.instrs = instructions
 
-    @property
+    @property  # type: ignore[override]
     def name(self) -> str:
+        """Get the name of the calibration."""
         return super().identifier.name
 
     @name.setter
