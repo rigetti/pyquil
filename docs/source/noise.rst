@@ -49,9 +49,7 @@ where :math:`p\in [0,1]` gives the classical probability that the state is :math
 
 Note that classical uncertainty in the wavefunction is markedly different from superpositions. We can represent
 superpositions using wavefunctions, but use density matrices to describe distributions over wavefunctions. You can read
-more about density matrices here [DensityMatrix]_.
-
-.. [DensityMatrix] https://en.wikipedia.org/wiki/Density_matrix
+more about density matrices `here <https://en.wikipedia.org/wiki/Density_matrix>`__.
 
 Quantum Gate Errors
 ===================
