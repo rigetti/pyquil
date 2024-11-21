@@ -572,8 +572,6 @@ good starting point.**
 
 .. image:: images/GateNoiseModels_20_1.png
 
-.. end import from GateNoiseModel.ipynb
-
 ************************
 Adding Decoherence Noise
 ************************
@@ -783,8 +781,7 @@ Qubit measurements
 This section provides the necessary theoretical foundation for
 accurately modeling noisy quantum measurements on superconducting
 quantum processors. It relies on some of the abstractions (density
-matrices, Kraus maps) introduced in our notebook on `gate noise
-models <https://github.com/rigetti/forest-tutorials/blob/master/notebooks/GateNoiseModels.ipynb>`_.
+matrices, Kraus maps) introduced above in `Noisy gates on the QVM`_.
 
 The most general type of measurement performed on a single qubit at a
 single time can be characterized by some set :math:`\mathcal{O}` of
@@ -844,7 +841,7 @@ map:
 The completeness of the projector set ensures that the trace of the
 post measurement is still 1 and the Kraus map form of this expression
 ensures that :math:`\rho_{\text{post measurement}}` is a positive
-(semi-)definite operator.
+semi-definite operator.
 
 Classical Readout Bit-Flip Error
 ================================
