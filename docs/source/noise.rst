@@ -932,7 +932,7 @@ Further reading
 ===============
 
 Chapter 3 of John Preskill's lecture notes
-http://www.theory.caltech.edu/people/preskill/ph229/notes/chap3.pdf
+http://theory.caltech.edu/~preskill/ph219/chap3_15.pdf
 
 **************************
 Working with readout noise
