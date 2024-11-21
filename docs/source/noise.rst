@@ -78,9 +78,9 @@ quantum gate errors:
    :math:`\rho`. Maps expressed in the above form are called Kraus maps.
    It can be shown that every physical map on a finite dimensional
    quantum system can be represented as a Kraus map, though this
-   representation is not generally unique. `You can find more
+   representation is not generally unique. You can find more
    information about quantum operations
-   here <https://en.wikipedia.org/wiki/Quantum_operation#Kraus_operators>`__
+   `here <https://en.wikipedia.org/wiki/Quantum_operation#Kraus_operators>`__.
 
 In a way, coherent errors are *in principle* amendable by more precisely
 calibrated control. Incoherent errors are more tricky.
