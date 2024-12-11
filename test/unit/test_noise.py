@@ -256,9 +256,9 @@ def test_readout_compensation():
     for ap in aps:
         ap.flat[ap.flat < 0] = 0.0
         ap /= ap.sum()
-        assert np.alltrue(ap >= 0)
+        assert (ap >= 0).all()
 
-    assert np.alltrue(p >= 0)
+    assert (p >= 0).all()
 
     p_corrupted = corrupt_bitstring_probs(p, aps)
     p_restored = correct_bitstring_probs(p_corrupted, aps)

@@ -2772,41 +2772,40 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
         """Initialize a new calibration definition."""
         return super().__new__(
             cls,
-            name,
-            _convert_to_rs_expressions(parameters),
-            _convert_to_rs_qubits(qubits),
+            quil_rs.CalibrationIdentifier(
+                name,
+                _convert_to_rs_expressions(parameters),
+                _convert_to_rs_qubits(qubits),
+                modifiers or [],
+            ),
             _convert_to_rs_instructions(instrs),
-            modifiers or [],
         )
 
     @classmethod
     def _from_rs_calibration(cls, calibration: quil_rs.Calibration) -> "DefCalibration":
-        return super().__new__(
-            cls,
-            calibration.name,
-            calibration.parameters,
-            calibration.qubits,
-            calibration.instructions,
-            calibration.modifiers,
-        )
+        return super().__new__(cls, calibration.identifier, calibration.instructions)
 
     @property  # type: ignore[override]
     def parameters(self) -> Sequence[ParameterDesignator]:
         """The parameters of the calibration."""
-        return _convert_to_py_expressions(super().parameters)
+        return _convert_to_py_expressions(super().identifier.parameters)
 
     @parameters.setter
     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
-        quil_rs.Calibration.parameters.__set__(self, _convert_to_rs_expressions(parameters))  # type: ignore[attr-defined] # noqa
+        identifier = super().identifier
+        identifier.parameters = _convert_to_rs_expressions(parameters)
+        quil_rs.Calibration.identifier.__set__(self, identifier)  # type: ignore[attr-defined] # noqa
 
     @property  # type: ignore[override]
     def qubits(self) -> list[QubitDesignator]:
         """The qubits the calibration operates on."""
-        return _convert_to_py_qubits(super().qubits)
+        return _convert_to_py_qubits(super().identifier.qubits)
 
     @qubits.setter
     def qubits(self, qubits: Sequence[QubitDesignator]) -> None:
-        quil_rs.Calibration.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
+        identifier = super().identifier
+        identifier.qubits = _convert_to_rs_qubits(qubits)
+        quil_rs.Calibration.identifier.__set__(self, identifier)  # type: ignore[attr-defined]
 
     @property
     def instrs(self) -> list[AbstractInstruction]:
@@ -2825,6 +2824,17 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     @instructions.setter
     def instructions(self, instructions: list[AbstractInstruction]) -> None:
         self.instrs = instructions
+
+    @property
+    def name(self) -> str:
+        """Get the name of the calibration."""
+        return super().identifier.name
+
+    @name.setter
+    def name(self, name: str) -> None:
+        identifier = super().identifier
+        identifier.name = name
+        quil_rs.Calibration.identifier.__set__(self, identifier)  # type: ignore
 
     def out(self) -> str:
         """Return the instruction as a valid Quil string."""
@@ -2854,8 +2864,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
         rs_qubit = None if not qubit else _convert_to_rs_qubit(qubit)
         return super().__new__(
             cls,
-            rs_qubit,
-            memory_reference.name,
+            quil_rs.MeasureCalibrationIdentifier(rs_qubit, str(memory_reference)),
             _convert_to_rs_instructions(instrs),
         )
 
@@ -2863,28 +2872,32 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
     def _from_rs_measure_calibration_definition(
         cls, calibration: quil_rs.MeasureCalibrationDefinition
     ) -> "DefMeasureCalibration":
-        return super().__new__(cls, calibration.qubit, calibration.parameter, calibration.instructions)
+        return super().__new__(cls, calibration.identifier, calibration.instructions)
 
     @property  # type: ignore[override]
     def qubit(self) -> Optional[QubitDesignator]:
         """Get the qubit this calibration matches."""
-        qubit = super().qubit
+        qubit = super().identifier.qubit
         if not qubit:
             return None
         return _convert_to_py_qubit(qubit)
 
     @qubit.setter
     def qubit(self, qubit: QubitDesignator) -> None:
-        quil_rs.MeasureCalibrationDefinition.qubit.__set__(self, _convert_to_rs_qubit(qubit))  # type: ignore[attr-defined] # noqa
+        identifier = super().identifier
+        identifier.qubit = _convert_to_rs_qubit(qubit)
+        quil_rs.MeasureCalibrationDefinition.identifier.__set__(self, identifier)  # type: ignore[attr-defined] # noqa
 
     @property
     def memory_reference(self) -> Optional[MemoryReference]:
         """Get the memory reference this calibration writes to."""
-        return MemoryReference._from_parameter_str(super().parameter)
+        return MemoryReference._from_parameter_str(super().identifier.parameter)
 
     @memory_reference.setter
     def memory_reference(self, memory_reference: MemoryReference) -> None:
-        quil_rs.MeasureCalibrationDefinition.parameter.__set__(self, memory_reference.name)  # type: ignore[attr-defined] # noqa
+        identifier = super().identifier
+        identifier.parameter = memory_reference.out()
+        quil_rs.MeasureCalibrationDefinition.identifier.__set__(self, identifier)  # type: ignore[attr-defined] # noqa
 
     @property
     def instrs(self) -> list[AbstractInstruction]:
