@@ -2788,7 +2788,7 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
     @property  # type: ignore[override]
     def parameters(self) -> Sequence[ParameterDesignator]:
         """The parameters of the calibration."""
-        return _convert_to_py_expressions(super().parameters)
+        return _convert_to_py_expressions(super().identifier.parameters)
 
     @parameters.setter
     def parameters(self, parameters: Sequence[ParameterDesignator]) -> None:
