@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.15.0 (2024-12-11)
+
+### Features
+
+#### Update quil to >=0.13.2 (#1809)
+
 ## 4.15.0-rc.0 (2024-12-11)
 
 ### Features
