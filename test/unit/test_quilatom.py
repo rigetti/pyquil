@@ -76,5 +76,5 @@ def test_qubit_placeholder():
 
 def test_arithmetic_with_numpy():
     x = Parameter("x")
-    expression = np.float_(1.0) + x
-    assert expression == Add(np.float_(1.0), x)
+    expression = np.float64(1.0) + x
+    assert expression == Add(np.float64(1.0), x)

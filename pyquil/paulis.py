@@ -936,7 +936,7 @@ def exponentiate_commuting_pauli_sum(
 
 def exponentiate_pauli_sum(
     pauli_sum: Union[PauliSum, PauliTerm],
-) -> NDArray[np.complex_]:
+) -> NDArray[np.complex128]:
     r"""Exponentiate a sequence of PauliTerms, which may or may not commute.
 
     The Pauliterms must have fixed (non-parametric) coefficients. The coefficients are interpreted in cycles rather than
@@ -995,7 +995,7 @@ def exponentiate_pauli_sum(
         matrices.append(matrix)
     generated_unitary = expm(-1j * np.pi * sum(matrices))
     phase = np.exp(-1j * np.angle(generated_unitary[0, 0]))
-    return np.asarray(phase * generated_unitary, dtype=np.complex_)
+    return np.asarray(phase * generated_unitary, dtype=np.complex128)
 
 
 def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:

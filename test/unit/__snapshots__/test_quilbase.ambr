@@ -163,39 +163,39 @@
 # name: TestDefCalibration.test_out[No-Params]
   '''
   DEFCAL Calibrate 0:
-  	X 0
+      X 0
   '''
 # ---
 # name: TestDefCalibration.test_out[Params]
   '''
   DEFCAL Calibrate(%X) 0:
-  	X 0
+      X 0
   '''
 # ---
 # name: TestDefCalibration.test_str[No-Params]
   '''
   DEFCAL Calibrate 0:
-  	X 0
+      X 0
   '''
 # ---
 # name: TestDefCalibration.test_str[Params]
   '''
   DEFCAL Calibrate(%X) 0:
-  	X 0
+      X 0
   '''
 # ---
 # name: TestDefCircuit.test_out[No-Params]
   '''
   DEFCIRCUIT NiftyCircuit a:
-  	MEASURE a
+      MEASURE a
   
   '''
 # ---
 # name: TestDefCircuit.test_out[With-Params]
   '''
   DEFCIRCUIT NiftyCircuit(%theta) a:
-  	DECLARE ro BIT[1]
-  	MEASURE a ro[0]
+      DECLARE ro BIT[1]
+      MEASURE a ro[0]
   
   '''
 # ---
@@ -204,8 +204,8 @@
 # ---
 # name: TestDefFrame.test_out[Frame-Only].1
   set({
-    '\tDIRECTION: "direction"',
-    '\tINITIAL-FREQUENCY: 0',
+    '    DIRECTION: "direction"',
+    '    INITIAL-FREQUENCY: 0',
   })
 # ---
 # name: TestDefFrame.test_out[With-Optionals]
@@ -213,12 +213,12 @@
 # ---
 # name: TestDefFrame.test_out[With-Optionals].1
   set({
-    '\tCENTER-FREQUENCY: 440',
-    '\tCHANNEL-DELAY: 0',
-    '\tDIRECTION: "direction"',
-    '\tHARDWARE-OBJECT: "hardware_object"',
-    '\tINITIAL-FREQUENCY: 1.39',
-    '\tSAMPLE-RATE: 44.1',
+    '    CENTER-FREQUENCY: 440',
+    '    CHANNEL-DELAY: 0',
+    '    DIRECTION: "direction"',
+    '    HARDWARE-OBJECT: "hardware_object"',
+    '    INITIAL-FREQUENCY: 1.39',
+    '    SAMPLE-RATE: 44.1',
   })
 # ---
 # name: TestDefFrame.test_str[Frame-Only]
@@ -226,8 +226,8 @@
 # ---
 # name: TestDefFrame.test_str[Frame-Only].1
   set({
-    '\tDIRECTION: "direction"',
-    '\tINITIAL-FREQUENCY: 0',
+    '    DIRECTION: "direction"',
+    '    INITIAL-FREQUENCY: 0',
   })
 # ---
 # name: TestDefFrame.test_str[With-Optionals]
@@ -235,12 +235,12 @@
 # ---
 # name: TestDefFrame.test_str[With-Optionals].1
   set({
-    '\tCENTER-FREQUENCY: 440',
-    '\tCHANNEL-DELAY: 0',
-    '\tDIRECTION: "direction"',
-    '\tHARDWARE-OBJECT: "hardware_object"',
-    '\tINITIAL-FREQUENCY: 1.39',
-    '\tSAMPLE-RATE: 44.1',
+    '    CENTER-FREQUENCY: 440',
+    '    CHANNEL-DELAY: 0',
+    '    DIRECTION: "direction"',
+    '    HARDWARE-OBJECT: "hardware_object"',
+    '    INITIAL-FREQUENCY: 1.39',
+    '    SAMPLE-RATE: 44.1',
   })
 # ---
 # name: TestDefGate.test_get_constructor[MixedTypes]
@@ -258,36 +258,36 @@
 # name: TestDefGate.test_out[MixedTypes]
   '''
   DEFGATE MixedTypes(%X) AS MATRIX:
-  	0, sin(%X)
-  	0, 0
+      0, sin(%X)
+      0, 0
   
   '''
 # ---
 # name: TestDefGate.test_out[No-Params]
   '''
   DEFGATE NoParamGate AS MATRIX:
-  	1, 0, 0, 0
-  	0, 1, 0, 0
-  	0, 0, 1, 0
-  	0, 0, 0, 1
+      1, 0, 0, 0
+      0, 1, 0, 0
+      0, 0, 1, 0
+      0, 0, 0, 1
   
   '''
 # ---
 # name: TestDefGate.test_out[ParameterlessExpression]
   '''
   DEFGATE ParameterlessExpressions AS MATRIX:
-  	1, 1.2246467991473532e-16
-  	1.2246467991473532e-16, -1
+      1, 1.2246467991473532e-16
+      1.2246467991473532e-16, -1
   
   '''
 # ---
 # name: TestDefGate.test_out[Params]
   '''
   DEFGATE ParameterizedGate(%X) AS MATRIX:
-  	cos(%X), 0, 0, 0
-  	0, cos(%X), 0, 0
-  	0, 0, cos(%X), 0
-  	0, 0, 0, cos(%X)
+      cos(%X), 0, 0, 0
+      0, cos(%X), 0, 0
+      0, 0, cos(%X), 0
+      0, 0, 0, cos(%X)
   
   '''
 # ---
@@ -306,36 +306,36 @@
 # name: TestDefGate.test_str[MixedTypes]
   '''
   DEFGATE MixedTypes(%X) AS MATRIX:
-  	0, sin(%X)
-  	0, 0
+      0, sin(%X)
+      0, 0
   
   '''
 # ---
 # name: TestDefGate.test_str[No-Params]
   '''
   DEFGATE NoParamGate AS MATRIX:
-  	1, 0, 0, 0
-  	0, 1, 0, 0
-  	0, 0, 1, 0
-  	0, 0, 0, 1
+      1, 0, 0, 0
+      0, 1, 0, 0
+      0, 0, 1, 0
+      0, 0, 0, 1
   
   '''
 # ---
 # name: TestDefGate.test_str[ParameterlessExpression]
   '''
   DEFGATE ParameterlessExpressions AS MATRIX:
-  	1, 1.2246467991473532e-16
-  	1.2246467991473532e-16, -1
+      1, 1.2246467991473532e-16
+      1.2246467991473532e-16, -1
   
   '''
 # ---
 # name: TestDefGate.test_str[Params]
   '''
   DEFGATE ParameterizedGate(%X) AS MATRIX:
-  	cos(%X), 0, 0, 0
-  	0, cos(%X), 0, 0
-  	0, 0, cos(%X), 0
-  	0, 0, 0, cos(%X)
+      cos(%X), 0, 0, 0
+      0, cos(%X), 0, 0
+      0, 0, cos(%X), 0
+      0, 0, 0, cos(%X)
   
   '''
 # ---
@@ -354,62 +354,62 @@
 # name: TestDefGateByPaulis.test_out[DefaultWithParams]
   '''
   DEFGATE PauliGate(%theta) p AS PAULI-SUM:
-  	(0)
+      (0)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_out[Default]
   '''
   DEFGATE PauliGate p AS PAULI-SUM:
-  	(0)
+      (0)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_out[WithSumAndParams]
   '''
   DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
-  	Z(1*%theta) p
-  	Y(2) p
-  	X(3) q
-  	(3)
+      Z(1*%theta) p
+      Y(2) p
+      X(3) q
+      (3)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_out[WithSum]
   '''
   DEFGATE PauliGate p AS PAULI-SUM:
-  	Y(2) p
+      Y(2) p
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_str[DefaultWithParams]
   '''
   DEFGATE PauliGate(%theta) p AS PAULI-SUM:
-  	(0)
+      (0)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_str[Default]
   '''
   DEFGATE PauliGate p AS PAULI-SUM:
-  	(0)
+      (0)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_str[WithSumAndParams]
   '''
   DEFGATE PauliGate(%theta) p q AS PAULI-SUM:
-  	Z(1*%theta) p
-  	Y(2) p
-  	X(3) q
-  	(3)
+      Z(1*%theta) p
+      Y(2) p
+      X(3) q
+      (3)
   
   '''
 # ---
 # name: TestDefGateByPaulis.test_str[WithSum]
   '''
   DEFGATE PauliGate p AS PAULI-SUM:
-  	Y(2) p
+      Y(2) p
   
   '''
 # ---
@@ -426,27 +426,27 @@
 # name: TestDefPermutationGate.test_out[PermGate-permutation0]
   '''
   DEFGATE PermGate AS PERMUTATION:
-  	4, 3, 2, 1
+      4, 3, 2, 1
   
   '''
 # ---
 # name: TestDefPermutationGate.test_str[PermGate-permutation0]
   '''
   DEFGATE PermGate AS PERMUTATION:
-  	4, 3, 2, 1
+      4, 3, 2, 1
   
   '''
 # ---
 # name: TestDefWaveform.test_out[With-Param]
   '''
   DEFWAVEFORM Wavey(%x):
-  	%x
+      %x
   '''
 # ---
 # name: TestDefWaveform.test_out[With-Params-Complex]
   '''
   DEFWAVEFORM Wavey(%x, %y):
-  	1+2.0i, %x, 3*%y
+      1+2.0i, %x, 3*%y
   '''
 # ---
 # name: TestDefWaveform.test_pickle[With-Param]

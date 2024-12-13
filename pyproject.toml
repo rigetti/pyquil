@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "4.14.3"
+version = "4.15.0"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = ["Rigetti Computing <softapps@rigetti.com>"]
 readme = "README.md"
@@ -25,7 +25,7 @@ scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
 qcs-sdk-python = ">=0.20.1"
-quil = ">=0.11.2"
+quil = ">=0.13.2"
 packaging = "^23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
@@ -98,7 +98,7 @@ indent-width = 4
 target-version = "py39"
 
 [tool.ruff.lint]
-select = ["D", "E4", "E7", "E9", "F", "I", "B", "S", "UP", "W"]
+select = ["D", "E4", "E7", "E9", "F", "I", "B", "S", "UP", "W", "NPY201"]
 ignore = [
   "D105",  # Allow missing documentation in dunder method.
   "D203",  # This conflicts with D211.

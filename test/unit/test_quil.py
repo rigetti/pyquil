@@ -960,9 +960,9 @@ def test_inline_placeholder():
 
 
 # https://github.com/rigetti/pyquil/issues/138
-def test_defgate_integer_input():
+def test_defgate_integer_input(snapshot: SnapshotAssertion):
     dg = DefGate("TEST", np.array([[1, 0], [0, 1]]))
-    assert dg.out() == "DEFGATE TEST AS MATRIX:\n\t1, 0\n\t0, 1\n"
+    assert dg.out() == snapshot
 
 
 def test_out_vs_str():

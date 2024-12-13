@@ -64,7 +64,7 @@ from pyquil.quilbase import (
 
 log = logging.getLogger(__name__)
 
-QUIL_TO_NUMPY_DTYPE = {"INT": np.int_, "REAL": np.float_, "BIT": np.int8, "OCTET": np.uint8}
+QUIL_TO_NUMPY_DTYPE = {"INT": np.int32, "REAL": np.float64, "BIT": np.int8, "OCTET": np.uint8}
 
 
 class AbstractQuantumSimulator(ABC):
@@ -387,7 +387,7 @@ class PyQVM(QAM["PyQVM"]):
             target = instruction.target
             old = self.ram[target.name][target.offset]
             if isinstance(instruction, ClassicalNeg):
-                if not isinstance(old, (int, float, np.int_, np.float_)):
+                if not isinstance(old, (int, float, np.int32, np.float64)):
                     raise ValueError(f"NEG requires a data type of REAL or INTEGER; not {type(old)}")
                 self.ram[target.name][target.offset] *= -1
             elif isinstance(instruction, ClassicalNot):
