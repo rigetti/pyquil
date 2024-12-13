@@ -49,9 +49,7 @@ where :math:`p\in [0,1]` gives the classical probability that the state is :math
 
 Note that classical uncertainty in the wavefunction is markedly different from superpositions. We can represent
 superpositions using wavefunctions, but use density matrices to describe distributions over wavefunctions. You can read
-more about density matrices here [DensityMatrix]_.
-
-.. [DensityMatrix] https://en.wikipedia.org/wiki/Density_matrix
+more about density matrices `here <https://en.wikipedia.org/wiki/Density_matrix>`__.
 
 Quantum Gate Errors
 ===================
@@ -80,9 +78,9 @@ quantum gate errors:
    :math:`\rho`. Maps expressed in the above form are called Kraus maps.
    It can be shown that every physical map on a finite dimensional
    quantum system can be represented as a Kraus map, though this
-   representation is not generally unique. `You can find more
+   representation is not generally unique. You can find more
    information about quantum operations
-   here <https://en.wikipedia.org/wiki/Quantum_operation#Kraus_operators>`__
+   `here <https://en.wikipedia.org/wiki/Quantum_operation#Kraus_operators>`__.
 
 In a way, coherent errors are *in principle* amendable by more precisely
 calibrated control. Incoherent errors are more tricky.
@@ -574,8 +572,6 @@ good starting point.**
 
 .. image:: images/GateNoiseModels_20_1.png
 
-.. end import from GateNoiseModel.ipynb
-
 ************************
 Adding Decoherence Noise
 ************************
@@ -785,8 +781,7 @@ Qubit measurements
 This section provides the necessary theoretical foundation for
 accurately modeling noisy quantum measurements on superconducting
 quantum processors. It relies on some of the abstractions (density
-matrices, Kraus maps) introduced in our notebook on `gate noise
-models <https://github.com/rigetti/forest-tutorials/notebooks/GateNoiseModels.ipynb>`__.
+matrices, Kraus maps) introduced above in `Noisy gates on the QVM`_.
 
 The most general type of measurement performed on a single qubit at a
 single time can be characterized by some set :math:`\mathcal{O}` of
@@ -846,7 +841,7 @@ map:
 The completeness of the projector set ensures that the trace of the
 post measurement is still 1 and the Kraus map form of this expression
 ensures that :math:`\rho_{\text{post measurement}}` is a positive
-(semi-)definite operator.
+semi-definite operator.
 
 Classical Readout Bit-Flip Error
 ================================
@@ -937,7 +932,7 @@ Further reading
 ===============
 
 Chapter 3 of John Preskill's lecture notes
-http://www.theory.caltech.edu/people/preskill/ph229/notes/chap3.pdf
+http://theory.caltech.edu/~preskill/ph219/chap3_15.pdf
 
 **************************
 Working with readout noise
