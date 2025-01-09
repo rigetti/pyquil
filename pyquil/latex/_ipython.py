@@ -58,8 +58,8 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None, **imag
         with open(os.path.join(tmpdir, "diagram.tex"), "w") as texfile:
             texfile.write(to_latex(circuit, settings))
 
-        result = subprocess.run(
-            [pdflatex_path, "-halt-on-error", "-output-directory", tmpdir, texfile.name],  # noqa: S603 - valid input
+        result = subprocess.run(  # noqa: S603 - valid input
+            [pdflatex_path, "-halt-on-error", "-output-directory", tmpdir, texfile.name],
             stdout=subprocess.PIPE,
         )
         if result.returncode != 0:
