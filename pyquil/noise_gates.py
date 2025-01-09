@@ -51,7 +51,7 @@ def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, g
             return None
 
         parameters = [Parameter(param) if isinstance(param, str) else param for param in gate.parameters]
-        return Gate(gate.operator, parameters, [unpack_qubit(qubit_id)])  # type: ignore
+        return Gate(gate.operator, parameters, [unpack_qubit(qubit_id)])
 
     if gate.operator == Supported1QGate.RZ:
         return Gate(Supported1QGate.RZ, [Parameter("theta")], [unpack_qubit(qubit_id)])
