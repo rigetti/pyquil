@@ -589,7 +589,9 @@ class Expression:
         Note that expression simplification can be slow for large recursive expressions.
         """
         try:
-            if dtype != object:
+            # Ruff documentation says that NumPy overrides `==`, so this rule may produce false
+            # positives; we thus ignore it here.
+            if dtype != object:  # noqa: E721
                 return np.asarray(self._evaluate(), dtype=dtype)
             raise ValueError
         except ValueError:
