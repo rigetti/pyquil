@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.16.0-rc.0 (2025-01-23)
+
+### Features
+
+#### update quil-rs dependency to >= 0.15.2 (#1815)
+
 ## 4.15.0 (2024-12-11)
 
 ### Features
