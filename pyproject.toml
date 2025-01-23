@@ -25,7 +25,7 @@ scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
 qcs-sdk-python = ">=0.20.1"
-quil = ">=0.13.2"
+quil = ">=0.15.2"
 packaging = "^23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
@@ -62,6 +62,7 @@ pytest-mock = "^3.14.0"
 pytest-benchmark = "4.0.0"
 respx = "^0.21.1"
 syrupy = "^4.6.1"
+jinja2 = {version = ">=3.1.5", optional = true} # see: https://osv.dev/vulnerability/GHSA-gmj6-6f8f-6699 and https://osv.dev/vulnerability/GHSA-q2x7-8rv6-6q7h
 
 
 [tool.ruff]
