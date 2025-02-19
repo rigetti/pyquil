@@ -177,6 +177,7 @@ jobs:
       - name: Check wheel installation
         run: |
           sudo apt update
+          pip install --upgrade pip
           pip wheel . -w wheels
       - name: Build and Test
         uses: docker/build-push-action@v4

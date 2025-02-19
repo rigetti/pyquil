@@ -25,6 +25,9 @@ RUN apt-get update && apt-get -yq dist-upgrade && \
 # install ipython
 RUN pip install --no-cache-dir ipython
 
+# upgrade pip
+RUN pip install --upgrade pip
+
 # install pyquil
 RUN pip install pyquil==$pyquil_version
 
