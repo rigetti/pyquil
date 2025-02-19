@@ -24,7 +24,13 @@ numpy = "^1.25"
 scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
-qcs-sdk-python = ">=0.20.1, !=0.21.12"
+# for some reason, qcs-sdk-python 0.21.12 wheel fails to install for Python 3.9 on
+# Linux amd64 and Linux x86_64. For instance, see
+# https://github.com/rigetti/pyquil/actions/runs/13418674041/job/37485778756?pr=1819
+qcs-sdk-python = [
+    { version = ">=0.20.1" },
+    { version = ">=0.20.1, !=0.21.12", markers = "python_version == '3.9' and sys_platform == 'linux' and (platform_machine == 'x86_64' or platform_machine == 'amd64')" },
+]
 quil = ">=0.15.3"
 packaging = "^23.1"
 deprecated = "^1.2.14"

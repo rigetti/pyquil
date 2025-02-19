@@ -177,8 +177,8 @@ jobs:
       - name: Check wheel installation
         run: |
           sudo apt update
-          pip install --upgrade pip
-          pip wheel . -w wheels
+          . scripts/ci_install_deps
+          poetry build -o wheels
       - name: Build and Test
         uses: docker/build-push-action@v4
         with:
