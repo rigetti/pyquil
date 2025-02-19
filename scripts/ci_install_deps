@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 pip install --upgrade pip
-curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.6.1 python3 -
+curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.5 python3 -
 which poetry > /dev/null || export PATH=$PATH:$HOME/.local/bin
 poetry --version
 poetry config virtualenvs.in-project true
