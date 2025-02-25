@@ -7,6 +7,7 @@ from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
+from quil.instructions import CallArgument
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil.api._compiler import QPUCompiler
@@ -28,6 +29,7 @@ from pyquil.quilatom import (
 from pyquil.quilbase import (
     AbstractInstruction,
     ArithmeticBinaryOp,
+    Call,
     Capture,
     ClassicalAdd,
     ClassicalAnd,
@@ -1831,3 +1833,39 @@ def test_nop():
     assert Nop().out() == str(Nop()) == "NOP"
     rs_nop = _convert_to_rs_instruction(Nop())
     assert Nop() == _convert_to_py_instruction(rs_nop)
+
+
+def test_pragma_extern():
+    """
+    Test that pragma extern instructions are copied correctly with
+    `Program.copy_everything_except_instructions`.
+    """
+    program = Program()
+    program += Pragma("EXTERN", ["example"])
+    program_copy = program.copy_everything_except_instructions()
+    assert program_copy == program
+
+
+class TestCall:
+    """Test basic operations of the Call instruction."""
+
+    @pytest.fixture
+    def call(self) -> Call:
+        return Call("example", [CallArgument.from_immediate(complex(1.234))])
+
+    def test_roundtrip(self, call: Call):
+        rs_call = _convert_to_rs_instruction(call)
+        assert call == _convert_to_py_instruction(rs_call)
+        assert rs_call == _convert_to_rs_instruction(call)
+
+    def test_out(self, call: Call):
+        assert call.out() == 'CALL example 1.234'
+
+    def test_str(self, call: Call):
+        assert str(call) == 'CALL example 1.234'
+
+    def test_deepcopy(self, call: Call):
+        call_deep_copy = copy.deepcopy(call)
+        assert call_deep_copy == call
+        assert call_deep_copy.arguments[0] is not call.arguments[0]
+

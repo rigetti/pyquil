@@ -2332,6 +2332,19 @@ class Call(quil_rs.Call, AbstractInstruction):
     def _from_rs_call(cls, call: quil_rs.Call) -> "Call":
         return super().__new__(cls, call.name, call.arguments)
 
+    def out(self) -> str:
+        """Return the instruction as a valid Quil string."""
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: dict) -> "Call":
+        return Call._from_rs_call(super().__deepcopy__(memo))
+
 
 @_add_reduce_method
 class Capture(quil_rs.Capture, AbstractInstruction):
