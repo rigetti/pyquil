@@ -190,6 +190,6 @@ fabric.properties
 pyrightconfig.json
 
 # unversioned developer notes
-scratch/
+.scratch/
 
 node_modules/
