@@ -3375,4 +3375,4 @@ latex = ["ipython"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9,<4.0"
-content-hash = "21fade5be7a9af657d3cbc5520046c888d3738e1e0b81c16757a4b47c1449e0d"
+content-hash = "a794ca9dc7c807e61b8ad4ccce62af7d65f3c81b50b4d22051b96740e6928a35"
