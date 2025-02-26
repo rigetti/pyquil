@@ -166,10 +166,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10
         uses: actions/setup-python@v2
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - uses: actions/cache@v2
         with:
           path: .venv
@@ -177,7 +177,8 @@ jobs:
       - name: Check wheel installation
         run: |
           sudo apt update
-          pip wheel . -w wheels
+          . scripts/ci_install_deps
+          poetry build -o wheels
       - name: Build and Test
         uses: docker/build-push-action@v4
         with:

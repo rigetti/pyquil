@@ -187,5 +187,9 @@ fabric.properties
 ### VSCode ###
 **/.vscode/
 
+pyrightconfig.json
+
+# unversioned developer notes
+.scratch/
 
 node_modules/

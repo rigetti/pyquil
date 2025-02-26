@@ -190,6 +190,7 @@ class Program:
             self.calibrations,
             self.defined_gates,
             self.measure_calibrations,
+            [quil_rs.Instruction.from_pragma(pragma) for pragma in self._program.pragma_extern_map.values()],
         )
         if self.native_quil_metadata is not None:
             new_prog.native_quil_metadata = deepcopy(self.native_quil_metadata)

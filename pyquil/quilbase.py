@@ -128,6 +128,8 @@ def _convert_to_rs_instruction(instr: Union[AbstractInstruction, quil_rs.Instruc
         return quil_rs.Instruction.from_arithmetic(instr)
     if isinstance(instr, quil_rs.BinaryLogic):
         return quil_rs.Instruction.from_binary_logic(instr)
+    if isinstance(instr, quil_rs.Call):
+        return quil_rs.Instruction.from_call(instr)
     if isinstance(instr, quil_rs.Capture):
         return quil_rs.Instruction.from_capture(instr)
     if isinstance(instr, quil_rs.CircuitDefinition):
@@ -224,6 +226,8 @@ def _convert_to_py_instruction(instr: Any) -> AbstractInstruction:
         return LogicalBinaryOp._from_rs_binary_logic(instr)
     if isinstance(instr, quil_rs.Calibration):
         return DefCalibration._from_rs_calibration(instr)
+    if isinstance(instr, quil_rs.Call):
+        return Call._from_rs_call(instr)
     if isinstance(instr, quil_rs.Capture):
         return Capture._from_rs_capture(instr)
     if isinstance(instr, quil_rs.CircuitDefinition):
@@ -2310,6 +2314,36 @@ class SetScale(quil_rs.SetScale, AbstractInstruction):
 
     def __deepcopy__(self, memo: dict) -> "SetScale":
         return SetScale._from_rs_set_scale(super().__deepcopy__(memo))
+
+
+@_add_reduce_method
+class Call(quil_rs.Call, AbstractInstruction):
+    """An instruction that calls an external function declared with a `PRAGMA EXTERN` instruction.
+
+    These calls are generally specific to a particular hardware or virtual machine
+    backend. For further detail, see:
+    * `Other instructions and Directives <https://github.com/quil-lang/quil/blob/master/rfcs/extern-call.md>`_
+        in the Quil specification.
+    * `EXTERN / CALL RFC <https://github.com/quil-lang/quil/blob/master/rfcs/extern-call.md>`_
+    * `quil#87 <https://github.com/quil-lang/quil/issues/87>`_
+    """
+
+    @classmethod
+    def _from_rs_call(cls, call: quil_rs.Call) -> "Call":
+        return super().__new__(cls, call.name, call.arguments)
+
+    def out(self) -> str:
+        """Return the instruction as a valid Quil string."""
+        return super().to_quil()
+
+    def __str__(self) -> str:
+        return super().to_quil_or_debug()
+
+    def __copy__(self) -> Self:
+        return self
+
+    def __deepcopy__(self, memo: dict) -> "Call":
+        return Call._from_rs_call(super().__deepcopy__(memo))
 
 
 @_add_reduce_method

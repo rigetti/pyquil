@@ -68,6 +68,7 @@ info:
 
 .PHONY: install
 install:
+	pip install --upgrade pip
 	poetry install
 
 .PHONY: test
