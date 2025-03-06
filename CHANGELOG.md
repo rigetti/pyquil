@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.16.1 (2025-03-06)
+
+### Fixes
+
+#### ensure pragma extern maps are copied (#1819)
+
 ## 4.16.1-rc.0 (2025-02-26)
 
 ### Fixes
