@@ -62,7 +62,7 @@ pytest-mock = "^3.14.0"
 pytest-benchmark = "4.0.0"
 respx = "^0.21.1"
 syrupy = "^4.6.1"
-jinja2 = {version = ">=3.1.5", optional = true} # see: https://osv.dev/vulnerability/GHSA-gmj6-6f8f-6699 and https://osv.dev/vulnerability/GHSA-q2x7-8rv6-6q7h
+jinja2 = {version = ">=3.1.6", optional = true} # see: https://osv.dev/vulnerability/GHSA-gmj6-6f8f-6699 and https://osv.dev/vulnerability/GHSA-q2x7-8rv6-6q7h and https://osv.dev/GHSA-cpwx-vrp4-4pq7
 
 
 [tool.ruff]
