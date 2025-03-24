@@ -26,7 +26,7 @@ rpcq = "^3.11.0"
 networkx = ">=2.5"
 qcs-sdk-python = ">=0.20.1"
 quil = ">=0.15.3"
-packaging = "^23.1"
+packaging = ">=23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
 
