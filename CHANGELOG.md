@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.16.2-rc.0 (2025-03-24)
+
+### Fixes
+
+#### allow installation of pyquil and packaging-24.2 (#1823)
+
 ## 4.16.1 (2025-03-06)
 
 ### Fixes
