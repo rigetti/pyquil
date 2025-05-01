@@ -405,7 +405,7 @@ def format_parameter(element: ParameterDesignator) -> str:
     """
     if isinstance(element, (int, np.integer)):
         return repr(element)
-    elif isinstance(element, float):
+    elif isinstance(element, (float, np.floating)):
         return _check_for_pi(element)
     elif isinstance(element, complex):
         out = ""
@@ -914,7 +914,7 @@ def _contained_parameters(expression: ExpressionDesignator) -> set[Parameter]:
         return set()
 
 
-def _check_for_pi(element: float) -> str:
+def _check_for_pi(element: float | np.floating) -> str:
     """Return the float as a string, expressing the float as a multiple of pi if possible.
 
     More specifically, check to see if there exists a rational number r = p/q in reduced form for which the difference
@@ -923,6 +923,9 @@ def _check_for_pi(element: float) -> str:
     :param element: the number to check
     :return element: pretty print string if true, else standard representation.
     """
+    if isinstance(element, np.floating):
+        element = float(element)
+
     frac = Fraction(element / np.pi).limit_denominator(8)
     num, den = frac.numerator, frac.denominator
     sign = "-" if num < 0 else ""
