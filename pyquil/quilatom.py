@@ -914,7 +914,7 @@ def _contained_parameters(expression: ExpressionDesignator) -> set[Parameter]:
         return set()
 
 
-def _check_for_pi(element: float | np.floating) -> str:
+def _check_for_pi(element: Union[float, np.floating]) -> str:
     """Return the float as a string, expressing the float as a multiple of pi if possible.
 
     More specifically, check to see if there exists a rational number r = p/q in reduced form for which the difference
