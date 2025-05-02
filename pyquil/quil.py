@@ -82,6 +82,10 @@ from pyquil.quiltcalibrations import (
     _convert_to_calibration_match,
 )
 
+if np.lib.NumpyVersion(np.__version__) >= '2.0.0b1':
+    # prevents floats from being printed as `np.float(1.234)`
+    np.set_printoptions(legacy='1.21')
+
 InstructionDesignator = Union[
     AbstractInstruction,
     quil_rs.Instruction,

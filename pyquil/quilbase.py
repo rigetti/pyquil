@@ -62,6 +62,9 @@ if TYPE_CHECKING:  # avoids circular import
 import quil.expression as quil_rs_expr
 import quil.instructions as quil_rs
 
+if np.lib.NumpyVersion(np.__version__) >= '2.0.0b1':
+    # prevents floats from being printed as `np.float(1.234)`
+    np.set_printoptions(legacy='1.21')
 
 class _InstructionMeta(abc.ABCMeta):
     """A metaclass that allows us to group all instruction types from quil-rs and pyQuil as an `AbstractInstruction`.
