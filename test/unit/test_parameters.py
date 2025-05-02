@@ -1,6 +1,7 @@
 from math import pi
 
 import numpy as np
+
 from pyquil.quilatom import (
     Parameter,
     _contained_parameters,
@@ -13,10 +14,6 @@ from pyquil.quilatom import (
     substitute,
     substitute_array,
 )
-
-if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
-    # prevents floats from being printed as `np.float(1.234)`
-    np.set_printoptions(legacy="1.21")
 
 def test_format_parameter():
     test_cases = [
