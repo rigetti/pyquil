@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.16.2-rc.2 (2025-05-02)
+
+### Fixes
+
+#### allow installation of pyquil and packaging-24.2 (#1823)
+
+#### expand numpy compat range to >=1.25
+
+#### stringify numpy float and remove extra type ignore comment
+
 ## 4.16.2-rc.1 (2025-05-02)
 
 ### Fixes
