@@ -407,7 +407,8 @@ def format_parameter(element: ParameterDesignator) -> str:
         return repr(int(element))
     elif isinstance(element, (float, np.floating)):
         return _check_for_pi(float(element))
-    elif isinstance(element, complex):
+    elif isinstance(element, (complex, np.complexfloating)):
+        element = complex(element.real, element.imag)
         out = ""
         r = element.real
         i = element.imag
