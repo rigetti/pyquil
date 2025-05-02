@@ -22,7 +22,7 @@ exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.13"
-numpy = ">=1.26"
+numpy = ">=1.26,<3"
 scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
