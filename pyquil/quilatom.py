@@ -35,10 +35,6 @@ import quil.instructions as quil_rs
 from deprecated.sphinx import deprecated
 from typing_extensions import Self
 
-if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
-    # prevents floats from being printed as `np.float(1.234)`
-    np.set_printoptions(legacy="1.21")
-
 
 class QuilAtom:
     """Abstract class for atomic elements of Quil."""
@@ -408,9 +404,9 @@ def format_parameter(element: ParameterDesignator) -> str:
     :param element: The parameter to format for Quil output.
     """
     if isinstance(element, (int, np.integer)):
-        return repr(element)
+        return repr(int(element))
     elif isinstance(element, (float, np.floating)):
-        return _check_for_pi(element)
+        return _check_for_pi(float(element))
     elif isinstance(element, complex):
         out = ""
         r = element.real
@@ -918,7 +914,7 @@ def _contained_parameters(expression: ExpressionDesignator) -> set[Parameter]:
         return set()
 
 
-def _check_for_pi(element: Union[float, np.floating]) -> str:
+def _check_for_pi(element: float) -> str:
     """Return the float as a string, expressing the float as a multiple of pi if possible.
 
     More specifically, check to see if there exists a rational number r = p/q in reduced form for which the difference
@@ -927,9 +923,6 @@ def _check_for_pi(element: Union[float, np.floating]) -> str:
     :param element: the number to check
     :return element: pretty print string if true, else standard representation.
     """
-    if isinstance(element, np.floating):
-        element = float(element)
-
     frac = Fraction(element / np.pi).limit_denominator(8)
     num, den = frac.numerator, frac.denominator
     sign = "-" if num < 0 else ""
