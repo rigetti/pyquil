@@ -35,9 +35,10 @@ import quil.instructions as quil_rs
 from deprecated.sphinx import deprecated
 from typing_extensions import Self
 
-if np.lib.NumpyVersion(np.__version__) >= '2.0.0b1':
+if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
     # prevents floats from being printed as `np.float(1.234)`
-    np.set_printoptions(legacy='1.21')
+    np.set_printoptions(legacy="1.21")
+
 
 class QuilAtom:
     """Abstract class for atomic elements of Quil."""
