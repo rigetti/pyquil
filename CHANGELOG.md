@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.16.2 (2025-05-05)
+
+### Fixes
+
+#### allow installation of pyquil and packaging-24.2 (#1823)
+
+#### expand numpy compat range to >=1.26 (#1827)
+
 ## 4.16.2-rc.2 (2025-05-02)
 
 ### Fixes
