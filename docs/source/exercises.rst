@@ -214,9 +214,9 @@ We can verify this works by computing the *inverse* FFT on the output with NumPy
 
 .. testoutput:: qft
 
-    [ 0.00000000e+00+0.00000000e+00j  1.00000000e+00+5.45603965e-17j
+    [ 0.00000000e+00+0.00000000e+00j  1.00000000e+00+4.30636606e-17j
       0.00000000e+00+0.00000000e+00j  0.00000000e+00-1.53080850e-17j
-      0.00000000e+00+0.00000000e+00j -7.85046229e-17-2.39442265e-17j
+      0.00000000e+00+0.00000000e+00j -7.85046229e-17-1.24474906e-17j
       0.00000000e+00+0.00000000e+00j  0.00000000e+00-1.53080850e-17j]
 
 After ignoring the terms that are on the order of ``1e-17``, we get ``[0, 1, 0, 0, 0, 0, 0, 0]``, which was our input!

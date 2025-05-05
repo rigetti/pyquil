@@ -48,6 +48,7 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
 .. testcode::
 
   import numpy as np
+  np.set_printoptions(legacy="1.21")
 
   assert wavefunction[0] == 1 / np.sqrt(2)
   # The amplitudes are stored as a numpy array on the Wavefunction object

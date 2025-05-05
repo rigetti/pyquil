@@ -404,10 +404,11 @@ def format_parameter(element: ParameterDesignator) -> str:
     :param element: The parameter to format for Quil output.
     """
     if isinstance(element, (int, np.integer)):
-        return repr(element)
-    elif isinstance(element, float):
-        return _check_for_pi(element)
-    elif isinstance(element, complex):
+        return repr(int(element))
+    elif isinstance(element, (float, np.floating)):
+        return _check_for_pi(float(element))
+    elif isinstance(element, (complex, np.complexfloating)):
+        element = complex(element.real, element.imag)
         out = ""
         r = element.real
         i = element.imag
