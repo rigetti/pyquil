@@ -126,16 +126,12 @@ Legal compiler input
 ====================
 
 The QPU is not able to execute all possible Quil programs. At present, a Quil program qualifies for
-execution if has the following form:
+execution if it consists entirely of classical instructions, native quantum gates, and ``MEASURE``
+instructions.  A gate is *native* if is is one of the following:
 
-* The program may begin with a ``RESET`` instruction. (If provided, the QPU will actively reset the
-  state of the quantum device to the ground state before program execution. If omitted, the QPU will
-  wait for a relaxation period to pass before program execution instead.)
-* This is then followed by a block of native quantum gates. A gate is native if it is of the form
-  ``RZ(θ)`` for any value ``θ``, ``RX(k*π/2)`` for an integer ``k``, or ``CZ q0 q1`` for ``q0``,
-  ``q1`` a pair of qubits participating in a qubit-qubit interaction. Some devices provide the
-  ``XY(θ) q0 q1`` two qubit gate.
-* This is then followed by a block of ``MEASURE`` instructions.
+* ``RZ(θ) q`` for any value ``θ`` and qubit ``q``;
+* ``RX(k*π/2) q`` for any integer ``k`` and qubit ``q``; or
+* ``ISWAP q0 q1`` for two qubits ``q0`` and ``q1`` that participate in a qubit-qubit interaction.
 
 To instruct the compiler to produce Quil code that can be executed on a QPU, you can use the
 ``protoquil`` keyword in a call to ``compiler.quil_to_native_quil(program, protoquil=True)`` or
