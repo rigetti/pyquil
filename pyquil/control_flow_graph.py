@@ -26,15 +26,17 @@ class BasicBlock(quil_rs.BasicBlock):
         return super().__new__(cls, block)
 
     @override
+    @property
     def instructions(self) -> list[AbstractInstruction]:  # type: ignore[override]
-        return _convert_to_py_instructions(super().instructions())
+        return _convert_to_py_instructions(super().instructions)
 
     @override
+    @property
     def terminator(self) -> Optional[AbstractInstruction]:  # type: ignore[override]
-        inst = super().terminator()
+        inst = super().terminator
         if inst is None:
             return None
-        return _convert_to_py_instruction(super().terminator())
+        return _convert_to_py_instruction(inst)
 
 
 class ControlFlowGraph(quil_rs.ControlFlowGraph):

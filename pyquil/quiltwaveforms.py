@@ -34,6 +34,9 @@ class FlatWaveform(TemplateWaveform):
     phase = _template_waveform_property("phase", doc="An optional phase shift factor.", dtype=float)
     detuning = _template_waveform_property("detuning", doc="An optional frequency detuning factor.", dtype=float)
 
+    def __getnewargs__(self) -> tuple[float, complex, float | None, float | None, float | None]:
+        return self.duration, self.iq, self.scale, self.phase, self.detuning
+
     def samples(self, rate: float) -> np.ndarray:
         """Get the samples of the waveform at a given sample rate."""
         iqs = np.full(self.num_samples(rate), self.iq, dtype=np.complex128)
@@ -58,6 +61,9 @@ class GaussianWaveform(TemplateWaveform):
         return super().__new__(
             cls, cls.NAME, duration=duration, fwhm=fwhm, t0=t0, scale=scale, phase=phase, detuning=detuning
         )
+
+    def __getnewargs__(self) -> tuple[float, float, float, float | None, float | None, float | None]:
+        return self.duration, self.fwhm, self.t0, self.scale, self.phase, self.detuning
 
     fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the Gaussian (seconds).", dtype=float)
 
@@ -105,6 +111,18 @@ class DragGaussianWaveform(TemplateWaveform):
             scale=scale,
             phase=phase,
             detuning=detuning,
+        )
+
+    def __getnewargs__(self) -> tuple[float, float, float, float, float, float | None, float | None, float | None]:
+        return (
+            self.duration,
+            self.fwhm,
+            self.t0,
+            self.anh,
+            self.alpha,
+            self.scale,
+            self.phase,
+            self.detuning,
         )
 
     fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the gaussian (seconds).", dtype=float)
@@ -166,6 +184,21 @@ class HrmGaussianWaveform(TemplateWaveform):
             scale=scale,
             phase=phase,
             detuning=detuning,
+        )
+
+    def __getnewargs__(
+        self,
+    ) -> tuple[float, float, float, float, float, float, float | None, float | None, float | None]:
+        return (
+            self.duration,
+            self.fwhm,
+            self.t0,
+            self.anh,
+            self.alpha,
+            self.second_order_hrm_coeff,
+            self.scale,
+            self.phase,
+            self.detuning,
         )
 
     fwhm = _template_waveform_property("fwhm", doc="The Full-Width-Half-Max of the Gaussian (seconds).", dtype=float)
@@ -233,6 +266,17 @@ class ErfSquareWaveform(TemplateWaveform):
             detuning=detuning,
         )
 
+    def __getnewargs__(self) -> tuple[float, float, float, float, float | None, float | None, float | None]:
+        return (
+            self.duration,
+            self.risetime,
+            self.pad_left,
+            self.pad_right,
+            self.scale,
+            self.phase,
+            self.detuning,
+        )
+
     risetime = _template_waveform_property(
         "risetime", doc="The width of each of the rise and fall sections of the pulse (seconds).", dtype=float
     )
@@ -279,6 +323,9 @@ class BoxcarAveragerKernel(TemplateWaveform):
     ) -> Self:
         """Initialize a new BoxcarAveragerKernel."""
         return super().__new__(cls, cls.NAME, duration=duration, scale=scale, phase=phase, detuning=detuning)
+
+    def __getnewargs__(self) -> tuple[float, float | None, float | None, float | None]:
+        return self.duration, self.scale, self.phase, self.detuning
 
     scale = _template_waveform_property("scale", doc="An optional global scaling factor.", dtype=float)
 

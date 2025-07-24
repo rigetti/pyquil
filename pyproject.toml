@@ -10,10 +10,10 @@ license = "Apache-2.0"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "License :: OSI Approved :: Apache Software License",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Operating System :: OS Independent",
 ]
 keywords = ["quantum", "quil", "programming", "hybrid"]
@@ -21,13 +21,13 @@ packages = [{ include = "pyquil" }]
 exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
-python = "^3.9,<4"
+python = "^3.10,<4"
 numpy = ">=1.26,<3"
 scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
-qcs-sdk-python = ">=0.20.1"
-quil = ">=0.15.3"
+qcs-sdk-python = "=0.21.*"
+quil = "^0.33.0rc2"
 packaging = ">=23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"

@@ -31,13 +31,9 @@ class TestFrame:
 
     def test_qubits(self, frame: Frame, qubits: Sequence[Union[int, Qubit, FormalArgument]]):
         assert frame.qubits == tuple(Qubit(q) if isinstance(q, int) else q for q in qubits)
-        frame.qubits = (Qubit(2), FormalArgument("One"))
-        assert frame.qubits == (Qubit(2), FormalArgument("One"))
 
     def test_name(self, frame: Frame, name: str):
         assert frame.name == name
-        frame.name = "new name"
-        assert frame.name == "new name"
 
     def test_eq(self, frame: Frame):
         assert frame == frame

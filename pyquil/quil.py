@@ -190,7 +190,7 @@ class Program:
             self.calibrations,
             self.defined_gates,
             self.measure_calibrations,
-            [quil_rs.Instruction.from_pragma(pragma) for pragma in self._program.pragma_extern_map.values()],
+            [quil_rs.Instruction.Pragma(pragma) for pragma in self._program.pragma_extern_map.values()],
         )
         if self.native_quil_metadata is not None:
             new_prog.native_quil_metadata = deepcopy(self.native_quil_metadata)
@@ -299,7 +299,7 @@ class Program:
                 self._program += instruction
             else:
                 try:
-                    instruction = quil_rs.Instruction(instruction)  # type: ignore
+                    instruction = _convert_to_rs_instruction(instruction)
                     self.inst(instruction)
                 except ValueError as e:
                     raise ValueError(f"Invalid instruction: {instruction}, type: {type(instruction)}") from e
@@ -423,59 +423,63 @@ class Program:
         For backwards compatibility, it also prevents duplicate calibration, measurement, and gate definitions from
         being added. Users of ``Program`` should use ``inst`` or ``Program`` addition instead.
         """
-        if instruction.is_calibration_definition():
-            defcal = instruction.to_calibration_definition()
-            idx, existing_calibration = next(
-                (
-                    (i, existing_calibration)
-                    for i, existing_calibration in enumerate(self._program.calibrations.calibrations)
-                    if defcal.name == existing_calibration.name
-                    and defcal.parameters == existing_calibration.parameters
-                    and defcal.qubits == existing_calibration.qubits
-                ),
-                (0, None),
-            )
-            if existing_calibration is None:
-                self._program.add_instruction(instruction)
-
-            elif (
-                existing_calibration.instructions != defcal.instructions
-                or existing_calibration.modifiers != defcal.modifiers
-            ):
-                warnings.warn(f"Redefining calibration {defcal.name}", stacklevel=2)
-                current_calibrations = self._program.calibrations
-                new_calibrations = CalibrationSet(
-                    current_calibrations.calibrations[:idx] + [defcal] + current_calibrations.calibrations[idx + 1 :],
-                    current_calibrations.measure_calibrations,
+        match instruction:
+            case quil_rs.Instruction.CalibrationDefinition(defcal):
+                idx, existing_calibration = next(
+                    (
+                        (i, existing_calibration)
+                        for i, existing_calibration in enumerate(self._program.calibrations.calibrations)
+                        if defcal.name == existing_calibration.name
+                        and defcal.parameters == existing_calibration.parameters
+                        and defcal.qubits == existing_calibration.qubits
+                    ),
+                    (0, None),
                 )
-                self._program.calibrations = new_calibrations
-        elif instruction.is_measure_calibration_definition():
-            defmeasure = instruction.to_measure_calibration_definition()
-            idx, existing_measure_calibration = next(
-                (
-                    (i, existing_measure_calibration)
-                    for i, existing_measure_calibration in enumerate(self._program.calibrations.measure_calibrations)
-                    if existing_measure_calibration.parameter == defmeasure.parameter
-                    and existing_measure_calibration.qubit == defmeasure.qubit
-                ),
-                (0, None),
-            )
-            if existing_measure_calibration is None:
-                self._program.add_instruction(instruction)
+                if existing_calibration is None:
+                    self._program.add_instruction(instruction)
 
-            else:
-                warnings.warn(f"Redefining DefMeasureCalibration {instruction}", stacklevel=2)
-                current_calibrations = self._program.calibrations
-                new_calibrations = CalibrationSet(
-                    current_calibrations.calibrations,
-                    current_calibrations.measure_calibrations[:idx]
-                    + [defmeasure]
-                    + current_calibrations.measure_calibrations[idx + 1 :],
+                elif (
+                    existing_calibration.instructions != defcal.instructions
+                    or existing_calibration.modifiers != defcal.modifiers
+                ):
+                    warnings.warn(f"Redefining calibration {defcal.name}", stacklevel=2)
+                    current_calibrations = self._program.calibrations
+                    new_calibrations = CalibrationSet(
+                        current_calibrations.calibrations[:idx]
+                        + [defcal]
+                        + current_calibrations.calibrations[idx + 1 :],
+                        current_calibrations.measure_calibrations,
+                    )
+                    self._program.calibrations = new_calibrations
+
+            case quil_rs.Instruction.MeasureCalibrationDefinition(defmeasure):
+                idx, existing_measure_calibration = next(
+                    (
+                        (i, existing_measure_calibration)
+                        for i, existing_measure_calibration in enumerate(
+                            self._program.calibrations.measure_calibrations
+                        )
+                        if existing_measure_calibration.target == defmeasure.target
+                        and existing_measure_calibration.qubit == defmeasure.qubit
+                    ),
+                    (0, None),
                 )
+                if existing_measure_calibration is None:
+                    self._program.add_instruction(instruction)
 
-                self._program.calibrations = new_calibrations
-        else:
-            self._program.add_instruction(instruction)
+                else:
+                    warnings.warn(f"Redefining DefMeasureCalibration {instruction}", stacklevel=2)
+                    current_calibrations = self._program.calibrations
+                    new_calibrations = CalibrationSet(
+                        current_calibrations.calibrations,
+                        current_calibrations.measure_calibrations[:idx]
+                        + [defmeasure]
+                        + current_calibrations.measure_calibrations[idx + 1 :],
+                    )
+
+                    self._program.calibrations = new_calibrations
+            case _:
+                self._program.add_instruction(instruction)
 
     def filter_instructions(self, predicate: Callable[[AbstractInstruction], bool]) -> "Program":
         """Return a new ``Program`` containing only the instructions for which ``predicate`` returns ``True``.
@@ -825,14 +829,14 @@ class Program:
         """
         if indices:
             return self.get_qubit_indices()
-        return set(_convert_to_py_qubits(self._program.get_used_qubits()))
+        return set(_convert_to_py_qubits(self._program.used_qubits))
 
     def get_qubit_indices(self) -> set[int]:
         """Return the index of each qubit used in the program.
 
         Will raise an exception if any of the qubits are placeholders.
         """
-        return {q.to_fixed() for q in self._program.get_used_qubits()}
+        return {q._0 for q in self._program.used_qubits}
 
     def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
         """Attempt to match a calibration to the provided instruction.
@@ -853,16 +857,13 @@ class Program:
         if not isinstance(instr, (Gate, Measurement)):
             return None
 
-        instruction = _convert_to_rs_instruction(instr)
-        if instruction.is_gate():
-            gate = instruction.to_gate()
-            gate_match = self._program.calibrations.get_match_for_gate(gate)
-            return _convert_to_calibration_match(gate, gate_match)
-
-        if instruction.is_measurement():
-            measurement = instruction.to_measurement()
-            measure_match = self._program.calibrations.get_match_for_measurement(measurement)
-            return _convert_to_calibration_match(measurement, measure_match)
+        match _convert_to_rs_instruction(instr):
+            case quil_rs.Instruction.Gate(gate):
+                gate_match = self._program.calibrations.get_match_for_gate(gate)
+                return _convert_to_calibration_match(gate, gate_match)
+            case quil_rs.Instruction.Measurement(measurement):
+                measure_match = self._program.calibrations.get_match_for_measurement(measurement)
+                return _convert_to_calibration_match(measurement, measure_match)
 
         return None
 

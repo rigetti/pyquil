@@ -139,13 +139,9 @@ class TestGate:
 
     def test_params(self, gate: Gate, params: List[ParameterDesignator]):
         assert gate.params == params
-        gate.params = [pi / 2]
-        assert gate.params == [pi / 2]
 
     def test_qubits(self, gate: Gate, qubits: List[Qubit]):
         assert gate.qubits == qubits
-        gate.qubits = [Qubit(123)]
-        assert gate.qubits == [Qubit(123)]
 
     def test_get_qubits(self, gate: Gate, qubits: List[Qubit]):
         assert gate.get_qubit_indices() == [q.index for q in qubits]
@@ -163,8 +159,6 @@ class TestGate:
 
     def test_modifiers(self, gate: Gate):
         assert gate.modifiers == []
-        gate.modifiers = ["CONTROLLED"]
-        assert gate.modifiers == ["CONTROLLED"]
 
     def test_repr(self, gate: Gate, snapshot: SnapshotAssertion):
         assert repr(gate) == snapshot
@@ -181,8 +175,12 @@ class TestGate:
         assert gate == _convert_to_py_instruction(rs_gate)
 
     def test_copy(self, gate: Gate):
-        assert isinstance(copy.copy(gate), Gate)
-        assert isinstance(copy.deepcopy(gate), Gate)
+        c = copy.copy(gate)
+        d = copy.deepcopy(gate)
+        assert c == gate
+        assert d == gate
+        assert isinstance(c, Gate)
+        assert isinstance(d, Gate)
 
     def test_compile(self, program: Program, compiler: QPUCompiler):
         try:
@@ -252,23 +250,19 @@ class TestDefGate:
 
     def test_name(self, def_gate: DefGate, name: str):
         assert def_gate.name == name
-        def_gate.name = "new_name"
-        assert def_gate.name == "new_name"
 
     def test_matrix(self, def_gate: DefGate, matrix: Union[List[List[Any]], np.ndarray, np.matrix]):
         assert np.array_equal(def_gate.matrix, matrix)
-        new_matrix = np.asarray([[0, 1, 2, 3], [3, 2, 1, 0]])
-        def_gate.matrix = new_matrix
-        assert np.array_equal(def_gate.matrix, new_matrix)
 
     def test_parameters(self, def_gate: DefGate, parameters: Optional[List[Parameter]]):
         assert def_gate.parameters == parameters
-        def_gate.parameters = [Parameter("brand_new_param")]
-        assert def_gate.parameters == [Parameter("brand_new_param")]
 
     def test_copy(self, def_gate: DefGate):
-        assert isinstance(copy.copy(def_gate), DefGate)
-        assert isinstance(copy.deepcopy(def_gate), DefGate)
+        c = copy.copy(def_gate)
+        d = copy.deepcopy(def_gate)
+        assert isinstance(c, DefGate)
+        assert isinstance(d, DefGate)
+        assert c == d == def_gate
 
     def test_pickle(self, def_gate: DefGate, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(def_gate)
@@ -306,16 +300,11 @@ class TestDefPermutationGate:
 
     def test_name(self, def_permutation_gate: DefPermutationGate, name: str):
         assert def_permutation_gate.name == name
-        def_permutation_gate.name = "new_name"
-        assert def_permutation_gate.name == "new_name"
 
     def test_permutation(
         self, def_permutation_gate: DefPermutationGate, permutation: Union[List[List[Any]], np.ndarray, np.matrix]
     ):
         assert np.array_equal(def_permutation_gate.permutation, permutation)
-        new_permutation = [1, 2, 3, 4]
-        def_permutation_gate.permutation = new_permutation
-        assert np.array_equal(def_permutation_gate.permutation, new_permutation)
 
     def test_parameters(self, def_permutation_gate: DefPermutationGate):
         assert not def_permutation_gate.parameters
@@ -374,26 +363,17 @@ class TestDefGateByPaulis:
 
     def test_name(self, def_gate_pauli: DefGateByPaulis, gate_name: str):
         assert def_gate_pauli.name == gate_name
-        def_gate_pauli.name = "new_name"
-        assert def_gate_pauli.name == "new_name"
 
     def test_parameters(self, def_gate_pauli: DefGate, parameters: Optional[List[Parameter]]):
         assert def_gate_pauli.parameters == parameters
-        def_gate_pauli.parameters = [Parameter("brand_new_param")]
-        assert def_gate_pauli.parameters == [Parameter("brand_new_param")]
 
     def test_arguments(self, def_gate_pauli: DefGateByPaulis, arguments: List[QubitDesignator]):
         assert def_gate_pauli.arguments == arguments
-        def_gate_pauli.arguments = [FormalArgument("NewArgument")]  # type: ignore
-        assert def_gate_pauli.arguments == [FormalArgument("NewArgument")]
 
     def test_body(self, def_gate_pauli: DefGateByPaulis, body: PauliSum):
         if all([isinstance(term.coefficient, Number) for term in body.terms]):
             # PauliTerm equality is only defined for terms with Numbered coefficients
             assert def_gate_pauli.body == body
-        new_body = PauliSum([PauliTerm("X", FormalArgument("a"), 5.0)])
-        def_gate_pauli.body = new_body
-        assert def_gate_pauli.body == new_body
 
 
 @pytest.mark.parametrize(
@@ -530,8 +510,6 @@ class TestMeasurement:
 
     def test_qubit(self, measurement: Measurement, qubit: Qubit):
         assert measurement.qubit == qubit
-        measurement.qubit = Qubit(123)
-        assert measurement.qubit == Qubit(123)
 
     def test_get_qubits(self, measurement: Measurement, qubit: Qubit):
         assert measurement.get_qubits(False) == set([qubit])
@@ -540,8 +518,6 @@ class TestMeasurement:
 
     def test_classical_reg(self, measurement: Measurement, classical_reg: MemoryReference):
         assert measurement.classical_reg == classical_reg
-        measurement.classical_reg = MemoryReference("new_mem_ref")
-        assert measurement.classical_reg == MemoryReference("new_mem_ref")
 
     def test_copy(self, measurement: Measurement):
         assert isinstance(copy.copy(measurement), Measurement)
@@ -689,33 +665,19 @@ class TestDeclare:
 
     def test_name(self, declare: Declare, name: str):
         assert declare.name == name
-        declare.name = "new_name"
-        assert declare.name == "new_name"
 
     def test_memory_type(self, declare: Declare, memory_type: Optional[str]):
         assert declare.memory_type == memory_type
-        declare.memory_type = "REAL"
-        assert declare.memory_type == "REAL"
 
     def test_memory_size(self, declare: Declare, memory_size: Optional[int]):
         assert declare.memory_size == memory_size
-        declare.memory_size = 100
-        assert declare.memory_size == 100
 
     def test_shared_region(self, declare: Declare, shared_region: Optional[str]):
         assert declare.shared_region == shared_region
-        declare.shared_region = "new_shared"
-        assert declare.shared_region == "new_shared"
 
     def test_offsets(self, declare: Declare, offsets: Optional[Iterable[Tuple[int, str]]]):
         expected_offsets = offsets or []
         assert declare.offsets == expected_offsets
-        if declare.shared_region is None:
-            with pytest.raises(ValueError):
-                declare.offsets = [(1, "BIT"), (2, "INTEGER")]
-        else:
-            declare.offsets = [(1, "BIT"), (2, "INTEGER")]
-            assert declare.offsets == [(1, "BIT"), (2, "INTEGER")]
 
     def test_copy(self, declare: Declare):
         assert isinstance(copy.copy(declare), Declare)
@@ -755,18 +717,12 @@ class TestPragma:
 
     def test_command(self, pragma: Pragma, command: str):
         assert pragma.command == command
-        pragma.command = "NEW_COMMAND"
-        assert pragma.command == "NEW_COMMAND"
 
     def test_args(self, pragma: Pragma, args: List[Union[QubitDesignator, str]]):
         assert pragma.args == tuple(args)
-        pragma.args = (Qubit(123),)
-        assert pragma.args == (Qubit(123),)
 
     def test_freeform_string(self, pragma: Pragma, freeform_string: str):
         assert pragma.freeform_string == freeform_string
-        pragma.freeform_string = "new string"
-        assert pragma.freeform_string == "new string"
 
     def test_copy(self, pragma: Pragma):
         assert isinstance(copy.copy(pragma), Pragma)
@@ -809,8 +765,6 @@ class TestReset:
 
     def test_qubit(self, reset_qubit: ResetQubit, qubit: Qubit):
         assert reset_qubit.qubit == qubit
-        reset_qubit.qubit = FormalArgument("a")
-        assert reset_qubit.qubit == FormalArgument("a")
 
     def test_get_qubits(self, reset_qubit: ResetQubit, qubit: Qubit):
         if qubit is None:
@@ -852,13 +806,9 @@ class TestDelayFrames:
 
     def test_frames(self, delay_frames: DelayFrames, frames: List[Frame]):
         assert delay_frames.frames == frames
-        delay_frames.frames = [Frame([Qubit(123)], "new_frame")]
-        assert delay_frames.frames == [Frame([Qubit(123)], "new_frame")]
 
     def test_duration(self, delay_frames: DelayFrames, duration: float):
         assert delay_frames.duration == duration
-        delay_frames.duration = 3.14
-        assert delay_frames.duration == 3.14
 
     def test_copy(self, delay_frames: DelayFrames):
         assert isinstance(copy.copy(delay_frames), DelayFrames)
@@ -893,13 +843,9 @@ class TestDelayQubits:
 
     def test_qubits(self, delay_qubits: DelayQubits, qubits: List[Qubit]):
         assert delay_qubits.qubits == qubits
-        delay_qubits.qubits = [Qubit(123)]  # type: ignore
-        assert delay_qubits.qubits == [Qubit(123)]
 
     def test_duration(self, delay_qubits: DelayQubits, duration: float):
         assert delay_qubits.duration == duration
-        delay_qubits.duration = 3.14
-        assert delay_qubits.duration == 3.14
 
     def test_copy(self, delay_qubits: DelayQubits):
         assert isinstance(copy.copy(delay_qubits), DelayQubits)
@@ -934,8 +880,6 @@ class TestFence:
 
     def test_qubits(self, fence: Fence, qubits: List[Union[Qubit, FormalArgument]]):
         assert fence.qubits == qubits
-        fence.qubits = [Qubit(123)]  # type: ignore
-        assert fence.qubits == [Qubit(123)]
 
     def test_copy(self, fence: Fence):
         assert isinstance(copy.copy(fence), Fence)
@@ -980,18 +924,12 @@ class TestDefWaveform:
 
     def test_name(self, def_waveform: DefWaveform, name: str):
         assert def_waveform.name == name
-        def_waveform.name = "new_name"
-        assert def_waveform.name == "new_name"
 
     def test_parameters(self, def_waveform: DefWaveform, parameters: List[Parameter]):
         assert def_waveform.parameters == parameters
-        def_waveform.parameters = [Parameter("z")]
-        assert def_waveform.parameters == [Parameter("z")]
 
     def test_entries(self, def_waveform: DefWaveform, entries: List[Union[Complex, Expression]]):
         assert def_waveform.entries == entries
-        def_waveform.entries = [Parameter("z")]  # type: ignore
-        assert def_waveform.entries == [Parameter("z")]
 
     def test_copy(self, def_waveform: DefWaveform):
         assert isinstance(copy.copy(def_waveform), DefWaveform)
@@ -1270,23 +1208,15 @@ class TestRawCapture:
 
     def test_frame(self, raw_capture: RawCapture, frame: Frame):
         assert raw_capture.frame == frame
-        raw_capture.frame = Frame([Qubit(123)], "new-frame")
-        assert raw_capture.frame == Frame([Qubit(123)], "new-frame")
 
     def test_duration(self, raw_capture: RawCapture, duration: float):
         assert raw_capture.duration == duration
-        raw_capture.duration = 3.14
-        assert raw_capture.duration == 3.14
 
     def test_memory_region(self, raw_capture: RawCapture, memory_region: MemoryReference):
         assert raw_capture.memory_region == memory_region
-        raw_capture.memory_region = MemoryReference("new-memory-reference")
-        assert raw_capture.memory_region == MemoryReference("new-memory-reference")
 
     def test_nonblocking(self, raw_capture: RawCapture, nonblocking: bool):
         assert raw_capture.nonblocking == nonblocking
-        raw_capture.nonblocking = not nonblocking
-        assert raw_capture.nonblocking == (not nonblocking)
 
     def test_copy(self, raw_capture: RawCapture):
         assert isinstance(copy.copy(raw_capture), RawCapture)
@@ -1344,8 +1274,6 @@ class TestFrameMutations:
     def test_frame(self, frame_mutation_instructions, frame: Frame):
         for instr in frame_mutation_instructions:
             assert instr.frame == frame
-            instr.frame = Frame([Qubit(123)], "NEW-FRAME")
-            assert instr.frame == Frame([Qubit(123)], "NEW-FRAME")
 
     def test_get_qubits(self, frame_mutation_instructions, frame: Frame):
         for instr in frame_mutation_instructions:
@@ -1356,8 +1284,6 @@ class TestFrameMutations:
         expression_names = ["freq", "phase", "freq", "phase", "scale"]
         for instr, expression_name in zip(frame_mutation_instructions, expression_names):
             assert getattr(instr, expression_name) == expression
-            setattr(instr, expression_name, 3.14)
-            assert getattr(instr, expression_name) == 3.14
 
     def test_copy(self, frame_mutation_instructions):
         for instr in frame_mutation_instructions:
@@ -1385,10 +1311,6 @@ class TestSwapPhases:
     def test_frames(self, swap_phases: SwapPhases, frame_a: Frame, frame_b: Frame):
         assert swap_phases.frameA == frame_a
         assert swap_phases.frameB == frame_b
-        swap_phases.frameA = Frame([Qubit(123)], "NEW-FRAME")
-        swap_phases.frameB = Frame([Qubit(123)], "NEW-FRAME")
-        assert swap_phases.frameA == Frame([Qubit(123)], "NEW-FRAME")
-        assert swap_phases.frameB == Frame([Qubit(123)], "NEW-FRAME")
 
     def test_get_qubits(self, swap_phases: SwapPhases, frame_a: Frame, frame_b: Frame):
         expected_qubits = set(frame_a.qubits + frame_b.qubits)
@@ -1428,13 +1350,9 @@ class TestClassicalMove:
 
     def test_left(self, move: ClassicalMove, left: MemoryReference):
         assert move.left == left
-        move.left = MemoryReference("new-memory-reference")
-        assert move.left == MemoryReference("new-memory-reference")
 
     def test_right(self, move: ClassicalMove, right: Union[MemoryReference, int, float]):
         assert move.right == right
-        move.right = MemoryReference("new-memory-reference")
-        assert move.right == MemoryReference("new-memory-reference")
 
     def test_copy(self, move: ClassicalMove):
         assert isinstance(copy.copy(move), ClassicalMove)
@@ -1465,13 +1383,9 @@ class TestClassicalExchange:
 
     def test_left(self, exchange: ClassicalExchange, left: MemoryReference):
         assert exchange.left == left
-        exchange.left = MemoryReference("new-memory-reference")
-        assert exchange.left == MemoryReference("new-memory-reference")
 
     def test_right(self, exchange: ClassicalExchange, right: MemoryReference):
         assert exchange.right == right
-        exchange.right = MemoryReference("new-memory-reference")
-        assert exchange.right == MemoryReference("new-memory-reference")
 
     def test_copy(self, exchange: ClassicalExchange):
         assert isinstance(copy.copy(exchange), ClassicalExchange)
@@ -1502,13 +1416,9 @@ class TestClassicalConvert:
 
     def test_left(self, convert: ClassicalConvert, left: MemoryReference):
         assert convert.left == left
-        convert.left = MemoryReference("new-memory-reference")
-        assert convert.left == MemoryReference("new-memory-reference")
 
     def test_right(self, convert: ClassicalConvert, right: MemoryReference):
         assert convert.right == right
-        convert.right = MemoryReference("new-memory-reference")
-        assert convert.right == MemoryReference("new-memory-reference")
 
     def test_copy(self, convert: ClassicalConvert):
         assert isinstance(copy.copy(convert), ClassicalConvert)
@@ -1539,18 +1449,12 @@ class TestClassicalLoad:
 
     def test_target(self, load: ClassicalLoad, target: MemoryReference):
         assert load.target == target
-        load.target = MemoryReference("new-memory-reference")
-        assert load.target == MemoryReference("new-memory-reference")
 
     def test_left(self, load: ClassicalLoad, left: MemoryReference):
         assert load.left == left
-        load.left = "new-left"
-        assert load.left == "new-left"
 
     def test_right(self, load: ClassicalLoad, right: MemoryReference):
         assert load.right == right
-        load.right = MemoryReference("new-memory-reference")
-        assert load.right == MemoryReference("new-memory-reference")
 
     def test_copy(self, load: ClassicalLoad):
         assert isinstance(copy.copy(load), ClassicalLoad)
@@ -1585,18 +1489,12 @@ class TestClassicalStore:
 
     def test_target(self, store: ClassicalStore, target: str):
         assert store.target == target
-        store.target = "new-target"
-        assert store.target == "new-target"
 
     def test_left(self, store: ClassicalStore, left: MemoryReference):
         assert store.left == left
-        store.left = MemoryReference("new-memory-reference")
-        assert store.left == MemoryReference("new-memory-reference")
 
     def test_right(self, store: ClassicalStore, right: Union[MemoryReference, int, float]):
         assert store.right == right
-        store.right = MemoryReference("new-memory-reference")
-        assert store.right == MemoryReference("new-memory-reference")
 
     def test_copy(self, store: ClassicalStore):
         assert isinstance(copy.copy(store), ClassicalStore)
@@ -1643,18 +1541,12 @@ class TestClassicalComparison:
 
     def test_target(self, comparison: ClassicalComparison, target: MemoryReference):
         assert comparison.target == target
-        comparison.target = MemoryReference("new-memory-reference")
-        assert comparison.target == MemoryReference("new-memory-reference")
 
     def test_left(self, comparison: ClassicalComparison, left: MemoryReference):
         assert comparison.left == left
-        comparison.left = MemoryReference("new-memory-reference")
-        assert comparison.left == MemoryReference("new-memory-reference")
 
     def test_right(self, comparison: ClassicalComparison, right: Union[MemoryReference, int, float]):
         assert comparison.right == right
-        comparison.right = MemoryReference("new-memory-reference")
-        assert comparison.right == MemoryReference("new-memory-reference")
 
     def test_copy(self, comparison: ClassicalComparison):
         assert isinstance(copy.copy(comparison), type(comparison))
@@ -1668,6 +1560,7 @@ class TestClassicalComparison:
         pickled = pickle.dumps(comparison)
         unpickled = pickle.loads(pickled)
         assert isinstance(unpickled, ClassicalComparison)
+        assert isinstance(unpickled, type(comparison))
         assert unpickled == comparison
 
 
@@ -1691,8 +1584,6 @@ class TestUnaryClassicalInstruction:
 
     def test_target(self, unary: UnaryClassicalInstruction, target: MemoryReference):
         assert unary.target == target
-        unary.target = MemoryReference("new-memory-reference")
-        assert unary.target == MemoryReference("new-memory-reference")
 
     def test_copy(self, unary: UnaryClassicalInstruction):
         assert isinstance(copy.copy(unary), type(unary))
@@ -1735,13 +1626,9 @@ class TestArithmeticBinaryOp:
 
     def test_left(self, arithmetic: ArithmeticBinaryOp, left: MemoryReference):
         assert arithmetic.left == left
-        arithmetic.left = MemoryReference("new-memory-reference")
-        assert arithmetic.left == MemoryReference("new-memory-reference")
 
     def test_right(self, arithmetic: ArithmeticBinaryOp, right: Union[MemoryReference, float, int]):
         assert arithmetic.right == right
-        arithmetic.right = 3.14
-        assert arithmetic.right == 3.14
 
     def test_copy(self, arithmetic: ArithmeticBinaryOp):
         assert isinstance(copy.copy(arithmetic), type(arithmetic))
@@ -1786,13 +1673,9 @@ class TestLogicalBinaryOp:
 
     def test_left(self, logical: LogicalBinaryOp, left: MemoryReference):
         assert logical.left == left
-        logical.left = MemoryReference("new-memory-reference")
-        assert logical.left == MemoryReference("new-memory-reference")
 
     def test_right(self, logical: LogicalBinaryOp, right: Union[MemoryReference, float, int]):
         assert logical.right == right
-        logical.right = 3
-        assert logical.right == 3
 
     def test_copy(self, logical: LogicalBinaryOp):
         assert isinstance(copy.copy(logical), type(logical))
@@ -1811,8 +1694,7 @@ class TestLogicalBinaryOp:
 def test_include():
     include = Include("my-cool-file.quil")
     assert include.out() == 'INCLUDE "my-cool-file.quil"'
-    include.filename = "my-other-file.quil"
-    assert include.filename == "my-other-file.quil"
+    assert include.filename == "my-cool-file.quil"
     rs_include = _convert_to_rs_instruction(include)
     assert include == _convert_to_py_instruction(rs_include)
 
@@ -1851,7 +1733,7 @@ class TestCall:
 
     @pytest.fixture
     def call(self) -> Call:
-        return Call("example", [CallArgument.from_immediate(complex(1.234))])
+        return Call("example", [CallArgument.Immediate(complex(1.234))])
 
     def test_roundtrip(self, call: Call):
         rs_call = _convert_to_rs_instruction(call)
