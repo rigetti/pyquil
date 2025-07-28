@@ -65,6 +65,7 @@ import quil.instructions as quil_rs
 class AbstractInstruction(metaclass=abc.ABCMeta):
     """Abstract class for representing single instructions."""
 
+
 AbstractInstruction.register(quil_rs.Instruction)
 for cls in quil_rs.Instruction.__subclasses__():
     AbstractInstruction.register(cls)
@@ -2418,6 +2419,7 @@ class DefCalibration(quil_rs.CalibrationDefinition, AbstractInstruction):
 
 MemoryRefStr = MemoryReference | quil_rs.MemoryReference | str
 
+
 class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstruction):
     """A measure calibration definition."""
 
@@ -2472,9 +2474,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
 
     @instrs.setter
     def instrs(self, instrs: list[AbstractInstruction]) -> None:
-        quil_rs.MeasureCalibrationDefinition.instructions.__set__(
-            self, _convert_to_rs_instructions(instrs)
-        )
+        quil_rs.MeasureCalibrationDefinition.instructions.__set__(self, _convert_to_rs_instructions(instrs))
 
     @property  # type: ignore[override]
     def instructions(self) -> list[AbstractInstruction]:

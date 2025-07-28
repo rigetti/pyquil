@@ -21,6 +21,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Generator, Iterable, Iterator, Sequence
 from copy import deepcopy
+from itertools import chain
 from typing import (
     Any,
     Callable,
@@ -215,7 +216,7 @@ class Program:
     @property
     def instructions(self) -> list[AbstractInstruction]:
         """Fill in any placeholders and return a list of quil AbstractInstructions."""
-        return list(self.declarations.values()) + _convert_to_py_instructions(self._program.body_instructions)
+        return list(self)
 
     @instructions.setter
     def instructions(self, instructions: list[AbstractInstruction]) -> None:
@@ -955,7 +956,12 @@ class Program:
 
     def __iter__(self) -> Iterator[AbstractInstruction]:
         """Iterate through a program's instructions, e.g. [a for a in Program(X(0))]."""
-        return self.instructions.__iter__()
+        return iter(
+            chain(
+                (Declare._from_rs_declaration(instr) for instr in self._program.declarations.values()),
+                (_convert_to_py_instruction(instr) for instr in self._program.body_instructions),
+            )
+        )
 
     def __eq__(self, other: object) -> bool:
         """Check if two programs are equal."""
@@ -965,7 +971,7 @@ class Program:
 
     def __len__(self) -> int:
         """Get the number of instructions in the program."""
-        return len(self.instructions)
+        return len(self._program.declarations) + len(self._program.body_instructions)
 
     def __hash__(self) -> int:
         """Hash the program."""
