@@ -8,13 +8,15 @@ from pyquil.api import QuantumComputer
 
 from .. import override_qcs_config
 
-
 @pytest.fixture()
 def qc(client_configuration: QCSClient) -> QuantumComputer:
     quantum_processor_id = os.environ.get("TEST_QUANTUM_PROCESSOR")
 
     if quantum_processor_id is None:
-        raise Exception("'TEST_QUANTUM_PROCESSOR' env var required for e2e tests.")
+        raise Exception(
+            "'TEST_QUANTUM_PROCESSOR' env var required for e2e tests. "
+            "(hint: annotate the test @e2e to prevent this exception)"
+        )
 
     return get_qc(
         quantum_processor_id,

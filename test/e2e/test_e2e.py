@@ -23,6 +23,8 @@ from pyquil.gates import CNOT, MEASURE, RX, H
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
 
+from . import e2e
+
 TEST_PROGRAM = Program(
     Declare("ro", "BIT", 2),
     H(0),
@@ -32,12 +34,14 @@ TEST_PROGRAM = Program(
 ).wrap_in_numshots_loop(1000)
 
 
+@e2e
 def test_basic_program(qc: QuantumComputer):
     results = qc.run(qc.compile(TEST_PROGRAM)).readout_data.get("ro")
 
     assert results.shape == (1000, 2)
 
 
+@e2e
 def test_parametric_program(qc: QuantumComputer):
     compiled = qc.compile(
         Program(
@@ -63,6 +67,7 @@ def test_parametric_program(qc: QuantumComputer):
         assert all_results[2] == 0.0
 
 
+@e2e
 def test_multithreading(qc: QuantumComputer):
     def run_program(
         program: Program,
