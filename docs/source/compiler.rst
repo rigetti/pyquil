@@ -37,9 +37,9 @@ as in the following:
 
     qc = get_qc("9q-square-qvm")
 
-    ep = qc.compile(Program(H(0), CNOT(0,1), CNOT(1,2)))
+    executable = qc.compile(Program(H(0), CNOT(0,1), CNOT(1,2)))
 
-    print(ep)
+    print(executable)
 
 ..
     Cannot actually check the output because quilc is non-deterministic, but still need to 
@@ -49,7 +49,7 @@ as in the following:
 
    ...
 
-with output
+with output (see note below)
 
 .. code:: text
 
@@ -66,6 +66,8 @@ with output
     RZ(-pi/2) 1
     RX(-pi/2) 2
     RZ(pi/2) 2
+
+Note that printing ``executable`` here — the result of a ``qc.compile`` call — only results in a readable native Quil program like the above if the Quantum Computer is a QVM. When compiling for live QPU targets, this printed output will be encrypted and opaque because of program translation. See :ref:`Compilation metadata <compilation_metadata>` for instructions on how to convert a program native gates independent of program translation.
 
 The compiler connection is also available directly via the property ``qc.compiler``.  The
 precise class of this object changes based on context (e.g., :py:class:`~pyquil.api.QPUCompiler`,
@@ -100,8 +102,8 @@ the previous example snippet is identical to the following:
     np = qc.compiler.quil_to_native_quil(p, protoquil=True)
     print(np)
 
-    ep = qc.compiler.native_quil_to_executable(np)
-    print(ep)
+    exe = qc.compiler.native_quil_to_executable(np)
+    print(exe)
 
 .. testoutput:: quilc
     :hide:
@@ -146,6 +148,8 @@ To instruct the compiler to produce Quil code that can be executed on a QPU, you
    If your compiler server is started with the protoquil option ``-P`` (as is the case for your
    JupyterLab notebook's compiler) then specifying ``protoquil=False`` will override the server
    and forcefully disable protoquil. Specifying ``protoquil=None`` defers to the server's choice.
+
+.. _compilation_metadata:
 
 Compilation metadata
 ====================
