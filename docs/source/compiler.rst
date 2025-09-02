@@ -67,7 +67,7 @@ with output (see note below)
     RX(-pi/2) 2
     RZ(pi/2) 2
 
-Note that printing ``executable`` here — the result of a ``qc.compile`` call — only results in a readable native Quil program like the above if the Quantum Computer is a QVM. When compiling for live QPU targets, this printed output will be encrypted and opaque because of program translation. See :ref:`Compilation metadata <compilation_metadata>` for instructions on how to convert a program native gates independent of program translation.
+Note that printing ``executable`` here — the result of a ``qc.compile`` call — only results in a readable native Quil program like the above if the Quantum Computer is a QVM. When compiling for live QPU targets, this printed output will be encrypted and opaque because of program translation. See :ref:`Compilation metadata <compilation_metadata>` for instructions on how to convert a program to native gates independent of program translation.
 
 The compiler connection is also available directly via the property ``qc.compiler``.  The
 precise class of this object changes based on context (e.g., :py:class:`~pyquil.api.QPUCompiler`,
