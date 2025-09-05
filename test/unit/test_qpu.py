@@ -23,7 +23,6 @@ from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 
 
-@pytest.fixture
 def mock_encrypted_program():
     program = Program(
         "DECLARE ro BIT[2]",
@@ -215,7 +214,7 @@ class TestQPUExecutionOptions:
     [
         (
             QAMExecutionResult(
-                executable=mock_encrypted_program,
+                executable=mock_encrypted_program(),
                 data=ExecutionData(
                     result_data=ResultData.from_qpu(
                         QPUResultData(
@@ -233,7 +232,7 @@ class TestQPUExecutionOptions:
         ),
         (
             QPUExecuteResponse(
-                job_id="some-job-id", _executable=mock_encrypted_program, execution_options=ExecutionOptions.default()
+                job_id="some-job-id", _executable=mock_encrypted_program(), execution_options=ExecutionOptions.default()
             )
         ),
     ],
