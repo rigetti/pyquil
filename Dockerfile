@@ -6,7 +6,7 @@ ARG python_version=3.10
 # use multi-stage builds to independently pull dependency versions
 FROM rigetti/quilc:$quilc_version as quilc
 FROM rigetti/qvm:$qvm_version as qvm
-FROM python:$python_version-buster
+FROM python:$python_version-trixie
 
 ARG pyquil_version
 
@@ -15,9 +15,6 @@ COPY --from=quilc /src/quilc/quilc /src/quilc/quilc
 
 # copy over the pre-built qvm binary from the second build stage
 COPY --from=qvm /src/qvm/qvm /src/qvm/qvm
-
-# See: https://www.reddit.com/r/debian/comments/1hwvdb4/comment/m64a1wr/
-RUN rm -rf /var/lib/apt/lists/*
 
 # install the missing apt packages that aren't copied over
 RUN apt-get update && apt-get -yq dist-upgrade && \
