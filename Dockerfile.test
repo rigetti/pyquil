@@ -14,15 +14,11 @@ COPY --from=quilc /src/quilc/quilc /src/quilc/quilc
 # copy over the pre-built qvm binary from the second build stage
 COPY --from=qvm /src/qvm/qvm /src/qvm/qvm
 
-# See: https://www.reddit.com/r/debian/comments/1hwvdb4/comment/m64a1wr/
-RUN rm -rf /var/lib/apt/lists/*
-
 # install the missing apt packages that aren't copied over
-RUN apt-get update -yq
-RUN apt-get -yq dist-upgrade
-RUN apt-get install --no-install-recommends -yq \
-  git libblas-dev libffi-dev liblapack-dev libzmq3-dev
-RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get -yq dist-upgrade && \
+    apt-get install --no-install-recommends -yq \
+    git libblas-dev libffi-dev liblapack-dev libzmq3-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # install ipython
 RUN pip install --no-cache-dir ipython
