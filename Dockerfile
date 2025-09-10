@@ -8,6 +8,7 @@ FROM rigetti/quilc:$quilc_version as quilc
 FROM rigetti/qvm:$qvm_version as qvm
 FROM python:$python_version-trixie
 
+# passed in by `.github/workflows/publish.yml`, should match the version just published to pypi
 ARG pyquil_version
 
 # copy over the pre-built quilc binary from the first build stage
