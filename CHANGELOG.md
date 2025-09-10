@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.16.3-rc.0 (2025-09-10)
+
+### Fixes
+
+#### update packages with detected vulnerabilities (#1834)
+
 ## 4.16.2 (2025-05-05)
 
 ### Fixes
