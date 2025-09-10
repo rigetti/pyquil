@@ -6,7 +6,7 @@ ARG python_version=3.10
 # use multi-stage builds to independently pull dependency versions
 FROM rigetti/quilc:$quilc_version as quilc
 FROM rigetti/qvm:$qvm_version as qvm
-FROM python:$python_version-buster
+FROM python:$python_version-trixie
 
 # copy over the pre-built quilc binary from the first build stage
 COPY --from=quilc /src/quilc/quilc /src/quilc/quilc

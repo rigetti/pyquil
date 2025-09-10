@@ -1051,7 +1051,7 @@ class Frame(quil_rs.FrameIdentifier):
         """Get the qubits in the frame."""
         return tuple(_convert_to_py_qubits(super().qubits))
 
-    @qubits.setter
+    @qubits.setter  # type: ignore[override]
     def qubits(self, qubits: tuple[Qubit, FormalArgument]) -> None:
         quil_rs.FrameIdentifier.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 

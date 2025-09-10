@@ -376,7 +376,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         """Get the qubits the gate operates on."""
         return self.get_qubits(indices=False)  # type: ignore
 
-    @qubits.setter
+    @qubits.setter  # type: ignore[override]
     def qubits(self, qubits: Sequence[Union[Qubit, QubitPlaceholder, FormalArgument]]) -> None:
         quil_rs.Gate.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore
 
@@ -394,7 +394,7 @@ class Gate(quil_rs.Gate, AbstractInstruction):
         """Get all modifiers applied to the gate."""
         return [str(modifier).upper() for modifier in super().modifiers]
 
-    @modifiers.setter
+    @modifiers.setter  # type: ignore[override]
     def modifiers(self, modifiers: Union[list[str], list[quil_rs.GateModifier]]) -> None:
         modifiers = [
             self._to_rs_gate_modifier(modifier) if isinstance(modifier, str) else modifier for modifier in modifiers
@@ -760,7 +760,7 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         """Get the parameters this gate definition takes."""
         return [Parameter(name) for name in super().parameters]
 
-    @parameters.setter
+    @parameters.setter  # type: ignore[override]
     def parameters(self, parameters: Optional[list[Parameter]]) -> None:
         quil_rs.GateDefinition.parameters.__set__(self, [param.name for param in parameters or []])  # type: ignore[attr-defined] # noqa
 
@@ -2467,7 +2467,7 @@ class RawCapture(quil_rs.RawCapture, AbstractInstruction):
         """Get the duration of the capture."""
         return super().duration.to_number()
 
-    @duration.setter
+    @duration.setter  # type: ignore[override]
     def duration(self, duration: float) -> None:
         rs_duration = _convert_to_rs_expression(duration)
         quil_rs.RawCapture.duration.__set__(self, rs_duration)  # type: ignore[attr-defined]
@@ -2556,7 +2556,7 @@ class Delay(quil_rs.Delay, AbstractInstruction):
         """Get the qubits the delay operates on."""
         return _convert_to_py_qubits(super().qubits)
 
-    @qubits.setter
+    @qubits.setter  # type: ignore[override]
     def qubits(self, qubits: Sequence[Union[int, Qubit, FormalArgument]]) -> None:
         quil_rs.Delay.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore
 
@@ -2642,7 +2642,7 @@ class Fence(quil_rs.Fence, AbstractInstruction):
         """
         return _convert_to_py_qubits(super().qubits)
 
-    @qubits.setter
+    @qubits.setter  # type: ignore[override]
     def qubits(self, qubits: list[Union[Qubit, FormalArgument]]) -> None:
         quil_rs.Fence.qubits.__set__(self, _convert_to_rs_qubits(qubits))  # type: ignore[attr-defined]
 
@@ -2759,7 +2759,7 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
         """Get the parameters of the circuit."""
         return [Parameter(parameter) for parameter in super().parameters]
 
-    @parameters.setter
+    @parameters.setter  # type: ignore[override]
     def parameters(self, parameters: list[Parameter]) -> None:
         rs_parameters = [parameter.name for parameter in parameters]
         quil_rs.CircuitDefinition.parameters.__set__(self, rs_parameters)  # type: ignore[attr-defined]
@@ -2769,7 +2769,7 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
         """Get the qubit parameters of the circuit."""
         return [FormalArgument(qubit) for qubit in super().qubit_variables]
 
-    @qubit_variables.setter
+    @qubit_variables.setter  # type: ignore[override]
     def qubit_variables(self, qubits: list[FormalArgument]) -> None:
         rs_qubits = [qubit.name for qubit in qubits]
         quil_rs.CircuitDefinition.qubit_variables.__set__(self, rs_qubits)  # type: ignore[attr-defined]
@@ -2779,7 +2779,7 @@ class DefCircuit(quil_rs.CircuitDefinition, AbstractInstruction):
         """Get the instructions in the circuit."""
         return _convert_to_py_instructions(super().instructions)
 
-    @instructions.setter
+    @instructions.setter  # type: ignore[override]
     def instructions(self, instructions: list[AbstractInstruction]) -> None:
         rs_instructions = _convert_to_rs_instructions(instructions)
         quil_rs.CircuitDefinition.instructions.__set__(self, rs_instructions)  # type: ignore[attr-defined]
@@ -2855,7 +2855,7 @@ class DefCalibration(quil_rs.Calibration, AbstractInstruction):
         """The instructions in the calibration."""
         return self.instrs
 
-    @instructions.setter
+    @instructions.setter  # type: ignore[override]
     def instructions(self, instructions: list[AbstractInstruction]) -> None:
         self.instrs = instructions
 
@@ -2947,7 +2947,7 @@ class DefMeasureCalibration(quil_rs.MeasureCalibrationDefinition, AbstractInstru
         """The instructions in the calibration."""
         return self.instrs
 
-    @instructions.setter
+    @instructions.setter  # type: ignore[override]
     def instructions(self, instructions: list[AbstractInstruction]) -> None:
         self.instrs = instructions
 
