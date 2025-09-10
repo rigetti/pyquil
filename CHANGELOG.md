@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.16.3-rc.1 (2025-09-10)
+
+### Fixes
+
+#### update packages with detected vulnerabilities (#1834)
+
+#### clarify what printing a compiled program's output looks like for different targets (#1833)
+
 ## 4.16.3-rc.0 (2025-09-10)
 
 ### Fixes
