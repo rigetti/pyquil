@@ -2136,7 +2136,7 @@ class Delay(quil_rs.Delay, AbstractInstruction):
     @property  # type: ignore[override]
     def duration(self) -> float:
         """Get the duration of the delay."""
-        return super().duration._0
+        return super().duration.to_real()
 
 
 class DelayFrames(Delay):
