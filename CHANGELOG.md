@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.0.0-rc.0 (2025-09-30)
+
+### Breaking Changes
+
+#### update to new quil-rs
+
+### Features
+
+#### add e2e marker
+
+#### improve program instruction iteration
+
+### Fixes
+
+#### update packages with detected vulnerabilities (#1834)
+
+#### clarify what printing a compiled program's output looks like for different targets (#1833)
+
 ## 4.16.3-rc.1 (2025-09-10)
 
 ### Fixes
