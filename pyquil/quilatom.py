@@ -357,7 +357,7 @@ class LabelPlaceholder(QuilAtom):
             case quil_rs.Target(quil_rs.TargetPlaceholder(_) as p):
                 return LabelPlaceholder(placeholder=p)
             case _:
-                return LabelPlaceholder(None)
+                return LabelPlaceholder(placeholder=None)
 
     @property
     def prefix(self) -> str:
@@ -480,19 +480,19 @@ def _convert_to_py_expression(
         case quil_rs_expr.Expression.FunctionCall(fc):
             parameter = _convert_to_py_expression(fc.expression)
             match fc.function:
-                case quil_rs_expr.ExpressionFunction.Cis:
+                case quil_rs_expr.ExpressionFunction.CIS:
                     return quil_cis(parameter)
-                case quil_rs_expr.ExpressionFunction.Cosine:
+                case quil_rs_expr.ExpressionFunction.COSINE:
                     return quil_cos(parameter)
-                case quil_rs_expr.ExpressionFunction.Exponent:
+                case quil_rs_expr.ExpressionFunction.EXPONENT:
                     return quil_exp(parameter)
-                case quil_rs_expr.ExpressionFunction.Sine:
+                case quil_rs_expr.ExpressionFunction.SINE:
                     return quil_sin(parameter)
-                case quil_rs_expr.ExpressionFunction.SquareRoot:
+                case quil_rs_expr.ExpressionFunction.SQUARE_ROOT:
                     return quil_sqrt(parameter)
         case quil_rs_expr.Expression.Prefix(prefix):
             py_expression = _convert_to_py_expression(prefix.expression)
-            if prefix is quil_rs_expr.PrefixOperator.Plus:
+            if prefix is quil_rs_expr.PrefixOperator.PLUS:
                 return py_expression
             elif isinstance(py_expression, (int, float, complex, Expression)):
                 return -py_expression
@@ -681,13 +681,13 @@ class Function(Expression):
     @classmethod
     def _from_rs_function_call(cls, function_call: quil_rs_expr.FunctionCallExpression) -> "Function":
         expression = _convert_to_py_expression(function_call.expression)
-        if function_call.function == quil_rs_expr.ExpressionFunction.Cis:
+        if function_call.function == quil_rs_expr.ExpressionFunction.CIS:
             return quil_cis(expression)
-        if function_call.function == quil_rs_expr.ExpressionFunction.Cosine:
+        if function_call.function == quil_rs_expr.ExpressionFunction.COSINE:
             return quil_cos(expression)
-        if function_call.function == quil_rs_expr.ExpressionFunction.Exponent:
+        if function_call.function == quil_rs_expr.ExpressionFunction.EXPONENT:
             return quil_exp(expression)
-        if function_call.function == quil_rs_expr.ExpressionFunction.Sine:
+        if function_call.function == quil_rs_expr.ExpressionFunction.SINE:
             return quil_sin(expression)
         return quil_sqrt(expression)
 
@@ -758,15 +758,15 @@ class BinaryExp(Expression):
     ) -> Union["BinaryExp", ExpressionValueDesignator]:
         left = _convert_to_py_expression(infix_expression.left)
         right = _convert_to_py_expression(infix_expression.right)
-        if infix_expression.operator == quil_rs_expr.InfixOperator.Plus:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.PLUS:
             return Add.fn(left, right)
-        if infix_expression.operator == quil_rs_expr.InfixOperator.Minus:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.MINUS:
             return Sub.fn(left, right)
-        if infix_expression.operator == quil_rs_expr.InfixOperator.Slash:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.SLASH:
             return Div.fn(left, right)
-        if infix_expression.operator == quil_rs_expr.InfixOperator.Star:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.STAR:
             return Mul.fn(left, right)
-        if infix_expression.operator == quil_rs_expr.InfixOperator.Caret:
+        if infix_expression.operator == quil_rs_expr.InfixOperator.CARET:
             return Pow.fn(left, right)
         raise ValueError(f"{type(infix_expression)} is not a valid InfixExpression")
 

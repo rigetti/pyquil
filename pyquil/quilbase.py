@@ -346,11 +346,11 @@ class Gate(quil_rs.Gate, AbstractInstruction):
     def _to_rs_gate_modifier(modifier: str) -> quil_rs.GateModifier:
         modifier = modifier.upper()
         if modifier == "CONTROLLED":
-            return quil_rs.GateModifier.Controlled
+            return quil_rs.GateModifier.CONTROLLED
         if modifier == "DAGGER":
-            return quil_rs.GateModifier.Dagger
+            return quil_rs.GateModifier.DAGGER
         if modifier == "FORKED":
-            return quil_rs.GateModifier.Forked
+            return quil_rs.GateModifier.FORKED
         raise ValueError(f"{modifier} is not a valid Gate modifier.")
 
     def get_qubit_indices(self) -> list[int]:
@@ -937,13 +937,13 @@ class UnaryClassicalInstruction(quil_rs.UnaryLogic, AbstractInstruction):
 class ClassicalNeg(UnaryClassicalInstruction):
     """The NEG instruction."""
 
-    op = quil_rs.UnaryOperator.Neg
+    op = quil_rs.UnaryOperator.NEG
 
 
 class ClassicalNot(UnaryClassicalInstruction):
     """The NOT instruction."""
 
-    op = quil_rs.UnaryOperator.Not
+    op = quil_rs.UnaryOperator.NOT
 
 
 class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
@@ -1000,19 +1000,19 @@ class LogicalBinaryOp(quil_rs.BinaryLogic, AbstractInstruction):
 class ClassicalAnd(LogicalBinaryOp):
     """The AND instruction."""
 
-    op = quil_rs.BinaryOperator.And
+    op = quil_rs.BinaryOperator.AND
 
 
 class ClassicalInclusiveOr(LogicalBinaryOp):
     """The IOR instruction."""
 
-    op = quil_rs.BinaryOperator.Ior
+    op = quil_rs.BinaryOperator.IOR
 
 
 class ClassicalExclusiveOr(LogicalBinaryOp):
     """The XOR instruction."""
 
-    op = quil_rs.BinaryOperator.Xor
+    op = quil_rs.BinaryOperator.XOR
 
 
 class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
@@ -1053,25 +1053,25 @@ class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
 class ClassicalAdd(ArithmeticBinaryOp):
     """The ADD instruction."""
 
-    op = quil_rs.ArithmeticOperator.Add
+    op = quil_rs.ArithmeticOperator.ADD
 
 
 class ClassicalSub(ArithmeticBinaryOp):
     """The SUB instruction."""
 
-    op = quil_rs.ArithmeticOperator.Subtract
+    op = quil_rs.ArithmeticOperator.SUBTRACT
 
 
 class ClassicalMul(ArithmeticBinaryOp):
     """The MUL instruction."""
 
-    op = quil_rs.ArithmeticOperator.Multiply
+    op = quil_rs.ArithmeticOperator.MULTIPLY
 
 
 class ClassicalDiv(ArithmeticBinaryOp):
     """The DIV instruction."""
 
-    op = quil_rs.ArithmeticOperator.Divide
+    op = quil_rs.ArithmeticOperator.DIVIDE
 
 
 class ClassicalMove(quil_rs.Move, AbstractInstruction):
@@ -1339,31 +1339,31 @@ class ClassicalComparison(quil_rs.Comparison, AbstractInstruction):
 class ClassicalEqual(ClassicalComparison):
     """The EQ comparison instruction."""
 
-    op = quil_rs.ComparisonOperator.Equal
+    op = quil_rs.ComparisonOperator.EQUAL
 
 
 class ClassicalLessThan(ClassicalComparison):
     """The LT comparison instruction."""
 
-    op = quil_rs.ComparisonOperator.LessThan
+    op = quil_rs.ComparisonOperator.LESS_THAN
 
 
 class ClassicalLessEqual(ClassicalComparison):
     """The LE comparison instruction."""
 
-    op = quil_rs.ComparisonOperator.LessThanOrEqual
+    op = quil_rs.ComparisonOperator.LESS_THAN_OR_EQUAL
 
 
 class ClassicalGreaterThan(ClassicalComparison):
     """The GT comparison instruction."""
 
-    op = quil_rs.ComparisonOperator.GreaterThan
+    op = quil_rs.ComparisonOperator.GREATER_THAN
 
 
 class ClassicalGreaterEqual(ClassicalComparison):
     """The GE comparison instruction."""
 
-    op = quil_rs.ComparisonOperator.GreaterThanOrEqual
+    op = quil_rs.ComparisonOperator.GREATER_THAN_OR_EQUAL
 
 
 class Jump(quil_rs.Jump, AbstractInstruction):
@@ -1505,13 +1505,13 @@ class Declare(quil_rs.Declaration, AbstractInstruction):
     def _memory_type_to_scalar_type(memory_type: str) -> quil_rs.ScalarType:
         memory_type = memory_type.upper()
         if memory_type == "BIT":
-            return quil_rs.ScalarType.Bit
+            return quil_rs.ScalarType.BIT
         if memory_type == "INTEGER":
-            return quil_rs.ScalarType.Integer
+            return quil_rs.ScalarType.INTEGER
         if memory_type == "REAL":
-            return quil_rs.ScalarType.Real
+            return quil_rs.ScalarType.REAL
         if memory_type == "OCTET":
-            return quil_rs.ScalarType.Octet
+            return quil_rs.ScalarType.OCTET
         raise ValueError(f"{memory_type} is not a valid scalar type.")
 
     @staticmethod
