@@ -21,13 +21,13 @@ packages = [{ include = "pyquil" }]
 exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
-python = "^3.9,<4"
+python = "^3.9,<3.13"
 numpy = ">=1.26,<3"
 scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
-qcs-sdk-python = ">=0.20.1"
-quil = ">=0.15.3"
+qcs-sdk-python = ">=0.20.1,<0.22"
+quil = ">=0.15.3,<0.18"
 packaging = ">=23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
