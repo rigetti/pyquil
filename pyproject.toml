@@ -21,6 +21,7 @@ packages = [{ include = "pyquil" }]
 exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
+# TODO(#1816): Loosen this bound once we've resolved support for Python 3.13+.
 python = "^3.9,<3.13"
 numpy = ">=1.26,<3"
 scipy = "^1.11"
