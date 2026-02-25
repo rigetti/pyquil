@@ -7,7 +7,7 @@
 # ---
 # name: TestProgram.test_calibrations.1
   list([
-    MeasureCalibrationDefinition { identifier: MeasureCalibrationIdentifier { qubit: Fixed(2), target: Some("theta[0]") }, instructions: [Gate(Gate { name: "Z", parameters: [], qubits: [Fixed(2)], modifiers: [] })] },
+    MeasureCalibrationDefinition { identifier: MeasureCalibrationIdentifier { name: None, qubit: Fixed(2), target: Some("theta[0]") }, instructions: [Gate(Gate { name: "Z", parameters: [], qubits: [Fixed(2)], modifiers: [] })] },
   ])
 # ---
 # name: TestProgram.test_frames

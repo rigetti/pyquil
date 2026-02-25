@@ -9,6 +9,7 @@ from pyquil.experiment import (
     read_json,
     to_json,
 )
+from pyquil.experiment._calibration import CalibrationMethod
 from pyquil.experiment._main import _pauli_to_product_state, _remove_reset_from_program
 from pyquil.experiment._program import (
     parameterized_readout_symmetrization,
@@ -110,7 +111,7 @@ def test_generate_experiment_program():
     # simplest example
     p = Program()
     s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0)), out_operator=sZ(0))
-    e = Experiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
     exp = e.generate_experiment_program()
     test_exp = Program()
     ro = test_exp.declare("ro", "BIT")
@@ -135,7 +136,7 @@ def test_generate_experiment_program():
     p = Program()
     p.wrap_in_numshots_loop(1000)
     s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0)), out_operator=sZ(0))
-    e = Experiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
     exp = e.generate_experiment_program()
     test_exp = Program()
     ro = test_exp.declare("ro", "BIT")
@@ -147,7 +148,7 @@ def test_generate_experiment_program():
     p = Program()
     p += RESET()
     s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0)), out_operator=sZ(0))
-    e = Experiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
     exp = e.generate_experiment_program()
     test_exp = Program()
     test_exp += RESET()
@@ -159,7 +160,7 @@ def test_generate_experiment_program():
     # state preparation and measurement
     p = Program()
     s = ExperimentSetting(in_state=_pauli_to_product_state(sY(0)), out_operator=sX(0))
-    e = Experiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
     exp = e.generate_experiment_program()
     test_exp = Program()
     test_exp += parameterized_single_qubit_state_preparation([0])
@@ -172,7 +173,7 @@ def test_generate_experiment_program():
     # multi-qubit state preparation and measurement
     p = Program()
     s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sY(1)), out_operator=sZ(0) * sX(1))
-    e = Experiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
     exp = e.generate_experiment_program()
     test_exp = Program()
     test_exp += parameterized_single_qubit_state_preparation([0, 1])

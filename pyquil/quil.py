@@ -34,6 +34,7 @@ from typing import (
 import numpy as np
 import quil.instructions as quil_rs
 from deprecated.sphinx import deprecated
+import qcs_sdk
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
 from quil.program import CalibrationSet
 from quil.program import Program as RSProgram
@@ -134,8 +135,11 @@ class Program:
 
     def __init__(self, *instructions: InstructionDesignator):
         """Initialize a Program."""
-        self._program: RSProgram = RSProgram()
-        self.inst(*instructions)
+        if len(instructions) == 1 and isinstance(instructions[0], RSProgram):
+            self._program = instructions[0]
+        else:
+            self._program: RSProgram = RSProgram()
+            self.inst(*instructions)
 
         # default number of shots to loop through
         self.num_shots = 1
@@ -225,7 +229,7 @@ class Program:
         self._program = new_program._program
 
     @_invalidates_cached_properties
-    def inst(self, *instructions: Union[InstructionDesignator, RSProgram]) -> "Program":
+    def inst(self, *instructions: InstructionDesignator) -> "Program":
         """Mutates the Program object by appending new instructions.
 
         This function accepts a number of different valid forms, e.g.
@@ -288,16 +292,18 @@ class Program:
                         else:
                             rest = [possible_params] + list(rest)
                         self.gate(op, params, rest)
-            elif isinstance(instruction, str):
-                self.inst(RSProgram.parse(instruction.strip()))
+            elif isinstance(instruction, RSProgram):
+                self._program += instruction
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
             elif isinstance(instruction, quil_rs.Instruction):
                 self._add_instruction(instruction)
             elif isinstance(instruction, AbstractInstruction):
                 self._add_instruction(_convert_to_rs_instruction(instruction))
-            elif isinstance(instruction, RSProgram):
-                self._program += instruction
+            elif isinstance(instruction, str):
+                self.inst(RSProgram.parse(instruction.strip()))
+            elif hasattr(instruction, "to_quil"):
+                self.inst(RSProgram.parse(instruction.to_quil().strip()))
             else:
                 try:
                     instruction = _convert_to_rs_instruction(instruction)

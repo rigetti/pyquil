@@ -22,7 +22,7 @@ from typing import Any, Generic, Optional, TypeVar, Union
 import numpy as np
 from deprecated import deprecated
 from qcs_sdk import ExecutionData
-from qcs_sdk.qpu import MemoryValues, RawQPUReadoutData
+from qcs_sdk.qpu import MemoryValues, RawQPUReadoutData, QPUResultData
 from qcs_sdk.qvm import RawQVMReadoutData
 
 from pyquil.api._abstract_compiler import QuantumExecutable
@@ -96,8 +96,8 @@ class QAMExecutionResult:
         This method will only return the final value in memory after the job has completed. Because of this, memory
         values should not be used to get readout data. Instead, use `get_register_map()` or `get_raw_readout_data()`.
         """
-        if self.data.result_data.is_qpu():
-            return self.data.result_data.to_qpu().memory_values
+        if isinstance(self.data.result_data, QPUResultData):
+            return self.data.result_data.memory_values
         return {}
 
     @property

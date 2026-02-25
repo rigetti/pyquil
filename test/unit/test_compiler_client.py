@@ -81,5 +81,5 @@ def test_compile_to_native_quil__returns_native_quil(
 
     response = compiler_client.compile_to_native_quil(request)
 
-    assert response.native_program == "DECLARE ro BIT[1]\n"
+    assert response.native_program.to_quil() == "DECLARE ro BIT[1]\n"
     assert response.metadata is not None

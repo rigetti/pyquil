@@ -40,6 +40,6 @@ def test_instructions(benchmark: Callable, over_9000_program: Program) -> None:
 
     benchmark(instructions, over_9000_program)
 
-@pytest.mark.skip("this is too slow")
+@pytest.mark.slow("this benchmark is slow")
 def test_copy_everything_except_instructions(benchmark: Callable, large_program: Program) -> None:
     benchmark(large_program.copy_everything_except_instructions)

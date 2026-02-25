@@ -22,7 +22,7 @@ from typing import Any, Optional, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
-from qcs_sdk import ExecutionData, RegisterData, ResultData
+from qcs_sdk import ExecutionData, RegisterData
 from qcs_sdk.qvm import QVMResultData
 
 from pyquil.api import QAM, MemoryMap, QAMExecutionResult, QuantumExecutable
@@ -274,7 +274,6 @@ class PyQVM(QAM["PyQVM"]):
         result_data = QVMResultData.from_memory_map(
             {key: RegisterData(matrix.tolist()) for key, matrix in self._memory_results.items()}
         )
-        result_data = ResultData(result_data)
         data = ExecutionData(result_data=result_data, duration=None)
         return QAMExecutionResult(
             executable=self.program.copy(),

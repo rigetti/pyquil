@@ -24,10 +24,13 @@ from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
 from pyquil.quil import Program
 from test.unit.utils import DummyCompiler
 
-from .. import override_qcs_config
-
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
-override_qcs_config()
+
+@pytest.fixture(autouse=True)
+def qcs_config_env(qcs_config_env):
+    """Configures the environment variables required to run the tests."""
+    # This forces all the unit tests to "use" the base fixture.
+    return qcs_config_env
 
 
 @pytest.fixture
@@ -183,21 +186,6 @@ def pytest_addoption(parser):
         default=True,
         help="run operator estimation tests faster by using a fixed random seed",
     )
-    parser.addoption("--runslow", action="store_true", default=False, help="run tests marked as being 'slow'")
-
-
-def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: mark test as slow to run")
-
-
-def pytest_collection_modifyitems(config, items):
-    if config.getoption("--runslow"):
-        # --runslow given in cli: do not skip slow tests
-        return
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    for item in items:
-        if "slow" in item.keywords:
-            item.add_marker(skip_slow)
 
 
 @pytest.fixture()

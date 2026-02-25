@@ -446,10 +446,11 @@ class Measurement(quil_rs.Measurement, AbstractInstruction):
         cls,
         qubit: QubitDesignator,
         classical_reg: Optional[MemoryReference],
+        name: str | None = None,
     ) -> Self:
         """Initialize a new measurement instruction."""
         target = cls._reg_to_target(classical_reg)
-        return super().__new__(cls, _convert_to_rs_qubit(qubit), target)
+        return super().__new__(cls, _convert_to_rs_qubit(qubit), target, name=name)
 
     @classmethod
     def _reg_to_target(cls, classical_reg: Optional[MemoryReference]) -> Optional[quil_rs.MemoryReference]:

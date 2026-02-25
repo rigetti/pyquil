@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 import numpy as np
-from qcs_sdk import ExecutionData, QCSClient, ResultData, qvm
+from qcs_sdk import ExecutionData, QCSClient, qvm
 from qcs_sdk.qvm import QVMClient, QVMOptions, QVMResultData
 
 from pyquil._version import pyquil_version
@@ -146,7 +146,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
         # Request all memory back from the QVM.
-        addresses = {address: qvm.api.AddressRequest.include_all() for address in executable.declarations.keys()}
+        addresses = {address: qvm.api.AddressRequest.IncludeAll() for address in executable.declarations.keys()}
 
         trials = executable.num_shots
         if self.noise_model is not None:
@@ -168,7 +168,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """Return the results of execution on the QVM."""
-        result_data = ResultData(execute_response.data)
+        result_data = execute_response.data
         data = ExecutionData(result_data=result_data, duration=None)
         return QAMExecutionResult(executable=execute_response.executable, data=data)
 

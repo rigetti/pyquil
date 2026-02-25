@@ -3,6 +3,7 @@ import random
 from math import pi
 
 import numpy as np
+from pyquil.experiment._calibration import CalibrationMethod
 import pytest
 
 from pyquil import Program, get_qc
@@ -135,14 +136,15 @@ def test_identity(client_configuration: QCSClient):
 def test_sic_process_tomo(client_configuration: QCSClient):
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
     process = Program(X(0))
-    settings = []
-    for in_state in [SIC0, SIC1, SIC2, SIC3]:
-        for out_op in [sI, sX, sY, sZ]:
-            settings += [ExperimentSetting(in_state=in_state(q=0), out_operator=out_op(q=0))]
+    settings = [
+        ExperimentSetting(in_state=in_state(q=0), out_operator=out_op(q=0))
+        for in_state in [SIC0, SIC1, SIC2, SIC3]
+        for out_op in [sI, sX, sY, sZ]
+    ]
 
     experiment = Experiment(settings=settings, program=process)
     results = list(measure_observables(qc, experiment))
-    assert len(results) == 4 * 4
+    assert len(results) == len(settings)
 
 
 def test_measure_observables_symmetrize(client_configuration: QCSClient):
@@ -198,7 +200,7 @@ def test_measure_observables_zero_expectation(client_configuration: QCSClient):
 def test_measure_observables_no_symm_calibr_raises_error(client_configuration: QCSClient):
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
-    suite = Experiment([exptsetting], program=Program(I(0)), symmetrization=0)
+    suite = Experiment([exptsetting], program=Program(I(0)), symmetrization=0, calibration=CalibrationMethod.NONE)
     with pytest.raises(ValueError):
         list(measure_observables(qc, suite, calibrate_readout="plus-eig"))
 
@@ -248,7 +250,7 @@ def test_measure_observables_uncalibrated_asymmetric_readout(client_configuratio
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.wrap_in_numshots_loop(2000)
     expt_list = [expt1, expt2, expt3]
-    tomo_expt = Experiment(settings=expt_list * runs, program=p, symmetrization=0)
+    tomo_expt = Experiment(settings=expt_list * runs, program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
     expected_expectation_z_basis = 2 * p00 - 1
 
     expect_arr = np.zeros(runs * len(expt_list))
@@ -364,7 +366,7 @@ def test_measure_observables_result_zero_no_noisy_readout(client_configuration: 
     expt3 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
     expt_settings = [expt1, expt2, expt3]
     p = Program().wrap_in_numshots_loop(2000)
-    tomo_expt = Experiment(settings=expt_settings, program=p, symmetrization=0)
+    tomo_expt = Experiment(settings=expt_settings, program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
 
     expectations = []
     for _ in range(num_simulations):
@@ -391,7 +393,7 @@ def test_measure_observables_result_zero_no_symm_calibr(client_configuration: QC
     p = Program().wrap_in_numshots_loop(2000)
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    tomo_expt = Experiment(settings=expt_settings, program=p, symmetrization=0)
+    tomo_expt = Experiment(settings=expt_settings, program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
 
     expectations = []
     expected_result = (p00 * 0.5 + (1 - p11) * 0.5) - ((1 - p00) * 0.5 + p11 * 0.5)
@@ -651,7 +653,7 @@ E            y: array([-0.333333, -1.      ,  1.      , -1.      , -1.      ])
 """
 
 
-@pytest.mark.skip
+@pytest.mark.xfail
 def test_measure_observables_grouped_expts(client_configuration: QCSClient, use_seed: bool):
     qc = get_qc("3q-qvm", client_configuration=client_configuration)
 
@@ -1261,7 +1263,7 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(client_configuratio
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
     expt_list = [expt]
-    tomo_expt = Experiment(settings=expt_list * runs, program=p, symmetrization=0)
+    tomo_expt = Experiment(settings=expt_list * runs, program=p, symmetrization=0, calibration=CalibrationMethod.NONE)
     # calculate expected expectation value
     amp_sqr0 = (np.cos(theta / 2)) ** 2
     amp_sqr1 = (np.sin(theta / 2)) ** 2

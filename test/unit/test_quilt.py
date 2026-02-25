@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 import pytest
 from syrupy.assertion import SnapshotAssertion
+from quil.program import ProgramError
 
 from pyquil.gates import RX
 from pyquil.quil import Program
@@ -316,9 +317,10 @@ DEFCAL RZ(0) q:
 """,
     ),
 )
+@pytest.mark.filterwarnings("ignore:Redefining calibration")
 def test_program_calibrate_cyclic_error(program_text):
     prog = Program(program_text)
-    with pytest.raises(Exception):
+    with pytest.raises(ProgramError):
         prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
 
