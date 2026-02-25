@@ -1,6 +1,6 @@
 [project]
 name = "pyquil"
-version = "5.0.0-rc.2"
+version = "5.0.0-rc.3"
 requires-python = ">=3.10,<4"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = [{ name = "Rigetti Computing", email ="softapps@rigetti.com" }]
