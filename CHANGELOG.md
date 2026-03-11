@@ -1,10 +1,22 @@
 # Changelog
 
-## 4.17.0 (2025-10-08)
+## 5.0.0-rc.3 (2026-02-25)
+
+### Breaking Changes
+
+#### update to new quil-rs
 
 ### Features
 
-#### restrict dependency versions (#1841)
+#### add e2e marker
+
+#### improve program instruction iteration
+
+#### update quil to rc3
+
+#### use SCREAMING_SNAKE_CASE for quil enums
+
+#### upgrade qcs_sdk version
 
 ### Fixes
 
@@ -12,11 +24,63 @@
 
 #### clarify what printing a compiled program's output looks like for different targets (#1833)
 
-## 4.17.0-rc.0 (2025-10-08)
+#### Frame.duration should return a float, not Expression
+
+## 5.0.0-rc.2 (2025-10-06)
+
+### Breaking Changes
+
+#### update to new quil-rs
 
 ### Features
 
-#### restrict dependency versions (#1841)
+#### add e2e marker
+
+#### improve program instruction iteration
+
+#### update quil to rc3
+
+#### use SCREAMING_SNAKE_CASE for quil enums
+
+### Fixes
+
+#### update packages with detected vulnerabilities (#1834)
+
+#### clarify what printing a compiled program's output looks like for different targets (#1833)
+
+#### Frame.duration should return a float, not Expression
+
+## 5.0.0-rc.1 (2025-09-30)
+
+### Breaking Changes
+
+#### update to new quil-rs
+
+### Features
+
+#### add e2e marker
+
+#### improve program instruction iteration
+
+#### update quil to rc3
+
+### Fixes
+
+#### update packages with detected vulnerabilities (#1834)
+
+#### clarify what printing a compiled program's output looks like for different targets (#1833)
+
+## 5.0.0-rc.0 (2025-09-30)
+
+### Breaking Changes
+
+#### update to new quil-rs
+
+### Features
+
+#### add e2e marker
+
+#### improve program instruction iteration
 
 ### Fixes
 

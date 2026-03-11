@@ -792,7 +792,7 @@ def estimate_assignment_probs(
 
 def _run(qc: "PyquilApiQuantumComputer", program: "Program") -> list[list[int]]:
     result = qc.run(qc.compiler.native_quil_to_executable(program))
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
     if bitstrings is None:
         raise ValueError("No readout data found in result.")
     return cast(list[list[int]], bitstrings.tolist())

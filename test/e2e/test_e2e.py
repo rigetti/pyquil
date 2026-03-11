@@ -16,6 +16,7 @@
 from multiprocessing.pool import ThreadPool
 
 import numpy as np
+import pytest
 
 from pyquil import Program
 from pyquil.api import QPU, QuantumComputer
@@ -32,12 +33,14 @@ TEST_PROGRAM = Program(
 ).wrap_in_numshots_loop(1000)
 
 
+@pytest.mark.qpu
 def test_basic_program(qc: QuantumComputer):
-    results = qc.run(qc.compile(TEST_PROGRAM)).readout_data.get("ro")
+    results = qc.run(qc.compile(TEST_PROGRAM)).get_register_map().get("ro")
 
     assert results.shape == (1000, 2)
 
 
+@pytest.mark.qpu
 def test_parametric_program(qc: QuantumComputer):
     compiled = qc.compile(
         Program(
@@ -50,7 +53,7 @@ def test_parametric_program(qc: QuantumComputer):
 
     all_results = []
     for theta in [0, np.pi, 2 * np.pi]:
-        results = qc.run(compiled, {"theta": [theta]}).readout_data.get("ro")
+        results = qc.run(compiled, {"theta": [theta]}).get_register_map().get("ro")
         all_results.append(np.mean(results))
 
     if isinstance(qc.qam, QPU):
@@ -63,12 +66,13 @@ def test_parametric_program(qc: QuantumComputer):
         assert all_results[2] == 0.0
 
 
+@pytest.mark.qpu
 def test_multithreading(qc: QuantumComputer):
     def run_program(
         program: Program,
         qc: QuantumComputer,
     ) -> np.ndarray:
-        return qc.run(qc.compile(program)).readout_data.get("ro")
+        return qc.run(qc.compile(program)).get_register_map().get("ro")
 
     args = [(TEST_PROGRAM, qc) for _ in range(20)]
     with ThreadPool(10) as pool:

@@ -229,7 +229,7 @@ class QuantumComputer:
             for merged_memory_map in merged_memory_maps:
                 final_memory_map = {**memory_map, **merged_memory_map}
                 executable_copy = executable.copy()
-                bitstrings = self.run(executable_copy, memory_map=final_memory_map).readout_data.get("ro")
+                bitstrings = self.run(executable_copy, memory_map=final_memory_map).get_register_map().get("ro")
                 if bitstrings is None:
                     raise ValueError("No readout data returned.")
 
@@ -349,7 +349,7 @@ class QuantumComputer:
                 f"The number of trials was modified from {trials} to "
                 f"{num_shots_per_prog * len(sym_programs)}. To be consistent with the "
                 f"number of trials required by the type of readout symmetrization "
-                f"chosen.",
+                f"chosen ({symm_type=}, {meas_qubits=}, {len(sym_programs)=}).",
                 stacklevel=2,
             )
 
@@ -1273,7 +1273,6 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     orthogonal_array: np.ndarray = ((-H[1:, :].T + 1) / 2).astype(int)
     return orthogonal_array
 
-
 def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, symm_type: int) -> int:
     """Set the minimum number of trials; it is desirable to have hundreds or thousands of trials more than the minimum.
 
@@ -1282,24 +1281,23 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
     :param symm_type: symmetrization type see
     :return: possibly modified number of trials
     """
-    if symm_type < -1 or symm_type > 3:
-        raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
-
-    if symm_type == -1:
-        min_num_trials = 2**num_qubits
-    elif symm_type == 2:
-
-        def _f(x: int) -> int:
-            return 4 * x - 1
-
-        min_num_trials = min(_f(x) for x in range(1, 1024) if _f(x) >= num_qubits) + 1
-    elif symm_type == 3:
-        min_num_trials = _next_power_of_2(2 * num_qubits)
-    else:
-        # symm_type == 0 or symm_type == 1 require one and two trials respectively; ensured by:
-        min_num_trials = 2
-
+    min_num_trials = _get_min_num_trials_for_symmetrized_readout(num_qubits, symm_type)
     if trials < min_num_trials:
-        trials = min_num_trials
-        warnings.warn(f"Number of trials was too low, it is now {trials}.", stacklevel=2)
+        warnings.warn(f"Number of trials was too low, it is now {min_num_trials}.", stacklevel=3)
+        return min_num_trials
     return trials
+
+
+def _get_min_num_trials_for_symmetrized_readout(num_qubits: int, symm_type: int) -> int:
+    if symm_type == -1:
+        return 2**num_qubits
+    elif symm_type == 0 or symm_type == 1:
+        # These require one and two trials respectively; ensured by:
+        return 2
+    elif symm_type == 2:
+        # Round up to the next multiple of 4.
+        return num_qubits - (num_qubits % 4) + 4
+    elif symm_type == 3:
+        return _next_power_of_2(2 * num_qubits)
+    else:
+        raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")

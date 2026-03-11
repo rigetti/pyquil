@@ -73,6 +73,9 @@ def get_qcs_quantum_processor(
 
     :return: A ``QCSQuantumProcessor`` with the requested ISA.
     """
-    isa = get_instruction_set_architecture(client=client_configuration, quantum_processor_id=quantum_processor_id)
+    isa = get_instruction_set_architecture(
+        client=client_configuration,
+        quantum_processor_id=quantum_processor_id,
+    )
 
     return QCSQuantumProcessor(quantum_processor_id=quantum_processor_id, isa=isa)

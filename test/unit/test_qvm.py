@@ -14,7 +14,7 @@ def test_qvm__default_client(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     result = qvm.run(p.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
     assert bitstrings.shape == (1000, 1)
 
 
@@ -22,7 +22,7 @@ def test_qvm_run_pqer(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     result = qvm.run(p.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -31,7 +31,7 @@ def test_qvm_run_just_program(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     result = qvm.run(p.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -41,7 +41,7 @@ def test_qvm_run_only_pqer(qvm_client: QVMClient):
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
 
     result = qvm.run(p.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -50,7 +50,7 @@ def test_qvm_run_region_declared_and_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     p = Program(Declare("reg", "BIT"), X(0), MEASURE(0, MemoryReference("reg")))
     result = qvm.run(p.wrap_in_numshots_loop(100))
-    bitstrings = result.readout_data.get("reg")
+    bitstrings = result.get_register_map().get("reg")
     assert bitstrings.shape == (100, 1)
 
 
@@ -58,7 +58,7 @@ def test_qvm_run_region_declared_not_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     p = Program(Declare("reg", "BIT"), X(0))
     result = qvm.run(p.wrap_in_numshots_loop(100))
-    bitstrings = result.readout_data.get("reg")
+    bitstrings = result.get_register_map().get("reg")
     assert bitstrings is not None
     assert bitstrings.shape == (100, 1)
 
@@ -75,7 +75,7 @@ def test_qvm_run_region_not_declared_not_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
     p = Program(X(0))
     result = qvm.run(p.wrap_in_numshots_loop(100))
-    assert result.readout_data.get("ro") is None
+    assert result.get_register_map().get("ro") is None
 
 
 def test_qvm_version(qvm_client: QVMClient):

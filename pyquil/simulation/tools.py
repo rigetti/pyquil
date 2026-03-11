@@ -313,11 +313,9 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
                 p0, p1 = gate.params[: len(gate.params) // 2], gate.params[len(gate.params) // 2 :]
                 child = _strip_modifiers(gate, limit=1)
                 # handle the first half of the FORKED params
-                child.params = p0
-                mat0 = _gate_matrix(child)
+                mat0 = _gate_matrix(Gate(child.name, p0, child.qubits, child.modifiers))
                 # handle the second half of the FORKED params
-                child.params = p1
-                mat1 = _gate_matrix(child)
+                mat1 = _gate_matrix(Gate(child.name, p1, child.qubits, child.modifiers))
                 return np.kron(zero, mat0) + np.kron(one, mat1)
             else:
                 raise TypeError(f"Unsupported gate modifier {mod}")

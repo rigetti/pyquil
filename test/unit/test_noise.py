@@ -3,7 +3,7 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 from pytest_mock import MockerFixture
-from qcs_sdk import ExecutionData, RegisterData, ResultData
+from qcs_sdk import ExecutionData, RegisterData
 from qcs_sdk.qvm import QVMResultData
 
 from pyquil.api._qam import QAMExecutionResult
@@ -296,34 +296,30 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
         QAMExecutionResult(
             executable=None,
             data=ExecutionData(
-                result_data=ResultData(
-                    QVMResultData.from_memory_map(
-                        {
-                            "ro": RegisterData.from_i16(
-                                (
-                                    np.array([[0]]) * int(round(p00 * trials))
-                                    + np.array([[1]]) * int(round((1 - p00) * trials))
-                                ).tolist()
-                            )
-                        }
-                    )
+                result_data=QVMResultData.from_memory_map(
+                    {
+                        "ro": RegisterData(
+                            (
+                                np.array([[0]]) * int(round(p00 * trials))
+                                + np.array([[1]]) * int(round((1 - p00) * trials))
+                            ).tolist()
+                        )
+                    }
                 )
-            ),
+            )
         ),  # I gate results
         QAMExecutionResult(
             executable=None,
             data=ExecutionData(
-                result_data=ResultData(
-                    QVMResultData.from_memory_map(
-                        {
-                            "ro": RegisterData.from_i16(
-                                (
-                                    np.array([[1]]) * int(round(p11 * trials))
-                                    + np.array([[0]]) * int(round((1 - p11) * trials))
-                                ).tolist()
-                            )
-                        }
-                    )
+                result_data=QVMResultData.from_memory_map(
+                    {
+                        "ro": RegisterData(
+                            (
+                                np.array([[1]]) * int(round(p11 * trials))
+                                + np.array([[0]]) * int(round((1 - p11) * trials))
+                            ).tolist()
+                        )
+                    }
                 )
             ),
         ),  # X gate results

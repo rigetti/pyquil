@@ -54,6 +54,6 @@ LABEL @END
     assert len(blocks) == 2
     for block in blocks:
         assert isinstance(block, BasicBlock)
-        assert isinstance(block.terminator(), (type(None), AbstractInstruction))
-        assert all([isinstance(instruction, AbstractInstruction) for instruction in block.instructions()])
+        assert isinstance(block.terminator, (type(None), AbstractInstruction))
+        assert all([isinstance(instruction, AbstractInstruction) for instruction in block.instructions])
         assert isinstance(block.gate_depth(1), int)

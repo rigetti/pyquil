@@ -16,6 +16,7 @@ from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
     QuantumComputer,
     _check_min_num_trials_for_symmetrized_readout,
+    _get_min_num_trials_for_symmetrized_readout,
     _consolidate_symmetrization_outputs,
     _construct_orthogonal_array,
     _construct_strength_three_orthogonal_array,
@@ -200,7 +201,7 @@ def test_run(client_configuration: QCSClient, qvm_client: QVMClient):
         MEASURE(2, MemoryReference("ro", 2)),
     ).wrap_in_numshots_loop(1000)
     result = qc.run(p)
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -219,7 +220,7 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClient, qvm_client: QVMCli
     for q in range(3):
         prog += MEASURE(q, ro[q])
     result = qc.run(prog.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -238,7 +239,7 @@ def test_run_pyqvm_noisy(client_configuration: QCSClient, qvm_client: QVMClient)
     for q in range(3):
         prog += MEASURE(q, ro[q])
     result = qc.run(prog.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get("ro")
+    bitstrings = result.get_register_map().get("ro")
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -264,7 +265,7 @@ def test_readout_symmetrization(client_configuration: QCSClient, qvm_client: QVM
     prog.wrap_in_numshots_loop(1000)
 
     result_1 = qc.run(prog)
-    bitstrings_1 = result_1.readout_data.get("ro")
+    bitstrings_1 = result_1.get_register_map().get("ro")
     avg0_us = np.mean(bitstrings_1[:, 0])
     avg1_us = 1 - np.mean(bitstrings_1[:, 1])
     diff_us = avg1_us - avg0_us
@@ -281,15 +282,17 @@ def test_readout_symmetrization(client_configuration: QCSClient, qvm_client: QVM
     assert diff_s < 0.05
 
 
-@pytest.mark.slow
-def test_run_symmetrized_readout_error(client_configuration: QCSClient, qvm_client: QVMClient):
-    # This test checks if the function runs for any possible input on a small number of qubits.
-    # Locally this test was run on all 8 qubits, but it was slow.
+@pytest.mark.slow(reason = (
+    "This test checks if the function runs for any possible input on a small number of qubits. "
+    "Locally this test was run on all 8 qubits, but it was slow."
+))
+def test_run_symmetrized_readout_error(client_configuration: QCSClient):
     qc = get_qc("8q-qvm", client_configuration=client_configuration)
     sym_type_vec = [-1, 0, 1, 2, 3]
     prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(1, 4)]
-    trials_vec = list(range(0, 5))
+    trials_vec = [0, 1, 2, 4]
     for prog, trials, sym_type in itertools.product(prog_vec, trials_vec, sym_type_vec):
+        trials = max(trials, _get_min_num_trials_for_symmetrized_readout(len(prog), sym_type))
         print(qc.run_symmetrized_readout(prog, trials, sym_type))
 
 
@@ -418,7 +421,7 @@ def test_qc_run(client_configuration: QCSClient, qvm_client: QVMClient):
         MEASURE(0, ("ro", 0)),
     ).wrap_in_numshots_loop(3)
     compiled_program = qc.compile(program)
-    bs = qc.run(compiled_program).readout_data.get("ro")
+    bs = qc.run(compiled_program).get_register_map().get("ro")
     assert bs.shape == (3, 1)
 
 
@@ -467,7 +470,7 @@ def test_run_with_parameters(client_configuration: QCSClient, qvm_client: QVMCli
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
 
-    bitstrings = qc.run(executable, {"theta": params}).readout_data.get("ro")
+    bitstrings = qc.run(executable, {"theta": params}).get_register_map().get("ro")
 
     assert bitstrings.shape == (1000, 1)
     assert all([bit == 1 for bit in bitstrings])
@@ -507,8 +510,8 @@ def test_reset(client_configuration: QCSClient, qvm_client: QVMClient):
     ).wrap_in_numshots_loop(10)
     result = qc.qam.run(p, {"theta": [np.pi]})
 
-    assert result.readout_data["ro"].shape == (10, 1)
-    assert all([bit == 1 for bit in result.readout_data["ro"]])
+    assert result.get_register_map()["ro"].shape == (10, 1)
+    assert all([bit == 1 for bit in result.get_register_map()["ro"]])
 
 
 def test_get_qvm_with_topology(client_configuration: QCSClient, qvm_client: QVMClient):
@@ -549,7 +552,7 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClient, qvm_client: QV
                 MEASURE(7, ("ro", 2)),
             ).wrap_in_numshots_loop(5)
         )
-    ).readout_data.get("ro")
+    ).get_register_map().get("ro")
     assert results.shape == (5, 3)
     assert all(r[0] == 1 for r in results)
 
@@ -568,7 +571,7 @@ def test_noisy(client_configuration: QCSClient, qvm_client: QVMClient):
         MEASURE(0, ("ro", 0)),
     ).wrap_in_numshots_loop(10000)
     qc = get_qc("1q-qvm", noisy=True, client_configuration=client_configuration)
-    result = qc.run(qc.compile(p)).readout_data.get("ro")
+    result = qc.run(qc.compile(p)).get_register_map().get("ro")
     assert result.mean() < 1.0
 
 
@@ -847,7 +850,7 @@ MEASURE 1 ro[1]
     qc.run(executable)
 
 
-@pytest.mark.skip  # qcs_sdk client profiles do not support group accounts
+@pytest.mark.skip(reason="qcs_sdk client profiles do not support group accounts")
 @respx.mock
 def test_get_qc_with_group_account(client_configuration: QCSClient, qvm_client: QVMClient, qcs_aspen8_isa: InstructionSetArchitecture):
     """Assert that a client may specify a ``QCSClientSettingsProfile`` representing a QCS group

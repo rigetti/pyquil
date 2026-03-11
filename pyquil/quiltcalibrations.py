@@ -45,9 +45,9 @@ class CalibrationMatch:
 
 def _convert_to_calibration_match(
     instruction: Union[quil_rs.Gate, quil_rs.Measurement],
-    calibration: Optional[Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition]],
+    calibration: Optional[Union[quil_rs.CalibrationDefinition, quil_rs.MeasureCalibrationDefinition]],
 ) -> Optional[CalibrationMatch]:
-    if isinstance(instruction, quil_rs.Gate) and isinstance(calibration, quil_rs.Calibration):
+    if isinstance(instruction, quil_rs.Gate) and isinstance(calibration, quil_rs.CalibrationDefinition):
         target_qubits = instruction.qubits
         target_values: Sequence[Union[quil_expr.Expression, MemoryReference]] = instruction.parameters
         parameter_qubits = calibration.identifier.qubits
@@ -60,7 +60,7 @@ def _convert_to_calibration_match(
         )
         calibration_qubit = calibration.identifier.qubit
         parameter_qubits = [] + [calibration_qubit] if calibration_qubit else []
-        parameter_values = [MemoryReference._from_parameter_str(calibration.identifier.parameter)]
+        parameter_values = [MemoryReference._from_parameter_str(calibration.identifier.target)]
         py_calibration = DefMeasureCalibration._from_rs_measure_calibration_definition(calibration)
     else:
         return None
@@ -68,13 +68,13 @@ def _convert_to_calibration_match(
     settings: dict[Union[QubitDesignator, ExpressionDesignator], Union[QubitDesignator, ExpressionDesignator]] = {
         _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
         for param, qubit in zip(parameter_qubits, target_qubits)
-        if isinstance(param, MemoryReference) or param.is_variable()
+        if isinstance(param, MemoryReference) or isinstance(param, quil_rs.Qubit.Variable)
     }
     settings.update(
         {
             _convert_to_py_expression(param): _convert_to_py_expression(value)
             for param, value in zip(parameter_values, target_values)
-            if isinstance(param, MemoryReference) or param.is_variable()
+            if isinstance(param, MemoryReference) or isinstance(param, quil_expr.Expression.Variable)
         }
     )
 
@@ -93,20 +93,19 @@ def match_calibration(
     """
     calibration = _convert_to_rs_instruction(cal)
     instruction = _convert_to_rs_instruction(instr)
-    if calibration.is_calibration_definition() and instruction.is_gate():
-        instruction = _convert_to_rs_instruction(instr)
-        gate = instruction.to_gate()
-        calibration_set = CalibrationSet([calibration.to_calibration_definition()], [])
-        matched_calibration: Optional[Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition]] = (
-            calibration_set.get_match_for_gate(gate)
-        )
-        return _convert_to_calibration_match(gate, matched_calibration)
 
-    if calibration.is_measure_calibration_definition() and instruction.is_measurement():
-        instruction = _convert_to_rs_instruction(instr)
-        measurement = instruction.to_measurement()
-        calibration_set = CalibrationSet([], [calibration.to_measure_calibration_definition()])
-        matched_calibration = calibration_set.get_match_for_measurement(measurement)
-        return _convert_to_calibration_match(measurement, matched_calibration)
+    match (calibration, instruction):
+        case (quil_rs.Instruction.CalibrationDefinition(definition), quil_rs.Instruction.Gate(gate)):
+            calibration_set = CalibrationSet([definition], [])
+            matched_calibration = calibration_set.get_match_for_gate(gate)
+            return _convert_to_calibration_match(gate, matched_calibration)
+
+        case (
+            quil_rs.Instruction.MeasureCalibrationDefinition(definition),
+            quil_rs.Instruction.Measurement(measurement),
+        ):
+            calibration_set = CalibrationSet([], [definition])
+            matched_calibration = calibration_set.get_match_for_measurement(measurement)
+            return _convert_to_calibration_match(measurement, matched_calibration)
 
     return None

@@ -37,7 +37,7 @@ Installing pyQuil and the Forest SDK
 ------------------------------------
 
 [![pypi][pypi-badge]][pypi-repo]
-[![conda-forge][conda-forge-badge]][conda-forge-badge]
+[![conda-forge][conda-forge-badge]][conda-forge-repo]
 [![conda-rigetti][conda-rigetti-badge]][conda-rigetti-repo]
 
 PyQuil can be installed using `conda`, `pip`, or from source. To install it from PyPI (via `pip`),
@@ -68,9 +68,9 @@ In just a few lines, we can use pyQuil with the Forest SDK to simulate a Bell st
 ```python
 from pyquil import get_qc, Program
 from pyquil.gates import CNOT, H, MEASURE
- 
+
 qvm = get_qc('2q-qvm')
- 
+
 p = Program()
 p += H(0)
 p += CNOT(0, 1)

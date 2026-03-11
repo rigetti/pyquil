@@ -20,6 +20,7 @@ from math import pi
 import numpy as np
 import pytest
 import quil.instructions as quil_rs
+from quil import QuilError
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil.gates import (
@@ -218,7 +219,7 @@ def test_inst_tuple_multiple_params(snapshot):
 
 def test_inst_rs_gate(snapshot):
     p = Program()
-    q = quil_rs.Qubit.from_fixed(0)
+    q = quil_rs.Qubit.Fixed(0)
     p.inst(quil_rs.Gate("X", [], [q], []))
     assert p.out() == snapshot
 
@@ -441,7 +442,7 @@ def test_dagger():
     assert p.dagger().out() == "DAGGER H 0\nDAGGER X 0\n"
 
     p = Program(X(0), MEASURE(0, MemoryReference("ro", 0)))
-    with pytest.raises(ValueError):
+    with pytest.raises(QuilError):
         p.dagger().out()
 
     # ensure that modifiers are preserved https://github.com/rigetti/pyquil/pull/914
@@ -666,7 +667,7 @@ def test_qubit_placeholder():
 
     p.inst(X(q3))  # X 4
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(QuilError) as e:
         _ = p.out()
     assert e.match("Qubit has not yet been resolved")
 
@@ -720,7 +721,7 @@ def test_multiaddress():
 
     p1 = address_qubits(p, map1)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(QuilError):
         _ = p.out()  # make sure the original isn't affected
 
     assert p1.out() == "CNOT 0 1\nRZ(1) 1\nCNOT 0 1\n"
@@ -974,7 +975,7 @@ def test_out_vs_str():
         MEASURE(qs[5], MemoryReference("ro", 5)),
     )
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(QuilError) as e:
         pq.out()
     assert e.match(r"Qubit has not yet been resolved")
 
