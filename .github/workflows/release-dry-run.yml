@@ -8,6 +8,7 @@ on:
       type:
         description: Runs knope with the --dry-run flag to see what the next release would look like.
         required: true
+        type: "choice"
         default: prerelease
         options:
           - prerelease
