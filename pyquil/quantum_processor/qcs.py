@@ -7,7 +7,6 @@ from qcs_sdk import QCSClient
 from qcs_sdk.qpu.isa import InstructionSetArchitecture, get_instruction_set_architecture
 
 from pyquil.external.rpcq import CompilerISA
-from pyquil.noise import NoiseModel
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quantum_processor.transformers import qcs_isa_to_compiler_isa, qcs_isa_to_graph
 
@@ -20,23 +19,19 @@ class QCSQuantumProcessor(AbstractQuantumProcessor):
 
     quantum_processor_id: str
     _isa: InstructionSetArchitecture
-    noise_model: Optional[NoiseModel]
 
     def __init__(
         self,
         quantum_processor_id: str,
         isa: InstructionSetArchitecture,
-        noise_model: Optional[NoiseModel] = None,
     ):
         """Initialize a new QCSQuantumProcessor.
 
         :param quantum_processor_id: The id of the quantum processor.
         :param isa: The QCS API ``InstructionSetArchitecture``.
-        :param noise_model: An optional ``NoiseModel`` for configuring a noisy quantum_processor on the ``QVM``.
         """
         self.quantum_processor_id = quantum_processor_id
         self._isa = isa
-        self.noise_model = noise_model
 
     def qubits(self) -> list[int]:
         """Return the qubits in the quantum_processor topology."""

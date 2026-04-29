@@ -29,7 +29,6 @@ If you’re new to pyQuil, head to the `getting started <getting_started>`_ guid
    getting_started
    programs_and_gates
    the_quantum_computer
-   wavefunction_simulator
    compiler
    noise
    advanced_usage

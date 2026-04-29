@@ -75,7 +75,6 @@ from pyquil.quil import (
     address_qubits,
     get_classical_addresses_from_program,
     merge_programs,
-    merge_with_pauli_noise,
     validate_supported_quil,
 )
 from pyquil.quilatom import Frame, MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
@@ -787,13 +786,6 @@ def test_prog_merge(snapshot: SnapshotAssertion):
     assert merge_programs([Program("DECLARE ro BIT[1]"), Program("H 0"), Program("MEASURE 0 ro[0]")]).out() == snapshot
 
 
-def test_merge_with_pauli_noise(snapshot):
-    p = Program(X(0)).inst(Z(0))
-    probs = [0.0, 1.0, 0.0, 0.0]
-    merged = merge_with_pauli_noise(p, probs, [0])
-    assert merged.out() == snapshot
-
-
 def test_get_qubits():
     pq = Program(Declare("ro", "BIT"), X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro", 0)))
     assert pq.get_qubits() == {0, 4, 5}
@@ -836,80 +828,6 @@ def test_eq():
 
     assert p1 == p2
     assert not p1 != p2
-
-
-def test_kraus(snapshot):
-    pq = Program(X(0))
-    pq.define_noisy_gate("X", (0,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
-    pq.inst(X(1))
-    pq.define_noisy_gate("X", (1,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
-
-    ret = pq.out()
-    assert (
-        ret
-        == """X 0
-PRAGMA ADD-KRAUS X 0 "(0.0 1.0 1.0 0.0)"
-PRAGMA ADD-KRAUS X 0 "(0.0 0.0 0.0 0.0)"
-X 1
-PRAGMA ADD-KRAUS X 1 "(0.0 1.0 1.0 0.0)"
-PRAGMA ADD-KRAUS X 1 "(0.0 0.0 0.0 0.0)"
-"""
-    )
-    # test error due to bad normalization
-    with pytest.raises(ValueError):
-        pq.define_noisy_gate("X", (0,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 1.0], [1.0, 0.0]]])
-    # test error due to bad shape of kraus op
-    with pytest.raises(ValueError):
-        pq.define_noisy_gate("X", (0,), [[[0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], [[0.0, 1.0], [1.0, 0.0]]])
-
-    pq1 = Program(X(0))
-    pq1.define_noisy_gate("X", (0,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
-    pq2 = Program(X(1))
-    pq2.define_noisy_gate("X", (1,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
-
-    assert pq1 + pq2 == pq
-
-    pq_nn = Program(X(0))
-    pq_nn.no_noise()
-    pq_nn.inst(X(1))
-
-    assert pq_nn.out() == snapshot
-
-
-def test_define_noisy_readout():
-    pq = Program(X(0))
-    pq.define_noisy_readout(0, 0.8, 0.9)
-
-    pq.inst(X(1))
-    pq.define_noisy_readout(1, 0.9, 0.8)
-
-    ret = pq.out()
-    assert (
-        ret
-        == """X 0
-PRAGMA READOUT-POVM 0 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
-X 1
-PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
-"""
-    )
-    # test error due to bad normalization
-    with pytest.raises(ValueError):
-        pq.define_noisy_readout(0, 1.1, 0.5)
-    # test error due to bad normalization
-    with pytest.raises(ValueError):
-        pq.define_noisy_readout(0, 0.5, 1.5)
-    # test error due to negative probability
-    with pytest.raises(ValueError):
-        pq.define_noisy_readout(0, -0.1, 0.5)
-    # test error due to negative probability
-    with pytest.raises(ValueError):
-        pq.define_noisy_readout(0, 0.5, -1.0)
-    # test error due to bad qubit_index value
-    with pytest.raises(ValueError):
-        pq.define_noisy_readout(-1, 0.5, 0.5)
-    # test error due to bad qubit_index type
-    with pytest.raises(TypeError):
-        pq.define_noisy_readout(1.0, 0.5, 0.5)
 
 
 # https://github.com/rigetti/pyquil/issues/72

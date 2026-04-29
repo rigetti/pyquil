@@ -46,8 +46,61 @@ from pyquil.paulis import (
     trotterize,
 )
 from pyquil.quil import Program
-from pyquil.simulation import matrices
-from pyquil.simulation.tools import program_unitary, unitary_equal
+
+import quax as qx
+
+
+# Local replacements for deleted pyquil.simulation.tools
+def _unitary_equal(A, B):
+    if A.shape != B.shape:
+        raise ValueError("Matrices must have the same shape")
+    dim = A.shape[0]
+    return np.allclose(np.abs(np.trace(A.T.conjugate() @ B) / dim), 1.0)
+
+
+def _program_unitary(program, n_qubits):
+    from pyquil.simulation.state_vector import compute_program_state_vector
+    from pyquil.gates import X as X_gate
+
+    dim = 2 ** n_qubits
+    qubits = list(range(n_qubits))
+    cols = []
+    for i in range(dim):
+        prep = Program()
+        for k in range(n_qubits):
+            if (i >> (n_qubits - 1 - k)) & 1:
+                prep += X_gate(k)
+        full_prog = prep + program
+        psi = compute_program_state_vector(full_prog, qubits=qubits)
+        cols.append(np.asarray(psi.data).flatten())
+    return np.column_stack(cols)
+
+
+# Gate matrix namespace (replacing deleted pyquil.simulation.matrices)
+class matrices:
+    @staticmethod
+    def RXX(angle):
+        return np.asarray(qx.gates.RXX(angle).matrix)
+
+    @staticmethod
+    def RYY(angle):
+        return np.asarray(qx.gates.RYY(angle).matrix)
+
+    @staticmethod
+    def RZZ(angle):
+        return np.asarray(qx.gates.RZZ(angle).matrix)
+
+    @staticmethod
+    def CPHASE(angle):
+        return np.asarray(qx.gates.CPHASE(angle).matrix)
+
+    @staticmethod
+    def XY(angle):
+        return np.asarray(qx.gates.XY(angle).matrix)
+
+    @staticmethod
+    def FSIM(theta, phi):
+        return np.asarray(qx.gates.FSIM(theta, phi).matrix)
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
@@ -404,7 +457,7 @@ def test_exponentiate_pauli_sum_rxx():
     generators = PauliTerm("X", 0) * PauliTerm("X", 1)
     for angle in np.linspace(-0.5, 0.5):
         generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.RXX(2 * np.pi * angle))
+        assert _unitary_equal(generated_unitary, matrices.RXX(2 * np.pi * angle))
 
 
 def test_exponentiate_pauli_sum_ryy():
@@ -412,7 +465,7 @@ def test_exponentiate_pauli_sum_ryy():
     generators = PauliTerm("Y", 0) * PauliTerm("Y", 1)
     for angle in np.linspace(-0.5, 0.5):
         generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.RYY(2 * np.pi * angle))
+        assert _unitary_equal(generated_unitary, matrices.RYY(2 * np.pi * angle))
 
 
 def test_exponentiate_pauli_sum_rzz():
@@ -420,7 +473,7 @@ def test_exponentiate_pauli_sum_rzz():
     generators = PauliTerm("Z", 0) * PauliTerm("Z", 1)
     for angle in np.linspace(-0.5, 0.5):
         generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.RZZ(2 * np.pi * angle))
+        assert _unitary_equal(generated_unitary, matrices.RZZ(2 * np.pi * angle))
 
 
 def test_exponentiate_pauli_sum_cphase():
@@ -428,7 +481,7 @@ def test_exponentiate_pauli_sum_cphase():
     generators = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
     for angle in np.linspace(-0.5, 0.5):
         generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.CPHASE(2 * np.pi * (-2 * angle)))
+        assert _unitary_equal(generated_unitary, matrices.CPHASE(2 * np.pi * (-2 * angle)))
 
 
 def test_exponentiate_pauli_sum_xy():
@@ -436,7 +489,7 @@ def test_exponentiate_pauli_sum_xy():
     generators = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
     for angle in np.linspace(-0.5, 0.5):
         generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.XY(2 * np.pi * (-2 * angle)))
+        assert _unitary_equal(generated_unitary, matrices.XY(2 * np.pi * (-2 * angle)))
 
 
 def test_exponentiate_pauli_sum_fsim():
@@ -446,7 +499,7 @@ def test_exponentiate_pauli_sum_fsim():
     for theta in np.linspace(-0.5, 0.5):
         for phi in np.linspace(-0.5, 0.5):
             generated_unitary = exponentiate_pauli_sum(xy_generators * theta + cphase_generators * phi)
-            assert unitary_equal(generated_unitary, matrices.FSIM(2 * np.pi * (-2 * theta), 2 * np.pi * (-2 * phi)))
+            assert _unitary_equal(generated_unitary, matrices.FSIM(2 * np.pi * (-2 * theta), 2 * np.pi * (-2 * phi)))
 
 
 def test_exponentiate_identity():
@@ -556,13 +609,13 @@ def test_trotterize_order():
         num_qubits = len(a_program.get_qubits())
         assert num_qubits == len(b_program.get_qubits())
 
-        a = program_unitary(a_program, num_qubits)
-        b = program_unitary(b_program, num_qubits)
+        a = _program_unitary(a_program, num_qubits)
+        b = _program_unitary(b_program, num_qubits)
         a_plus_b = a + b
         exp_a_plus_b = expmi(time_step_length * a_plus_b)
 
         trotter_program = trotterize(a_pauli, b_pauli, trotter_order=order)
-        trotter = program_unitary(trotter_program, num_qubits)
+        trotter = _program_unitary(trotter_program, num_qubits)
 
         return np.linalg.norm(exp_a_plus_b - trotter, np.inf)
 

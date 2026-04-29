@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2018 Rigetti Computing
+# Copyright 2016-2026 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -13,786 +13,1716 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Module for creating and verifying noisy gate and readout definitions."""
+"""
+noise module
+------------
 
-import sys
-from collections import namedtuple
-from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+This module provides a way of representing noise for quantum simulators.
 
+The noise model represents quantum channels as superoperators which include the gate
+unitary. This means the channel *replaces* the ideal gate operation rather than being
+applied after it.
+
+For representation conversions (Choi ↔ Kraus ↔ superoperator ↔ PTM), fidelity
+metrics, and channel construction utilities, the module delegates to ``quax``.
+
+For a comprehensive introduction, see:
+
+.. [BNCH] Practical Introduction to Benchmarking and Characterization of Quantum Computers.
+         Hashim, A. et al.
+         PRX Quantum 6, 030202 (2025).
+         https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.6.030202
+"""
+
+from __future__ import annotations
+
+import itertools
+import json
+import logging
+from dataclasses import dataclass, replace
+from functools import cached_property, reduce
+from itertools import product
+from operator import mul
+from typing import Callable, Dict, FrozenSet, List, Optional, Tuple, Type, Union, overload
+
+import jax.numpy as jnp
 import numpy as np
+import quax as qx
+from jax import Array
+from plotly.graph_objs import Figure
+from scipy.linalg import logm as scipy_logm
 
+from pyquil import Program
 from pyquil.external.rpcq import CompilerISA
-from pyquil.gates import MEASURE, RX, I
-from pyquil.noise_gates import _get_qvm_noise_supported_gates
-from pyquil.quilatom import MemoryReference, ParameterDesignator, format_parameter
-from pyquil.quilbase import Declare, Gate, Pragma
+from pyquil.quilatom import Expression, FormalArgument, Parameter, substitute
+from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset, ResetQubit
+from quil.expression import Expression as QuilExpression
 
-if TYPE_CHECKING:
-    from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
-    from pyquil.quil import Program
+logger = logging.getLogger(__name__)
 
-INFINITY = float("inf")
-"Used for infinite coherence times."
-
-_KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops", "fidelity"])
+# Type alias for the custom-gate lookup map used throughout the Channel constructors.
+CustomGateMap = Dict[str, Union[qx.Unitary, Callable[..., qx.Unitary]]]
 
 
-class KrausModel(_KrausModel):
-    """Encapsulate a single gate's noise model.
+@dataclass(frozen=True)
+class Channel:
+    """
+    A noise channel attaches a superoperator to a specific gate.
 
-    :ivar str gate: The name of the gate.
-    :ivar Sequence[float] params: Optional parameters for the gate.
-    :ivar Sequence[int] targets: The target qubit ids.
-    :ivar Sequence[np.array] kraus_ops: The Kraus operators (must be square complex numpy arrays).
-    :ivar float fidelity: The average gate fidelity associated with the Kraus map relative to the
-        ideal operation.
+    The superoperator *includes* the gate unitary, so the channel replaces the gate
+    rather than being applied after it.
+
+    The ``process`` field is a ``qx.SuperOp`` which can be converted to alternative
+    representations (Choi, Kraus, Pauli-Liouville) via ``quax``.
+
+    Fidelity metrics are computed relative to the ideal gate unitary, which is resolved
+    automatically for standard gates or provided explicitly via ``target_unitary``.
     """
 
-    @staticmethod
-    def unpack_kraus_matrix(m: Union[list[Any], np.ndarray]) -> np.ndarray:
-        """Unpack a JSON compatible representation of a complex Kraus matrix.
+    inst: Gate
+    """Quil gate to which the channel applies."""
 
-        :param m: The representation of a Kraus operator. Either a complex
-            square matrix (as numpy array or nested lists) or a JSON-able pair of real matrices
-            (as nested lists) representing the element-wise real and imaginary part of m.
-        :return: A complex square numpy array representing the Kraus operator.
-        """
-        matrix = np.asarray(m, dtype=complex)
-        if matrix.ndim == 3:
-            matrix = matrix[0] + 1j * matrix[1]
-        if not matrix.ndim == 2:  # pragma no coverage
-            raise ValueError("Need 2d array.")
-        if not matrix.shape[0] == matrix.shape[1]:  # pragma no coverage
-            raise ValueError("Need square matrix.")
-        return matrix
+    process: qx.SuperOp
+    """The noisy process (superoperator) for the gate, including the gate unitary."""
 
-    def to_dict(self) -> dict[str, Any]:
-        """Create a dictionary representation of a KrausModel.
-
-        For example::
-
-            {
-                "gate": "RX",
-                "params": np.pi,
-                "targets": [0],
-                "kraus_ops": [  # In this example single Kraus op = ideal RX(pi) gate
-                    [
-                        [
-                            [0, 0],  # element-wise real part of matrix
-                            [0, 0],
-                        ],
-                        [
-                            [0, -1],  # element-wise imaginary part of matrix
-                            [-1, 0],
-                        ],
-                    ]
-                ],
-                "fidelity": 1.0,
-            }
-
-        :return: A JSON compatible dictionary representation.
-        :rtype: dict[str,Any]
-        """
-        res = self._asdict()
-        res["kraus_ops"] = [[k.real.tolist(), k.imag.tolist()] for k in self.kraus_ops]
-        return res
-
-    @staticmethod
-    def from_dict(d: dict[str, Any]) -> "KrausModel":
-        """Recreate a KrausModel from the dictionary representation.
-
-        :param d: The dictionary representing the KrausModel. See `to_dict` for an
-            example.
-        :return: The deserialized KrausModel.
-        """
-        kraus_ops = [KrausModel.unpack_kraus_matrix(k) for k in d["kraus_ops"]]
-        return KrausModel(d["gate"], d["params"], d["targets"], kraus_ops, d["fidelity"])
-
-    def __eq__(self, other: object) -> bool:
-        """Return True if both KrausModels are equal."""
-        return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
-
-
-_NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
-
-
-class NoiseModel(_NoiseModel):
-    """Encapsulate the QPU noise model containing information about the noisy gates.
-
-    :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
-    :ivar dict[int,np.array] assignment_probs: The single qubit readout assignment
-        probability matrices keyed by qubit id.
+    target_unitary: Optional[qx.Unitary] = None
+    """
+    The noiseless unitary of the gate. If ``None``, will be resolved automatically from
+    ``inst`` for standard gates. Required for fidelity calculations with custom gates.
     """
 
-    def to_dict(self) -> dict[str, Any]:
-        """Create a JSON serializable representation of the noise model.
+    @cached_property
+    def unitary(self) -> qx.Unitary:
+        """The noiseless unitary of the gate, resolved from ``inst`` or provided explicitly."""
+        if self.target_unitary is not None:
+            return self.target_unitary
+        resolved = get_instruction_unitary(self.inst)
+        return resolved
 
-        For example::
+    @cached_property
+    def qubits(self) -> List[int]:
+        """The qubits which the channel applies to."""
+        return self.inst.get_qubit_indices()
 
-            {
-                "gates": [
-                    # list of embedded dictionary representations of KrausModels here [...]
-                ]
-                "assignment_probs": {
-                    "0": [[.8, .1],
-                          [.2, .9]],
-                    "1": [[.9, .4],
-                          [.1, .6]],
-                }
-            }
+    @cached_property
+    def num_qubits(self) -> int:
+        """The number of qubits the channel acts on."""
+        return len(self.qubits)
 
-        :return: A dictionary representation of self.
+    # ──────────────────────────────────────────────
+    # Constructors
+    # ──────────────────────────────────────────────
+
+    @classmethod
+    def from_gate_fidelity(
+        cls: Type["Channel"],
+        inst: Gate,
+        fidelity: float,
+        custom_gates: Optional[CustomGateMap] = None,
+    ) -> "Channel":
         """
-        return {
-            "gates": [km.to_dict() for km in self.gates],
-            "assignment_probs": {str(qid): a.tolist() for qid, a in self.assignment_probs.items()},
+        Create a depolarizing noise channel from an average gate fidelity.
+
+        The resulting channel is the composition of the ideal gate unitary with a
+        depolarizing channel calibrated to the specified fidelity:
+        :math:`\\mathcal{E} = \\mathcal{D}_p \\circ \\mathcal{U}`
+
+        :param inst: The gate to which the channel applies.
+        :param fidelity: The average gate fidelity, :math:`F_{\\mathrm{avg}} \\in [0, 1]`.
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        unitary = get_instruction_unitary(inst, custom_gates)
+        p = qx.average_fidelity_to_depolarizing_constant(fidelity, unitary.dims[0])
+        return cls.from_depolarizing_constant(inst, p, custom_gates)
+
+    @classmethod
+    def from_pauli_fidelity(
+        cls: Type["Channel"],
+        inst: Gate,
+        pauli_fidelity: float,
+        custom_gates: Optional[CustomGateMap] = None,
+    ) -> "Channel":
+        """
+        Create a depolarizing noise channel from a process (Pauli) fidelity.
+
+        The process fidelity :math:`F_e` is related to the average gate fidelity by
+        :math:`F_{\\mathrm{avg}} = (d \\cdot F_e + 1) / (d + 1)`.
+
+        :param inst: The gate to which the channel applies.
+        :param pauli_fidelity: The process fidelity (entanglement fidelity), :math:`F_e \\in [0, 1]`.
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        unitary = get_instruction_unitary(inst, custom_gates)
+        p = qx.process_fidelity_to_depolarizing_constant(pauli_fidelity, unitary.dims[0])
+        return cls.from_depolarizing_constant(inst, p, custom_gates)
+
+    @classmethod
+    def from_depolarizing_constant(
+        cls: Type["Channel"],
+        inst: Gate,
+        depolarizing_constant: float,
+        custom_gates: Optional[CustomGateMap] = None,
+    ) -> "Channel":
+        """
+        Create a depolarizing noise channel from a depolarization constant.
+
+        The depolarizing constant :math:`p` parameterizes the channel as
+        :math:`\\mathcal{D}_p(\\rho) = p \\, \\rho + (1-p) \\, I/d`.
+
+        :param inst: The gate to which the channel applies.
+        :param depolarizing_constant: The depolarization constant, e.g. 0.98 for 2% depolarization.
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        unitary = get_instruction_unitary(inst, custom_gates)
+        depolarizing_superop = qx.depolarizing_channel_superoperator(1 - depolarizing_constant, unitary.dims[0])
+        combined_superop = depolarizing_superop @ unitary
+        return cls(inst=inst, process=qx.to_superop(combined_superop), target_unitary=unitary)
+
+    @classmethod
+    def from_pauli_noise(
+        cls: Type["Channel"],
+        inst: Gate,
+        pauli_noise: Dict[str, float],
+        custom_gates: Optional[CustomGateMap] = None,
+    ) -> "Channel":
+        """
+        Create a stochastic Pauli noise channel from Pauli error rates.
+
+        The noise is specified as a dictionary mapping Pauli strings to error probabilities,
+        e.g. ``{"XX": 0.03, "ZI": 0.001}``. The probabilities must sum to at most 1.0;
+        any remainder is assigned to the identity (no-error) term.
+
+        :param inst: The gate to which the channel applies.
+        :param pauli_noise: Pauli error rates, e.g. ``{"IX": 0.01, "ZZ": 0.02}``.
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        unitary = get_instruction_unitary(inst, custom_gates)
+        num_qubits = len(unitary.dims[0])
+
+        for pauli in pauli_noise:
+            if len(pauli) != num_qubits:
+                raise ValueError(f"Pauli term '{pauli}' has length {len(pauli)}, expected {num_qubits}.")
+
+        all_pauli_terms = list(map(lambda term: "".join(term), itertools.product(*["IXYZ" for _ in range(num_qubits)])))
+
+        pauli_error_rates = []
+        for term in reversed(all_pauli_terms):
+            if term in pauli_noise:
+                error_rate = pauli_noise[term]
+            elif all(p == "I" for p in term):
+                error_rate = 1 - sum(pauli_error_rates)
+            else:
+                error_rate = 0
+            pauli_error_rates.append(error_rate)
+        assert jnp.isclose(1.0, sum(pauli_error_rates))
+        pauli_error_rates = list(reversed(pauli_error_rates))
+
+        # Build Pauli Kraus operators using quax ensembles
+        single_paulis = qx.ensembles.PAULIS  # ensemble of (I, X, Y, Z)
+        if num_qubits == 1:
+            pauli_ops = single_paulis
+        else:
+            pauli_ops = reduce(lambda a, b: a | b, [single_paulis for _ in range(num_qubits)])
+
+        # Scale each Pauli by sqrt(probability) to form Kraus operators
+        coeffs = jnp.sqrt(jnp.array(pauli_error_rates, dtype=float))
+        kraus_matrices = coeffs[:, None, None] * pauli_ops.matrix
+        kraus_map = qx.KrausMap.from_matrix(kraus_matrices, unitary.dims)
+
+        process_superop = qx.to_superop(kraus_map @ unitary)
+        return cls(inst=inst, process=process_superop, target_unitary=unitary)
+
+    @classmethod
+    def from_random_coherent_error(
+        cls: Type["Channel"],
+        inst: Gate,
+        process_fidelity: float,
+        rng: Optional[np.random.Generator] = None,
+        custom_gates: Optional[CustomGateMap] = None,
+    ) -> "Channel":
+        """
+        Create a channel with a random coherent (unitary) error at the specified process fidelity.
+
+        A random unitary close to identity is generated with the given process fidelity,
+        then composed with the ideal gate.
+
+        :param inst: The gate to which the channel applies.
+        :param process_fidelity: The process fidelity of the coherent error, :math:`F_e \\in [0, 1]`.
+        :param rng: NumPy random number generator for reproducibility.
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        if rng is None:
+            rng = np.random.default_rng()
+
+        ideal = get_instruction_unitary(inst, custom_gates)
+        num_qubits = len(ideal.dims[0])
+        d = 2**num_qubits
+
+        # Generate a random unitary error with the specified process fidelity
+        # using Pauli generator decomposition
+        angle = jnp.arccos(2 * process_fidelity - 1) / (2 * jnp.pi)
+        id_coeff = 1 - float(angle)
+        coeffs = rng.random(4**num_qubits - 1)
+        coeffs = (1 - id_coeff) / np.sqrt(np.sum(np.square(coeffs))) * coeffs
+
+        # Build Pauli generator sum using quax Pauli matrices
+        pauli_matrices = qx.ensembles.PAULIS.matrix  # shape (4, 2, 2)
+        pauli_sum = jnp.eye(d, dtype=complex) * id_coeff
+        pauli_products = list(itertools.product(pauli_matrices, repeat=num_qubits))[1:]
+        for paulis, coefficient in zip(pauli_products, coeffs):
+            pauli_sum = pauli_sum + reduce(jnp.kron, paulis) * coefficient
+
+        from jax.scipy.linalg import expm as jax_expm
+
+        error_unitary = jax_expm(-1j * jnp.pi * pauli_sum)
+        # Fix global phase
+        phase = jnp.exp(-1j * jnp.angle(error_unitary[0, 0]))
+        error_unitary = error_unitary * phase
+
+        error_u = qx.Unitary.from_matrix(error_unitary, ideal.dims)
+        noisy_superop = qx.to_superop(error_u @ ideal)
+        return cls(inst=inst, process=noisy_superop, target_unitary=ideal)
+
+    @classmethod
+    def from_mixture(
+        cls: Type["Channel"],
+        inst: Gate,
+        constituents: List[qx.Unitary],
+        probabilities: List[float],
+        custom_gates: Optional[CustomGateMap] = None,
+    ) -> "Channel":
+        """
+        Create a mixture channel from a set of unitary errors with given probabilities.
+
+        The channel is :math:`\\mathcal{E}(\\rho) = (1-\\sum p_i) U\\rho U^\\dagger + \\sum p_i V_i U \\rho U^\\dagger V_i^\\dagger`
+        where :math:`U` is the ideal gate and :math:`V_i` are the error unitaries.
+
+        :param inst: The gate to which the channel applies.
+        :param constituents: Unitary error operators to mix.
+        :param probabilities: Probability of each unitary error. Must sum to at most 1.0.
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        ideal = get_instruction_unitary(inst, custom_gates)
+
+        if len(constituents) != len(probabilities):
+            raise ValueError("The number of constituents and probabilities must match.")
+        error_prob = sum(probabilities)
+        if error_prob > 1.0:
+            raise ValueError(f"The sum of probabilities ({error_prob}) must be at most 1.0.")
+
+        # Build the mixture superop: (1-p_total) S(U) + sum p_i S(V_i @ U)
+        p0 = 1.0 - error_prob
+        noisy_superop_matrix = p0 * qx.to_superop(ideal).matrix
+        for p, v in zip(probabilities, constituents):
+            composed = v @ ideal
+            noisy_superop_matrix = noisy_superop_matrix + p * qx.to_superop(composed).matrix
+        noisy_superop = qx.SuperOp.from_matrix(noisy_superop_matrix, ideal.dims)
+        return cls(inst=inst, process=noisy_superop, target_unitary=ideal)
+
+    @classmethod
+    def from_coherence_times(
+        cls: Type["Channel"],
+        inst: Gate,
+        gate_duration: float,
+        t1s: List[float],
+        t2s: Optional[List[float]] = None,
+        custom_gates: Optional[CustomGateMap] = None,
+    ) -> "Channel":
+        """
+        Create a decoherence Channel based on the coherence times.
+
+        In this construction, decoherence is applied _after_ the ideal gate unitary.
+
+        :param inst: The target instruction.
+        :param gate_duration: The duration of the gate.
+        :param t1s: The t1 time(s) of the qubits
+        :param t2s: The t2 time(s) of the qubits. Default to 2*t1.
+        """
+        unitary = get_instruction_unitary(inst, custom_gates)
+        qubits = Program(inst).get_qubit_indices()
+        num_sys = len(qubits)
+        assert num_sys == len(t1s)
+        if t2s is None:
+            t2s = [2 * t1 for t1 in t1s]
+        else:
+            assert num_sys == len(t2s)
+
+        t1_array = jnp.asarray(t1s)
+        tphi_array = 1 / (1 / jnp.asarray(t2s) - 1 / t1_array)
+
+        choi = qx.thermal_relaxation_choi(t1s=t1_array, tphis=tphi_array, duration=gate_duration)
+        process = qx.to_superop(choi @ unitary)
+        return cls(
+            inst=inst,
+            process=process,
+            target_unitary=unitary,
+        )
+
+    # ──────────────────────────────────────────────
+    # Cached representation conversions
+    # ──────────────────────────────────────────────
+
+    @cached_property
+    def noise_process(self) -> qx.SuperOp:
+        """
+        The noise-only channel with the ideal gate unitary factored out.
+
+        If the full channel is :math:`\\mathcal{E} = \\Lambda \\circ \\mathcal{U}`, this
+        returns :math:`\\Lambda`.
+        """
+        return qx.to_superop(self.process @ self.unitary.h)
+
+    # ──────────────────────────────────────────────
+    # Fidelity properties
+    # ──────────────────────────────────────────────
+
+    @cached_property
+    def fidelity(self) -> float:
+        """Average gate fidelity :math:`F_{\\mathrm{avg}}` of the channel relative to the ideal gate."""
+        return float(qx.process_fidelity_to_average_fidelity(self.pauli_fidelity, dims=self.unitary.dims[0]))
+
+    @cached_property
+    def infidelity(self) -> float:
+        """Average gate infidelity :math:`1 - F_{\\mathrm{avg}}`."""
+        return 1.0 - self.fidelity
+
+    @cached_property
+    def pauli_fidelity(self) -> float:
+        """Process fidelity (entanglement fidelity) :math:`F_e` relative to the ideal gate."""
+        process, unitary = qx.promote_hilbert_space(self.process, qx.to_superop(self.unitary))
+        return float(qx.process_fidelity(process, unitary))
+
+    @cached_property
+    def pauli_infidelity(self) -> float:
+        """Process infidelity :math:`1 - F_e`."""
+        return 1.0 - self.pauli_fidelity
+
+    @cached_property
+    def stochastic_infidelity(self) -> float:
+        """Stochastic (incoherent) component of the process infidelity."""
+        return float(qx.stochastic_infidelity(self.noise_process))
+
+    @cached_property
+    def stochastic_fidelity(self) -> float:
+        """Stochastic fidelity :math:`1 - e_S`."""
+        return 1.0 - self.stochastic_infidelity
+
+    @cached_property
+    def coherent_infidelity(self) -> float:
+        """Coherent component of the process infidelity: :math:`e_C = e - e_S`."""
+        return self.pauli_infidelity - self.stochastic_infidelity
+
+    @cached_property
+    def coherent_fidelity(self) -> float:
+        """Coherent fidelity :math:`1 - e_C`."""
+        return 1.0 - self.coherent_infidelity
+
+    @cached_property
+    def unitarity(self) -> float:
+        """Unitarity of the channel."""
+        return float(qx.unitarity(self.noise_process))
+
+    # ──────────────────────────────────────────────
+    # Channel analysis methods
+    # ──────────────────────────────────────────────
+
+    def pauli_twirl(self) -> "Channel":
+        """
+        Return a Pauli-twirled version of this channel.
+
+        Pauli twirling projects the channel onto the Pauli diagonal, eliminating
+        off-diagonal coherences in the Pauli-Liouville representation. The
+        resulting channel is a stochastic Pauli channel with the same diagonal
+        error rates.
+        """
+        ptm = qx.to_pauli_liouville(self.process)
+        # Keep only the diagonal of the PTM
+        twirled_ptm_matrix = jnp.diag(jnp.diag(ptm.matrix))
+        twirled_superop = qx.to_superop(qx.PauliLiouville.from_matrix(twirled_ptm_matrix, self.process.dims))
+        return replace(self, process=twirled_superop)
+
+    @cached_property
+    def _unitary_error_component(self) -> Array:
+        """
+        Extract the dominant unitary from the noise-only channel.
+
+        Uses eigendecomposition + SVD polar decomposition to find the closest
+        unitary to the noise channel.
+        """
+        choi_matrix = qx.to_choi(self.noise_process).matrix
+        d = 2**self.num_qubits
+
+        # Dominant eigenvector of the Choi matrix
+        eigenvalues, eigenvectors = jnp.linalg.eigh(choi_matrix)
+        dominant_eigenvector = eigenvectors[:, jnp.argmax(jnp.abs(eigenvalues))]
+
+        # SVD polar decomposition to extract the closest unitary
+        u, _, vh = jnp.linalg.svd(dominant_eigenvector.reshape(d, d).T)
+        return u @ vh
+
+    def to_coherent_channel(self) -> "Channel":
+        """
+        Isolate the coherent (unitary) component of the noise.
+
+        Extracts the dominant unitary from the noise Choi matrix via polar
+        decomposition and returns a channel consisting of that unitary error
+        composed with the ideal gate.
+        """
+        u_error = self._unitary_error_component
+        u_error_qx = qx.Unitary.from_matrix(u_error, self.process.dims)
+        coherent_superop = qx.to_superop(u_error_qx @ self.unitary)
+        return replace(self, process=coherent_superop)
+
+    def to_stochastic_channel(self) -> "Channel":
+        """
+        Isolate the stochastic (incoherent) component of the noise.
+
+        The full channel decomposes as
+        :math:`\\mathcal{E} = \\mathcal{S} \\circ \\mathcal{U}_{\\mathrm{err}} \\circ \\mathcal{U}_{\\mathrm{gate}}`.
+        This method factors out the coherent unitary error and returns
+        :math:`\\mathcal{S} \\circ \\mathcal{U}_{\\mathrm{gate}}`.
+        """
+        u_error = self._unitary_error_component
+        # Get the noise-only superoperator and compose with U_err†
+        noise_superop = self.noise_process.matrix
+        u_err_inv_superop = jnp.kron(u_error.conj(), u_error.conj().T)
+        stochastic_noise_superop = noise_superop @ u_err_inv_superop
+        # Recompose with the ideal gate
+        ideal_superop = jnp.kron(self.unitary.matrix, self.unitary.matrix.conj())
+        stochastic_superop = stochastic_noise_superop @ ideal_superop
+        return replace(self, process=qx.SuperOp.from_matrix(stochastic_superop, self.process.dims))
+
+    def is_pauli(self) -> bool:
+        """
+        Check if the noise channel is a Pauli (stochastic Pauli) channel.
+
+        A Pauli channel has a diagonal Pauli transfer matrix (noise-only part).
+        """
+        ptm = qx.to_pauli_liouville(self.noise_process).matrix
+        mask = ~jnp.eye(ptm.shape[0], dtype=bool)
+        return bool(jnp.allclose(ptm[mask], 0))
+
+    def to_pauli_vector(self) -> Array:
+        """
+        Convert the noise channel to a Pauli error probability vector.
+
+        Returns the vector of probabilities for each Pauli error in lexicographic
+        order (II, IX, IY, IZ, XI, XX, ...). The vector sums to 1.0.
+        """
+        noise_superop = self.noise_process.matrix
+        num_qubits = self.num_qubits
+        dim = noise_superop.shape[0]
+
+        # Build all Pauli operators and their superoperators
+        pauli_matrices = qx.ensembles.PAULIS.matrix  # (4, 2, 2): I, X, Y, Z
+        all_pauli_products = list(product(pauli_matrices, repeat=num_qubits))
+        pauli_error_rates = []
+        for pauli_tuple in all_pauli_products:
+            pauli_op = reduce(jnp.kron, pauli_tuple)
+            pauli_superop = jnp.kron(pauli_op, pauli_op.conj())
+            rate = float(jnp.abs(jnp.trace(noise_superop @ pauli_superop) / dim))
+            pauli_error_rates.append(rate)
+
+        return jnp.array(pauli_error_rates, dtype=float)
+
+    @cached_property
+    def pauli_vector(self) -> Array:
+        """The Pauli error probability vector of the noise channel."""
+        return self.to_pauli_vector()
+
+    # ──────────────────────────────────────────────
+    # Visualization
+    # ──────────────────────────────────────────────
+
+    def plot(self, only_noise: bool = True, show_identity: bool = False) -> Figure:
+        """
+        Plot the Pauli transfer matrix of the channel.
+
+        :param only_noise: If True, plot the noise-only channel (gate unitary factored out).
+            If False, plot the full channel including the gate unitary.
+        :param show_identity: If True, include the identity component in the noise-only plot.
+            If False (default), visualize the generator of the noise channel via the matrix
+            logarithm of the PTM.  For near-identity noise this approximates PTM - I, but
+            correctly captures the Lie-algebraic structure of the channel.
+            Only applies when ``only_noise=True``.
+        :return: A Plotly Figure.
+        """
+        if only_noise:
+            channel = self.noise_process
+            if not show_identity:
+                ptm = qx.to_pauli_liouville(channel)
+                log_ptm = scipy_logm(np.asarray(ptm.matrix))
+                channel = qx.PauliLiouville.from_matrix(jnp.array(log_ptm), channel.dims)
+            title_prefix = "Noise Channel"
+        else:
+            channel = self.process
+            title_prefix = "Full Channel"
+
+        fig = qx.plot(channel)
+        fig.update_layout(
+            title=(
+                f"{title_prefix} for {self.inst.out()}<br>"
+                f"𝜀={self.pauli_infidelity * 100:.2f}%, "
+                f"𝜀<sub>u</sub>={self.coherent_infidelity * 100:.2f}%, "
+                f"𝜀<sub>s</sub>={self.stochastic_infidelity * 100:.2f}%"
+            )
+        )
+        return fig
+
+    # ──────────────────────────────────────────────
+    # Serialization
+    # ──────────────────────────────────────────────
+
+    def to_json(self) -> str:
+        """
+        Serialize Channel to a JSON string.
+
+        :return: JSON string representation.
+        """
+        superop_array = np.asarray(self.process.matrix)
+        flat_data = [[float(val.real), float(val.imag)] for val in superop_array.flat]
+
+        data = {
+            "inst": self.inst.out(),
+            "superop": {"_complex_array": flat_data, "shape": list(superop_array.shape)},
         }
 
-    @staticmethod
-    def from_dict(d: dict[str, Any]) -> "NoiseModel":
-        """Re-create the noise model from a dictionary representation.
+        if self.target_unitary is not None:
+            u_array = np.asarray(self.target_unitary.matrix)
+            u_flat = [[float(val.real), float(val.imag)] for val in u_array.flat]
+            data["target_unitary"] = {"_complex_array": u_flat, "shape": list(u_array.shape)}
 
-        :param d: The dictionary representation.
-        :return: The restored noise model.
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls: Type["Channel"], json_str: str) -> "Channel":
         """
-        return NoiseModel(
-            gates=[KrausModel.from_dict(t) for t in d["gates"]],
-            assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
-        )
+        Deserialize a Channel from a JSON string.
 
-    def gates_by_name(self, name: str) -> list[KrausModel]:
-        """Return all defined noisy gates of a particular gate name.
-
-        :param str name: The gate name.
-        :return: A list of noise models representing that gate.
+        :param json_str: JSON string as produced by :meth:`to_json`.
+        :return: Channel instance.
         """
-        return [g for g in self.gates if g.gate == name]
+        data = json.loads(json_str)
+        inst = Program(data["inst"]).instructions[0]
+        assert isinstance(inst, Gate)
+
+        superop_data = data["superop"]
+        flat = superop_data["_complex_array"]
+        shape = tuple(superop_data["shape"])
+        superop_array = jnp.array([complex(pair[0], pair[1]) for pair in flat], dtype=complex).reshape(shape)
+        # Infer dims from matrix shape: (d^2, d^2) -> d qubits each of dim 2
+        d = int(jnp.sqrt(shape[0]))
+        num_qubits = int(jnp.round(jnp.log2(d)))
+        dims = ((2,) * num_qubits, (2,) * num_qubits)
+        superop = qx.SuperOp.from_matrix(superop_array, dims)
+
+        target_unitary = None
+        if "target_unitary" in data:
+            u_data = data["target_unitary"]
+            u_flat = u_data["_complex_array"]
+            u_shape = tuple(u_data["shape"])
+            u_array = jnp.array([complex(pair[0], pair[1]) for pair in u_flat], dtype=complex).reshape(u_shape)
+            u_num_qubits = int(jnp.round(jnp.log2(u_shape[0])))
+            u_dims = ((2,) * u_num_qubits, (2,) * u_num_qubits)
+            target_unitary = qx.Unitary.from_matrix(u_array, u_dims)
+
+        return cls(inst=inst, process=superop, target_unitary=target_unitary)
+
+    # ──────────────────────────────────────────────
+    # Dunder methods
+    # ──────────────────────────────────────────────
+
+    def __repr__(self) -> str:
+        """Return a simplified string representation showing the gate and process fidelity."""
+        return f"<{self.inst.out()} ~ ({100 * self.pauli_fidelity:.2f}%)>"
 
     def __eq__(self, other: object) -> bool:
-        """Return True if NoiseModels are equal."""
-        return isinstance(other, NoiseModel) and self.to_dict() == other.to_dict()
+        """Check equality based on instruction and process fidelity."""
+        if not isinstance(other, Channel):
+            return False
+        if self.inst != other.inst:
+            return False
+        return bool(jnp.isclose(float(qx.process_fidelity(self.process, other.process)), 1.0, atol=1e-9))
+
+    def __hash__(self) -> int:
+        """Hash based on the instruction (for use in sets/dicts)."""
+        return hash(self.inst)
+
+    def __matmul__(self, other: "Channel") -> "Channel":
+        """
+        Compose two channels: ``channel_B @ channel_A``.
+
+        Both channels share the same gate instruction. The composition factors
+        out one copy of the gate unitary so the result represents the sequential
+        application of the two noisy processes:
+
+        :math:`\\mathcal{E}_B \\circ \\mathcal{U}^\\dagger \\circ \\mathcal{E}_A`
+
+        This is the natural composition: if ``channel_A`` already includes the
+        gate, applying ``channel_B`` after it should not double-count the gate.
+        """
+        if not isinstance(other, Channel):
+            return NotImplemented
+        if self.inst != other.inst:
+            raise ValueError(f"Cannot compose channels for different gates: {self.inst.out()} vs {other.inst.out()}")
+        # E_B @ U† @ E_A  (factor out one gate unitary between the two channels)
+        u_dag_superop = qx.to_superop(self.unitary.h)
+        composed_superop = qx.to_superop(self.process @ u_dag_superop @ other.process)
+        return replace(self, process=composed_superop)
+
+    def __or__(self, other: "Channel | MeasurementChannel") -> "CycleChannel":
+        """
+        Tensor product of two channels on disjoint qubits, producing a CycleChannel.
+
+        The result represents a cycle containing both operations acting in parallel
+        on disjoint qubits. The DefCircuit encodes the parallel operations as
+        formal instructions.
+
+        :param other: Another Channel or MeasurementChannel on disjoint qubits.
+        :return: A CycleChannel representing the tensor product.
+        """
+        if not isinstance(other, (Channel, MeasurementChannel)):
+            return NotImplemented
+
+        # Validate disjoint qubits
+        self_qubits = set(self.qubits)
+        other_qubits = set(other.qubits)
+        if self_qubits & other_qubits:
+            raise ValueError(f"Cannot tensor channels with overlapping qubits: {self_qubits & other_qubits}")
+
+        return _build_cycle_channel([self, other])
 
 
-def _check_kraus_ops(n: int, kraus_ops: Sequence[np.ndarray]) -> None:
-    """Verify that the Kraus operators are of the correct shape and satisfy the correct normalization.
-
-    :param n: Number of qubits
-    :param kraus_ops: The Kraus operators as numpy.ndarrays.
+@dataclass(frozen=True)
+class MeasurementChannel:
     """
-    for k in kraus_ops:
-        if not np.shape(k) == (2**n, 2**n):
-            raise ValueError(f"Kraus operators for {n} qubits must have shape {2**n}x{2**n}: {k}")
+    A measurement noise channel attaches a quantum instrument to a specific measurement operation.
 
-    kdk_sum = sum(np.transpose(k).conjugate().dot(k) for k in kraus_ops)
-    if not np.allclose(kdk_sum, np.eye(2**n), atol=1e-3):
-        raise ValueError(f"Kraus operator not correctly normalized: sum_j K_j^*K_j == {kdk_sum}")
-
-
-def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[np.ndarray]) -> list[Pragma]:
-    """Generate the pragmas to define a Kraus map for a specific gate on some qubits.
-
-    :param name: The name of the gate.
-    :param qubit_indices: The qubits
-    :param kraus_ops: The Kraus operators as matrices.
-    :return: A QUIL string with PRAGMA ADD-KRAUS ... statements.
+    The ``process`` field is a ``qx.QuantumInstrument`` which models both classification
+    errors and post-measurement back-action.
     """
-    pragmas = [
-        Pragma(
-            "ADD-KRAUS",
-            (name,) + tuple(qubit_indices),
-            "({})".format(" ".join(map(format_parameter, np.ravel(k)))),
+
+    inst: Measurement
+    """The measurement operation to which the channel applies."""
+
+    process: qx.QuantumInstrument
+    """A quantum instrument representation of the noisy measurement."""
+
+    @cached_property
+    def qubits(self) -> List[int]:
+        """The qubits which the measurement applies to."""
+        qubit = self.inst.qubit
+        return [qubit.index if hasattr(qubit, "index") else int(qubit)]  # type: ignore[union-attr,arg-type]
+
+    # ──────────────────────────────────────────────
+    # Constructors
+    # ──────────────────────────────────────────────
+
+    @classmethod
+    def from_readout_fidelity(
+        cls: Type["MeasurementChannel"],
+        inst: Measurement,
+        fidelity: float,
+        asymmetry: float = 0.0,
+        dim: int = 2,
+    ) -> "MeasurementChannel":
+        """
+        Create a readout quantum instrument with optional asymmetry.
+
+        Produces a perfectly QND measurement with the given classification fidelity.
+        Error is distributed only between adjacent levels: P(j+1|j) and P(j|j+1).
+        Non-adjacent confusion is zero.
+
+        :param inst: The measurement instruction.
+        :param fidelity: The average readout fidelity.
+        :param asymmetry: Value between -1 and +1. Zero is symmetric.
+            Positive biases toward upward confusion P(j+1|j), negative toward downward P(j|j+1).
+        :param dim: The dimension of the measured system (2 for qubits, 3 for qutrits, etc.).
+        :return: A MeasurementChannel instance.
+        """
+        # Compute per-pair error factor so that the average diagonal equals fidelity.
+        # Each adjacent pair (j, j+1) contributes error_factor*(1+a) + error_factor*(1-a)
+        # = 2*error_factor to total off-diagonal sum. With (dim-1) pairs, the average
+        # column error is 2*(dim-1)*error_factor/dim, which we set equal to (1-fidelity).
+        error_factor = dim * (1 - fidelity) / (2 * (dim - 1))
+
+        confusion = jnp.zeros((dim, dim))
+        for j in range(dim - 1):
+            confusion = confusion.at[j + 1, j].set(error_factor * (1 + asymmetry))
+            confusion = confusion.at[j, j + 1].set(error_factor * (1 - asymmetry))
+        # Set diagonal so each column sums to 1
+        col_sums = confusion.sum(axis=0)
+        confusion = confusion + jnp.diag(1 - col_sums)
+
+        transition = jnp.eye(dim)
+        instrument = qx.instrument_from_confusion_and_transition(
+            confusion_matrix=confusion,
+            transition_matrix=transition,
+            dims=(dim,),
+            measured_qudits=(0,),
         )
-        for k in kraus_ops
-    ]
-    return pragmas
+        return cls(inst=inst, process=instrument)
 
+    @classmethod
+    def from_confusion_and_transition(
+        cls: Type["MeasurementChannel"],
+        inst: Measurement,
+        confusion_matrix: Array,
+        transition_matrix: Array,
+    ) -> "MeasurementChannel":
+        """
+        Create a MeasurementChannel from a confusion matrix and a transition matrix.
 
-def append_kraus_to_gate(
-    kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray
-) -> list[Union[np.number, np.ndarray]]:
-    """Follow a gate ``gate_matrix`` by a Kraus map described by ``kraus_ops``.
+        Provides independent control over measurement classification accuracy
+        and post-measurement quantum state evolution.
 
-    :param kraus_ops: The Kraus operators.
-    :param gate_matrix: The unitary gate.
-    :return: A list of transformed Kraus operators.
-    """
-    return [kj.dot(gate_matrix) for kj in kraus_ops]
+        **Matrix Conventions (column-stochastic):**
 
+        - ``confusion_matrix[i, j]``: P(outcome i | prepared j)
+        - ``transition_matrix[k, j]``: P(ending in k | input j)
+        - Columns sum to 1.0
 
-def pauli_kraus_map(probabilities: Sequence[float]) -> list[np.ndarray]:
-    r"""Generate the Kraus operators corresponding to a pauli channel.
-
-    :params probabilities: The 4^num_qubits list of probabilities specifying the
-        desired pauli channel. There should be either 4 or 16 probabilities specified in the
-        order I, X, Y, Z for 1 qubit or II, IX, IY, IZ, XI, XX, XY, etc for 2 qubits.
-
-            For example::
-
-                The d-dimensional depolarizing channel \Delta parameterized as
-                \Delta(\rho) = p \rho + [(1-p)/d] I
-                is specified by the list of probabilities
-                [p + (1-p)/d, (1-p)/d,  (1-p)/d), ... , (1-p)/d)]
-
-    :return: A list of the 4^num_qubits Kraus operators that parametrize the map.
-    """
-    if len(probabilities) not in [4, 16]:
-        raise ValueError(
-            "Currently we only support one or two qubits, "
-            "so the provided list of probabilities must have length 4 or 16."
+        :param inst: The measurement instruction.
+        :param confusion_matrix: A (d, d) classification matrix.
+        :param transition_matrix: A (d, d) post-measurement transition matrix.
+        :return: A MeasurementChannel instance.
+        """
+        confusion = jnp.asarray(confusion_matrix)
+        dim = confusion.shape[0]
+        instrument = qx.instrument_from_confusion_and_transition(
+            confusion_matrix=confusion,
+            transition_matrix=jnp.asarray(transition_matrix),
+            dims=(dim,),
+            measured_qudits=(0,),
         )
-    if not np.allclose(sum(probabilities), 1.0, atol=1e-3):
-        raise ValueError("Probabilities must sum to one.")
+        return cls(inst=inst, process=instrument)
 
-    paulis = [
-        np.eye(2),
-        np.array([[0, 1], [1, 0]]),
-        np.array([[0, -1j], [1j, 0]]),
-        np.array([[1, 0], [0, -1]]),
-    ]
+    @classmethod
+    def from_axis(
+        cls: Type["MeasurementChannel"],
+        inst: Measurement,
+        theta: float = 0.0,
+        phi: float = 0.0,
+        sharpness: float = 1.0,
+    ) -> "MeasurementChannel":
+        """
+        Create a MeasurementChannel from a Bloch sphere measurement axis.
 
-    if len(probabilities) == 4:
-        operators = paulis
-    else:
-        operators = np.kron(paulis, paulis)  # type: ignore
+        The angles refer to the standard Bloch sphere notation.
+        Theta=0, phi=0 is the Z axis (computational basis measurement).
 
-    return [coeff * op for coeff, op in zip(np.sqrt(probabilities), operators)]
+        :param inst: The measurement instruction.
+        :param theta: The colatitude with respect to the z-axis.
+        :param phi: The longitude with respect to the x-axis.
+        :param sharpness: The sharpness of the measurement. 1.0 is projective,
+            0.0 is no measurement. 0 < s < 1 is a weak measurement.
+        :return: A MeasurementChannel instance.
+        """
+        instrument = qx.instrument_from_axis(
+            theta=theta,
+            phi=phi,
+            sharpness=sharpness,
+        )
+        return cls(inst=inst, process=instrument)
 
+    @classmethod
+    def from_binary_discriminator(
+        cls: Type["MeasurementChannel"],
+        inst: Measurement,
+        dim: int,
+        threshold: int,
+        fidelity: float = 1.0,
+    ) -> "MeasurementChannel":
+        """
+        Create a MeasurementChannel for a binary discriminator.
 
-def damping_kraus_map(p: float = 0.10) -> list[np.ndarray]:
-    """Generate the Kraus operators corresponding to an amplitude damping noise channel.
+        Models a measurement that confuses each state at or above ``threshold`` with
+        the state one level below it. This is useful for measurements calibrated as
+        binary discriminators between groups of energy levels.
 
-    :param p: The one-step damping probability.
-    :return: A list [k1, k2] of the Kraus operators that parametrize the map.
-    :rtype: list
-    """
-    damping_op = np.sqrt(p) * np.array([[0, 1], [0, 0]])
+        For example, ``threshold=2, dim=3`` always confuses state 2 for state 1
+        (discriminates ``{0, 1}`` vs ``{2}``). ``threshold=1, dim=3`` confuses
+        state 1 for state 0 and state 2 for state 1 (discriminates ``{0}`` vs ``{1, 2}``).
 
-    residual_kraus = np.diag([1, np.sqrt(1 - p)])
-    return [residual_kraus, damping_op]
+        An optional ``fidelity`` parameter degrades the ideal discriminator with
+        uniform classification noise.
 
+        :param inst: The measurement instruction.
+        :param dim: The dimension of the measured system.
+        :param threshold: States at or above this level are confused with the level below.
+            Must satisfy ``1 <= threshold < dim``.
+        :param fidelity: Additional classification fidelity applied on top of the
+            discrimination (1.0 = perfect discriminator).
+        :return: A MeasurementChannel instance.
+        """
+        if not (1 <= threshold < dim):
+            raise ValueError(f"threshold must satisfy 1 <= threshold < dim, got threshold={threshold}, dim={dim}")
 
-def dephasing_kraus_map(p: float = 0.10) -> list[np.ndarray]:
-    """Generate the Kraus operators corresponding to a dephasing channel.
+        # Build the ideal binary discriminator confusion matrix:
+        # states below threshold are classified correctly,
+        # states at or above threshold are classified as the state one below.
+        confusion = jnp.zeros((dim, dim))
+        for j in range(dim):
+            if j < threshold:
+                confusion = confusion.at[j, j].set(1.0)
+            else:
+                confusion = confusion.at[j - 1, j].set(1.0)
 
-    :params float p: The one-step dephasing probability.
-    :return: A list [k1, k2] of the Kraus operators that parametrize the map.
-    :rtype: list
-    """
-    return [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * np.diag([1, -1])]
+        # Optionally degrade with uniform noise
+        if fidelity < 1.0:
+            confusion = fidelity * confusion + (1 - fidelity) * jnp.ones((dim, dim)) / dim
 
+        transition = jnp.eye(dim)
+        instrument = qx.instrument_from_confusion_and_transition(
+            confusion_matrix=confusion,
+            transition_matrix=transition,
+            dims=(dim,),
+            measured_qudits=(0,),
+        )
+        return cls(inst=inst, process=instrument)
 
-def tensor_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.ndarray]:
-    """Generate the Kraus map corresponding to the composition of two maps on different qubits.
+    # ──────────────────────────────────────────────
+    # Properties
+    # ──────────────────────────────────────────────
 
-    :param k1: The Kraus operators for the first qubit.
-    :param k2: The Kraus operators for the second qubit.
-    :return: A list of tensored Kraus operators.
-    """
-    return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]
+    @cached_property
+    def confusion_matrix(self) -> Array:
+        """The confusion matrix of the measurement.
 
+        Shape ``(num_outcomes, d_measured)``.
+        Entry ``[i, j]`` is P(outcome i | prepared j).
+        """
+        return self.process.confusion_matrix
 
-def combine_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.ndarray]:
-    """Generate the Kraus map for two composed maps, with k1 applied after k2 on the same qubits.
+    @cached_property
+    def transition_matrix(self) -> Array:
+        """The post-measurement transition matrix.
 
-    :param k1: The list of Kraus operators that are applied second.
-    :param k2: The list of Kraus operators that are applied first.
-    :return: A combinatorially generated list of composed Kraus operators.
-    """
-    return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]
+        Shape ``(d, d)``. Entry ``[k, j]`` is P(ending in k | input j),
+        marginalized over all measurement outcomes.
+        """
+        return self.process.transition_matrix
 
+    @cached_property
+    def non_demolition_fidelity(self) -> float:
+        """Quantum non-demolition (QND) fidelity.
 
-def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> list[np.ndarray]:
-    """Generate the Kraus map for a dephasing channel followed by an amplitude damping channel.
+        Measures how well the measurement preserves computational basis states,
+        averaged over outcomes and input states.
+        """
+        return float(qx.non_demolition_fidelity(self.process))
 
-    :param T1: The amplitude damping time
-    :param T2: The dephasing time
-    :param gate_time: The gate duration.
-    :return: A list of Kraus operators.
-    """
-    if T1 < 0 or T2 < 0:
-        raise ValueError("T1 and T2 must be non-negative.")
+    @cached_property
+    def instrument_fidelity(self) -> float:
+        """Overall instrument fidelity w.r.t. ideal QND measurement.
 
-    if T1 != INFINITY:
-        damping = damping_kraus_map(p=1 - np.exp(-float(gate_time) / float(T1)))
-    else:
-        damping = [np.eye(2)]
+        Accounts for both classification errors and post-measurement state disturbance.
+        """
+        return float(qx.instrument_fidelity(self.process))
 
-    if T2 != INFINITY:
-        gamma_phi = float(gate_time) / float(T2)
-        if T1 != INFINITY:
-            if T2 > 2 * T1:
-                raise ValueError("T2 is upper bounded by 2 * T1")
-            gamma_phi -= float(gate_time) / float(2 * T1)
+    @cached_property
+    def classification_fidelity(self) -> float:
+        """Classification fidelity: average probability of correctly identifying the measurement outcome."""
+        return float(qx.classification_fidelity(self.process))
 
-        dephasing = dephasing_kraus_map(p=0.5 * (1 - np.exp(-gamma_phi)))
-    else:
-        dephasing = [np.eye(2)]
-    return combine_kraus_maps(damping, dephasing)
+    # ──────────────────────────────────────────────
+    # Visualization
+    # ──────────────────────────────────────────────
 
+    def plot(self) -> Figure:
+        """
+        Plot the quantum instrument using the quax visualization.
 
-# You can only apply gate-noise to non-parametrized gates or parametrized gates at fixed parameters.
-NO_NOISE = ["RZ"]
-ANGLE_TOLERANCE = 1e-10
+        Shows per-outcome superoperator matrices and the total CPTP channel.
 
-
-class NoisyGateUndefined(Exception):
-    """Raise when user attempts to use noisy gate outside of currently supported set."""
-
-    pass
-
-
-def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> tuple[np.ndarray, str]:
-    """Look up the numerical gate representation and a proposed 'noisy' name.
-
-    :param gate_name: The Quil gate name
-    :param params: The gate parameters.
-    :return: A tuple (matrix, noisy_name) with the representation of the ideal gate matrix
-        and a proposed name for the noisy version.
-    """
-    params = tuple(params)
-    if gate_name == "I":
-        if params != ():
-            raise ValueError(f"Identity gate does not take parameters: {params}")
-        return np.eye(2), "NOISY-I"
-    if gate_name == "RX":
-        (angle,) = params
-        if not isinstance(angle, (int, float, complex)):
-            raise TypeError(f"Cannot produce noisy gate for parameter of type {type(angle)}")
-
-        if np.isclose(angle, np.pi / 2, atol=ANGLE_TOLERANCE):
-            return np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2), "NOISY-RX-PLUS-90"
-        elif np.isclose(angle, -np.pi / 2, atol=ANGLE_TOLERANCE):
-            return np.array([[1, 1j], [1j, 1]]) / np.sqrt(2), "NOISY-RX-MINUS-90"
-        elif np.isclose(angle, np.pi, atol=ANGLE_TOLERANCE):
-            return np.array([[0, -1j], [-1j, 0]]), "NOISY-RX-PLUS-180"
-        elif np.isclose(angle, -np.pi, atol=ANGLE_TOLERANCE):
-            return np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180"
-    elif gate_name == "CZ":
-        if params != ():
-            raise ValueError(f"CZ gate does not take parameters: {params}")
-        return np.diag([1, 1, 1, -1]), "NOISY-CZ"
-
-    raise NoisyGateUndefined(
-        f"Undefined gate and params: {gate_name}{params}\n" "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
-    )
-
-
-def _get_program_gates(prog: "Program") -> list[Gate]:
-    """Get all gate applications appearing in prog.
-
-    :param prog: The program
-    :return: A list of all Gates in prog (without duplicates).
-    """
-    return sorted({i for i in prog if isinstance(i, Gate)}, key=lambda g: g.out())
-
-
-def _decoherence_noise_model(
-    gates: Sequence[Gate],
-    T1: Union[dict[int, float], float] = 30e-6,
-    T2: Union[dict[int, float], float] = 30e-6,
-    gate_time_1q: float = 50e-9,
-    gate_time_2q: float = 150e-09,
-    ro_fidelity: Union[dict[int, float], float] = 0.95,
-) -> NoiseModel:
-    """Return default noise model.
-
-    - T1 = 30 us
-    - T2 = 30 us
-    - 1q gate time = 50 ns
-    - 2q gate time = 150 ns
-
-    are currently typical for near-term devices.
-
-    This function will define new gates and add Kraus noise to these gates. It will translate
-    the input program to use the noisy version of the gates.
-
-    :param gates: The gates to provide the noise model for.
-    :param T1: The T1 amplitude damping time either globally or in a
-        dictionary indexed by qubit id. By default, this is 30 us.
-    :param T2: The T2 dephasing time either globally or in a
-        dictionary indexed by qubit id. By default, this is also 30 us.
-    :param gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
-        By default, this is 50 ns.
-    :param gate_time_2q: The duration of the two-qubit gates, namely CZ.
-        By default, this is 150 ns.
-    :param ro_fidelity: The readout assignment fidelity
-        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
-    :return: A NoiseModel with the appropriate Kraus operators defined.
-    """
-    all_qubits = set(sum((g.get_qubit_indices() for g in gates), []))
-    if isinstance(T1, dict):
-        all_qubits.update(T1.keys())
-    if isinstance(T2, dict):
-        all_qubits.update(T2.keys())
-    if isinstance(ro_fidelity, dict):
-        all_qubits.update(ro_fidelity.keys())
-
-    if not isinstance(T1, dict):
-        T1 = {q: T1 for q in all_qubits}
-
-    if not isinstance(T2, dict):
-        T2 = {q: T2 for q in all_qubits}
-
-    if not isinstance(ro_fidelity, dict):
-        ro_fidelity = {q: ro_fidelity for q in all_qubits}
-
-    noisy_identities_1q = {
-        q: damping_after_dephasing(T1.get(q, INFINITY), T2.get(q, INFINITY), gate_time_1q) for q in all_qubits
-    }
-    noisy_identities_2q = {
-        q: damping_after_dephasing(T1.get(q, INFINITY), T2.get(q, INFINITY), gate_time_2q) for q in all_qubits
-    }
-    kraus_maps = []
-    for g in gates:
-        targets = tuple(g.get_qubit_indices())
-        if g.name in NO_NOISE:
-            continue
-        matrix, _ = get_noisy_gate(g.name, g.params)
-
-        if len(targets) == 1:
-            noisy_I = noisy_identities_1q[targets[0]]
-        else:
-            if len(targets) != 2:
-                raise ValueError("Noisy gates on more than 2Q not currently supported")
-
-            # note this ordering of the tensor factors is necessary due to how the QVM orders
-            # the wavefunction basis
-            noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]], noisy_identities_2q[targets[0]])
-        kraus_maps.append(
-            KrausModel(
-                g.name,
-                tuple(g.params),
-                targets,
-                combine_kraus_maps(noisy_I, [matrix]),
-                # FIXME (Nik): compute actual avg gate fidelity for this simple
-                # noise model
-                1.0,
+        :return: A Plotly Figure.
+        """
+        fig = qx.plot(self.process)
+        fig.update_layout(
+            title=(
+                f"Quantum Instrument MEASURE {self.qubits[0]}<br>"
+                f"<sub>Cls: {100 * self.classification_fidelity:.2f}%, "
+                f"QND: {100 * self.non_demolition_fidelity:.2f}%, "
+                f"Instrument: {100 * self.instrument_fidelity:.2f}%</sub>"
             )
         )
-    aprobs = {}
-    for q, f_ro in ro_fidelity.items():
-        aprobs[q] = np.array([[f_ro, 1.0 - f_ro], [1.0 - f_ro, f_ro]])
+        return fig
 
-    return NoiseModel(kraus_maps, aprobs)
+    # ──────────────────────────────────────────────
+    # Serialization
+    # ──────────────────────────────────────────────
 
+    def to_json(self) -> str:
+        """
+        Serialize MeasurementChannel to a JSON string.
 
-def decoherence_noise_with_asymmetric_ro(isa: CompilerISA, p00: float = 0.975, p11: float = 0.911) -> NoiseModel:
-    """Similar to :py:func:`_decoherence_noise_model`, but with asymmetric readout.
+        :return: JSON string representation.
+        """
+        # Store per-outcome Choi matrices
+        instrument_data = []
+        for i in range(self.process.num_outcomes):
+            choi_i, _ = self.process.outcome_choi(i)
+            choi_array = np.asarray(choi_i.matrix)
+            flat = [[float(val.real), float(val.imag)] for val in choi_array.flat]
+            instrument_data.append({"_complex_array": flat, "shape": list(choi_array.shape)})
 
-    For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
-    the specification of readout fidelities.
-    """
-    gates = _get_qvm_noise_supported_gates(isa)
-    noise_model = _decoherence_noise_model(gates)
-    aprobs = np.array([[p00, 1 - p00], [1 - p11, p11]])
-    aprobs = {q: aprobs for q in noise_model.assignment_probs.keys()}
-    return NoiseModel(noise_model.gates, aprobs)
+        data = {
+            "inst": self.inst.out(),
+            "instruments": instrument_data,
+            "measured_qudits": list(self.process.measured_qudits),
+        }
+        return json.dumps(data)
 
+    @classmethod
+    def from_json(cls: Type["MeasurementChannel"], json_str: str) -> "MeasurementChannel":
+        """
+        Deserialize a MeasurementChannel from a JSON string.
 
-def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
-    """Generate the header for a pyquil Program that uses ``noise_model`` to overload noisy gates.
+        :param json_str: JSON string as produced by :meth:`to_json`.
+        :return: MeasurementChannel instance.
+        """
+        data = json.loads(json_str)
+        inst = Program(data["inst"]).instructions[0]
+        assert isinstance(inst, Measurement)
+        measured_qudits = tuple(data["measured_qudits"])
 
-    The program header consists of 3 sections:
+        choi_list = []
+        for inst_data in data["instruments"]:
+            flat = inst_data["_complex_array"]
+            shape = tuple(inst_data["shape"])
+            arr = jnp.array([complex(pair[0], pair[1]) for pair in flat], dtype=complex).reshape(shape)
+            d = int(jnp.sqrt(shape[0]))
+            n_qubits = int(jnp.round(jnp.log2(d)))
+            choi_dims = ((2,) * n_qubits, (2,) * n_qubits)
+            choi_list.append(qx.Choi.from_matrix(arr, choi_dims))
 
-        - The ``DEFGATE`` statements that define the meaning of the newly introduced "noisy" gate
-          names.
-        - The ``PRAGMA ADD-KRAUS`` statements to overload these noisy gates on specific qubit
-          targets with their noisy implementation.
-        - THe ``PRAGMA READOUT-POVM`` statements that define the noisy readout per qubit.
+        instrument = qx.QuantumInstrument.from_choi(choi_list, measured_qudits)
+        return cls(inst=inst, process=instrument)
 
-    :param noise_model: The assumed noise model.
-    :return: A quil Program with the noise pragmas.
-    """
-    from pyquil.quil import Program
+    # ──────────────────────────────────────────────
+    # Dunder methods
+    # ──────────────────────────────────────────────
 
-    p = Program()
-    defgates: set[str] = set()
-    for k in noise_model.gates:
-        # obtain ideal gate matrix and new, noisy name by looking it up in the NOISY_GATES dict
-        try:
-            ideal_gate, new_name = get_noisy_gate(k.gate, tuple(k.params))
+    def __repr__(self) -> str:
+        """Return a simplified string representation."""
+        return f"<MEASURE({self.classification_fidelity:.2f}) {self.qubits[0]} ~ QND({100 * self.non_demolition_fidelity:.2f}%)>"
 
-            # if ideal version of gate has not yet been DEFGATE'd, do this
-            if new_name not in defgates:
-                p.defgate(new_name, ideal_gate)
-                defgates.add(new_name)
-        except NoisyGateUndefined:
-            print(
-                f"WARNING: Could not find ideal gate definition for gate {k.gate}",
-                file=sys.stderr,
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on instruction and operator."""
+        if not isinstance(other, MeasurementChannel):
+            return False
+        if self.inst != other.inst:
+            return False
+        return bool(jnp.allclose(self.process.matrix, other.process.matrix, atol=1e-9))
+
+    def __hash__(self) -> int:
+        """Hash based on the instruction."""
+        return hash(self.inst)
+
+    def __matmul__(self, other: "MeasurementChannel") -> "MeasurementChannel":
+        """
+        Compose two measurement channels on the same qubit.
+
+        Models sequential application: ``channel_B @ channel_A`` means
+        apply ``channel_A`` first, then ``channel_B``.
+        """
+        if not isinstance(other, MeasurementChannel):
+            return NotImplemented
+        if self.inst != other.inst:
+            raise ValueError(
+                f"Cannot compose measurement channels for different qubits: {self.inst.out()} vs {other.inst.out()}"
             )
-            new_name = k.gate
+        composed = self.process @ other.process
+        return replace(self, process=composed)
 
-        # define noisy version of gate on specific targets
-        p.define_noisy_gate(new_name, k.targets, k.kraus_ops)
+    def __or__(self, other: "Channel | MeasurementChannel") -> "CycleChannel":
+        """
+        Tensor product of two channels on disjoint qubits, producing a CycleChannel.
 
-    # define noisy readouts
-    for q, ap in noise_model.assignment_probs.items():
-        p.define_noisy_readout(q, p00=ap[0, 0], p11=ap[1, 1])
-    return p
+        :param other: Another Channel or MeasurementChannel on disjoint qubits.
+        :return: A CycleChannel representing the tensor product.
+        """
+        if not isinstance(other, (Channel, MeasurementChannel)):
+            return NotImplemented
+
+        self_qubits = set(self.qubits)
+        other_qubits = set(other.qubits)
+        if self_qubits & other_qubits:
+            raise ValueError(f"Cannot tensor channels with overlapping qubits: {self_qubits & other_qubits}")
+
+        return _build_cycle_channel([self, other])
 
 
-def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
-    """Apply a noise model to a program and generated a 'noisy-fied' version of the program.
-
-    :param prog: A Quil Program object.
-    :param noise_model: A NoiseModel, either generated from an ISA or
-        from a simple decoherence model.
-    :return: A new program translated to a noisy gateset and with noisy readout as described by the
-        noisemodel.
+@dataclass(frozen=True)
+class ResetChannel:
     """
-    new_prog = _noise_model_program_header(noise_model)
-    for i in prog:
-        if isinstance(i, Gate) and noise_model.gates:
-            try:
-                _, new_name = get_noisy_gate(i.name, tuple(i.params))
-                new_prog += Gate(new_name, [], i.qubits)
-            except NoisyGateUndefined:
-                new_prog += i
-        else:
-            new_prog += i
-    return prog.copy_everything_except_instructions() + new_prog
+    A reset noise channel attaches a superoperator to a specific reset operation.
 
-
-def add_decoherence_noise(
-    prog: "Program",
-    T1: Union[dict[int, float], float] = 30e-6,
-    T2: Union[dict[int, float], float] = 30e-6,
-    gate_time_1q: float = 50e-9,
-    gate_time_2q: float = 150e-09,
-    ro_fidelity: Union[dict[int, float], float] = 0.95,
-) -> "Program":
-    """Add generic damping and dephasing noise to a program.
-
-    This high-level function is provided as a convenience to investigate the effects of a
-    generic noise model on a program. For more fine-grained control, please investigate
-    the other methods available in the ``pyquil.noise`` module.
-
-    In an attempt to closely model the QPU, noisy versions of RX(+-pi/2) and CZ are provided;
-    I and parametric RZ are noiseless, and other gates are not allowed. To use this function,
-    you need to compile your program to this native gate set.
-
-    The default noise parameters
-
-    - T1 = 30 us
-    - T2 = 30 us
-    - 1q gate time = 50 ns
-    - 2q gate time = 150 ns
-
-    are currently typical for near-term devices.
-
-    This function will define new gates and add Kraus noise to these gates. It will translate
-    the input program to use the noisy version of the gates.
-
-    :param prog: A pyquil program consisting of I, RZ, CZ, and RX(+-pi/2) instructions
-    :param T1: The T1 amplitude damping time either globally or in a
-        dictionary indexed by qubit id. By default, this is 30 us.
-    :param T2: The T2 dephasing time either globally or in a
-        dictionary indexed by qubit id. By default, this is also 30 us.
-    :param gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
-        By default, this is 50 ns.
-    :param gate_time_2q: The duration of the two-qubit gates, namely CZ.
-        By default, this is 150 ns.
-    :param ro_fidelity: The readout assignment fidelity
-        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
-    :return: A new program with noisy operators.
+    The ``process`` field is a ``qx.SuperOp`` which *includes* the ideal reset, so the channel
+    replaces the reset instruction rather than being applied after it.
     """
-    gates = _get_program_gates(prog)
-    noise_model = _decoherence_noise_model(
-        gates,
-        T1=T1,
-        T2=T2,
-        gate_time_1q=gate_time_1q,
-        gate_time_2q=gate_time_2q,
-        ro_fidelity=ro_fidelity,
+
+    inst: Reset
+    """The reset operation to which the channel applies."""
+
+    process: qx.SuperOp
+    """A superoperator representation of the noisy reset (including ideal reset)."""
+
+    # ──────────────────────────────────────────────
+    # Constructors
+    # ──────────────────────────────────────────────
+
+    @classmethod
+    def from_reset_fidelity(
+        cls: Type["ResetChannel"],
+        inst: Reset,
+        fidelity: float,
+        dim: int = 2,
+    ) -> "ResetChannel":
+        """
+        Create a ResetChannel with depolarizing noise scaled to the given process fidelity.
+
+        The ideal reset channel maps every state to :math:`|0\\rangle\\langle 0|`.  Noise is
+        modelled as a depolarising channel applied after the ideal reset.
+
+        :param inst: The reset instruction.
+        :param fidelity: Process fidelity of the reset channel, :math:`F \\in [0, 1]`.
+            1.0 yields an ideal reset; values below 1 introduce depolarising noise.
+        :param dim: Hilbert-space dimension (2 for qubits).
+        :return: A ResetChannel instance.
+        """
+        ideal_choi = cls._ideal_reset_choi(dim)
+        p = 1.0 - fidelity
+        d2 = dim * dim
+        noisy_choi_matrix = (1.0 - p) * ideal_choi.matrix + p * jnp.eye(d2) / dim
+        noisy_choi = qx.Choi.from_matrix(noisy_choi_matrix, ideal_choi.dims)
+        return cls(inst=inst, process=qx.to_superop(noisy_choi))
+
+    @classmethod
+    def _ideal_reset_choi(cls, dim: int = 2) -> qx.Choi:
+        """Return the Choi matrix of the ideal reset channel mapping every state to |0><0|."""
+        # Kraus operators for ideal reset: K_j = |0><j| for j in {0, ..., dim-1}
+        kraus_list = []
+        for j in range(dim):
+            k = jnp.zeros((dim, dim), dtype=complex)
+            k = k.at[0, j].set(1.0)
+            kraus_list.append(k)
+        choi_matrix = sum(
+            (jnp.kron(k, k.conj()) for k in kraus_list),
+            jnp.zeros((dim * dim, dim * dim), dtype=complex),
+        )
+        dims = ((dim,), (dim,))
+        return qx.Choi.from_matrix(choi_matrix, dims)
+
+    # ──────────────────────────────────────────────
+    # Properties
+    # ──────────────────────────────────────────────
+
+    @cached_property
+    def qubits(self) -> List[int]:
+        """The qubit(s) that the reset applies to."""
+        qubit = self.inst.qubit
+        if qubit is None:
+            return []
+        return [qubit.index if hasattr(qubit, "index") else int(qubit)]  # type: ignore[union-attr,arg-type]
+
+    @cached_property
+    def fidelity(self) -> float:
+        """Process fidelity of the reset channel relative to the ideal reset.
+
+        Defined as :math:`F = \\mathrm{Tr}[\\Lambda_{\\mathrm{ideal}}^\\dagger \\Lambda] / d^2`
+        where :math:`\\Lambda` is the Choi matrix of the noisy channel and
+        :math:`\\Lambda_{\\mathrm{ideal}}` is the ideal-reset Choi.
+        """
+        dim = self.process.dims[0][0]
+        ideal_choi = self._ideal_reset_choi(dim)
+        noisy_choi = qx.to_choi(self.process)
+        # Process fidelity = Tr[ideal_choi† @ noisy_choi] / d^2
+        d2 = float(dim * dim)
+        return float(jnp.real(jnp.trace(ideal_choi.matrix.conj().T @ noisy_choi.matrix)) / d2)
+
+    @cached_property
+    def noise_process(self) -> qx.SuperOp:
+        """The noise-only channel (ideal reset factored out).
+
+        For a reset channel the noise framing is less natural than for unitary gates;
+        this property returns the full process superoperator.
+        """
+        return self.process
+
+    # ──────────────────────────────────────────────
+    # Visualization
+    # ──────────────────────────────────────────────
+
+    def plot(self) -> Figure:
+        """
+        Plot the Pauli transfer matrix of the reset channel.
+
+        :return: A Plotly Figure.
+        """
+        fig = qx.plot(self.process)
+        qubit_str = str(self.qubits[0]) if self.qubits else "?"
+        fig.update_layout(title=(f"Reset Channel RESET {qubit_str}<br><sub>F_\u03c7={self.fidelity * 100:.2f}%</sub>"))
+        return fig
+
+    # ──────────────────────────────────────────────
+    # Serialization
+    # ──────────────────────────────────────────────
+
+    def to_json(self) -> str:
+        """
+        Serialize ResetChannel to a JSON string.
+
+        :return: JSON string representation.
+        """
+        superop_array = np.asarray(self.process.matrix)
+        flat = [[float(v.real), float(v.imag)] for v in superop_array.flat]
+        data = {
+            "inst": self.inst.out(),
+            "superop": {"_complex_array": flat, "shape": list(superop_array.shape)},
+        }
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls: Type["ResetChannel"], json_str: str) -> "ResetChannel":
+        """
+        Deserialize a ResetChannel from a JSON string.
+
+        :param json_str: JSON string as produced by :meth:`to_json`.
+        :return: ResetChannel instance.
+        """
+        data = json.loads(json_str)
+        inst = Program(data["inst"]).instructions[0]
+        assert isinstance(inst, Reset)
+        superop_data = data["superop"]
+        flat = superop_data["_complex_array"]
+        shape = tuple(superop_data["shape"])
+        arr = jnp.array([complex(pair[0], pair[1]) for pair in flat], dtype=complex).reshape(shape)
+        d = int(jnp.sqrt(shape[0]))
+        num_qubits = int(jnp.round(jnp.log2(d)))
+        dims = ((2,) * num_qubits, (2,) * num_qubits)
+        process = qx.SuperOp.from_matrix(arr, dims)
+        return cls(inst=inst, process=process)
+
+    # ──────────────────────────────────────────────
+    # Dunder methods
+    # ──────────────────────────────────────────────
+
+    def __repr__(self) -> str:
+        """Return a simplified string representation."""
+        qubit_str = str(self.qubits[0]) if self.qubits else "?"
+        return f"<RESET({self.fidelity:.2f}) {qubit_str}>"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on instruction and process matrix."""
+        if not isinstance(other, ResetChannel):
+            return False
+        if self.inst != other.inst:
+            return False
+        return bool(jnp.allclose(self.process.matrix, other.process.matrix, atol=1e-9))
+
+    def __hash__(self) -> int:
+        """Hash based on the instruction."""
+        return hash(self.inst)
+
+
+@dataclass(frozen=True)
+class CycleChannel:
+    """
+    A cycle noise channel attaches superoperators to a specific cycle.
+
+    Cycles can include gates and measurements. The constituent channels are stored
+    directly, allowing fidelity metrics and serialization to be derived from them.
+    """
+
+    inst: Gate
+    """The cycle to which the channel applies."""
+
+    defcircuit: DefCircuit
+    """The DefCircuit representing the logical cycle to which instruction represents."""
+
+    channels: Tuple["Channel | MeasurementChannel", ...]
+    """Constituent channels (one per operation in the cycle) on disjoint qubits."""
+
+    # ──────────────────────────────────────────────
+    # Derived properties
+    # ──────────────────────────────────────────────
+
+    @cached_property
+    def operator(self) -> Tuple[qx.SuperOp | qx.QuantumInstrument, ...]:
+        """Tuple of process superoperators, one per constituent channel."""
+        return tuple(ch.process for ch in self.channels)
+
+    @cached_property
+    def qubits(self) -> List[int]:
+        """All qubits in the cycle, derived from the instruction."""
+        return self.inst.get_qubit_indices()
+
+    @cached_property
+    def pauli_fidelity(self) -> float:
+        """Product of process (Pauli) fidelities over all gate channels in the cycle.
+
+        Measurement channels do not contribute a gate fidelity and are skipped.
+        For near-ideal noise the product approximation is exact since constituent
+        channels act on disjoint subsystems.
+        """
+        f = 1.0
+        for ch in self.channels:
+            if isinstance(ch, Channel):
+                f *= ch.pauli_fidelity
+        return f
+
+    @cached_property
+    def fidelity(self) -> float:
+        """Product of average gate fidelities over all gate channels in the cycle.
+
+        Measurement channels do not contribute a gate fidelity and are skipped.
+        """
+        f = 1.0
+        for ch in self.channels:
+            if isinstance(ch, Channel):
+                f *= ch.fidelity
+        return f
+
+    @cached_property
+    def infidelity(self) -> float:
+        """``1 - fidelity``."""
+        return 1.0 - self.fidelity
+
+    @cached_property
+    def pauli_infidelity(self) -> float:
+        """``1 - pauli_fidelity``."""
+        return 1.0 - self.pauli_fidelity
+
+    # ──────────────────────────────────────────────
+    # Serialization
+    # ──────────────────────────────────────────────
+
+    def to_json(self) -> str:
+        """
+        Serialize CycleChannel to a JSON string.
+
+        :return: JSON string representation.
+        """
+        ch_data = []
+        for ch in self.channels:
+            ch_data.append({"type": type(ch).__name__, "data": ch.to_json()})
+        data = {
+            "channels": ch_data,
+        }
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls: Type["CycleChannel"], json_str: str) -> "CycleChannel":
+        """
+        Deserialize a CycleChannel from a JSON string.
+
+        The ``inst`` and ``defcircuit`` fields are reconstructed from the constituent
+        channels, consistent with how :func:`_build_cycle_channel` builds them.
+
+        :param json_str: JSON string as produced by :meth:`to_json`.
+        :return: CycleChannel instance.
+        """
+        data = json.loads(json_str)
+        _type_map: Dict[str, Type["Channel | MeasurementChannel"]] = {
+            "Channel": Channel,
+            "MeasurementChannel": MeasurementChannel,
+        }
+        constituent_channels: List["Channel | MeasurementChannel"] = [
+            _type_map[ch_data["type"]].from_json(ch_data["data"])  # type: ignore[index]
+            for ch_data in data["channels"]
+        ]
+        return _build_cycle_channel(constituent_channels)
+
+    # ──────────────────────────────────────────────
+    # Dunder methods
+    # ──────────────────────────────────────────────
+
+    def __repr__(self) -> str:
+        """Return a simplified string representation showing the gate and process fidelity."""
+        return f"<{self.inst.out()} ~ ({100 * self.pauli_fidelity:.2f}%)>"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on instruction and constituent channels."""
+        if not isinstance(other, CycleChannel):
+            return False
+        if self.inst != other.inst:
+            return False
+        return self.channels == other.channels
+
+    def __hash__(self) -> int:
+        """Hash based on the instruction."""
+        return hash(self.inst)
+
+
+@dataclass(frozen=True)
+class NoiseModel:
+    """
+    A noise model collects all the noise channels for a given quantum program.
+
+    This includes gate channels, measurement channels, reset channels, and cycle channels.
+    """
+
+    channels: FrozenSet[Channel | MeasurementChannel | ResetChannel | CycleChannel]
+    """Immutable set of all noise channels in the model."""
+
+    @cached_property
+    def _channel_map(self) -> Dict:
+        """Map from instruction to channel for fast lookup."""
+        return {ch.inst: ch for ch in self.channels}
+
+    @overload
+    def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...
+
+    @overload
+    def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
+
+    @overload
+    def get_channel(self, inst: ResetQubit) -> ResetChannel | None: ...
+
+    def get_channel(
+        self, inst: Gate | Measurement | ResetQubit
+    ) -> Channel | MeasurementChannel | ResetChannel | CycleChannel | None:
+        """
+        Retrieve the noise channel associated with a specific instruction.
+
+        :param inst: The instruction (gate, measurement, or reset) for which to retrieve the noise channel.
+        :return: The noise channel associated with the instruction, or None if no channel is found.
+        """
+        return self._channel_map.get(inst)
+
+    # ──────────────────────────────────────────────
+    # Constructors
+    # ──────────────────────────────────────────────
+
+    @classmethod
+    def from_isa(cls: Type["NoiseModel"], compiler_isa: "CompilerISA") -> "NoiseModel":
+        """
+        Create a noise model from an instruction set architecture.
+
+        Gate fidelities are converted to depolarizing channels and measurement
+        errors are symmetric. Only gates with concrete numeric parameters are
+        included.
+
+        :param compiler_isa: The compiler ISA.
+        :return: A NoiseModel with channels according to the provided fidelities.
+        """
+        from pyquil.external.rpcq import GateInfo, MeasureInfo
+        from pyquil.quilatom import Qubit as QuilQubit
+
+        channels: set[Channel | MeasurementChannel | ResetChannel | CycleChannel] = set()
+        seen_measure_qubits: set[int] = set()
+
+        for qubit_label, qubit in compiler_isa.qubits.items():
+            for op_info in qubit.gates:
+                if isinstance(op_info, GateInfo):
+                    qubits = [int(qubit_label)]
+                    gate_name = op_info.operator
+                    fidelity = op_info.fidelity
+                    params = op_info.parameters
+
+                    if gate_name is None:
+                        continue
+                    # Skip gates with non-numeric parameters
+                    if not all(isinstance(p, (float, int, complex)) for p in params):
+                        continue
+
+                    numeric_params: List[float] = [float(p) for p in params if isinstance(p, (float, int, complex))]
+                    inst = Gate(name=gate_name, params=numeric_params, qubits=qubits)
+                    if fidelity is not None and fidelity < 1.0:
+                        channels.add(Channel.from_gate_fidelity(inst=inst, fidelity=fidelity))
+
+                elif isinstance(op_info, MeasureInfo):
+                    if op_info.qubit is None:
+                        continue
+                    # Use qubit_label from the enclosing section when qubit is a wildcard
+                    qubit_str = op_info.qubit if op_info.qubit != '_' else qubit_label
+                    try:
+                        qubit_idx = int(qubit_str)
+                    except (ValueError, TypeError):
+                        continue
+                    fidelity = op_info.fidelity
+                    if qubit_idx in seen_measure_qubits:
+                        continue
+                    seen_measure_qubits.add(qubit_idx)
+                    if fidelity is None:
+                        continue
+                    m_inst = Measurement(qubit=QuilQubit(qubit_idx), classical_reg=None)
+                    channels.add(MeasurementChannel.from_readout_fidelity(inst=m_inst, fidelity=fidelity))
+
+        for edge_label, edge in compiler_isa.edges.items():
+            for op_info in edge.gates:
+                if isinstance(op_info, GateInfo):
+                    qubits = [int(q) for q in edge_label.split("-")]
+                    gate_name = op_info.operator
+                    fidelity = op_info.fidelity
+                    params = op_info.parameters
+
+                    if gate_name is None:
+                        continue
+                    if not all(isinstance(p, (float, int, complex)) for p in params):
+                        continue
+
+                    numeric_params = [float(p) for p in params if isinstance(p, (float, int, complex))]
+                    inst = Gate(name=gate_name, params=numeric_params, qubits=qubits)
+                    if fidelity is not None and fidelity < 1.0:
+                        channels.add(Channel.from_gate_fidelity(inst=inst, fidelity=fidelity))
+
+        return cls(channels=frozenset(channels))
+
+    # ──────────────────────────────────────────────
+    # Serialization
+    # ──────────────────────────────────────────────
+
+    def to_json(self) -> str:
+        """
+        Serialize NoiseModel to a JSON string.
+
+        :return: JSON string representation.
+        """
+        channel_data = []
+        for ch in self.channels:
+            if isinstance(ch, (Channel, MeasurementChannel, ResetChannel, CycleChannel)):
+                channel_data.append({"type": type(ch).__name__, "data": ch.to_json()})
+            else:
+                logger.warning(f"Skipping serialization of {type(ch).__name__} (not yet supported).")
+        return json.dumps({"channels": channel_data})
+
+    @classmethod
+    def from_json(cls: Type["NoiseModel"], json_str: str) -> "NoiseModel":
+        """
+        Deserialize a NoiseModel from a JSON string.
+
+        :param json_str: JSON string as produced by :meth:`to_json`.
+        :return: NoiseModel instance.
+        """
+        data = json.loads(json_str)
+        _type_map = {
+            "Channel": Channel,
+            "MeasurementChannel": MeasurementChannel,
+            "ResetChannel": ResetChannel,
+            "CycleChannel": CycleChannel,
+        }
+        channels: set[Channel | MeasurementChannel | ResetChannel | CycleChannel] = set()
+        for ch_data in data["channels"]:
+            ch_cls = _type_map.get(ch_data["type"])
+            if ch_cls is None:
+                raise ValueError(f"Unknown channel type: {ch_data['type']}")
+            channels.add(ch_cls.from_json(ch_data["data"]))
+        return cls(channels=frozenset(channels))
+
+    # ──────────────────────────────────────────────
+    # Dunder methods
+    # ──────────────────────────────────────────────
+
+    def __eq__(self, other: object) -> bool:
+        """Check if two NoiseModels contain equivalent channels."""
+        if not isinstance(other, NoiseModel):
+            return False
+        return self.channels == other.channels
+
+    def __hash__(self) -> int:
+        """Hash based on the frozen channel set."""
+        return hash(self.channels)
+
+    def __add__(self, other: "NoiseModel") -> "NoiseModel":
+        """
+        Combine two NoiseModels.
+
+        For channels with matching instructions, compose them (``channel_A @ channel_B``).
+        For non-overlapping channels, include both.
+        """
+        if not isinstance(other, NoiseModel):
+            return NotImplemented
+
+        my_channels = {ch.inst: ch for ch in self.channels}
+        other_channels = {ch.inst: ch for ch in other.channels}
+
+        combined: set[Channel | MeasurementChannel | ResetChannel | CycleChannel] = set()
+        all_insts = set(my_channels) | set(other_channels)
+        for inst in all_insts:
+            mine = my_channels.get(inst)
+            theirs = other_channels.get(inst)
+            if mine is not None and theirs is not None:
+                # Both have a channel for this instruction — compose them
+                # (only same-type composition is defined)
+                composed = mine @ theirs  # type: ignore[operator]
+                combined.add(composed)  # type: ignore[arg-type]
+            elif mine is not None:
+                combined.add(mine)
+            elif theirs is not None:
+                combined.add(theirs)
+
+        return NoiseModel(channels=frozenset(combined))
+
+
+def _channel_to_formal_inst(channel: Channel | MeasurementChannel) -> Gate | Measurement:
+    """Convert a channel's instruction to use formal arguments for DefCircuit."""
+    if isinstance(channel, Channel):
+        inst = channel.inst
+        return Gate(
+            name=inst.name,
+            params=inst.params,
+            qubits=[FormalArgument(f"q{q}") for q in inst.get_qubit_indices()],
+            modifiers=inst.modifiers,  # type: ignore[arg-type]
+        )
+    elif isinstance(channel, MeasurementChannel):
+        qubit_idx = channel.qubits[0]
+        return Measurement(
+            qubit=FormalArgument(f"q{qubit_idx}"),
+            classical_reg=None,
+        )
+    raise TypeError(f"Unsupported channel type: {type(channel)}")
+
+
+def _build_cycle_channel(
+    channels: List["Channel | MeasurementChannel"],
+) -> "CycleChannel":
+    """Build a CycleChannel from a list of Channel/MeasurementChannel on disjoint qubits."""
+    all_qubits = sorted(q for ch in channels for q in ch.qubits)
+    cycle_name = "CYCLE"
+    formal_insts = [_channel_to_formal_inst(ch) for ch in channels]
+
+    defcircuit = DefCircuit(
+        name=cycle_name,
+        parameters=[],
+        qubits=[FormalArgument(f"q{q}") for q in all_qubits],
+        instructions=list(formal_insts),  # type: ignore[arg-type]
     )
-    return apply_noise_model(prog, noise_model)
+    inst = Gate(name=cycle_name, params=[], qubits=all_qubits)
+    return CycleChannel(inst=inst, defcircuit=defcircuit, channels=tuple(channels))
 
 
-def _bitstring_probs_by_qubit(p: np.ndarray) -> np.ndarray:
-    """Ensure array p has a separate axis for each qubit so ``p[i,j,...,k]`` gives the probability of bitstring ``ij...k``.
-
-    This should not allocate much memory if ``p`` is already in ``C``-contiguous order (row-major).
-
-    :param p: An array that enumerates bitstring probabilities. When flattened out
-        ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must therefore be a
-        power of 2.
-    :return: A reshaped view of ``p`` with a separate length-2 axis for each bit.
+def _resolve_params(params: list) -> List[float]:
     """
-    p = np.asarray(p, order="C")
-    num_qubits = int(round(np.log2(p.size)))
-    return p.reshape((2,) * num_qubits)
+    Resolve gate parameters to concrete float values.
 
-
-def estimate_bitstring_probs(results: np.ndarray) -> np.ndarray:
-    """Given an array of single shot results estimate the probability distribution over all bitstrings.
-
-    :param results: A 2d array where the outer axis iterates over shots
-        and the inner axis over bits.
-    :return: An array with as many axes as there are qubit and normalized such that it sums to one.
-        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :param params: The gate parameters (may include symbolic Parameters or Expressions).
+    :return: A list of concrete float values.
+    :raises ValueError: If any parameter is symbolic and cannot be evaluated to a number.
     """
-    nshots, nq = np.shape(results)
-    outcomes = np.array([int("".join(map(str, r)), 2) for r in results])
-    probs = np.histogram(outcomes, bins=np.arange(-0.5, 2**nq, 1))[0] / float(nshots)
-    return _bitstring_probs_by_qubit(probs)
+    fixed_params = []
+    for p in params:
+        if isinstance(p, (Parameter, Expression)):
+            evaluated = p._evaluate()
+            if isinstance(evaluated, (Parameter, Expression)):
+                raise ValueError(
+                    f"Cannot resolve symbolic parameter {p}. Provide a gate with concrete numeric parameters."
+                )
+            fixed_params.append(float(evaluated))
+        elif isinstance(p, QuilExpression):
+            result = p.evaluate({}, {})
+            fixed_params.append(float(result.to_number()) if hasattr(result, "to_number") else float(result))  # type: ignore[arg-type]
+        else:
+            fixed_params.append(float(p.real))
+    return fixed_params
 
 
-_CHARS = "klmnopqrstuvwxyzabcdefgh0123456789"
-
-
-def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarray:
-    """Apply local 2x2 matrices to each index in a 2D array of single shot results using assignment probability matrices.
-
-    Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
-    and a list of assignment probability matrices (one for each bit in the readout, ordered like
-    the inner axis of results) apply local 2x2 matrices to each bit index.
-
-    :param p: An array that enumerates a function indexed by
-        bitstrings::
-
-            f(ijk...) = p[i,j,k,...]
-
-    :param ts: A sequence of 2x2 transform-matrices, one for each bit.
-    :return: ``p_transformed`` an array with as many dimensions as there are bits with the result of
-        contracting p along each axis by the corresponding bit transformation::
-
-            p_transformed[ijk...] = f'(ijk...) = sum_lmn... ts[0][il] ts[1][jm] ts[2][kn] f(lmn...)
+def get_custom_gates_from_program(program: Program) -> CustomGateMap:
     """
-    p_corrected = _bitstring_probs_by_qubit(p)
-    nq = p_corrected.ndim
-    for idx, trafo_idx in enumerate(ts):
-        # this contraction pattern looks like
-        # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
-        # transformation to a single tensor-index without changing the order of
-        # indices
-        einsum_pat = (
-            "ij," + _CHARS[:idx] + "j" + _CHARS[idx : nq - 1] + "->" + _CHARS[:idx] + "i" + _CHARS[idx : nq - 1]
-        )
-        p_corrected = np.einsum(einsum_pat, trafo_idx, p_corrected)
+    Extract custom gate definitions from a Quil program.
 
-    return p_corrected
+    Returns a dictionary mapping gate names to unitary matrices (for fixed gates) or callables
+    (for parametric gates). Does not include the standard gate set — use this to augment
+    the standard ``qx.gates.QUANTUM_GATES`` when resolving instructions with custom gates.
 
-
-def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.ndarray]) -> np.ndarray:
-    """Given a 2D array of bitstring probabilities and assignment matrices, compute the corrupted probabilities.
-
-    Given a 2d array of true bitstring probabilities (outer axis iterates over shots, inner axis
-    over bits) and a list of assignment probability matrices (one for each bit in the readout,
-    ordered like the inner axis of results) compute the corrupted probabilities.
-
-    :param p: An array that enumerates bitstring probabilities. When
-        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
-        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
-        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
-    :param assignment_probabilities: A list of assignment probability matrices
-        per qubit. Each assignment probability matrix is expected to be of the form::
-
-            [[p00 p01]
-             [p10 p11]]
-
-    :return: ``p_corrected`` an array with as many dimensions as there are qubits that contains
-        the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
-        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :param program: A Quil program containing DefGate definitions.
+    :return: A dictionary of custom gate names to unitary matrices or callables.
     """
-    return _apply_local_transforms(p, assignment_probabilities)
+    custom_gates: CustomGateMap = {}
+    for defgate in program.defined_gates:
+        if defgate.parameters:
+
+            def parametric_gate(*args: float, defgate: DefGate = defgate) -> qx.Unitary:
+                parameter_map = {Parameter(p.name): arg for p, arg in zip(defgate.parameters, args)}
+                matrix = jnp.asarray(
+                    [[substitute(element, parameter_map) for element in row] for row in defgate.matrix],  # type: ignore[arg-type]
+                    dtype=complex,
+                )
+                num_qubits = int(jnp.round(jnp.log2(matrix.shape[0])))
+                return qx.Unitary.from_matrix(matrix, ((2,) * num_qubits, (2,) * num_qubits))
+
+            custom_gates[defgate.name] = parametric_gate
+        else:
+            matrix = jnp.asarray(defgate.matrix, dtype=complex)
+            num_qubits = int(jnp.round(jnp.log2(matrix.shape[0])))
+            custom_gates[defgate.name] = qx.Unitary.from_matrix(matrix, ((2,) * num_qubits, (2,) * num_qubits))
+    return custom_gates
 
 
-def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.ndarray]) -> np.ndarray:
-    """Given a 2D array of corrupted bitstring probabilities and assignment matrices, compute the corrected probabilities.
-
-    Given a 2d array of corrupted bitstring probabilities (outer axis iterates over shots, inner
-    axis over bits) and a list of assignment probability matrices (one for each bit in the readout)
-    compute the corrected probabilities.
-
-    :param p: An array that enumerates bitstring probabilities. When
-        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
-        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
-        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
-    :param assignment_probabilities: A list of assignment probability matrices
-        per qubit. Each assignment probability matrix is expected to be of the form::
-
-            [[p00 p01]
-             [p10 p11]]
-
-    :return: ``p_corrected`` an array with as many dimensions as there are qubits that contains
-        the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
-        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+def get_instruction_unitary(
+    inst: Gate,
+    custom_gates: Optional[CustomGateMap] = None,
+) -> qx.Unitary:
     """
-    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))
+    Get the unitary matrix associated with a gate instruction.
 
+    Looks up the gate by name — first in ``custom_gates`` (if provided), then in the
+    standard quax gate table ``qx.gates.QUANTUM_GATES``. Parametric gates are supported
+    provided all parameters are concrete numeric values.
 
-def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:
-    """Convert between bitstring probabilities and joint Z moment expectations.
-
-    :param p: An array that enumerates bitstring probabilities. When
-        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
-        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
-        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
-    :return: ``z_moments``, an np.array with one length-2 axis per qubit which contains the
-        expectations of all monomials in ``{I, Z_0, Z_1, ..., Z_{n-1}}``. The expectations of each
-        monomial can be accessed via::
-
-            <Z_0^j_0 Z_1^j_1 ... Z_m^j_m> = z_moments[j_0,j_1,...,j_m]
+    :param inst: The gate instruction.
+    :param custom_gates: Optional dictionary of additional gate definitions (e.g. from
+        :func:`get_custom_gates_from_program`). Takes precedence over the standard gate set.
+    :return: The unitary matrix.
+    :raises ValueError: If any gate parameter is symbolic.
+    :raises KeyError: If the gate name is not found in either the custom or standard gate set.
     """
-    zmat = np.array([[1, 1], [1, -1]])
-    return _apply_local_transforms(p, (zmat for _ in range(p.ndim)))
+    name = inst.name
+
+    # Look up gate definition: custom gates take precedence
+    if custom_gates is not None and name in custom_gates:
+        gate_def = custom_gates[name]
+    elif name in qx.gates.QUANTUM_GATES:
+        gate_def = qx.gates.QUANTUM_GATES[name]
+    else:
+        raise KeyError(f"Unknown gate '{name}'. Provide it via custom_gates (e.g. custom_gates={{'{name}': matrix}}).")
+
+    if inst.params:
+        fixed_params = _resolve_params(list(inst.params))
+        if not callable(gate_def):
+            raise ValueError(f"Gate '{name}' is not parametric but parameters were provided.")
+        result = gate_def(*fixed_params)
+    else:
+        if callable(gate_def):
+            result = gate_def()
+        else:
+            result = gate_def
+
+    # quax parametric gates may return Operator instead of Unitary; wrap if needed
+    if not isinstance(result, qx.Unitary):
+        result = qx.Unitary.from_matrix(result.matrix, result.dims)  # type: ignore[union-attr]
+    return result
 
 
-def estimate_assignment_probs(
-    q: int,
-    trials: int,
-    qc: "PyquilApiQuantumComputer",
-    p0: Optional["Program"] = None,
-) -> np.ndarray:
-    """Estimate the readout assignment probabilities for a given qubit ``q``.
+# ──────────────────────────────────────────────────────────
+# Program-level fidelity estimation
+# ──────────────────────────────────────────────────────────
 
-    The returned matrix is of the form::
 
-            [[p00 p01]
-             [p10 p11]]
-
-    :param q: The index of the qubit.
-    :param trials: The number of samples for each state preparation.
-    :param qc: The quantum computer to sample from.
-    :param p0: A header program to prepend to the state preparation programs. Will not be compiled by quilc, so it must
-           be native Quil.
-    :return: The assignment probability matrix
+def estimate_program_fidelity(program: Program, noise_model: NoiseModel) -> float:
     """
-    from pyquil.quil import Program
+    Estimate the program fidelity for a given noise model.
 
-    if p0 is None:  # pragma no coverage
-        p0 = Program()
+    Works by multiplying the gate process fidelities together. Readout noise
+    is not considered.
 
-    p_i = (
-        p0
-        + Program(
-            Declare("ro", "BIT", 1),
-            I(q),
-            MEASURE(q, MemoryReference("ro", 0)),
-        )
-    ).wrap_in_numshots_loop(trials)
-    results_i = np.sum(_run(qc, p_i))
+    :param program: The program of interest.
+    :param noise_model: A noise model.
+    :return: The estimated process fidelity.
+    """
+    gate_fidelities = [1.0]
+    for inst in program.instructions:
+        if isinstance(inst, Gate):
+            channel = noise_model.get_channel(inst)
+            if channel is not None and isinstance(channel, Channel):
+                gate_fidelities.append(channel.pauli_fidelity)
 
-    p_x = (
-        p0
-        + Program(
-            Declare("ro", "BIT", 1),
-            RX(np.pi, q),
-            MEASURE(q, MemoryReference("ro", 0)),
-        )
-    ).wrap_in_numshots_loop(trials)
-    results_x = np.sum(_run(qc, p_x))
+    return reduce(mul, gate_fidelities)
 
-    p00 = 1.0 - results_i / float(trials)
-    p11 = results_x / float(trials)
-    return np.array([[p00, 1 - p11], [1 - p00, p11]])
-
-
-def _run(qc: "PyquilApiQuantumComputer", program: "Program") -> list[list[int]]:
-    result = qc.run(qc.compiler.native_quil_to_executable(program))
-    bitstrings = result.readout_data.get("ro")
-    if bitstrings is None:
-        raise ValueError("No readout data found in result.")
-    return cast(list[list[int]], bitstrings.tolist())

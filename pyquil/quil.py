@@ -39,7 +39,6 @@ from quil.program import Program as RSProgram
 
 from pyquil.control_flow_graph import ControlFlowGraph
 from pyquil.gates import MEASURE, RESET
-from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     FormalArgument,
     Frame,
@@ -543,61 +542,6 @@ class Program:
         """
         return self.inst(DefGate(name, matrix, parameters))
 
-    def define_noisy_gate(self, name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[Any]) -> "Program":
-        """Overload a static ideal gate with a noisy one defined in terms of a Kraus map.
-
-        .. note::
-
-            The matrix elements along each axis are ordered by bitstring. For two qubits the order
-            is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
-            i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related docs in the WavefunctionSimulator Overview <basis_ordering>`.
-
-
-        :param name: The name of the gate.
-        :param qubit_indices: The qubits it acts on.
-        :param kraus_ops: The Kraus operators.
-        :return: The Program instance
-        """
-        kraus_ops = [np.asarray(k, dtype=np.complex128) for k in kraus_ops]
-        _check_kraus_ops(len(qubit_indices), kraus_ops)
-        return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
-
-    def define_noisy_readout(self, qubit: Union[int], p00: float, p11: float) -> "Program":
-        """For this program define a classical bit flip readout error channel parametrized by ``p00`` and ``p11``.
-
-        This models the effect of thermal noise that corrupts the readout signal **after** it has interrogated the
-        qubit.
-
-        :param qubit: The qubit with noisy readout.
-        :param p00: The probability of obtaining the measurement result 0 given that the qubit
-          is in state 0.
-        :param p11: The probability of obtaining the measurement result 1 given that the qubit
-          is in state 1.
-        :return: The Program with an appended READOUT-POVM Pragma.
-        """
-        if not 0.0 <= p00 <= 1.0:
-            raise ValueError("p00 must be in the interval [0,1].")
-        if not 0.0 <= p11 <= 1.0:
-            raise ValueError("p11 must be in the interval [0,1].")
-        if not (isinstance(qubit, int) or isinstance(qubit, QubitPlaceholder)):
-            raise TypeError("qubit must be a non-negative integer, or QubitPlaceholder.")
-        if isinstance(qubit, int) and qubit < 0:
-            raise ValueError("qubit cannot be negative.")
-        p00 = float(p00)
-        p11 = float(p11)
-        aprobs = [p00, 1.0 - p11, 1.0 - p00, p11]
-        aprobs_str = "({})".format(" ".join(format_parameter(p) for p in aprobs))
-        pragma = Pragma("READOUT-POVM", [qubit], aprobs_str)
-        return self.inst(pragma)
-
-    def no_noise(self) -> "Program":
-        """Prevent a noisy gate definition from being applied to the immediately following Gate instruction.
-
-        :return: Program
-        """
-        return self.inst(Pragma("NO-NOISE"))
-
     def measure(self, qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> "Program":
         """Measures a qubit at qubit_index and puts the result in classical_reg.
 
@@ -989,37 +933,6 @@ class Program:
     def get_all_instructions(self) -> list[AbstractInstruction]:
         """Get _all_ instructions that makeup the program."""
         return _convert_to_py_instructions(self._program.to_instructions())
-
-
-def merge_with_pauli_noise(
-    prog_list: Iterable[Program], probabilities: Sequence[float], qubits: Sequence[int]
-) -> Program:
-    """Insert pauli noise channels between each item in the list of programs.
-
-    This noise channel is implemented as a single noisy identity gate acting on the provided qubits.
-    This method does not rely on merge_programs and so avoids the inclusion of redundant Kraus
-    Pragmas that would occur if merge_programs was called directly on programs with distinct noisy
-    gate definitions.
-
-    :param prog_list: an iterable such as a program or a list of programs.
-        If a program is provided, a single noise gate will be applied after each gate in the
-        program. If a list of programs is provided, the noise gate will be applied after each
-        program.
-    :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli
-        channel. There should be either 4 or 16 probabilities specified in the order
-        I, X, Y, Z or II, IX, IY, IZ, XI, XX, XY, etc respectively.
-    :param qubits: a list of the qubits that the noisy gate should act on.
-    :return: A single program with noisy gates inserted between each element of the program list.
-    """
-    p = Program()
-    p.defgate("pauli_noise", np.eye(2 ** len(qubits)))
-    p.define_noisy_gate("pauli_noise", qubits, pauli_kraus_map(probabilities))
-    for elem in prog_list:
-        p.inst(Program(elem))
-        if isinstance(elem, Measurement):
-            continue  # do not apply noise after measurement
-        p.inst(("pauli_noise", *qubits))
-    return p
 
 
 def get_classical_addresses_from_program(program: Program) -> dict[str, list[int]]:

@@ -38,7 +38,6 @@ from pyquil.api._quantum_computer import (
     local_forest_runtime,
 )
 from pyquil.api._qvm import QVM
-from pyquil.api._wavefunction_simulator import WavefunctionSimulator
 from pyquil.quantum_processor import QCSQuantumProcessor
 
 __all__ = [
@@ -65,7 +64,6 @@ __all__ = [
     "list_quantum_computers",
     "local_forest_runtime",
     "QVM",
-    "WavefunctionSimulator",
     "QCSQuantumProcessor",
     "ExecutionOptionsBuilder",
 ]

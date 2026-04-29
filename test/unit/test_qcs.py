@@ -3,7 +3,6 @@ from typing import Any, Dict
 from qcs_sdk.qpu.isa import InstructionSetArchitecture
 
 from pyquil.external.rpcq import CompilerISA, make_edge_id
-from pyquil.noise import NoiseModel
 from pyquil.quantum_processor import QCSQuantumProcessor
 from pyquil.quantum_processor.transformers import qcs_isa_to_compiler_isa
 
@@ -25,15 +24,3 @@ def test_qcs_isa_to_compiler_isa(qcs_aspen8_isa: InstructionSetArchitecture, asp
         assert make_edge_id(edge.node_ids[0], edge.node_ids[1]) in compiler_isa.edges
 
     assert compiler_isa == aspen8_compiler_isa
-
-
-def test_qcs_noise_model(qcs_aspen8_isa: InstructionSetArchitecture, noise_model_dict: Dict[str, Any]):
-    """Test that ``NoiseModel.from_dict`` initializes a ``NoiseModel``, which users may, in turn,
-    pass to ``QCSQuantumProcessor`` for later initializing a noisy QVM.
-    """
-    noise_model = NoiseModel.from_dict(noise_model_dict)
-    device = QCSQuantumProcessor("Aspen-8", qcs_aspen8_isa, noise_model=noise_model)
-    assert device.quantum_processor_id == "Aspen-8"
-
-    assert isinstance(device.noise_model, NoiseModel)
-    assert device.noise_model == noise_model

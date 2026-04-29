@@ -18,13 +18,40 @@ from math import pi
 
 import numpy as np
 
+import quax as qx
+
 from pyquil.external.rpcq import CompilerISA, Edge, Qubit
-from pyquil.gates import CNOT, CZ, MEASURE, PHASE, RX, RZ, H
+from pyquil.gates import CNOT, CZ, MEASURE, PHASE, RX, RZ, H, X
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare, Halt
-from pyquil.simulation.tools import program_unitary
+
+
+def _program_unitary(program, n_qubits):
+    """Compute the unitary of a program by applying it to each basis state."""
+    from pyquil.simulation.state_vector import compute_program_state_vector
+
+    dim = 2**n_qubits
+    qubits = list(range(n_qubits))
+    cols = []
+    for i in range(dim):
+        prep = Program()
+        for k in range(n_qubits):
+            if (i >> (n_qubits - 1 - k)) & 1:
+                prep += X(k)
+        full_prog = prep + program
+        psi = compute_program_state_vector(full_prog, qubits=qubits)
+        cols.append(np.asarray(psi.data).flatten())
+    return np.column_stack(cols)
+
+
+def _unitary_equal(A, B):
+    """Check if two matrices are unitarily equal (up to global phase)."""
+    if A.shape != B.shape:
+        raise ValueError("Matrices must have the same shape")
+    dim = A.shape[0]
+    return np.allclose(np.abs(np.trace(A.T.conjugate() @ B) / dim), 1.0)
 
 EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
@@ -65,11 +92,9 @@ RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
 
 def test_quil_to_native_quil(compiler):
     response = compiler.quil_to_native_quil(BELL_STATE)
-    p_unitary = program_unitary(response, n_qubits=2)
-    compiled_p_unitary = program_unitary(COMPILED_BELL_STATE, n_qubits=2)
-    from pyquil.simulation.tools import scale_out_phase
-
-    assert np.allclose(p_unitary, scale_out_phase(compiled_p_unitary, p_unitary))
+    p_unitary = _program_unitary(response, n_qubits=2)
+    compiled_p_unitary = _program_unitary(COMPILED_BELL_STATE, n_qubits=2)
+    assert _unitary_equal(p_unitary, compiled_p_unitary)
 
 
 def test_local_rb_sequence(benchmarker, snapshot):
