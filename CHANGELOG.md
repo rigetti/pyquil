@@ -1,5 +1,61 @@
 # Changelog
 
+## 5.0.0 (2026-04-29)
+
+### Breaking Changes
+
+#### Remove `pyquil.experiment` module
+
+The `pyquil.experiment` package and all related functionality (`run_experiment()`,
+`run_symmetrized_readout()`, calibration helpers, symmetrization utilities) have been
+removed from `QuantumComputer`.
+
+#### Remove `pyquil.operator_estimation` module
+
+The `operator_estimation` module has been removed.
+
+#### Remove `pyquil.latex` module
+
+The `latex` module and LaTeX circuit rendering have been removed.
+
+#### Remove `pyquil.simulation.matrices` and `pyquil.simulation.tools`
+
+The `matrices` and `tools` submodules have been removed from `pyquil.simulation`.
+Use `quax.gates` for gate matrices and `pyquil.simulation.compute_program_state_vector()`
+or `pyquil.simulation.compute_program_density_matrix()` for program simulation.
+
+#### Rewrite `QVM` to use local density matrix simulation
+
+`QVM` no longer requires a running QVM server. It performs simulation locally using
+`quax`-backed density matrix evolution. The constructor signature has changed:
+
+- **Removed**: `client`, `gate_noise`, `measurement_noise`, `execution_timeout` parameters.
+- **Added**: `noise_model` (`NoiseModel | None`) and `random_seed` (`int | None`) parameters.
+
+#### Update `get_qc()` and QVM helper functions
+
+- `get_qc()` now accepts `noise_model` and `random_seed` keyword arguments.
+- The `qvm_client` parameter has been removed from `get_qc()` and all internal
+  QVM construction helpers.
+- When `noisy=True`, a `NoiseModel` is auto-generated from the processor ISA if
+  none is provided.
+
+#### Add `pyquil.transform`
+
+The `transform` module adds the `expand_defcircuits` and `unparameterize` functions.
+
+### Features
+
+#### Add `compute_program_state_vector()`
+
+New noiseless state-vector simulator in `pyquil.simulation.state_vector`. Computes
+the full state vector for a Quil program using `quax.targeted_apply_unitary`.
+
+#### Add `compute_program_density_matrix()`
+
+Density matrix simulator with noise model support, available via
+`pyquil.simulation.compute_program_density_matrix()`.
+
 ## 4.17.0 (2025-10-08)
 
 ### Features
