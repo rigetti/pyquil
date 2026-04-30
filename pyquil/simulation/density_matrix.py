@@ -26,18 +26,20 @@ in which every channel stores a ``qx.SuperOp`` (or ``qx.QuantumInstrument``) tha
 
 Key features:
 
-* No manual einsum string generation — ``qx.targeted_apply_superop`` handles
-  subsystem targeting internally.
-* Ensemble (batch) simulation via quax broadcasting — pass ``ensemble_size``
-  to compute the evolution of many initial states in parallel.
-* Superoperator-only code path — no Kraus decomposition needed.
+* Quax offers built-in methods for applying superoperators which handle
+  automatic promotion and conversion where necessary. We take advantage
+  of those.
+* Ensemble (batch) simulation via broadcasting. It's possible to run the
+  simulation on an ensemble of initial states.
+* Exclusively for simple programs without classical control flow. No support for
+  conditionals, loops, or dynamic circuits. Midcircuit measurements are permitted,
+  but only for effect - the outcomes are not recorded.
 """
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import List, Tuple, Dict
 
-import jax.numpy as jnp
 import quax as qx
 
 from pyquil.api import MemoryMap
@@ -56,54 +58,15 @@ from pyquil.transform import expand_defcircuits, unparameterize
 
 
 # ──────────────────────────────────────────────────────────
-# Ideal reset / measurement superoperators (cached singletons)
-# ──────────────────────────────────────────────────────────
-
-def _ideal_reset_superop(dim: int = 2) -> qx.SuperOp:
-    """Return the superoperator for an ideal reset to |0⟩.
-
-    Kraus operators: K_j = |0⟩⟨j| for j in {0, ..., dim-1}.
-    """
-    kraus_list = []
-    for j in range(dim):
-        k = jnp.zeros((dim, dim), dtype=complex)
-        k = k.at[0, j].set(1.0)
-        kraus_list.append(k)
-    choi_matrix = sum(
-        (jnp.kron(k, jnp.conj(k)) for k in kraus_list),
-        jnp.zeros((dim * dim, dim * dim), dtype=complex),
-    )
-    dims: Tuple[Tuple[int, ...], Tuple[int, ...]] = ((dim,), (dim,))
-    return qx.to_superop(qx.Choi.from_matrix(choi_matrix, dims))
-
-
-def _ideal_measurement_superop(dim: int = 2) -> qx.SuperOp:
-    """Return the superoperator that averages over measurement outcomes (decoherence).
-
-    This is the total channel of an ideal projective measurement: ρ ↦ Σ_j |j⟩⟨j| ρ |j⟩⟨j|,
-    which projects the state into the computational basis (removes off-diagonal elements).
-    """
-    choi_matrix = jnp.zeros((dim * dim, dim * dim), dtype=complex)
-    for j in range(dim):
-        proj = jnp.zeros((dim, dim), dtype=complex).at[j, j].set(1.0)
-        choi_matrix = choi_matrix + jnp.kron(proj, jnp.conj(proj))
-    dims: Tuple[Tuple[int, ...], Tuple[int, ...]] = ((dim,), (dim,))
-    return qx.to_superop(qx.Choi.from_matrix(choi_matrix, dims))
-
-
-_RESET_SUPEROP = _ideal_reset_superop(2)
-_MEASURE_SUPEROP = _ideal_measurement_superop(2)
-
-
-# ──────────────────────────────────────────────────────────
 # Program → list of (SuperOp, subsystem) operations
 # ──────────────────────────────────────────────────────────
+
 
 def _program_to_operations(
     program: Program,
     noise_model: NoiseModel | None,
-    qubit_indices: dict[int, int],
-    custom_gates: dict | None = None,
+    qubit_indices: Dict[int, int],
+    custom_gates: Dict | None = None,
 ) -> List[Tuple[qx.SuperOp, Tuple[int, ...]]]:
     """Walk program instructions and resolve each to a ``(SuperOp, subsystem)`` pair.
 
@@ -147,7 +110,7 @@ def _program_to_operations(
                     # Use the total CPTP channel (averaged over outcomes)
                     superop = qx.to_superop(meas_channel.process.total_channel())
                 else:
-                    superop = _MEASURE_SUPEROP
+                    superop = qx.gates.MEASURE().total_channel()
 
                 operations.append((superop, inst_qubits))
 
@@ -162,14 +125,14 @@ def _program_to_operations(
                 if reset_channel is not None and isinstance(reset_channel, ResetChannel):
                     superop = reset_channel.process
                 else:
-                    superop = _RESET_SUPEROP
+                    superop = qx.gates.RESET()
 
                 operations.append((superop, inst_qubits))
 
             case Reset():
                 # Global reset — apply to every qubit
                 for _, idx in sorted(qubit_indices.items()):
-                    operations.append((_RESET_SUPEROP, (idx,)))
+                    operations.append((qx.gates.RESET(), (idx,)))
 
             case _:
                 # Pragmas, declarations, etc. are ignored
@@ -182,6 +145,7 @@ def _program_to_operations(
 # Main entry point
 # ──────────────────────────────────────────────────────────
 
+
 def compute_program_density_matrix(
     program: Program,
     noise_model: NoiseModel | None = None,
@@ -191,8 +155,7 @@ def compute_program_density_matrix(
     """Compute the density matrix resulting from executing a Quil program.
 
     :param program: The Quil program to simulate.
-    :param noise_model: Optional noise model (new-style ``NoiseModel`` from
-        :mod:`pyquil.noise`).
+    :param noise_model: Optional noise model.
     :param qubits: Qubit ordering for the output density matrix. If ``None``,
         qubits are in sorted order.
     :param memory_map: Optional memory map for parameterised programs.

@@ -15,7 +15,7 @@
 """Unit tests for the quax-based density matrix simulator."""
 
 from functools import reduce
-
+from operator import or_
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -52,13 +52,13 @@ class matrices:
     def RZ(angle):
         return _mat(qx.gates.RZ(angle))
 
+
 jax.config.update("jax_enable_x64", True)
 
 
-def _pure_state_fidelity(rho, target_rho):
-    """Fidelity for pure target states: F = Tr(rho * |psi><psi|)."""
-    rho_np = np.asarray(rho.matrix)
-    return float(np.real(np.trace(rho_np @ target_rho)))
+def _to_unitary(op):
+    """Coerce an Operator (e.g. from RZ which uses scalar multiplication) back to a Unitary."""
+    return qx.Unitary.from_matrix(op.matrix, op.dims)
 
 
 def _mixed_state_fidelity(rho_np, target_np):
@@ -71,14 +71,6 @@ def _mixed_state_fidelity(rho_np, target_np):
     return float(np.real(np.sum(np.sqrt(eigvals))) ** 2)
 
 
-def _zero_state_matrix(n_qubits):
-    """Construct |0...0><0...0| as a numpy matrix."""
-    d = 2**n_qubits
-    rho = np.zeros((d, d), dtype=np.complex128)
-    rho[0, 0] = 1.0
-    return rho
-
-
 # ──────────────────────────────────────────────────────────
 # Basic unitary tests
 # ──────────────────────────────────────────────────────────
@@ -87,149 +79,151 @@ def _zero_state_matrix(n_qubits):
 @pytest.mark.parametrize("seed", [4865, 3845, 3083])
 def test_rx(seed):
     """Test that the simulator can simulate a single RX gate."""
-    rng = np.random.default_rng(seed)
-    angle = rng.uniform(-np.pi, np.pi)
+    key = jax.random.key(seed)
+    angle = float(jax.random.uniform(key, minval=-jnp.pi, maxval=jnp.pi))
     program = Program(RX(angle, 0))
     rho = compute_program_density_matrix(program)
-    target_rho = matrices.RX(angle) @ _zero_state_matrix(1) @ matrices.RX(angle).conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    target_rho = qx.gates.RX(angle) @ qx.zero_state_matrix(1)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 @pytest.mark.parametrize("seed", [4865, 3845, 3083])
 def test_tensor_product_state(seed):
     """Test simulation of a 1Q tensor product state."""
-    rng = np.random.default_rng(seed)
+    key = jax.random.key(seed)
     num_qubits = 4
-    angles = rng.uniform(-np.pi, np.pi, num_qubits)
-    program = Program([RX(angle, idx) for idx, angle in enumerate(angles)])
+    angles = jax.random.uniform(key, shape=(num_qubits,), minval=-jnp.pi, maxval=jnp.pi)
+    program = Program([RX(float(angle), idx) for idx, angle in enumerate(angles)])
     rho = compute_program_density_matrix(program)
-    u = reduce(np.kron, [matrices.RX(angle) for angle in angles])
-    target_rho = u @ _zero_state_matrix(num_qubits) @ u.conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    u = reduce(or_, [qx.gates.RX(angle) for angle in angles])
+    target_rho = u @ qx.zero_state_matrix(num_qubits)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 @pytest.mark.parametrize("seed", [4865, 3845, 3083])
 def test_tensor_product_state_layers(seed):
     """Test simulation of a 1Q tensor product state with multiple gates per qubit."""
-    rng = np.random.default_rng(seed)
+    key = jax.random.key(seed)
     num_qubits = 4
-    angles_0 = rng.uniform(-np.pi, np.pi, num_qubits)
-    angles_1 = rng.uniform(-np.pi, np.pi, num_qubits)
-    angles_2 = rng.uniform(-np.pi, np.pi, num_qubits)
+    k0, k1, k2 = jax.random.split(key, 3)
+    angles_0 = jax.random.uniform(k0, shape=(num_qubits,), minval=-jnp.pi, maxval=jnp.pi)
+    angles_1 = jax.random.uniform(k1, shape=(num_qubits,), minval=-jnp.pi, maxval=jnp.pi)
+    angles_2 = jax.random.uniform(k2, shape=(num_qubits,), minval=-jnp.pi, maxval=jnp.pi)
     program = Program()
-    program += [RX(angle, idx) for idx, angle in enumerate(angles_0)]
-    program += [RY(angle, idx) for idx, angle in enumerate(angles_1)]
-    program += [RZ(angle, idx) for idx, angle in enumerate(angles_2)]
+    program += [RX(float(angle), idx) for idx, angle in enumerate(angles_0)]
+    program += [RY(float(angle), idx) for idx, angle in enumerate(angles_1)]
+    program += [RZ(float(angle), idx) for idx, angle in enumerate(angles_2)]
     rho = compute_program_density_matrix(program)
-    u = (
-        reduce(np.kron, [matrices.RZ(angle) for angle in angles_2])
-        @ reduce(np.kron, [matrices.RY(angle) for angle in angles_1])
-        @ reduce(np.kron, [matrices.RX(angle) for angle in angles_0])
+    u = _to_unitary(
+        reduce(or_, [qx.gates.RZ(angle) for angle in angles_2])
+        @ reduce(or_, [qx.gates.RY(angle) for angle in angles_1])
+        @ reduce(or_, [qx.gates.RX(angle) for angle in angles_0])
     )
-    target_rho = u @ _zero_state_matrix(num_qubits) @ u.conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    target_rho = u @ qx.zero_state_matrix(num_qubits)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 @pytest.mark.parametrize("seed", [4865, 3845, 3083])
 def test_entanglement(seed):
     """Test a 2-qubit state with entanglement (detects wrong-endianness)."""
-    rng = np.random.default_rng(seed)
-    theta, phi = rng.uniform(-np.pi, np.pi, 2)
+    key = jax.random.key(seed)
+    theta, phi = jax.random.uniform(key, shape=(2,), minval=-jnp.pi, maxval=jnp.pi)
     program = Program()
-    program += RX(theta, 0)
-    program += RX(phi, 1)
+    program += RX(float(theta), 0)
+    program += RX(float(phi), 1)
     program += CNOT(0, 1)
     rho = compute_program_density_matrix(program)
-    u = matrices.CNOT @ np.kron(matrices.RX(theta), matrices.RX(phi))
-    target_rho = u @ _zero_state_matrix(2) @ u.conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    u = qx.gates.CNOT @ (qx.gates.RX(theta) | qx.gates.RX(phi))
+    target_rho = u @ qx.zero_state_matrix(2)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 @pytest.mark.parametrize("seed", [4865, 3845, 3083])
 def test_multi_qubit_entanglement(seed):
     """Test a 3-qubit state with entanglement (detects wrong-endianness)."""
-    rng = np.random.default_rng(seed)
-    theta, phi, lam = rng.uniform(-np.pi, np.pi, 3)
+    key = jax.random.key(seed)
+    theta, phi, lam = jax.random.uniform(key, shape=(3,), minval=-jnp.pi, maxval=jnp.pi)
     program = Program()
-    program += RX(theta, 0)
-    program += RY(phi, 1)
-    program += RZ(lam, 2)
+    program += RX(float(theta), 0)
+    program += RY(float(phi), 1)
+    program += RZ(float(lam), 2)
     program += CNOT(0, 1)
     program += CNOT(1, 2)
     rho = compute_program_density_matrix(program)
     u = (
-        np.kron(matrices.I, matrices.CNOT)
-        @ np.kron(matrices.CNOT, matrices.I)
-        @ reduce(np.kron, [matrices.RX(theta), matrices.RY(phi), matrices.RZ(lam)])
+        (qx.gates.I | qx.gates.CNOT)
+        @ (qx.gates.CNOT | qx.gates.I)
+        @ (qx.gates.RX(theta) | qx.gates.RY(phi) | qx.gates.RZ(lam))
     )
-    target_rho = u @ _zero_state_matrix(3) @ u.conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    target_rho = u @ qx.zero_state_matrix(3)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 @pytest.mark.parametrize("seed", [4865, 3845, 3083])
 def test_multi_qubit_gates(seed):
     """Test a 4-qubit state with 3-qubit gates."""
-    rng = np.random.default_rng(seed)
-    theta, phi, lam, gamma = rng.uniform(-np.pi, np.pi, 4)
+    key = jax.random.key(seed)
+    theta, phi, lam, gamma = jax.random.uniform(key, shape=(4,), minval=-jnp.pi, maxval=jnp.pi)
     program = Program()
-    program += RX(theta, 0)
-    program += RY(phi, 1)
-    program += RZ(lam, 2)
-    program += RX(gamma, 3)
+    program += RX(float(theta), 0)
+    program += RY(float(phi), 1)
+    program += RZ(float(lam), 2)
+    program += RX(float(gamma), 3)
     program += CNOT(0, 1)
     program += CNOT(2, 3)
-    program += RX(theta, 0)
-    program += RY(phi, 1)
-    program += RZ(lam, 2)
-    program += RX(gamma, 3)
+    program += RX(float(theta), 0)
+    program += RY(float(phi), 1)
+    program += RZ(float(lam), 2)
+    program += RX(float(gamma), 3)
     program += CCNOT(0, 1, 2)
     program += CCNOT(1, 2, 3)
     rho = compute_program_density_matrix(program)
     u = (
-        np.kron(matrices.I, matrices.CCNOT)
-        @ np.kron(matrices.CCNOT, matrices.I)
-        @ reduce(np.kron, [matrices.RX(theta), matrices.RY(phi), matrices.RZ(lam), matrices.RX(gamma)])
-        @ np.kron(matrices.CNOT, matrices.CNOT)
-        @ reduce(np.kron, [matrices.RX(theta), matrices.RY(phi), matrices.RZ(lam), matrices.RX(gamma)])
+        (qx.gates.I | qx.gates.CCNOT)
+        @ (qx.gates.CCNOT | qx.gates.I)
+        @ (qx.gates.RX(theta) | qx.gates.RY(phi) | qx.gates.RZ(lam) | qx.gates.RX(gamma))
+        @ (qx.gates.CNOT | qx.gates.CNOT)
+        @ (qx.gates.RX(theta) | qx.gates.RY(phi) | qx.gates.RZ(lam) | qx.gates.RX(gamma))
     )
-    target_rho = u @ _zero_state_matrix(4) @ u.conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    target_rho = u @ qx.zero_state_matrix(4)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 @pytest.mark.parametrize("seed", [4865, 3845, 3083])
 def test_disjoint_pairs(seed):
     """Test a 4-qubit state with entanglement only between pairs (detects splitting issues)."""
-    rng = np.random.default_rng(seed)
-    theta, phi, lam, gamma = rng.uniform(-np.pi, np.pi, 4)
-    q0, q1, q2, q3 = [int(q) for q in rng.choice(list(range(12)), size=4, replace=False)]
+    key = jax.random.key(seed)
+    k_angles, k_qubits = jax.random.split(key)
+    theta, phi, lam, gamma = jax.random.uniform(k_angles, shape=(4,), minval=-jnp.pi, maxval=jnp.pi)
+    q0, q1, q2, q3 = [int(q) for q in jax.random.choice(k_qubits, 12, shape=(4,), replace=False)]
     program = Program()
-    program += RX(theta, q0)
-    program += RY(phi, q1)
-    program += RZ(lam, q2)
-    program += RX(gamma, q3)
+    program += RX(float(theta), q0)
+    program += RY(float(phi), q1)
+    program += RZ(float(lam), q2)
+    program += RX(float(gamma), q3)
     program += CNOT(q0, q1)
     program += CNOT(q2, q3)
     rho = compute_program_density_matrix(program, qubits=[q0, q1, q2, q3])
-    u = np.kron(matrices.CNOT, matrices.CNOT) @ reduce(
-        np.kron, [matrices.RX(theta), matrices.RY(phi), matrices.RZ(lam), matrices.RX(gamma)]
+    u = (qx.gates.CNOT | qx.gates.CNOT) @ (
+        qx.gates.RX(theta) | qx.gates.RY(phi) | qx.gates.RZ(lam) | qx.gates.RX(gamma)
     )
-    target_rho = u @ _zero_state_matrix(4) @ u.conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    target_rho = u @ qx.zero_state_matrix(4)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 def test_defgate():
     """Test a 2-qubit state with a DefGate."""
-    rng = np.random.default_rng(5973)
-    theta, phi = rng.uniform(-np.pi, np.pi, 2)
+    key = jax.random.key(5973)
+    theta, phi = jax.random.uniform(key, shape=(2,), minval=-jnp.pi, maxval=jnp.pi)
     program = Program()
     program += DefGate(name="BLARG", matrix=matrices.CNOT, parameters=[])
-    program += RX(theta, 0)
-    program += RX(phi, 1)
+    program += RX(float(theta), 0)
+    program += RX(float(phi), 1)
     program += Gate("BLARG", [], (0, 1))
     rho = compute_program_density_matrix(program)
-    u = matrices.CNOT @ np.kron(matrices.RX(theta), matrices.RX(phi))
-    target_rho = u @ _zero_state_matrix(2) @ u.conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    u = qx.gates.CNOT @ (qx.gates.RX(theta) | qx.gates.RX(phi))
+    target_rho = u @ qx.zero_state_matrix(2)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 # ──────────────────────────────────────────────────────────
@@ -251,19 +245,16 @@ def test_1q_depolarizing_noise(seed):
     )
     program = Program(inst)
     rho = compute_program_density_matrix(program, noise_model=noise_model)
-    rho_np = np.asarray(rho.matrix)
+    pure_rho_np = np.asarray((qx.gates.RX(angle) @ qx.zero_state_matrix(1)).matrix)
+    target_rho = qx.DensityMatrix.from_matrix(jnp.asarray(p * pure_rho_np + ((1 - p) / dim) * jnp.eye(dim)), dims=(2,))
 
-    target_rho = matrices.RX(angle) @ _zero_state_matrix(num_qubits) @ matrices.RX(angle).conj().T
-    target_rho = p * target_rho + ((1 - p) / dim) * np.eye(dim)
-    assert _mixed_state_fidelity(rho_np, target_rho) > 0.9999
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
-@pytest.mark.parametrize("seed", [4865, 3845, 3083])
-def test_multi_qubit_depolarizing_noise_1q(seed):
+def test_multi_qubit_depolarizing_noise_1q():
     """Test depolarizing noise on a 3-qubit state with entanglement (1Q channels only)."""
-    rng = np.random.default_rng(seed)
-    p = [float(np.clip(rng.normal(loc=0.98, scale=0.01), 0.97, 0.99)) for _ in range(3)]
-    theta, phi, lam = rng.uniform(-np.pi, np.pi, 3)
+    p = [0.9887177, 0.97, 0.97129439]
+    theta, phi, lam = -2.5254901911114866, 1.229585029961344, -1.9248113321783669
     insts = [RX(theta, 0), RY(phi, 1), RZ(lam, 2)]
     noise_model = NoiseModel(
         channels=frozenset(
@@ -276,48 +267,202 @@ def test_multi_qubit_depolarizing_noise_1q(seed):
     program += RZ(lam, 2)
     program += CNOT(0, 1)
     program += CNOT(1, 2)
+
     rho = compute_program_density_matrix(program, noise_model=noise_model)
-    rho_np = np.asarray(rho.matrix)
+    target_rho = qx.DensityMatrix.from_matrix(
+        jnp.array(
+            [
+                [
+                    6.30173393e-02 + 3.41965066e-18j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    4.34873146e-02 - 3.41965066e-18j,
+                    -6.83930132e-18 - 1.28688397e-01j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    -1.36786026e-17 - 1.86481977e-01j,
+                ],
+                [
+                    0.00000000e00 + 0.00000000e00j,
+                    9.17646272e-04 + 4.97962896e-20j,
+                    6.33253840e-04 - 4.97962896e-20j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    -9.95925792e-20 - 1.87393548e-03j,
+                    -1.99185158e-19 - 2.71551438e-03j,
+                    0.00000000e00 + 0.00000000e00j,
+                ],
+                [
+                    0.00000000e00 + 0.00000000e00j,
+                    6.33253840e-04 + 4.97962896e-20j,
+                    4.67908978e-04 + 2.48981448e-20j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    9.95925792e-20 - 1.38464417e-03j,
+                    9.95925792e-20 - 1.87393548e-03j,
+                    0.00000000e00 + 0.00000000e00j,
+                ],
+                [
+                    4.34873146e-02 + 3.41965066e-18j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    3.21326199e-02 + 1.70982533e-18j,
+                    6.83930132e-18 - 9.50873926e-02j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    6.83930132e-18 - 1.28688397e-01j,
+                ],
+                [
+                    -6.83930132e-18 + 1.28688397e-01j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    -6.83930132e-18 + 9.50873926e-02j,
+                    3.00725397e-01 + 2.73572053e-17j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    4.06992644e-01 - 2.73572053e-17j,
+                ],
+                [
+                    0.00000000e00 + 0.00000000e00j,
+                    -9.95925792e-20 + 1.87393548e-03j,
+                    -9.95925792e-20 + 1.38464417e-03j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    4.37910490e-03 + 3.98370317e-19j,
+                    5.92654794e-03 - 3.98370317e-19j,
+                    0.00000000e00 + 0.00000000e00j,
+                ],
+                [
+                    0.00000000e00 + 0.00000000e00j,
+                    1.99185158e-19 + 2.71551438e-03j,
+                    9.95925792e-20 + 1.87393548e-03j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    5.92654794e-03 - 3.98370317e-19j,
+                    8.58814314e-03 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                ],
+                [
+                    1.36786026e-17 + 1.86481977e-01j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    6.83930132e-18 + 1.28688397e-01j,
+                    4.06992644e-01 - 2.73572053e-17j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    5.89771841e-01 + 0.00000000e00j,
+                ],
+            ]
+        ),
+        dims=(2, 2, 2),
+    )
 
-    # Verify basic properties: trace 1, hermitian, positive semi-definite
-    assert np.isclose(np.trace(rho_np), 1.0, atol=1e-10)
-    assert np.allclose(rho_np, rho_np.conj().T, atol=1e-10)
-    eigvals = np.linalg.eigvalsh(rho_np)
-    assert np.all(eigvals > -1e-10)
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
-@pytest.mark.parametrize("seed", [4865, 3845, 3083])
-def test_multi_qubit_depolarizing_noise(seed):
+def test_multi_qubit_depolarizing_noise():
     """Test depolarizing noise on a 3-qubit state with entanglement (1Q + 2Q channels)."""
-    rng = np.random.default_rng(seed)
-    p = [float(np.clip(rng.normal(loc=0.98, scale=0.01), 0.97, 0.99)) for _ in range(5)]
-    theta, phi, lam = rng.uniform(-np.pi, np.pi, 3)
-    insts = [RX(theta, 0), RY(phi, 1), RZ(lam, 2), CNOT(0, 1), CNOT(1, 2)]
+    p = [0.9887177, 0.97, 0.97129439, 0.9857, 0.97463]
+    theta, phi, lam = -2.5254901911114866, 1.229585029961344, -1.9248113321783669
+    insts = [RX(theta, 10), RY(phi, 1), RZ(lam, 8), CNOT(10, 1), CNOT(1, 8)]
+    qubits = [10, 1, 8]
     noise_model = NoiseModel(
         channels=frozenset(
             Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=pi) for inst, pi in zip(insts, p)
         )
     )
-    program = Program()
-    program += RX(theta, 0)
-    program += RY(phi, 1)
-    program += RZ(lam, 2)
-    program += CNOT(0, 1)
-    program += CNOT(1, 2)
-    rho = compute_program_density_matrix(program, noise_model=noise_model)
-    rho_np = np.asarray(rho.matrix)
+    program = Program(insts)
+    rho = compute_program_density_matrix(program, noise_model=noise_model, qubits=qubits)
 
-    # Verify basic properties
-    assert np.isclose(np.trace(rho_np), 1.0, atol=1e-10)
-    assert np.allclose(rho_np, rho_np.conj().T, atol=1e-10)
-    eigvals = np.linalg.eigvalsh(rho_np)
-    assert np.all(eigvals > -1e-10)
+    target_rho = qx.DensityMatrix.from_matrix(
+        jnp.array(
+            [
+                [
+                    6.46234650e-02 + 2.10040276e-19j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    4.17779488e-02 + 0.00000000e00j,
+                    6.65722865e-18 - 1.25262516e-01j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    1.31409349e-17 - 1.79151892e-01j,
+                ],
+                [
+                    0.00000000e00 + 0.00000000e00j,
+                    1.58045557e-03 + 1.63040223e-20j,
+                    6.08362461e-04 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    1.82439069e-19 - 3.43277631e-03j,
+                    1.91355769e-19 - 2.60877541e-03j,
+                    0.00000000e00 + 0.00000000e00j,
+                ],
+                [
+                    0.00000000e00 + 0.00000000e00j,
+                    6.08362461e-04 + 0.00000000e00j,
+                    1.14839615e-03 + 4.02234934e-20j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 - 1.33021783e-03j,
+                    1.82439069e-19 - 3.43277631e-03j,
+                    0.00000000e00 + 0.00000000e00j,
+                ],
+                [
+                    4.17779488e-02 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    3.49527382e-02 + 1.85265714e-18j,
+                    1.64569209e-36 - 9.13497728e-02j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    6.65722865e-18 - 1.25262516e-01j,
+                ],
+                [
+                    -6.65722865e-18 + 1.25262516e-01j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    -1.64569209e-36 + 9.13497728e-02j,
+                    2.98032644e-01 + 5.46239868e-19j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    3.90994899e-01 + 3.29138418e-36j,
+                ],
+                [
+                    0.00000000e00 + 0.00000000e00j,
+                    -1.82439069e-19 + 3.43277631e-03j,
+                    0.00000000e00 + 1.33021783e-03j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    9.95061471e-03 + 3.52503614e-19j,
+                    5.69359257e-03 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                ],
+                [
+                    0.00000000e00 + 0.00000000e00j,
+                    -1.91355769e-19 + 2.60877541e-03j,
+                    -1.82439069e-19 + 3.43277631e-03j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    5.69359257e-03 + 3.82711537e-19j,
+                    1.39942079e-02 + 1.11792669e-18j,
+                    0.00000000e00 + 0.00000000e00j,
+                ],
+                [
+                    -1.31409349e-17 + 1.79151892e-01j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    -6.65722865e-18 + 1.25262516e-01j,
+                    3.90994899e-01 + 2.62818699e-17j,
+                    0.00000000e00 + 0.00000000e00j,
+                    0.00000000e00 + 0.00000000e00j,
+                    5.75717479e-01 + 5.31099796e-17j,
+                ],
+            ]
+        ),
+        dims=(2, 2, 2),
+    )
 
-    # Noisy state should be less pure than noiseless
-    noiseless_rho = np.asarray(compute_program_density_matrix(program).matrix)
-    noisy_purity = np.real(np.trace(rho_np @ rho_np))
-    noiseless_purity = np.real(np.trace(noiseless_rho @ noiseless_rho))
-    assert noisy_purity < noiseless_purity
+    assert qx.fidelity(rho, target_rho) > 0.9999
 
 
 # ──────────────────────────────────────────────────────────
@@ -328,9 +473,9 @@ def test_multi_qubit_depolarizing_noise(seed):
 @pytest.mark.parametrize("seed", [4865, 3845, 3083])
 def test_rx_nonzero_index(seed):
     """Test that the simulator can handle a single RX gate with a non-zero index."""
-    rng = np.random.default_rng(seed)
-    angle = rng.uniform(-np.pi, np.pi)
+    key = jax.random.key(seed)
+    angle = float(jax.random.uniform(key, minval=-jnp.pi, maxval=jnp.pi))
     program = Program(RX(angle, 6))
     rho = compute_program_density_matrix(program)
-    target_rho = matrices.RX(angle) @ _zero_state_matrix(1) @ matrices.RX(angle).conj().T
-    assert _pure_state_fidelity(rho, target_rho) > 0.9999
+    target_rho = qx.gates.RX(angle) @ qx.zero_state_matrix(1)
+    assert qx.fidelity(rho, target_rho) > 0.9999
