@@ -51,6 +51,7 @@ from pyquil.transform import expand_defcircuits, unparameterize
 # Program → list of (Unitary, subsystem) operations
 # ──────────────────────────────────────────────────────────
 
+
 def _program_to_unitary_operations(
     program: Program,
     qubit_indices: dict[int, int],
@@ -117,6 +118,7 @@ def _program_to_unitary_operations(
 # ──────────────────────────────────────────────────────────
 # Main entry point
 # ──────────────────────────────────────────────────────────
+
 
 def compute_program_state_vector(
     program: Program,

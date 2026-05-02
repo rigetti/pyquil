@@ -1442,7 +1442,7 @@ class NoiseModel:
                     if op_info.qubit is None:
                         continue
                     # Use qubit_label from the enclosing section when qubit is a wildcard
-                    qubit_str = op_info.qubit if op_info.qubit != '_' else qubit_label
+                    qubit_str = op_info.qubit if op_info.qubit != "_" else qubit_label
                     try:
                         qubit_idx = int(qubit_str)
                     except (ValueError, TypeError):
@@ -1726,3 +1726,51 @@ def estimate_program_fidelity(program: Program, noise_model: NoiseModel) -> floa
 
     return reduce(mul, gate_fidelities)
 
+
+def _light_cone_program(program: Program, qubits: List[int]) -> Program:
+    """Return a sub-program containing only gates in the backward light cone of *qubits*.
+
+    Walks backward through the program's gate instructions. Any gate that
+    acts on a qubit currently in the light-cone set is included, and all of
+    its qubits are added to the set (because earlier gates on those qubits
+    are now causally relevant).
+    """
+    gate_instructions = [inst for inst in program.instructions if isinstance(inst, Gate)]
+    relevant_qubits = set(qubits)
+    included: list[Gate] = []
+    for inst in reversed(gate_instructions):
+        inst_qubits = {q.index for q in inst.qubits}
+        if inst_qubits & relevant_qubits:
+            included.append(inst)
+            relevant_qubits |= inst_qubits
+    reduced = Program()
+    for inst in reversed(included):
+        reduced += inst
+    return reduced
+
+
+def estimate_program_observable_fidelity(
+    program: Program,
+    noise_model: NoiseModel,
+    observable: Union["PauliSum", "PauliTerm"],
+) -> float:
+    """Estimate program fidelity restricted to the backward light cone of *observable*.
+
+    Reduces the program to only the gates causally connected to the
+    observable qubits, then multiplies gate process fidelities together.
+    Readout noise is not considered.
+
+    :param program: The program of interest.
+    :param noise_model: A noise model.
+    :param observable: A ``PauliTerm`` or ``PauliSum`` whose qubits define
+        the light cone.
+    :return: The estimated process fidelity for the light-cone-reduced program.
+    """
+    from pyquil.paulis import PauliSum, PauliTerm
+
+    if isinstance(observable, PauliTerm):
+        observable = PauliSum(terms=[observable])
+
+    qubits = [int(q) for term in observable.terms for q, _ in term.operations_as_set()]
+    reduced_program = _light_cone_program(program, qubits)
+    return estimate_program_fidelity(reduced_program, noise_model)

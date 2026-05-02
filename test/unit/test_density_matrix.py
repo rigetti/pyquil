@@ -479,3 +479,113 @@ def test_rx_nonzero_index(seed):
     rho = compute_program_density_matrix(program)
     target_rho = qx.gates.RX(angle) @ qx.zero_state_matrix(1)
     assert qx.fidelity(rho, target_rho) > 0.9999
+
+# ──────────────────────────────────────────────────────────
+# Qudit tests
+# ──────────────────────────────────────────────────────────
+
+def test_RX12():
+    """TRX12 gate on a qubit: state is auto-promoted to a qutrit, final state matches quax reference."""
+    key = jax.random.key(4444)
+    angle = float(jax.random.uniform(key, minval=-jnp.pi, maxval=jnp.pi))
+    program = Program()
+    program += Gate("TRX12", [angle], (5,))
+    rho = compute_program_density_matrix(program)
+    # Qubit starts as |0⟩ promoted to the qutrit |0⟩; TRX12 acts in the |1⟩-|2⟩ subspace
+    # so starting from |0⟩ the state is unchanged (identity on |0⟩).
+    target_rho = qx.gates.TRX12(angle) @ qx.zero_state_matrix(dims=(3,))
+    assert qx.fidelity(rho, target_rho) > 0.9999
+
+def test_multiqudit():
+    """
+    Program with a qubit and two qutrits on non-sequential physical qubit indices.
+
+    Uses Gate() for qutrit gates (TRX01, TRX12, TSWAP) and RX for the qubit.
+    Verifies automatic per-qudit promotion and the correct final state.
+    """
+    key = jax.random.key(5555)
+    theta, phi, lam = jax.random.uniform(key, shape=(3,), minval=-jnp.pi, maxval=jnp.pi)
+    # Physical qubit indices (non-sequential); slot 0=q5 (qubit), slot 1=q3 (qutrit), slot 2=q7 (qutrit)
+    q0, q1, q2 = 5, 3, 7
+    program = Program()
+    program += RX(float(theta), q0)                   # qubit gate
+    program += Gate("TRX01", [float(phi)], (q1,))     # qutrit gate in |0⟩-|1⟩ subspace
+    program += Gate("TRX12", [float(lam)], (q2,))     # qutrit gate in |1⟩-|2⟩ subspace
+    program += Gate("TSWAP", [], (q1, q2))             # 2-qutrit swap
+    rho = compute_program_density_matrix(program, qubits=[q0, q1, q2])
+    # Build expected state: (I_qubit ⊗ TSWAP) ∘ (RX ⊗ TRX01 ⊗ TRX12) |000⟩
+    u = _to_unitary(
+        (qx.gates.I | qx.gates.TSWAP)
+        @ (qx.gates.RX(theta) | qx.gates.TRX01(phi) | qx.gates.TRX12(lam))
+    )
+    target_rho = u @ qx.zero_state_matrix(dims=(2, 3, 3))
+    assert qx.fidelity(rho, target_rho) > 0.9999
+
+def test_leaky_rx():
+    """RX gate with stochastic leakage noise: qubit is promoted to qutrit and |2⟩ gains population."""
+    key = jax.random.key(6666)
+    angle = float(jax.random.uniform(key, minval=-jnp.pi, maxval=jnp.pi))
+    gamma = 0.05  # 5% leakage probability
+    rx_inst = RX(angle, 0)
+    rx_unitary = qx.gates.RX(angle)
+    # Compose leakage (qutrit KrausMap) with RX unitary; promote_hilbert_space handles dim mismatch
+    leakage_kraus = qx.stochastic_leakage_operators(gamma)
+    process = qx.to_superop(leakage_kraus @ rx_unitary)
+    noise_model = NoiseModel(
+        channels=frozenset([Channel(inst=rx_inst, process=process, target_unitary=rx_unitary)])
+    )
+    program = Program(rx_inst)
+    rho = compute_program_density_matrix(program, noise_model=noise_model)
+    # Target: apply the full leaky-RX superop to |0⟩ of a qutrit
+    target_rho = process @ qx.zero_state_matrix(dims=(3,))
+    assert qx.fidelity(rho, target_rho) > 0.9999
+    # Verify non-trivial leakage: |2⟩⟨2| population must be positive
+    p2 = float(jnp.real(rho.matrix[2, 2]))
+    assert p2 > 0, f"Expected leaked population in |2⟩, got {p2}"
+
+def test_noisy_program():
+    """
+    Two-qudit program with stochastic leakage on q0, seepage on q1,
+    and a coherent qutrit rotation error (TRX12) applied to both qudits.
+    """
+    theta, phi = 1.1, -0.8
+    epsilon = 0.04   # coherent rotation angle in the |1⟩-|2⟩ subspace
+    gamma_leak = 0.03
+    gamma_seep = 0.04
+
+    rx0_inst = RX(theta, 0)
+    trx01_inst = Gate("TRX01", [phi], (1,))
+
+    # q0: leaky RX — leakage from computational subspace to |2⟩
+    rx0_unitary = qx.gates.RX(theta)
+    leakage_kraus = qx.stochastic_leakage_operators(gamma_leak)
+    process0 = qx.to_superop(leakage_kraus @ rx0_unitary)
+    channel0 = Channel(inst=rx0_inst, process=process0, target_unitary=rx0_unitary)
+
+    # q1: TRX01 with seepage — seepage brings |2⟩ population back to |1⟩
+    trx01_unitary = qx.gates.TRX01(phi)  # acts on qutrit (3,) space
+    seepage_kraus = qx.seepage_operators(gamma_seep)
+    process1 = qx.to_superop(seepage_kraus @ trx01_unitary)
+    channel1 = Channel(inst=trx01_inst, process=process1, target_unitary=trx01_unitary)
+
+    noise_model = NoiseModel(channels=frozenset([channel0, channel1]))
+
+    # Coherent qutrit rotation error applied after the main gates
+    trx12_err = Gate("TRX12", [epsilon], (0,))
+    trx12_err_1 = Gate("TRX12", [epsilon], (1,))
+
+    program = Program()
+    program += rx0_inst
+    program += trx01_inst
+    program += trx12_err
+    program += trx12_err_1
+    rho = compute_program_density_matrix(program, noise_model=noise_model)
+
+    # Build expected state step-by-step mirroring the simulator
+    trx12_superop = qx.to_superop(qx.gates.TRX12(epsilon))
+    target_rho = qx.zero_state_matrix(dims=(3, 3))
+    target_rho = qx.targeted_apply_superop(process0, target_rho, (0,))
+    target_rho = qx.targeted_apply_superop(process1, target_rho, (1,))
+    target_rho = qx.targeted_apply_superop(trx12_superop, target_rho, (0,))
+    target_rho = qx.targeted_apply_superop(trx12_superop, target_rho, (1,))
+    assert qx.fidelity(rho, target_rho) > 0.9999

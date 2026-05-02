@@ -66,7 +66,6 @@ def _program_to_operations(
     program: Program,
     noise_model: NoiseModel | None,
     qubit_indices: Dict[int, int],
-    custom_gates: Dict | None = None,
 ) -> List[Tuple[qx.SuperOp, Tuple[int, ...]]]:
     """Walk program instructions and resolve each to a ``(SuperOp, subsystem)`` pair.
 
@@ -77,6 +76,9 @@ def _program_to_operations(
     :return: Ordered list of (superoperator, subsystem_tuple) pairs.
     """
     operations: List[Tuple[qx.SuperOp, Tuple[int, ...]]] = []
+
+    # Extract custom gate definitions (DefGate)
+    custom_gates = get_custom_gates_from_program(program)
 
     for inst in program.instructions:
         match inst:
@@ -174,14 +176,20 @@ def compute_program_density_matrix(
     qubit_indices = {q: i for i, q in enumerate(qubits)}
     n_qubits = len(qubits)
 
-    # Extract custom gate definitions (DefGate)
-    custom_gates = get_custom_gates_from_program(program)
-
     # Build operation list
-    operations = _program_to_operations(program, noise_model, qubit_indices, custom_gates or None)
+    operations = _program_to_operations(program, noise_model, qubit_indices)
 
-    # Initialise state
-    rho = qx.zero_state_matrix(n_qubits)
+    # Determine per-qudit dimensions: max over all ops applied to each slot.
+    # A qutrit superop has dims[0] = (3,); this auto-promotes qubit slots to qutrit
+    # when a larger-dimensional gate is encountered.
+    qudit_dims: List[int] = [2] * n_qubits
+    for superop, subsystem in operations:
+        for slot, dim in zip(subsystem, superop.dims[0]):
+            if dim > qudit_dims[slot]:
+                qudit_dims[slot] = dim
+
+    # Initialise state with correct per-qudit dimensions
+    rho = qx.zero_state_matrix(dims=tuple(qudit_dims))
 
     # Apply operations sequentially
     for superop, subsystem in operations:
