@@ -21,6 +21,7 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import numpy as np
+from deprecated import deprecated
 
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX, I
@@ -42,7 +43,7 @@ class KrausModel(_KrausModel):
     """Encapsulate a single gate's noise model.
 
     .. deprecated::
-        Use :class:`pyquil.noise_model.Channel` for quax-based noise modeling.
+        Use :class:`pyquil.noise.Channel` for quax-based noise modeling.
 
     :ivar str gate: The name of the gate.
     :ivar Sequence[float] params: Optional parameters for the gate.
@@ -117,14 +118,16 @@ class KrausModel(_KrausModel):
         return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
 
 
-_LegacyNoiseModel = namedtuple("_LegacyNoiseModel", ["gates", "assignment_probs"])
+_NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
 
 
-class LegacyNoiseModel(_LegacyNoiseModel):
+@deprecated(
+    version="4.17.0",
+    reason="Use the quax-based noise model in pyquil.noise._noise_model instead. "
+    "This class will be removed in the next major version of pyquil.",
+)
+class NoiseModel(_NoiseModel):
     """Encapsulate the QPU noise model containing information about the noisy gates.
-
-    .. deprecated::
-        Use :class:`pyquil.noise_model.NoiseModel` for quax-based noise modeling.
 
     :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
     :ivar dict[int,np.array] assignment_probs: The single qubit readout assignment
@@ -156,13 +159,13 @@ class LegacyNoiseModel(_LegacyNoiseModel):
         }
 
     @staticmethod
-    def from_dict(d: dict[str, Any]) -> "LegacyNoiseModel":
+    def from_dict(d: dict[str, Any]) -> "NoiseModel":
         """Re-create the noise model from a dictionary representation.
 
         :param d: The dictionary representation.
         :return: The restored noise model.
         """
-        return LegacyNoiseModel(
+        return NoiseModel(
             gates=[KrausModel.from_dict(t) for t in d["gates"]],
             assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
         )
@@ -177,7 +180,7 @@ class LegacyNoiseModel(_LegacyNoiseModel):
 
     def __eq__(self, other: object) -> bool:
         """Return True if NoiseModels are equal."""
-        return isinstance(other, LegacyNoiseModel) and self.to_dict() == other.to_dict()
+        return isinstance(other, NoiseModel) and self.to_dict() == other.to_dict()
 
 
 def _check_kraus_ops(n: int, kraus_ops: Sequence[np.ndarray]) -> None:
@@ -400,7 +403,7 @@ def _decoherence_noise_model(
     gate_time_1q: float = 50e-9,
     gate_time_2q: float = 150e-09,
     ro_fidelity: Union[dict[int, float], float] = 0.95,
-) -> LegacyNoiseModel:
+) -> NoiseModel:
     """Return default noise model.
 
     - T1 = 30 us
@@ -480,10 +483,10 @@ def _decoherence_noise_model(
     for q, f_ro in ro_fidelity.items():
         aprobs[q] = np.array([[f_ro, 1.0 - f_ro], [1.0 - f_ro, f_ro]])
 
-    return LegacyNoiseModel(kraus_maps, aprobs)
+    return NoiseModel(kraus_maps, aprobs)
 
 
-def decoherence_noise_with_asymmetric_ro(isa: CompilerISA, p00: float = 0.975, p11: float = 0.911) -> LegacyNoiseModel:
+def decoherence_noise_with_asymmetric_ro(isa: CompilerISA, p00: float = 0.975, p11: float = 0.911) -> NoiseModel:
     """Similar to :py:func:`_decoherence_noise_model`, but with asymmetric readout.
 
     For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
@@ -493,10 +496,10 @@ def decoherence_noise_with_asymmetric_ro(isa: CompilerISA, p00: float = 0.975, p
     noise_model = _decoherence_noise_model(gates)
     aprobs = np.array([[p00, 1 - p00], [1 - p11, p11]])
     aprobs = {q: aprobs for q in noise_model.assignment_probs.keys()}
-    return LegacyNoiseModel(noise_model.gates, aprobs)
+    return NoiseModel(noise_model.gates, aprobs)
 
 
-def _noise_model_program_header(noise_model: LegacyNoiseModel) -> "Program":
+def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
     """Generate the header for a pyquil Program that uses ``noise_model`` to overload noisy gates.
 
     The program header consists of 3 sections:
@@ -539,7 +542,7 @@ def _noise_model_program_header(noise_model: LegacyNoiseModel) -> "Program":
     return p
 
 
-def apply_noise_model(prog: "Program", noise_model: LegacyNoiseModel) -> "Program":
+def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
     """Apply a noise model to a program and generated a 'noisy-fied' version of the program.
 
     :param prog: A Quil Program object.
@@ -804,27 +807,3 @@ def _run(qc: "PyquilApiQuantumComputer", program: "Program") -> list[list[int]]:
     return cast(list[list[int]], bitstrings.tolist())
 
 
-# ──────────────────────────────────────────────────────────
-# Re-export quax-based noise model classes (lazy to avoid circular imports)
-# ──────────────────────────────────────────────────────────
-
-_NOISE_MODEL_EXPORTS = (
-    "Channel",
-    "CycleChannel",
-    "CustomGateMap",
-    "MeasurementChannel",
-    "NoiseModel",
-    "ResetChannel",
-    "estimate_program_fidelity",
-    "estimate_program_observable_fidelity",
-    "get_custom_gates_from_program",
-    "get_instruction_unitary",
-)
-
-
-def __getattr__(name: str):  # type: ignore[override]
-    if name in _NOISE_MODEL_EXPORTS:
-        import pyquil.noise_model as _nm
-
-        return getattr(_nm, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

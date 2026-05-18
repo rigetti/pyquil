@@ -22,7 +22,7 @@ exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
 # TODO(#1816): Loosen this bound once we've resolved support for Python 3.13+.
-python = "^3.9,<3.13"
+python = ">=3.11, <3.13"
 numpy = ">=1.26,<3"
 scipy = "^1.11"
 rpcq = "^3.11.0"
@@ -45,6 +45,7 @@ pandoc = {version = "2.4b0", optional = true}
 matplotlib = {version = "^3.9.0", optional = true}
 matplotlib-inline = {version = "^0.1.7", optional = true}
 seaborn = {version = "^0.13.2", optional = true}
+rigetti-quax = ">=0.5.3"
 
 [tool.poetry.extras]
 latex = ["ipython"]
