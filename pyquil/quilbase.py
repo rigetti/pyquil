@@ -59,8 +59,35 @@ from pyquil.quilatom import (
 if TYPE_CHECKING:  # avoids circular import
     from pyquil.paulis import PauliSum
 
+import math
+
 import quil.expression as quil_rs_expr
 import quil.instructions as quil_rs
+
+
+def _is_perfect_power(n: int) -> bool:
+    """Check if n is a prime power (p^k for prime p, k >= 1).
+
+    This ensures the matrix dimension can be interpreted as k qudits of
+    dimension p.  Composite non-prime-power dimensions like 6 = 2*3 are
+    ambiguous and rejected.
+    """
+    if n < 2:
+        return False
+    # Find the smallest prime factor.
+    factor = 0
+    for p in range(2, int(math.isqrt(n)) + 1):
+        if n % p == 0:
+            factor = p
+            break
+    if factor == 0:
+        # n is prime → n = n^1, valid single-qudit dimension.
+        return True
+    # Check that n is a power of this smallest prime factor.
+    val = factor
+    while val < n:
+        val *= factor
+    return val == n
 
 
 class _InstructionMeta(abc.ABCMeta):
@@ -715,8 +742,8 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         else:
             raise TypeError("Matrix argument must be a list or NumPy array/matrix")
 
-        if 0 != rows & (rows - 1):
-            raise ValueError(f"Dimension of matrix must be a power of 2, got {rows}")
+        if not _is_perfect_power(rows):
+            raise ValueError(f"Dimension of matrix must be a perfect power of an integer (e.g. 2, 3, 4, 8, 9, ...), got {rows}")
 
         if not contains_parameters:
             np_matrix = np.asarray(matrix)
@@ -741,9 +768,19 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
             return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
 
     def num_args(self) -> int:
-        """Get the number of qubit arguments the gate takes."""
+        """Get the number of qudit arguments the gate takes.
+
+        For a matrix of dimension d^k, returns k where d is the smallest
+        integer base >= 2 such that rows = d^k.
+        """
         rows = len(self.matrix)
-        return int(np.log2(rows))
+        if rows < 2:
+            return 0
+        for base in range(2, rows + 1):
+            k = int(round(math.log(rows, base)))
+            if base**k == rows:
+                return k
+        return 1
 
     @property
     def matrix(self) -> np.ndarray:
