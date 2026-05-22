@@ -181,8 +181,9 @@ class Channel:
     The ``process`` field is a ``qx.SuperOp`` which can be converted to alternative
     representations (Choi, Kraus, Pauli-Liouville) via ``quax``.
 
-    Fidelity metrics are computed relative to the ideal gate unitary, which is resolved
-    automatically for standard gates or provided explicitly via ``target_unitary``.
+    Fidelity metrics are computed relative to the ideal gate unitary stored in
+    ``target_unitary``. For standard gates use the class methods (e.g.
+    :meth:`from_gate_fidelity`) which resolve the unitary automatically.
     """
 
     inst: Gate
@@ -191,19 +192,13 @@ class Channel:
     process: qx.SuperOp
     """The noisy process (superoperator) for the gate, including the gate unitary."""
 
-    target_unitary: Optional[qx.Unitary] = None
-    """
-    The noiseless unitary of the gate. If ``None``, will be resolved automatically from
-    ``inst`` for standard gates. Required for fidelity calculations with custom gates.
-    """
+    target_unitary: qx.Unitary
+    """The noiseless unitary of the gate."""
 
     @cached_property
     def unitary(self) -> qx.Unitary:
-        """The noiseless unitary of the gate, resolved from ``inst`` or provided explicitly."""
-        if self.target_unitary is not None:
-            return self.target_unitary
-        resolved = get_instruction_unitary(self.inst)
-        return resolved
+        """The noiseless unitary of the gate."""
+        return self.target_unitary
 
     @cached_property
     def qubits(self) -> List[int]:
@@ -699,10 +694,9 @@ class Channel:
             "superop": {"_complex_array": flat_data, "shape": list(superop_array.shape)},
         }
 
-        if self.target_unitary is not None:
-            u_array = np.asarray(self.target_unitary.matrix)
-            u_flat = [[float(val.real), float(val.imag)] for val in u_array.flat]
-            data["target_unitary"] = {"_complex_array": u_flat, "shape": list(u_array.shape)}
+        u_array = np.asarray(self.target_unitary.matrix)
+        u_flat = [[float(val.real), float(val.imag)] for val in u_array.flat]
+        data["target_unitary"] = {"_complex_array": u_flat, "shape": list(u_array.shape)}
 
         return json.dumps(data)
 
@@ -728,7 +722,6 @@ class Channel:
         dims = ((2,) * num_qubits, (2,) * num_qubits)
         superop = qx.SuperOp.from_matrix(superop_array, dims)
 
-        target_unitary = None
         if "target_unitary" in data:
             u_data = data["target_unitary"]
             u_flat = u_data["_complex_array"]
@@ -737,6 +730,8 @@ class Channel:
             u_num_qubits = int(jnp.round(jnp.log2(u_shape[0])))
             u_dims = ((2,) * u_num_qubits, (2,) * u_num_qubits)
             target_unitary = qx.Unitary.from_matrix(u_array, u_dims)
+        else:
+            target_unitary = get_instruction_unitary(inst)
 
         return cls(inst=inst, process=superop, target_unitary=target_unitary)
 
