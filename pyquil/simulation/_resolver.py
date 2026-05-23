@@ -289,6 +289,9 @@ def resolver_from_program(
 
     # Pre-scan gate instructions to infer per-qudit dimensions.
     # This is needed so that MEASURE and RESET use the correct dim.
+    # Quax doesn't distinguish between ideal and noisy MEASUREs and RESETs by type.
+    # While an ideal MEASURE should by promoted, a noisy one should be embedded
+    # We don't know which promotion behaviour to use until we check the noise model.
     qudit_dims: Dict[int, int] = {}  # qubit_index → dimension
     for node_key in node_order:
         inst = dag.nodes[node_key]["inst"]
