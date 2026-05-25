@@ -1,22 +1,18 @@
-"""
-transform module
-----------------
-
-Utility functions for Quil program manipulation.
-"""
+"""Utility functions for Quil program manipulation."""
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from copy import deepcopy
-from typing import Dict, Iterator, List, Optional, Union
+
+from quil.instructions import CircuitDefinition
+from quil.instructions import Instruction as QuilInstruction
+from quil.program import Program as QuilProgram
 
 from pyquil.api import MemoryMap
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, substitute
 from pyquil.quilbase import Declare, DefCircuit, Gate, Measurement, Reset, ResetQubit
-from quil.instructions import CircuitDefinition
-from quil.instructions import Instruction as QuilInstruction
-from quil.program import Program as QuilProgram
 
 
 def copy_everything_except_instructions(
@@ -57,7 +53,7 @@ def copy_everything_except_instructions(
                 try:
                     if kraus_inst.command == "ADD-KRAUS":
                         program_definitions._program.add_instruction(kraus_inst)  # type: ignore[arg-type]
-                except Exception:
+                except Exception:  # noqa: S110
                     pass
 
     return program_definitions
@@ -85,7 +81,7 @@ def unparameterize(program: Program, memory_map: MemoryMap) -> Program:
             for offset in range(len(value))
         }
 
-    for idx, inst in enumerate(instructions):
+    for _idx, inst in enumerate(instructions):
         if isinstance(inst, Declare):
             if inst.name == "ro":
                 unparameterized_program += deepcopy(inst)
@@ -110,8 +106,8 @@ def unparameterize(program: Program, memory_map: MemoryMap) -> Program:
 def expand_defcircuit_body(
     inst: Gate,
     defcircuit: DefCircuit,
-    circuit_definitions: Dict[str, DefCircuit],
-) -> Iterator[Union[Gate, Measurement, ResetQubit, Reset]]:
+    circuit_definitions: dict[str, DefCircuit],
+) -> Iterator[Gate | Measurement | ResetQubit | Reset]:
     """Yield concrete instructions from a DEFCIRCUIT invocation.
 
     Substitutes formal qubit/parameter arguments with the concrete values
@@ -152,7 +148,7 @@ def expand_defcircuit_body(
 def expand_defcircuits(
     program: Program,
     expand_if_defcal: bool = True,
-    calibration_program: Optional[Program] = None,
+    calibration_program: Program | None = None,
     keep_defcircuits: bool = False,
 ) -> Program:
     """Expand DEFCIRCUITS into individual instructions.
@@ -164,7 +160,7 @@ def expand_defcircuits(
     :param keep_defcircuits: If True, keep the DEFCIRCUIT definitions in the returned program.
     :return: A Quil program, with any Circuit instructions expanded to individual instructions.
     """
-    instructions: List = []
+    instructions: list = []
     circuit_definitions: dict = {}
     for inst in program.instructions:
         if isinstance(inst, DefCircuit):
@@ -200,7 +196,7 @@ def expand_defcircuits(
                 return False
         return True
 
-    expanded_instructions: List = []
+    expanded_instructions: list = []
     for inst in instructions:
         if isinstance(inst, Gate) and _should_expand(inst):
             expanded_instructions.extend(

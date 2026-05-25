@@ -13,8 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Noise channel classes and gate-resolution utilities.
+"""Noise channel classes and gate-resolution utilities.
 
 This module defines ``Channel``, ``MeasurementChannel``, ``ResetChannel``, and
 ``CycleChannel`` dataclasses for representing noise in quantum circuits, along
@@ -37,12 +36,12 @@ import numpy as np
 import quax as qx
 from jax import Array
 from plotly.graph_objs import Figure
+from quil.expression import Expression as QuilExpression
 from quil.program import Program as RSProgram
 from scipy.linalg import logm as scipy_logm
 
 from pyquil.quilatom import Expression, FormalArgument, Parameter, substitute
 from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset
-from quil.expression import Expression as QuilExpression
 
 if TYPE_CHECKING:
     from pyquil import Program
@@ -69,8 +68,7 @@ def _parse_quil_instruction(quil_str: str) -> Gate | Measurement | Reset:
 
 
 def _resolve_params(params: list) -> list[float]:
-    """
-    Resolve gate parameters to concrete float values.
+    """Resolve gate parameters to concrete float values.
 
     :param params: The gate parameters (may include symbolic Parameters or Expressions).
     :return: A list of concrete float values.
@@ -94,8 +92,7 @@ def _resolve_params(params: list) -> list[float]:
 
 
 def get_custom_gates_from_program(program: Program) -> CustomGateMap:
-    """
-    Extract custom gate definitions from a Quil program.
+    """Extract custom gate definitions from a Quil program.
 
     Returns a dictionary mapping gate names to unitary matrices (for fixed gates) or callables
     (for parametric gates). Does not include the standard gate set — use this to augment
@@ -129,8 +126,7 @@ def get_instruction_unitary(
     inst: Gate,
     custom_gates: CustomGateMap | None = None,
 ) -> qx.Unitary:
-    """
-    Get the unitary matrix associated with a gate instruction.
+    """Get the unitary matrix associated with a gate instruction.
 
     Looks up the gate by name — first in ``custom_gates`` (if provided), then in the
     standard quax gate table ``qx.gates.QUANTUM_GATES``. Parametric gates are supported
@@ -172,8 +168,7 @@ def get_instruction_unitary(
 
 @dataclass(frozen=True)
 class Channel:
-    """
-    A noise channel attaches a superoperator to a specific gate.
+    """A noise channel attaches a superoperator to a specific gate.
 
     The superoperator *includes* the gate unitary, so the channel replaces the gate
     rather than being applied after it.
@@ -220,9 +215,8 @@ class Channel:
         inst: Gate,
         fidelity: float,
         custom_gates: CustomGateMap | None = None,
-    ) -> "Channel":
-        """
-        Create a depolarizing noise channel from an average gate fidelity.
+    ) -> Channel:
+        r"""Create a depolarizing noise channel from an average gate fidelity.
 
         The resulting channel is the composition of the ideal gate unitary with a
         depolarizing channel calibrated to the specified fidelity:
@@ -243,9 +237,8 @@ class Channel:
         inst: Gate,
         pauli_fidelity: float,
         custom_gates: CustomGateMap | None = None,
-    ) -> "Channel":
-        """
-        Create a depolarizing noise channel from a process (Pauli) fidelity.
+    ) -> Channel:
+        r"""Create a depolarizing noise channel from a process (Pauli) fidelity.
 
         The process fidelity :math:`F_e` is related to the average gate fidelity by
         :math:`F_{\\mathrm{avg}} = (d \\cdot F_e + 1) / (d + 1)`.
@@ -265,9 +258,8 @@ class Channel:
         inst: Gate,
         depolarizing_constant: float,
         custom_gates: CustomGateMap | None = None,
-    ) -> "Channel":
-        """
-        Create a depolarizing noise channel from a depolarization constant.
+    ) -> Channel:
+        r"""Create a depolarizing noise channel from a depolarization constant.
 
         The depolarizing constant :math:`p` parameterizes the channel as
         :math:`\\mathcal{D}_p(\\rho) = p \\, \\rho + (1-p) \\, I/d`.
@@ -288,9 +280,8 @@ class Channel:
         inst: Gate,
         pauli_noise: dict[str, float],
         custom_gates: CustomGateMap | None = None,
-    ) -> "Channel":
-        """
-        Create a stochastic Pauli noise channel from Pauli error rates.
+    ) -> Channel:
+        """Create a stochastic Pauli noise channel from Pauli error rates.
 
         The noise is specified as a dictionary mapping Pauli strings to error probabilities,
         e.g. ``{"XX": 0.03, "ZI": 0.001}``. The probabilities must sum to at most 1.0;
@@ -319,7 +310,7 @@ class Channel:
             else:
                 error_rate = 0
             pauli_error_rates.append(error_rate)
-        assert jnp.isclose(1.0, sum(pauli_error_rates))
+        assert jnp.isclose(1.0, sum(pauli_error_rates))  # noqa: S101
         pauli_error_rates = list(reversed(pauli_error_rates))
 
         # Build Pauli Kraus operators using quax ensembles
@@ -344,9 +335,8 @@ class Channel:
         process_fidelity: float,
         rng: np.random.Generator | None = None,
         custom_gates: CustomGateMap | None = None,
-    ) -> "Channel":
-        """
-        Create a channel with a random coherent (unitary) error at the specified process fidelity.
+    ) -> Channel:
+        r"""Create a channel with a random coherent (unitary) error at the specified process fidelity.
 
         A random unitary close to identity is generated with the given process fidelity,
         then composed with the ideal gate.
@@ -396,9 +386,8 @@ class Channel:
         constituents: list[qx.Unitary],
         probabilities: list[float],
         custom_gates: CustomGateMap | None = None,
-    ) -> "Channel":
-        """
-        Create a mixture channel from a set of unitary errors with given probabilities.
+    ) -> Channel:
+        r"""Create a mixture channel from a set of unitary errors with given probabilities.
 
         The channel is :math:`\\mathcal{E}(\\rho) = (1-\\sum p_i) U\\rho U^\\dagger + \\sum p_i V_i U \\rho U^\\dagger V_i^\\dagger`
         where :math:`U` is the ideal gate and :math:`V_i` are the error unitaries.
@@ -434,9 +423,8 @@ class Channel:
         t1s: list[float],
         t2s: list[float] | None = None,
         custom_gates: CustomGateMap | None = None,
-    ) -> "Channel":
-        """
-        Create a decoherence Channel based on the coherence times.
+    ) -> Channel:
+        """Create a decoherence Channel based on the coherence times.
 
         In this construction, decoherence is applied _after_ the ideal gate unitary.
 
@@ -448,11 +436,11 @@ class Channel:
         unitary = get_instruction_unitary(inst, custom_gates)
         qubits = inst.get_qubit_indices()
         num_sys = len(qubits)
-        assert num_sys == len(t1s)
+        assert num_sys == len(t1s)  # noqa: S101
         if t2s is None:
             t2s = [2 * t1 for t1 in t1s]
         else:
-            assert num_sys == len(t2s)
+            assert num_sys == len(t2s)  # noqa: S101
 
         t1_array = jnp.asarray(t1s)
         tphi_array = 1 / (1 / jnp.asarray(t2s) - 1 / t1_array)
@@ -473,8 +461,7 @@ class Channel:
         target_unitary: qx.Unitary | None = None,
         custom_gates: CustomGateMap | None = None,
     ) -> Channel:
-        """
-        Create a Channel from a pre-built superoperator.
+        """Create a Channel from a pre-built superoperator.
 
         If ``target_unitary`` is not provided it is inferred from the gate
         instruction using the standard gate set (and ``custom_gates`` if given).
@@ -497,8 +484,7 @@ class Channel:
 
     @cached_property
     def noise_process(self) -> qx.SuperOp:
-        """
-        The noise-only channel with the ideal gate unitary factored out.
+        r"""The noise-only channel with the ideal gate unitary factored out.
 
         If the full channel is :math:`\\mathcal{E} = \\Lambda \\circ \\mathcal{U}`, this
         returns :math:`\\Lambda`.
@@ -511,12 +497,12 @@ class Channel:
 
     @cached_property
     def fidelity(self) -> float:
-        """Average gate fidelity :math:`F_{\\mathrm{avg}}` of the channel relative to the ideal gate."""
+        r"""Average gate fidelity :math:`F_{\\mathrm{avg}}` of the channel relative to the ideal gate."""
         return float(qx.process_fidelity_to_average_fidelity(self.pauli_fidelity, dims=self.unitary.dims[0]))
 
     @cached_property
     def infidelity(self) -> float:
-        """Average gate infidelity :math:`1 - F_{\\mathrm{avg}}`."""
+        r"""Average gate infidelity :math:`1 - F_{\\mathrm{avg}}`."""
         return 1.0 - self.fidelity
 
     @cached_property
@@ -559,9 +545,8 @@ class Channel:
     # Channel analysis methods
     # ──────────────────────────────────────────────
 
-    def pauli_twirl(self) -> "Channel":
-        """
-        Return a Pauli-twirled version of this channel.
+    def pauli_twirl(self) -> Channel:
+        """Return a Pauli-twirled version of this channel.
 
         Pauli twirling projects the channel onto the Pauli diagonal, eliminating
         off-diagonal coherences in the Pauli-Liouville representation. The
@@ -576,8 +561,7 @@ class Channel:
 
     @cached_property
     def _unitary_error_component(self) -> Array:
-        """
-        Extract the dominant unitary from the noise-only channel.
+        """Extract the dominant unitary from the noise-only channel.
 
         Uses eigendecomposition + SVD polar decomposition to find the closest
         unitary to the noise channel.
@@ -593,9 +577,8 @@ class Channel:
         u, _, vh = jnp.linalg.svd(dominant_eigenvector.reshape(d, d).T)
         return u @ vh
 
-    def to_coherent_channel(self) -> "Channel":
-        """
-        Isolate the coherent (unitary) component of the noise.
+    def to_coherent_channel(self) -> Channel:
+        """Isolate the coherent (unitary) component of the noise.
 
         Extracts the dominant unitary from the noise Choi matrix via polar
         decomposition and returns a channel consisting of that unitary error
@@ -606,9 +589,8 @@ class Channel:
         coherent_superop = qx.to_superop(u_error_qx @ self.unitary)
         return replace(self, process=coherent_superop)
 
-    def to_stochastic_channel(self) -> "Channel":
-        """
-        Isolate the stochastic (incoherent) component of the noise.
+    def to_stochastic_channel(self) -> Channel:
+        r"""Isolate the stochastic (incoherent) component of the noise.
 
         The full channel decomposes as
         :math:`\\mathcal{E} = \\mathcal{S} \\circ \\mathcal{U}_{\\mathrm{err}} \\circ \\mathcal{U}_{\\mathrm{gate}}`.
@@ -626,8 +608,7 @@ class Channel:
         return replace(self, process=qx.SuperOp.from_matrix(stochastic_superop, self.process.dims))
 
     def is_pauli(self) -> bool:
-        """
-        Check if the noise channel is a Pauli (stochastic Pauli) channel.
+        """Check if the noise channel is a Pauli (stochastic Pauli) channel.
 
         A Pauli channel has a diagonal Pauli transfer matrix (noise-only part).
         """
@@ -636,8 +617,7 @@ class Channel:
         return bool(jnp.allclose(ptm[mask], 0))
 
     def to_pauli_vector(self) -> Array:
-        """
-        Convert the noise channel to a Pauli error probability vector.
+        """Convert the noise channel to a Pauli error probability vector.
 
         Returns the vector of probabilities for each Pauli error in lexicographic
         order (II, IX, IY, IZ, XI, XX, ...). The vector sums to 1.0.
@@ -668,8 +648,7 @@ class Channel:
     # ──────────────────────────────────────────────
 
     def plot(self, only_noise: bool = True, show_identity: bool = False) -> Figure:
-        """
-        Plot the Pauli transfer matrix of the channel.
+        """Plot the Pauli transfer matrix of the channel.
 
         :param only_noise: If True, plot the noise-only channel (gate unitary factored out).
             If False, plot the full channel including the gate unitary.
@@ -707,8 +686,7 @@ class Channel:
     # ──────────────────────────────────────────────
 
     def to_json(self) -> str:
-        """
-        Serialize Channel to a JSON string.
+        """Serialize Channel to a JSON string.
 
         :return: JSON string representation.
         """
@@ -727,16 +705,15 @@ class Channel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: type[Channel], json_str: str) -> "Channel":
-        """
-        Deserialize a Channel from a JSON string.
+    def from_json(cls: type[Channel], json_str: str) -> Channel:
+        """Deserialize a Channel from a JSON string.
 
         :param json_str: JSON string as produced by :meth:`to_json`.
         :return: Channel instance.
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
-        assert isinstance(inst, Gate)
+        assert isinstance(inst, Gate)  # noqa: S101
 
         superop_data = data["superop"]
         flat = superop_data["_complex_array"]
@@ -779,9 +756,8 @@ class Channel:
 
     __hash__ = None  # type: ignore[assignment]
 
-    def __matmul__(self, other: "Channel") -> "Channel":
-        """
-        Compose two channels: ``channel_B @ channel_A``.
+    def __matmul__(self, other: Channel) -> Channel:
+        r"""Compose two channels: ``channel_B @ channel_A``.
 
         Both channels share the same gate instruction. The composition factors
         out one copy of the gate unitary so the result represents the sequential
@@ -801,9 +777,8 @@ class Channel:
         composed_superop = qx.to_superop(self.process @ u_dag_superop @ other.process)
         return replace(self, process=composed_superop)
 
-    def __or__(self, other: "Channel | MeasurementChannel") -> "CycleChannel":
-        """
-        Tensor product of two channels on disjoint qubits, producing a CycleChannel.
+    def __or__(self, other: Channel | MeasurementChannel) -> CycleChannel:
+        """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
 
         The result represents a cycle containing both operations acting in parallel
         on disjoint qubits. The DefCircuit encodes the parallel operations as
@@ -826,8 +801,7 @@ class Channel:
 
 @dataclass(frozen=True)
 class MeasurementChannel:
-    """
-    A measurement noise channel attaches a quantum instrument to a specific measurement operation.
+    """A measurement noise channel attaches a quantum instrument to a specific measurement operation.
 
     The ``process`` field is a ``qx.QuantumInstrument`` which models both classification
     errors and post-measurement back-action.
@@ -856,9 +830,8 @@ class MeasurementChannel:
         fidelity: float,
         asymmetry: float = 0.0,
         dim: int = 2,
-    ) -> "MeasurementChannel":
-        """
-        Create a readout quantum instrument with optional asymmetry.
+    ) -> MeasurementChannel:
+        """Create a readout quantum instrument with optional asymmetry.
 
         Produces a perfectly QND measurement with the given classification fidelity.
         Error is distributed only between adjacent levels: P(j+1|j) and P(j|j+1).
@@ -900,9 +873,8 @@ class MeasurementChannel:
         inst: Measurement,
         confusion_matrix: Array,
         transition_matrix: Array,
-    ) -> "MeasurementChannel":
-        """
-        Create a MeasurementChannel from a confusion matrix and a transition matrix.
+    ) -> MeasurementChannel:
+        """Create a MeasurementChannel from a confusion matrix and a transition matrix.
 
         Provides independent control over measurement classification accuracy
         and post-measurement quantum state evolution.
@@ -935,9 +907,8 @@ class MeasurementChannel:
         theta: float = 0.0,
         phi: float = 0.0,
         sharpness: float = 1.0,
-    ) -> "MeasurementChannel":
-        """
-        Create a MeasurementChannel from a Bloch sphere measurement axis.
+    ) -> MeasurementChannel:
+        """Create a MeasurementChannel from a Bloch sphere measurement axis.
 
         The angles refer to the standard Bloch sphere notation.
         Theta=0, phi=0 is the Z axis (computational basis measurement).
@@ -963,9 +934,8 @@ class MeasurementChannel:
         dim: int,
         threshold: int,
         fidelity: float = 1.0,
-    ) -> "MeasurementChannel":
-        """
-        Create a MeasurementChannel for a binary discriminator.
+    ) -> MeasurementChannel:
+        """Create a MeasurementChannel for a binary discriminator.
 
         Models a measurement that confuses each state at or above ``threshold`` with
         the state one level below it. This is useful for measurements calibrated as
@@ -1061,8 +1031,7 @@ class MeasurementChannel:
     # ──────────────────────────────────────────────
 
     def plot(self) -> Figure:
-        """
-        Plot the quantum instrument using the quax visualization.
+        """Plot the quantum instrument using the quax visualization.
 
         Shows per-outcome superoperator matrices and the total CPTP channel.
 
@@ -1084,8 +1053,7 @@ class MeasurementChannel:
     # ──────────────────────────────────────────────
 
     def to_json(self) -> str:
-        """
-        Serialize MeasurementChannel to a JSON string.
+        """Serialize MeasurementChannel to a JSON string.
 
         :return: JSON string representation.
         """
@@ -1105,16 +1073,15 @@ class MeasurementChannel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: type[MeasurementChannel], json_str: str) -> "MeasurementChannel":
-        """
-        Deserialize a MeasurementChannel from a JSON string.
+    def from_json(cls: type[MeasurementChannel], json_str: str) -> MeasurementChannel:
+        """Deserialize a MeasurementChannel from a JSON string.
 
         :param json_str: JSON string as produced by :meth:`to_json`.
         :return: MeasurementChannel instance.
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
-        assert isinstance(inst, Measurement)
+        assert isinstance(inst, Measurement)  # noqa: S101
         measured_qudits = tuple(data["measured_qudits"])
 
         choi_list = []
@@ -1148,9 +1115,8 @@ class MeasurementChannel:
 
     __hash__ = None  # type: ignore[assignment]
 
-    def __matmul__(self, other: "MeasurementChannel") -> "MeasurementChannel":
-        """
-        Compose two measurement channels on the same qubit.
+    def __matmul__(self, other: MeasurementChannel) -> MeasurementChannel:
+        """Compose two measurement channels on the same qubit.
 
         Models sequential application: ``channel_B @ channel_A`` means
         apply ``channel_A`` first, then ``channel_B``.
@@ -1164,9 +1130,8 @@ class MeasurementChannel:
         composed = self.process @ other.process
         return replace(self, process=composed)
 
-    def __or__(self, other: "Channel | MeasurementChannel") -> "CycleChannel":
-        """
-        Tensor product of two channels on disjoint qubits, producing a CycleChannel.
+    def __or__(self, other: Channel | MeasurementChannel) -> CycleChannel:
+        """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
 
         :param other: Another Channel or MeasurementChannel on disjoint qubits.
         :return: A CycleChannel representing the tensor product.
@@ -1184,8 +1149,7 @@ class MeasurementChannel:
 
 @dataclass(frozen=True)
 class ResetChannel:
-    """
-    A reset noise channel attaches a superoperator to a specific reset operation.
+    """A reset noise channel attaches a superoperator to a specific reset operation.
 
     The ``process`` field is a ``qx.SuperOp`` which *includes* the ideal reset, so the channel
     replaces the reset instruction rather than being applied after it.
@@ -1207,9 +1171,8 @@ class ResetChannel:
         inst: Reset,
         fidelity: float,
         dim: int = 2,
-    ) -> "ResetChannel":
-        """
-        Create a ResetChannel with depolarizing noise scaled to the given process fidelity.
+    ) -> ResetChannel:
+        r"""Create a ResetChannel with depolarizing noise scaled to the given process fidelity.
 
         The ideal reset channel maps every state to :math:`|0\\rangle\\langle 0|`.  Noise is
         modelled as a depolarising channel applied after the ideal reset.
@@ -1256,7 +1219,7 @@ class ResetChannel:
 
     @cached_property
     def fidelity(self) -> float:
-        """Process fidelity of the reset channel relative to the ideal reset.
+        r"""Process fidelity of the reset channel relative to the ideal reset.
 
         Defined as :math:`F = \\mathrm{Tr}[\\Lambda_{\\mathrm{ideal}}^\\dagger \\Lambda] / d^2`
         where :math:`\\Lambda` is the Choi matrix of the noisy channel and
@@ -1283,8 +1246,7 @@ class ResetChannel:
     # ──────────────────────────────────────────────
 
     def plot(self) -> Figure:
-        """
-        Plot the Pauli transfer matrix of the reset channel.
+        """Plot the Pauli transfer matrix of the reset channel.
 
         :return: A Plotly Figure.
         """
@@ -1298,8 +1260,7 @@ class ResetChannel:
     # ──────────────────────────────────────────────
 
     def to_json(self) -> str:
-        """
-        Serialize ResetChannel to a JSON string.
+        """Serialize ResetChannel to a JSON string.
 
         :return: JSON string representation.
         """
@@ -1312,16 +1273,15 @@ class ResetChannel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: type[ResetChannel], json_str: str) -> "ResetChannel":
-        """
-        Deserialize a ResetChannel from a JSON string.
+    def from_json(cls: type[ResetChannel], json_str: str) -> ResetChannel:
+        """Deserialize a ResetChannel from a JSON string.
 
         :param json_str: JSON string as produced by :meth:`to_json`.
         :return: ResetChannel instance.
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
-        assert isinstance(inst, Reset)
+        assert isinstance(inst, Reset)  # noqa: S101
         superop_data = data["superop"]
         flat = superop_data["_complex_array"]
         shape = tuple(superop_data["shape"])
@@ -1354,8 +1314,7 @@ class ResetChannel:
 
 @dataclass(frozen=True)
 class CycleChannel:
-    """
-    A cycle noise channel attaches superoperators to a specific cycle.
+    """A cycle noise channel attaches superoperators to a specific cycle.
 
     Cycles can include gates and measurements. The constituent channels are stored
     directly, allowing fidelity metrics and serialization to be derived from them.
@@ -1367,7 +1326,7 @@ class CycleChannel:
     defcircuit: DefCircuit
     """The DefCircuit representing the logical cycle to which instruction represents."""
 
-    channels: tuple["Channel | MeasurementChannel", ...]
+    channels: tuple[Channel | MeasurementChannel, ...]
     """Constituent channels (one per operation in the cycle) on disjoint qubits."""
 
     # ──────────────────────────────────────────────
@@ -1425,8 +1384,7 @@ class CycleChannel:
     # ──────────────────────────────────────────────
 
     def to_json(self) -> str:
-        """
-        Serialize CycleChannel to a JSON string.
+        """Serialize CycleChannel to a JSON string.
 
         :return: JSON string representation.
         """
@@ -1439,9 +1397,8 @@ class CycleChannel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: type[CycleChannel], json_str: str) -> "CycleChannel":
-        """
-        Deserialize a CycleChannel from a JSON string.
+    def from_json(cls: type[CycleChannel], json_str: str) -> CycleChannel:
+        """Deserialize a CycleChannel from a JSON string.
 
         The ``inst`` and ``defcircuit`` fields are reconstructed from the constituent
         channels, consistent with how :func:`_build_cycle_channel` builds them.
@@ -1454,7 +1411,7 @@ class CycleChannel:
             "Channel": Channel,
             "MeasurementChannel": MeasurementChannel,
         }
-        constituent_channels: list["Channel | MeasurementChannel"] = [
+        constituent_channels: list[Channel | MeasurementChannel] = [
             _type_map[ch_data["type"]].from_json(ch_data["data"]) for ch_data in data["channels"]
         ]
         return _build_cycle_channel(constituent_channels)
@@ -1498,8 +1455,8 @@ def _channel_to_formal_inst(channel: Channel | MeasurementChannel) -> Gate | Mea
 
 
 def _build_cycle_channel(
-    channels: list["Channel | MeasurementChannel"],
-) -> "CycleChannel":
+    channels: list[Channel | MeasurementChannel],
+) -> CycleChannel:
     """Build a CycleChannel from a list of Channel/MeasurementChannel on disjoint qubits."""
     all_qubits = sorted(q for ch in channels for q in ch.qubits)
     cycle_name = "CYCLE"

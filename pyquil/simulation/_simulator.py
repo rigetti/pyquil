@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, List, Tuple
+from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -82,7 +82,7 @@ class ProgramSimulator:
     def __init__(
         self,
         program: Program,
-        qubits: List[int] | None = None,
+        qubits: list[int] | None = None,
         *,
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 0,
@@ -123,11 +123,11 @@ class ProgramSimulator:
         """Convert a memory map to a flat JAX parameter vector."""
         return self._linearize_fn(memory_map)
 
-    def resolve(self, params: Array) -> List[ResolvedOp]:
+    def resolve(self, params: Array) -> list[ResolvedOp]:
         """Resolve parameters into one operator per DAG node."""
         return self._resolve_fn(params)
 
-    def compress(self, resolved: List[ResolvedOp]) -> List[ResolvedOp]:
+    def compress(self, resolved: list[ResolvedOp]) -> list[ResolvedOp]:
         """Merge operators via greedy edge contraction."""
         return self._compress_fn(resolved)
 
@@ -157,7 +157,7 @@ class PureStateVectorSimulator(ProgramSimulator):
     def __init__(
         self,
         program: Program,
-        qubits: List[int] | None = None,
+        qubits: list[int] | None = None,
         *,
         max_subsystem_size: int = 0,
     ) -> None:
@@ -233,7 +233,7 @@ class DensityMatrixSimulator(ProgramSimulator):
     def __init__(
         self,
         program: Program,
-        qubits: List[int] | None = None,
+        qubits: list[int] | None = None,
         *,
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 0,
@@ -293,7 +293,7 @@ class TrajectorySimulator(ProgramSimulator):
     def __init__(
         self,
         program: Program,
-        qubits: List[int] | None = None,
+        qubits: list[int] | None = None,
         *,
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 0,
@@ -302,7 +302,7 @@ class TrajectorySimulator(ProgramSimulator):
         super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
         self._kraus_truncation_threshold = kraus_truncation_threshold
 
-    def adapt(self, compressed: List[ResolvedOp]) -> List[TrajectoryOp]:
+    def adapt(self, compressed: list[ResolvedOp]) -> list[TrajectoryOp]:
         """Convert compressed ops to trajectory-compatible types."""
         return adapt_for_trajectory(compressed, self._kraus_truncation_threshold)
 
@@ -310,7 +310,7 @@ class TrajectorySimulator(ProgramSimulator):
         self,
         params: Array,
         key: Array,
-    ) -> Tuple[qx.StateVector, Array]:
+    ) -> tuple[qx.StateVector, Array]:
         """Run trajectory simulation.
 
         :param params: Flat parameter vector from :meth:`linearize`.
@@ -330,7 +330,7 @@ class TrajectorySimulator(ProgramSimulator):
 
         return _apply_trajectory_operations(operations, psi, key)
 
-    def __call__(self, params: Array, key: Array) -> Tuple[qx.StateVector, Array]:
+    def __call__(self, params: Array, key: Array) -> tuple[qx.StateVector, Array]:
         return self.compute(params, key)
 
     def sample(
@@ -376,10 +376,10 @@ class TrajectorySimulator(ProgramSimulator):
 
 
 def _apply_trajectory_operations(
-    operations: List[TrajectoryOp],
+    operations: list[TrajectoryOp],
     psi: qx.StateVector,
     key: Array,
-) -> Tuple[qx.StateVector, Array]:
+) -> tuple[qx.StateVector, Array]:
     """Apply trajectory operations to a (batched) state vector.
 
     Dispatches each operation by type:
@@ -396,7 +396,7 @@ def _apply_trajectory_operations(
         measurement_outcomes has shape ``(*ensemble, n_measurements)`` with
         dtype int32.
     """
-    measurement_outcomes: List[Array] = []
+    measurement_outcomes: list[Array] = []
 
     n_stochastic = sum(1 for op, _ in operations if isinstance(op, (qx.KrausMap, qx.QuantumInstrument)))
 
@@ -437,21 +437,21 @@ def _apply_trajectory_operations(
 
 
 def _run_batched_trajectories(
-    operations: List[TrajectoryOp],
+    operations: list[TrajectoryOp],
     n_qubits: int,
     num_trajectories: int,
     batch_size: int,
     random_seed: int,
     keep_states: bool = True,
-    dims: Tuple[int, ...] | None = None,
-) -> Tuple[List[qx.StateVector] | None, List[Array]]:
+    dims: tuple[int, ...] | None = None,
+) -> tuple[list[qx.StateVector] | None, list[Array]]:
     """Run trajectory simulation in batches."""
     if dims is None:
         dims = (2,) * n_qubits
 
     key = jax.random.key(random_seed)
-    all_psis: List[qx.StateVector] = [] if keep_states else []
-    all_outcomes: List[Array] = []
+    all_psis: list[qx.StateVector] = [] if keep_states else []
+    all_outcomes: list[Array] = []
 
     remaining = num_trajectories
     batch_idx = 0

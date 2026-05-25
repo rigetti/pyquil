@@ -13,11 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-simulation._resolver module
-----------------------------
-
-Shared infrastructure for the density-matrix and state-vector simulators.
+"""Shared infrastructure for the density-matrix and state-vector simulators.
 
 This module provides the three front-end stages of the simulation pipeline:
 
@@ -34,7 +30,7 @@ It also provides shared utilities: DAG construction, dimension inference.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, List, Set, Tuple, Union, cast
+from typing import Any, Callable, Union, cast
 
 import jax.numpy as jnp
 import networkx as nx
@@ -42,10 +38,6 @@ import quax as qx
 from jax import Array
 
 from pyquil.api import MemoryMap
-from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import DefCircuit, Gate, Measurement, Reset, ResetQubit
-
 from pyquil.noise._channels import (
     Channel,
     CycleChannel,
@@ -56,6 +48,9 @@ from pyquil.noise._channels import (
 from pyquil.noise._noise_model import (
     NoiseModelLike,
 )
+from pyquil.quil import Program
+from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import DefCircuit, Gate, Measurement, Reset, ResetQubit
 from pyquil.transform import expand_defcircuit_body
 
 logger = logging.getLogger(__name__)
@@ -65,16 +60,16 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────
 
 # Resolved operations retain the most specific native quax type.
-ResolvedOp = Tuple[Union[qx.Unitary, qx.SuperOp, qx.KrausMap, qx.QuantumInstrument], Tuple[int, ...]]
+ResolvedOp = tuple[Union[qx.Unitary, qx.SuperOp, qx.KrausMap, qx.QuantumInstrument], tuple[int, ...]]
 RecipeOp = Union[qx.Unitary, qx.SuperOp, qx.KrausMap, qx.QuantumInstrument]
 RecipeCallable = Callable[[Array], RecipeOp]
-Recipe = Tuple[Union[RecipeOp, RecipeCallable], Tuple[int, ...]]
+Recipe = tuple[Union[RecipeOp, RecipeCallable], tuple[int, ...]]
 
 # Trajectory operations for the state-vector simulator.
-TrajectoryOp = Tuple[Union[qx.Unitary, qx.KrausMap, qx.QuantumInstrument], Tuple[int, ...]]
+TrajectoryOp = tuple[Union[qx.Unitary, qx.KrausMap, qx.QuantumInstrument], tuple[int, ...]]
 
 # Density-matrix operations.
-DensityMatrixOp = Tuple[qx.SuperOp, Tuple[int, ...]]
+DensityMatrixOp = tuple[qx.SuperOp, tuple[int, ...]]
 
 # Custom gate definitions.
 CustomGateMap = dict
@@ -119,7 +114,7 @@ def linearizer_from_program(program: Program) -> Linearizer:
     :return: A :class:`Linearizer` instance.
     """
     # Find registers written to by MEASURE — these are output registers, not params
-    measure_registers: Set[str] = set()
+    measure_registers: set[str] = set()
     for inst in program.instructions:
         if isinstance(inst, Measurement):
             cr = inst.classical_reg
@@ -127,7 +122,7 @@ def linearizer_from_program(program: Program) -> Linearizer:
                 measure_registers.add(cr.name)
 
     # Collect parameter references in program order
-    param_refs: List[Tuple[str, int]] = []
+    param_refs: list[tuple[str, int]] = []
     for inst in program.instructions:
         if isinstance(inst, Gate):
             for param in inst.params:
@@ -162,11 +157,11 @@ class Resolver:
 
     __slots__ = ("_resolve_fn", "dims")
 
-    def __init__(self, resolve_fn: Callable[[Array], List[ResolvedOp]], dims: Tuple[int, ...]) -> None:
+    def __init__(self, resolve_fn: Callable[[Array], list[ResolvedOp]], dims: tuple[int, ...]) -> None:
         self._resolve_fn = resolve_fn
         self.dims = dims
 
-    def __call__(self, params: Array) -> List[ResolvedOp]:
+    def __call__(self, params: Array) -> list[ResolvedOp]:
         return self._resolve_fn(params)
 
 
@@ -175,9 +170,9 @@ def _is_parameterized(inst: Gate) -> bool:
     return any(isinstance(p, MemoryReference) for p in inst.params)
 
 
-def _measure_registers(program: Program) -> Set[str]:
+def _measure_registers(program: Program) -> set[str]:
     """Return the set of register names that are targets of MEASURE instructions."""
-    regs: Set[str] = set()
+    regs: set[str] = set()
     for inst in program.instructions:
         if isinstance(inst, Measurement):
             cr = inst.classical_reg
@@ -189,9 +184,9 @@ def _measure_registers(program: Program) -> Set[str]:
 def resolver_from_program(
     program: Program,
     noise_model: NoiseModelLike | None,
-    qubit_indices: Dict[int, int],
+    qubit_indices: dict[int, int],
     custom_gates: CustomGateMap | None,
-) -> Tuple[Resolver, nx.DiGraph, List[int]]:
+) -> tuple[Resolver, nx.DiGraph, list[int]]:
     """Build a :class:`Resolver`, DAG, and node order from a program.
 
     The resolver accepts a flat parameter vector and produces one
@@ -227,7 +222,7 @@ def resolver_from_program(
     measure_regs = _measure_registers(program)
 
     # Extract DEFCIRCUIT definitions.
-    circuit_definitions: Dict[str, DefCircuit] = {}
+    circuit_definitions: dict[str, DefCircuit] = {}
     for inst in program.instructions:
         if isinstance(inst, DefCircuit):
             circuit_definitions[inst.name] = inst
@@ -235,12 +230,12 @@ def resolver_from_program(
     # ── Expand instructions, building DAG and recipes in one pass ──
 
     dag: nx.DiGraph = nx.DiGraph()
-    node_order: List[int] = []
-    last_on_qubit: Dict[int, int] = {}  # qubit_index → last node key
+    node_order: list[int] = []
+    last_on_qubit: dict[int, int] = {}  # qubit_index → last node key
 
     # Flat lists populated during instruction iteration.
-    expanded_insts: List[Gate | Measurement | ResetQubit | Reset] = []
-    expanded_channels: List[Channel | MeasurementChannel | None] = []
+    expanded_insts: list[Gate | Measurement | ResetQubit | Reset] = []
+    expanded_channels: list[Channel | MeasurementChannel | None] = []
 
     def _emit(
         inst: Gate | Measurement | ResetQubit | Reset, channel: Channel | MeasurementChannel | None = None
@@ -302,7 +297,7 @@ def resolver_from_program(
 
     # Assign parameter vector indices to each gate's MemoryReference params.
     param_counter = 0
-    gate_param_indices: Dict[int, List[int]] = {}
+    gate_param_indices: dict[int, list[int]] = {}
     for idx in node_order:
         inst = expanded_insts[idx]
         if isinstance(inst, Gate):
@@ -316,7 +311,7 @@ def resolver_from_program(
             gate_param_indices[idx] = indices
 
     # Pre-scan gate instructions to infer per-qudit dimensions.
-    qudit_dims: Dict[int, int] = {}  # qubit_index → dimension
+    qudit_dims: dict[int, int] = {}  # qubit_index → dimension
     for node_key in node_order:
         inst = expanded_insts[node_key]
         if isinstance(inst, Gate):
@@ -332,13 +327,13 @@ def resolver_from_program(
                 try:
                     unitary = get_instruction_unitary(inst, custom_gates=custom_gates)
                     op_dims = unitary.dims[0]
-                except Exception:
+                except Exception:  # noqa: S112
                     continue
             for slot, dim in zip(subsystem, op_dims):
                 if dim > qudit_dims.get(slot, 2):
                     qudit_dims[slot] = dim
 
-    recipes: List[Recipe] = []
+    recipes: list[Recipe] = []
 
     for node_key in node_order:
         inst = expanded_insts[node_key]
@@ -370,7 +365,7 @@ def resolver_from_program(
                     def _make_param_recipe(
                         gdef: object,
                         cp: list,
-                        pi: List[int],
+                        pi: list[int],
                     ) -> Callable[[Array], qx.Unitary]:
                         def recipe(params: Array) -> qx.Unitary:
                             resolved: list[Any] = []
@@ -420,8 +415,8 @@ def resolver_from_program(
                     dim = qudit_dims.get(q_idx, 2)
                     recipes.append((qx.gates.RESET(dim=dim), (q_idx,)))
 
-    def resolve(params: Array) -> List[ResolvedOp]:
-        ops: List[ResolvedOp] = []
+    def resolve(params: Array) -> list[ResolvedOp]:
+        ops: list[ResolvedOp] = []
         for op_or_fn, subsystem in recipes:
             if isinstance(op_or_fn, (qx.Unitary, qx.KrausMap, qx.SuperOp, qx.QuantumInstrument)):
                 ops.append((op_or_fn, subsystem))
@@ -449,8 +444,8 @@ def resolver_from_program(
 
 
 def adapt_for_density_matrix(
-    ops: List[ResolvedOp],
-) -> List[DensityMatrixOp]:
+    ops: list[ResolvedOp],
+) -> list[DensityMatrixOp]:
     """Convert resolved operations to ``(SuperOp, subsystem)`` pairs for density-matrix simulation.
 
     * ``Unitary`` → ``qx.to_superop(op)``
@@ -461,7 +456,7 @@ def adapt_for_density_matrix(
     :param ops: Resolved operations from :func:`build_resolver`.
     :return: List of ``(SuperOp, subsystem)`` pairs.
     """
-    result: List[DensityMatrixOp] = []
+    result: list[DensityMatrixOp] = []
     for op, subsystem in ops:
         if isinstance(op, qx.SuperOp):
             result.append((op, subsystem))
@@ -474,9 +469,9 @@ def adapt_for_density_matrix(
 
 
 def adapt_for_trajectory(
-    ops: List[ResolvedOp],
+    ops: list[ResolvedOp],
     kraus_truncation_threshold: float = 1e-6,
-) -> List[TrajectoryOp]:
+) -> list[TrajectoryOp]:
     """Convert resolved operations to trajectory-compatible types.
 
     * ``Unitary`` → pass through
@@ -488,7 +483,7 @@ def adapt_for_trajectory(
     :param kraus_truncation_threshold: Threshold for Kraus truncation.
     :return: List of ``(Unitary | KrausMap | QuantumInstrument, subsystem)`` pairs.
     """
-    result: List[TrajectoryOp] = []
+    result: list[TrajectoryOp] = []
     for op, subsystem in ops:
         if isinstance(op, qx.SuperOp):
             km = qx.truncate_kraus(qx.to_kraus(op), atol=kraus_truncation_threshold)
@@ -505,9 +500,9 @@ def adapt_for_trajectory(
 
 
 def _merge_ops(
-    ops_with_subsystems: List[ResolvedOp],
-    merged_subsystem: Tuple[int, ...],
-    dims: Tuple[int, ...],
+    ops_with_subsystems: list[ResolvedOp],
+    merged_subsystem: tuple[int, ...],
+    dims: tuple[int, ...],
 ) -> ResolvedOp:
     """Merge a sequence of operators into a single operator on the union subsystem.
 
@@ -542,7 +537,7 @@ def _merge_ops(
 
         accumulated = embedded if accumulated is None else embedded @ accumulated
 
-    assert accumulated is not None
+    assert accumulated is not None  # noqa: S101
     return accumulated, merged_subsystem
 
 
@@ -550,8 +545,8 @@ class _UnionFind:
     """Simple union-find (disjoint set) data structure for node grouping."""
 
     def __init__(self) -> None:
-        self._parent: Dict[int, int] = {}
-        self._rank: Dict[int, int] = {}
+        self._parent: dict[int, int] = {}
+        self._rank: dict[int, int] = {}
 
     def make_set(self, x: int) -> None:
         self._parent[x] = x
@@ -577,10 +572,10 @@ class _UnionFind:
 
 def compressor_from_dag(
     dag: nx.DiGraph,
-    node_order: List[int],
+    node_order: list[int],
     max_subsystem_size: int,
-    dims: Tuple[int, ...] = (),
-) -> Callable[[List[ResolvedOp]], List[ResolvedOp]]:
+    dims: tuple[int, ...] = (),
+) -> Callable[[list[ResolvedOp]], list[ResolvedOp]]:
     """Build a compressor that merges operators via greedy edge contraction.
 
     The algorithm:
@@ -603,7 +598,7 @@ def compressor_from_dag(
 
     if max_subsystem_size == 0 or n_original == 0:
         # No merging — pass through
-        def compress_passthrough(ops: List[ResolvedOp]) -> List[ResolvedOp]:
+        def compress_passthrough(ops: list[ResolvedOp]) -> list[ResolvedOp]:
             return ops
 
         logger.info(
@@ -618,7 +613,7 @@ def compressor_from_dag(
 
     # --- Greedy edge contraction ---
     uf = _UnionFind()
-    group_qubits: Dict[int, Set[int]] = {}  # root → set of qubit indices
+    group_qubits: dict[int, set[int]] = {}  # root → set of qubit indices
 
     for nk in node_order:
         uf.make_set(nk)
@@ -645,19 +640,19 @@ def compressor_from_dag(
                 del group_qubits[old_root]
 
     # --- Build merge plan ---
-    root_to_nodes: Dict[int, List[int]] = {}
+    root_to_nodes: dict[int, list[int]] = {}
     for nk in topo_order:
         root = uf.find(nk)
         root_to_nodes.setdefault(root, []).append(nk)
 
-    root_to_subsystem: Dict[int, Tuple[int, ...]] = {}
+    root_to_subsystem: dict[int, tuple[int, ...]] = {}
     for root, qubits in group_qubits.items():
         root_to_subsystem[root] = tuple(sorted(qubits))
 
-    node_key_to_idx: Dict[int, int] = {nk: i for i, nk in enumerate(node_order)}
+    node_key_to_idx: dict[int, int] = {nk: i for i, nk in enumerate(node_order)}
 
-    emit_order: List[Tuple[int, List[int], Tuple[int, ...]]] = []
-    emitted_roots: Set[int] = set()
+    emit_order: list[tuple[int, list[int], tuple[int, ...]]] = []
+    emitted_roots: set[int] = set()
     for nk in topo_order:
         root = uf.find(nk)
         if root not in emitted_roots:
@@ -686,8 +681,8 @@ def compressor_from_dag(
     )
 
     # --- Build compress closure ---
-    def compress(ops: List[ResolvedOp]) -> List[ResolvedOp]:
-        result: List[ResolvedOp] = []
+    def compress(ops: list[ResolvedOp]) -> list[ResolvedOp]:
+        result: list[ResolvedOp] = []
         for _, nodes, subsystem in emit_order:
             if len(nodes) == 1:
                 idx = node_key_to_idx[nodes[0]]
@@ -707,9 +702,9 @@ def compressor_from_dag(
 
 
 def infer_qudit_dims(
-    operations: List[ResolvedOp] | List[TrajectoryOp] | List[DensityMatrixOp],
+    operations: list[ResolvedOp] | list[TrajectoryOp] | list[DensityMatrixOp],
     n_qudits: int,
-) -> Tuple[int, ...]:
+) -> tuple[int, ...]:
     """Infer per-qudit dimensions from resolved operations.
 
     Starts with all registers at dimension 2 (qubit).  For each operation,
@@ -720,7 +715,7 @@ def infer_qudit_dims(
     :param n_qudits: Number of qudit slots.
     :return: Tuple of per-qudit dimensions, e.g. ``(2, 3, 2)``.
     """
-    qudit_dims: List[int] = [2] * n_qudits
+    qudit_dims: list[int] = [2] * n_qudits
     for op, subsystem in operations:
         # All quax operators expose dims as ((out_dims), (in_dims))
         op_dims = op.dims[0] if hasattr(op, "dims") else None

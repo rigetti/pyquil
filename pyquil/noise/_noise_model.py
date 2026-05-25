@@ -13,8 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Noise model container and program-level fidelity estimation.
+"""Noise model container and program-level fidelity estimation.
 
 This module defines:
 
@@ -34,24 +33,20 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import cached_property, reduce
 from operator import mul
 from typing import (
     TYPE_CHECKING,
-    Iterable,
     Protocol,
-    Sequence,
     overload,
     runtime_checkable,
 )
 
-import quax as qx
-
 from pyquil.external.rpcq import CompilerISA
-from pyquil.quilbase import Gate, Measurement, ResetQubit
-
 from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, ResetChannel
+from pyquil.quilbase import Gate, Measurement, ResetQubit
 
 if TYPE_CHECKING:
     from pyquil import Program
@@ -100,8 +95,7 @@ class NoiseModelLike(Protocol):
 
 @dataclass(frozen=True)
 class NoiseModel:
-    """
-    A noise model collects all the noise channels for a given quantum program.
+    """A noise model collects all the noise channels for a given quantum program.
 
     This includes gate channels, measurement channels, reset channels, and cycle channels.
 
@@ -141,8 +135,7 @@ class NoiseModel:
     def get_channel(
         self, inst: Gate | Measurement | ResetQubit
     ) -> Channel | MeasurementChannel | ResetChannel | CycleChannel | None:
-        """
-        Retrieve the noise channel associated with a specific instruction.
+        """Retrieve the noise channel associated with a specific instruction.
 
         :param inst: The instruction (gate, measurement, or reset) for which to retrieve the noise channel.
         :return: The noise channel associated with the instruction, or None if no channel is found.
@@ -154,9 +147,8 @@ class NoiseModel:
     # ──────────────────────────────────────────────
 
     @classmethod
-    def from_isa(cls: type[NoiseModel], compiler_isa: "CompilerISA") -> "NoiseModel":
-        """
-        Create a noise model from an instruction set architecture.
+    def from_isa(cls: type[NoiseModel], compiler_isa: CompilerISA) -> NoiseModel:
+        """Create a noise model from an instruction set architecture.
 
         Gate fidelities are converted to depolarizing channels and measurement
         errors are symmetric. Only gates with concrete numeric parameters are
@@ -233,8 +225,7 @@ class NoiseModel:
     # ──────────────────────────────────────────────
 
     def to_json(self) -> str:
-        """
-        Serialize NoiseModel to a JSON string.
+        """Serialize NoiseModel to a JSON string.
 
         :return: JSON string representation.
         """
@@ -247,9 +238,8 @@ class NoiseModel:
         return json.dumps({"channels": channel_data})
 
     @classmethod
-    def from_json(cls: type[NoiseModel], json_str: str) -> "NoiseModel":
-        """
-        Deserialize a NoiseModel from a JSON string.
+    def from_json(cls: type[NoiseModel], json_str: str) -> NoiseModel:
+        """Deserialize a NoiseModel from a JSON string.
 
         :param json_str: JSON string as produced by :meth:`to_json`.
         :return: NoiseModel instance.
@@ -283,9 +273,8 @@ class NoiseModel:
         """Hash based on id (NoiseModel is not value-hashable due to array contents)."""
         return id(self)
 
-    def __add__(self, other: "NoiseModel") -> "NoiseModel":
-        """
-        Combine two NoiseModels.
+    def __add__(self, other: NoiseModel) -> NoiseModel:
+        """Combine two NoiseModels.
 
         For channels with matching instructions, compose them (``channel_A @ channel_B``).
         For non-overlapping channels, include both.
@@ -325,7 +314,7 @@ NOISELESS: NoiseModelLike = NoiseModel()
 
 @dataclass(frozen=True)
 class DepolarizingNoiseModel:
-    """A noise model that applies uniform depolarizing noise to every gate.
+    r"""A noise model that applies uniform depolarizing noise to every gate.
 
     For any ``Gate`` instruction, returns a :class:`Channel` with the specified
     depolarizing constant.  Measurements and resets are treated as ideal.
@@ -392,8 +381,7 @@ class CompositeNoiseModel:
 
 
 def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> float:
-    """
-    Estimate the program fidelity for a given noise model.
+    """Estimate the program fidelity for a given noise model.
 
     Works by multiplying the gate process fidelities together. Readout noise
     is not considered.
