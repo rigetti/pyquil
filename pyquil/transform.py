@@ -52,11 +52,11 @@ def copy_everything_except_instructions(
                 program_definitions._program.add_instruction(inst)
 
     if include_kraus is True:
-        for inst in program.instructions:
-            if isinstance(inst, Pragma):
+        for kraus_inst in program.instructions:
+            if isinstance(kraus_inst, Pragma):
                 try:
-                    if inst.command == "ADD-KRAUS":
-                        program_definitions._program.add_instruction(inst)
+                    if kraus_inst.command == "ADD-KRAUS":
+                        program_definitions._program.add_instruction(kraus_inst)  # type: ignore[arg-type]
                 except Exception:
                     pass
 
@@ -93,7 +93,7 @@ def unparameterize(program: Program, memory_map: MemoryMap) -> Program:
             if len(inst.params) > 0:
                 unparameterized_program += Gate(
                     name=inst.name,
-                    params=[substitute(p, parameter_substitution_map) for p in inst.params],
+                    params=[substitute(p, parameter_substitution_map) for p in inst.params],  # type: ignore[arg-type]
                     qubits=inst.qubits,
                 )
             else:
@@ -128,9 +128,9 @@ def expand_defcircuit_body(
     for circuit_inst in defcircuit.instructions:
         if isinstance(circuit_inst, Gate):
             circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubits = [qarg_to_arg_map[qarg] for qarg in circuit_inst.qubits]
+            circuit_inst.qubits = [qarg_to_arg_map[qarg] for qarg in circuit_inst.qubits]  # type: ignore[index,misc]
             if hasattr(circuit_inst, "params"):
-                circuit_inst.params = [substitute(param, parg_to_arg_map) for param in circuit_inst.params]
+                circuit_inst.params = [substitute(param, parg_to_arg_map) for param in circuit_inst.params]  # type: ignore[arg-type]
             if circuit_inst.name in circuit_definitions:
                 yield from expand_defcircuit_body(
                     circuit_inst, circuit_definitions[circuit_inst.name], circuit_definitions
@@ -139,14 +139,14 @@ def expand_defcircuit_body(
                 yield circuit_inst
         elif isinstance(circuit_inst, Measurement):
             circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubit = qarg_to_arg_map[circuit_inst.qubit]
+            circuit_inst.qubit = qarg_to_arg_map[circuit_inst.qubit]  # type: ignore[index]
             yield circuit_inst
         elif isinstance(circuit_inst, ResetQubit):
             circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubit = qarg_to_arg_map[circuit_inst.qubit]
+            circuit_inst.qubit = qarg_to_arg_map[circuit_inst.qubit]  # type: ignore[index]
             yield circuit_inst
         else:
-            yield deepcopy(circuit_inst)
+            yield deepcopy(circuit_inst)  # type: ignore[misc]
 
 
 def expand_defcircuits(
@@ -203,7 +203,9 @@ def expand_defcircuits(
     expanded_instructions: List = []
     for inst in instructions:
         if isinstance(inst, Gate) and _should_expand(inst):
-            expanded_instructions.extend(expand_defcircuit_body(inst, circuit_definitions[inst.name], circuit_definitions))
+            expanded_instructions.extend(
+                expand_defcircuit_body(inst, circuit_definitions[inst.name], circuit_definitions)
+            )
         else:
             expanded_instructions.append(inst)
 

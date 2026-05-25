@@ -209,9 +209,7 @@ def measure_observables(
 
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and symmetrization != SymmetrizationLevel.EXHAUSTIVE:
-        raise ValueError(
-            "Readout calibration only currently works with exhaustive readout " "symmetrization turned on."
-        )
+        raise ValueError("Readout calibration only currently works with exhaustive readout symmetrization turned on.")
 
     # generate programs for each group of simultaneous settings.
     programs, meas_qubits = _generate_experiment_programs(tomo_experiment, reset)

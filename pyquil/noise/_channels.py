@@ -166,7 +166,7 @@ def get_instruction_unitary(
 
     # quax parametric gates may return Operator instead of Unitary; wrap if needed
     if not isinstance(result, qx.Unitary):
-        result = qx.Unitary.from_matrix(result.matrix, result.dims)  # type: ignore[union-attr]
+        result = qx.Unitary.from_matrix(result.matrix, result.dims)
     return result
 
 
@@ -310,7 +310,7 @@ class Channel:
 
         all_pauli_terms = tuple("".join(term) for term in product("IXYZ", repeat=num_qubits))
 
-        pauli_error_rates = []
+        pauli_error_rates: list[float] = []
         for term in reversed(all_pauli_terms):
             if term in pauli_noise:
                 error_rate = pauli_noise[term]
@@ -777,7 +777,7 @@ class Channel:
             return False
         return bool(jnp.isclose(float(qx.process_fidelity(self.process, other.process)), 1.0, atol=1e-9))
 
-    __hash__ = None
+    __hash__ = None  # type: ignore[assignment]
 
     def __matmul__(self, other: "Channel") -> "Channel":
         """
@@ -843,7 +843,7 @@ class MeasurementChannel:
     def qubits(self) -> list[int]:
         """The qubits which the measurement applies to."""
         qubit = self.inst.qubit
-        return [qubit.index if hasattr(qubit, "index") else int(qubit)]  # type: ignore[union-attr,arg-type]
+        return [qubit.index if hasattr(qubit, "index") else int(qubit)]
 
     # ──────────────────────────────────────────────
     # Constructors
@@ -1023,7 +1023,7 @@ class MeasurementChannel:
         Shape ``(num_outcomes, d_measured)``.
         Entry ``[i, j]`` is P(outcome i | prepared j).
         """
-        return self.process.confusion_matrix
+        return self.process.confusion_matrix  # type: ignore[no-any-return]
 
     @cached_property
     def transition_matrix(self) -> Array:
@@ -1032,7 +1032,7 @@ class MeasurementChannel:
         Shape ``(d, d)``. Entry ``[k, j]`` is P(ending in k | input j),
         marginalized over all measurement outcomes.
         """
-        return self.process.transition_matrix
+        return self.process.transition_matrix  # type: ignore[no-any-return]
 
     @cached_property
     def non_demolition_fidelity(self) -> float:
@@ -1146,7 +1146,7 @@ class MeasurementChannel:
             return False
         return bool(jnp.allclose(self.process.matrix, other.process.matrix, atol=1e-9))
 
-    __hash__ = None
+    __hash__ = None  # type: ignore[assignment]
 
     def __matmul__(self, other: "MeasurementChannel") -> "MeasurementChannel":
         """
@@ -1252,7 +1252,7 @@ class ResetChannel:
         qubit = self.inst.qubit
         if qubit is None:
             return []
-        return [qubit.index if hasattr(qubit, "index") else int(qubit)]  # type: ignore[union-attr,arg-type]
+        return [qubit.index if hasattr(qubit, "index") else int(qubit)]
 
     @cached_property
     def fidelity(self) -> float:
@@ -1349,7 +1349,7 @@ class ResetChannel:
             return False
         return bool(jnp.allclose(self.process.matrix, other.process.matrix, atol=1e-9))
 
-    __hash__ = None
+    __hash__ = None  # type: ignore[assignment]
 
 
 @dataclass(frozen=True)
@@ -1455,8 +1455,7 @@ class CycleChannel:
             "MeasurementChannel": MeasurementChannel,
         }
         constituent_channels: list["Channel | MeasurementChannel"] = [
-            _type_map[ch_data["type"]].from_json(ch_data["data"])  # type: ignore[index]
-            for ch_data in data["channels"]
+            _type_map[ch_data["type"]].from_json(ch_data["data"]) for ch_data in data["channels"]
         ]
         return _build_cycle_channel(constituent_channels)
 
@@ -1476,7 +1475,7 @@ class CycleChannel:
             return False
         return self.channels == other.channels
 
-    __hash__ = None
+    __hash__ = None  # type: ignore[assignment]
 
 
 def _channel_to_formal_inst(channel: Channel | MeasurementChannel) -> Gate | Measurement:
@@ -1510,7 +1509,7 @@ def _build_cycle_channel(
         name=cycle_name,
         parameters=[],
         qubits=[FormalArgument(f"q{q}") for q in all_qubits],
-        instructions=list(formal_insts),  # type: ignore[arg-type]
+        instructions=list(formal_insts),
     )
     inst = Gate(name=cycle_name, params=[], qubits=all_qubits)
     return CycleChannel(inst=inst, defcircuit=defcircuit, channels=tuple(channels))

@@ -46,13 +46,12 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
             if operation.node_count == 1:
                 if len(site.node_ids) != 1:
                     raise QCSISAParseError(
-                        f"operation {operation.name} has node count 1, but " f"site has {len(site.node_ids)} node_ids"
+                        f"operation {operation.name} has node count 1, but site has {len(site.node_ids)} node_ids"
                     )
                 operation_qubit = get_qubit(device, site.node_ids[0])
                 if operation_qubit is None:
                     raise QCSISAParseError(
-                        f"operation {operation.name} has node {site.node_ids[0]} "
-                        "but node not declared in architecture"
+                        f"operation {operation.name} has node {site.node_ids[0]} but node not declared in architecture"
                     )
 
                 if operation.name in qubit_operations_seen[operation_qubit.id]:
@@ -71,7 +70,7 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
             elif operation.node_count == 2:
                 if len(site.node_ids) != 2:
                     QCSISAParseError(
-                        f"operation {operation.name} has node count 2, but site " f"has {len(site.node_ids)} node_ids"
+                        f"operation {operation.name} has node count 2, but site has {len(site.node_ids)} node_ids"
                     )
 
                 operation_edge = get_edge(device, site.node_ids[0], site.node_ids[1])

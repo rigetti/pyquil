@@ -241,7 +241,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             self.initial_density = state_matrix
         else:
             raise ValueError(
-                "The state matrix is not valid. It must be Hermitian, trace one, " "and have non-negative eigenvalues."
+                "The state matrix is not valid. It must be Hermitian, trace one, and have non-negative eigenvalues."
             )
         return self
 

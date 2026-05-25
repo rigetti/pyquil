@@ -102,7 +102,7 @@ class QuantumComputer:
         """
         return self.compiler.quantum_processor.qubits()
 
-    def qubit_topology(self) -> nx.graph:
+    def qubit_topology(self) -> nx.Graph:
         """Return a NetworkX graph representation of this QuantumComputer's quantum_processor's qubit connectivity.
 
         See :py:func:`AbstractQuantumProcessor.qubit_topology` for more.
@@ -329,9 +329,7 @@ class QuantumComputer:
         :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
         if not isinstance(symm_type, int):
-            raise ValueError(
-                "Symmetrization options are indicated by an int. See " "the docstrings for more information."
-            )
+            raise ValueError("Symmetrization options are indicated by an int. See the docstrings for more information.")
 
         if meas_qubits is None:
             meas_qubits = list(program.get_qubit_indices())
@@ -438,12 +436,12 @@ def _parse_name(name: str, as_qvm: Optional[bool], noisy: Optional[bool]) -> tup
     if len(parts) >= 2 and parts[-2] == "noisy" and parts[-1] in ["qvm", "pyqvm"]:
         if as_qvm is not None and (not as_qvm):
             raise ValueError(
-                "The provided qc name indicates you are getting a noisy QVM, " "but you have specified `as_qvm=False`"
+                "The provided qc name indicates you are getting a noisy QVM, but you have specified `as_qvm=False`"
             )
 
         if noisy is not None and (not noisy):
             raise ValueError(
-                "The provided qc name indicates you are getting a noisy QVM, " "but you have specified `noisy=False`"
+                "The provided qc name indicates you are getting a noisy QVM, but you have specified `noisy=False`"
             )
 
         qvm_type = parts[-1]
@@ -454,7 +452,7 @@ def _parse_name(name: str, as_qvm: Optional[bool], noisy: Optional[bool]) -> tup
     if len(parts) >= 1 and parts[-1] in ["qvm", "pyqvm"]:
         if as_qvm is not None and (not as_qvm):
             raise ValueError(
-                "The provided qc name indicates you are getting a QVM, " "but you have specified `as_qvm=False`"
+                "The provided qc name indicates you are getting a QVM, but you have specified `as_qvm=False`"
             )
         qvm_type = parts[-1]
         if noisy is None:

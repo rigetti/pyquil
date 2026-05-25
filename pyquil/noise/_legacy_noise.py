@@ -383,7 +383,7 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> tup
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
 
     raise NoisyGateUndefined(
-        f"Undefined gate and params: {gate_name}{params}\n" "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
+        f"Undefined gate and params: {gate_name}{params}\nPlease restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
     )
 
 
@@ -805,5 +805,3 @@ def _run(qc: "PyquilApiQuantumComputer", program: "Program") -> list[list[int]]:
     if bitstrings is None:
         raise ValueError("No readout data found in result.")
     return cast(list[list[int]], bitstrings.tolist())
-
-

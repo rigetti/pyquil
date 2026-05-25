@@ -414,7 +414,7 @@ class Experiment:
             zeros = np.zeros(num_meas_registers)
             for idx, r in enumerate(symm_registers):
                 zeros[r] = a[idx]
-            memory_maps.append({f"{label}": list(zeros)})
+            memory_maps.append({f"{label}": zeros.tolist()})
         return memory_maps
 
     def generate_calibration_experiment(self) -> "Experiment":

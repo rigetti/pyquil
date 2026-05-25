@@ -55,6 +55,7 @@ from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, Re
 
 if TYPE_CHECKING:
     from pyquil import Program
+    from pyquil.paulis import PauliSum, PauliTerm
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +127,7 @@ class NoiseModel:
         self,
     ) -> dict[Gate | Measurement | ResetQubit, Channel | MeasurementChannel | ResetChannel | CycleChannel]:
         """Map from instruction to channel for fast lookup."""
-        return {ch.inst: ch for ch in self.channels}
+        return {ch.inst: ch for ch in self.channels}  # type: ignore[misc]
 
     @overload
     def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...
@@ -265,7 +266,7 @@ class NoiseModel:
             ch_cls = _type_map.get(ch_data["type"])
             if ch_cls is None:
                 raise ValueError(f"Unknown channel type: {ch_data['type']}")
-            channels.append(ch_cls.from_json(ch_data["data"]))
+            channels.append(ch_cls.from_json(ch_data["data"]))  # type: ignore[attr-defined]
         return cls(channels=channels)
 
     # ──────────────────────────────────────────────
@@ -304,7 +305,7 @@ class NoiseModel:
                 # Both have a channel for this instruction — compose them
                 # (only same-type composition is defined)
                 composed = mine @ theirs  # type: ignore[operator]
-                combined.append(composed)  # type: ignore[arg-type]
+                combined.append(composed)
             elif mine is not None:
                 combined.append(mine)
             elif theirs is not None:
@@ -427,7 +428,7 @@ def _light_cone_program(program: Program, qubits: list[int]) -> Program:
     relevant_qubits = set(qubits)
     included: list[Gate] = []
     for inst in reversed(gate_instructions):
-        inst_qubits = {q.index for q in inst.qubits}
+        inst_qubits = {q.index for q in inst.qubits}  # type: ignore[union-attr]
         if inst_qubits & relevant_qubits:
             included.append(inst)
             relevant_qubits |= inst_qubits
@@ -440,7 +441,7 @@ def _light_cone_program(program: Program, qubits: list[int]) -> Program:
 def estimate_program_observable_fidelity(
     program: Program,
     noise_model: NoiseModelLike,
-    observable: "PauliSum" | "PauliTerm",
+    observable: PauliSum | PauliTerm,
 ) -> float:
     """Estimate program fidelity restricted to the backward light cone of *observable*.
 
@@ -459,6 +460,6 @@ def estimate_program_observable_fidelity(
     if isinstance(observable, PauliTerm):
         observable = PauliSum(terms=[observable])
 
-    qubits = [int(q) for term in observable.terms for q, _ in term.operations_as_set()]
+    qubits = [int(q) for term in observable.terms for q, _ in term.operations_as_set()]  # type: ignore[arg-type]
     reduced_program = _light_cone_program(program, qubits)
     return estimate_program_fidelity(reduced_program, noise_model)

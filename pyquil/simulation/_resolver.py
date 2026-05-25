@@ -234,7 +234,7 @@ def resolver_from_program(
 
     # ── Expand instructions, building DAG and recipes in one pass ──
 
-    dag = nx.DiGraph()
+    dag: nx.DiGraph = nx.DiGraph()
     node_order: List[int] = []
     last_on_qubit: Dict[int, int] = {}  # qubit_index → last node key
 
@@ -242,7 +242,9 @@ def resolver_from_program(
     expanded_insts: List[Gate | Measurement | ResetQubit | Reset] = []
     expanded_channels: List[Channel | MeasurementChannel | None] = []
 
-    def _emit(inst: Gate | Measurement | ResetQubit | Reset, channel: Channel | MeasurementChannel | None = None) -> None:
+    def _emit(
+        inst: Gate | Measurement | ResetQubit | Reset, channel: Channel | MeasurementChannel | None = None
+    ) -> None:
         """Emit an instruction: add a DAG node and record the channel."""
         if isinstance(inst, Gate):
             qubits = tuple(qubit_indices[q] for q in inst.get_qubit_indices())
@@ -270,8 +272,8 @@ def resolver_from_program(
                 ch = None
             _emit(inst, ch)
         elif isinstance(inst, Measurement):
-            ch = noise_model.get_channel(inst) if noise_model is not None else None
-            _emit(inst, ch if isinstance(ch, MeasurementChannel) else None)
+            ch_m: MeasurementChannel | None = noise_model.get_channel(inst) if noise_model is not None else None
+            _emit(inst, ch_m if isinstance(ch_m, MeasurementChannel) else None)
         else:
             _emit(inst)
 
@@ -319,7 +321,7 @@ def resolver_from_program(
         inst = expanded_insts[node_key]
         if isinstance(inst, Gate):
             subsystem = dag.nodes[node_key]["qubits"]
-            channel = expanded_channels[node_key]
+            channel = expanded_channels[node_key]  # type: ignore[assignment]
             if channel is None and noise_model is not None:
                 channel = noise_model.get_channel(inst)
             if channel is not None and isinstance(channel, Channel):
@@ -344,15 +346,15 @@ def resolver_from_program(
 
         match inst:
             case Gate():
-                channel = expanded_channels[node_key]
-                if channel is None and noise_model is not None:
-                    channel = noise_model.get_channel(inst)
+                channel2: Channel | MeasurementChannel | CycleChannel | None = expanded_channels[node_key]
+                if channel2 is None and noise_model is not None:
+                    channel2 = noise_model.get_channel(inst)
 
-                if channel is not None and isinstance(channel, Channel):
-                    recipes.append((channel.process, subsystem))
-                elif channel is not None and isinstance(channel, MeasurementChannel):
+                if channel2 is not None and isinstance(channel2, Channel):
+                    recipes.append((channel2.process, subsystem))
+                elif channel2 is not None and isinstance(channel2, MeasurementChannel):
                     raise ValueError(f"MeasurementChannel cannot be applied to expanded gate {inst}.")
-                elif channel is not None and isinstance(channel, CycleChannel):
+                elif channel2 is not None and isinstance(channel2, CycleChannel):
                     raise ValueError(f"CycleChannel for {inst.name} was not expanded before resolver construction.")
                 elif _is_parameterized(inst):
                     gate_name = inst.name
@@ -371,13 +373,13 @@ def resolver_from_program(
                         pi: List[int],
                     ) -> Callable[[Array], qx.Unitary]:
                         def recipe(params: Array) -> qx.Unitary:
-                            resolved = []
+                            resolved: list[Any] = []
                             for p, pv in zip(cp, pi):
                                 if pv >= 0:
                                     resolved.append(params[pv])
                                 else:
                                     resolved.append(float(p.real) if hasattr(p, "real") else float(p))
-                            result = gdef(*resolved) if callable(gdef) else gdef  # type: ignore[operator]
+                            result = gdef(*resolved) if callable(gdef) else gdef
                             if not isinstance(result, qx.Unitary):
                                 result = cast(Any, result)
                                 result = qx.Unitary.from_matrix(result.matrix, result.dims)
@@ -493,7 +495,7 @@ def adapt_for_trajectory(
             result.append((km, subsystem))
         else:
             # Unitary, KrausMap, QuantumInstrument — pass through
-            result.append((op, subsystem))  # type: ignore[arg-type]
+            result.append((op, subsystem))
     return result
 
 

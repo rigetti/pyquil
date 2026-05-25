@@ -91,9 +91,7 @@ def merge_disjoint_experiments(experiments: list[Experiment], group_merged_setti
     used_qubits: set[int] = set()
     for expt in experiments:
         if expt.program.get_qubits().intersection(used_qubits):
-            raise ValueError(
-                "Experiment programs act on some shared set of qubits and cannot be " "merged unambiguously."
-            )
+            raise ValueError("Experiment programs act on some shared set of qubits and cannot be merged unambiguously.")
         used_qubits = used_qubits.union(cast(set[int], expt.program.get_qubits()))
 
     # get a flat list of all settings, to be regrouped later
@@ -115,7 +113,7 @@ def merge_disjoint_experiments(experiments: list[Experiment], group_merged_setti
 
 def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
     """Construct a graph where an edge signifies two experiments are diagonal in a TPB."""
-    g = nx.Graph()
+    g: nx.Graph = nx.Graph()
     for expt in experiments:
         if len(expt) != 1:
             raise ValueError("There must be a single set of ExperimentSettings for each Experiment.")
