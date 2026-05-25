@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import jax
 import jax.numpy as jnp
@@ -131,7 +131,7 @@ class ProgramSimulator:
         """Merge operators via greedy edge contraction."""
         return self._compress_fn(resolved)
 
-    def compute(self, params: Array, **kwargs):
+    def compute(self, params: Array, **kwargs: Any) -> Any:
         """Compute the simulation result.  Subclasses must override."""
         raise NotImplementedError
 
@@ -171,7 +171,7 @@ class PureStateVectorSimulator(ProgramSimulator):
             if isinstance(inst, (Reset, ResetQubit)):
                 raise ValueError(f"PureStateVectorSimulator does not support resets.  Found: {inst}")
 
-    def compute(self, params: Array) -> qx.StateVector:
+    def compute(self, params: Array) -> qx.StateVector:  # type: ignore[override]
         """Compute the final state vector.
 
         :param params: Flat parameter vector from :meth:`linearize`.
@@ -241,7 +241,7 @@ class DensityMatrixSimulator(ProgramSimulator):
         super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
         self._rho0 = qx.zero_state_matrix(dims=self.dims)
 
-    def compute(self, params: Array) -> qx.DensityMatrix:
+    def compute(self, params: Array) -> qx.DensityMatrix:  # type: ignore[override]
         """Compute the final density matrix.
 
         :param params: Flat parameter vector from :meth:`linearize`.
@@ -306,7 +306,7 @@ class TrajectorySimulator(ProgramSimulator):
         """Convert compressed ops to trajectory-compatible types."""
         return adapt_for_trajectory(compressed, self._kraus_truncation_threshold)
 
-    def compute(
+    def compute(  # type: ignore[override]
         self,
         params: Array,
         key: Array,

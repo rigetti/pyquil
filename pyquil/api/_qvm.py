@@ -43,7 +43,7 @@ def check_qvm_version(version: str) -> None:
     major, minor = map(int, version.split(".")[:2])
     if major == 1 and minor < 8:
         raise QVMVersionMismatch(
-            "Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you " f"have QVM {version} and pyquil {pyquil_version}"
+            f"Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you have QVM {version} and pyquil {pyquil_version}"
         )
 
 

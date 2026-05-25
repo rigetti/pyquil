@@ -286,7 +286,7 @@ def split_on_terminal_measures(
             elif isinstance(instr, Pragma):
                 if instr.command == PRAGMA_END_GROUP:
                     warn(
-                        "Alignment of terminal MEASURE operations may" "conflict with gate group declaration.",
+                        "Alignment of terminal MEASURE operations mayconflict with gate group declaration.",
                         stacklevel=2,
                     )
                     in_group = True
@@ -347,7 +347,7 @@ class DiagramBuilder:
                 self._build_measure()
             elif isinstance(instr, Gate):
                 if "FORKED" in instr.modifiers:
-                    raise ValueError("LaTeX output does not currently support" f"FORKED modifiers: {instr}.")
+                    raise ValueError(f"LaTeX output does not currently supportFORKED modifiers: {instr}.")
                 # the easy case is 1q operations
                 if len(instr.qubits) == 1:
                     self._build_1q_unitary()
@@ -357,7 +357,7 @@ class DiagramBuilder:
                     else:
                         self._build_generic_unitary()
             elif isinstance(instr, UNSUPPORTED_INSTRUCTION_CLASSES):
-                raise ValueError("LaTeX output does not currently support" f"the following instruction: {instr.out()}")
+                raise ValueError(f"LaTeX output does not currently supportthe following instruction: {instr.out()}")
             else:
                 self.index += 1
 

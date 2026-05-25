@@ -405,9 +405,7 @@ class PauliTerm:
         :return: PauliTerm
         """
         if not all([isinstance(op, tuple) for op in terms_list]):
-            raise TypeError(
-                "The type of terms_list should be a list of (name, index) " "tuples suitable for PauliTerm()."
-            )
+            raise TypeError("The type of terms_list should be a list of (name, index) tuples suitable for PauliTerm().")
 
         pterm = PauliTerm("I", 0)
         if not all([op[0] in PAULI_OPS for op in terms_list]):

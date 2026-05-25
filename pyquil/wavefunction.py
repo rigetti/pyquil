@@ -48,7 +48,7 @@ class Wavefunction:
         self.amplitudes: np.ndarray = np.asarray(amplitude_vector)
         sumprob = np.sum(self.probabilities())
         if not np.isclose(sumprob, 1.0):
-            raise ValueError("The wavefunction is not normalized. " f"The probabilities sum to {sumprob} instead of 1")
+            raise ValueError(f"The wavefunction is not normalized. The probabilities sum to {sumprob} instead of 1")
 
     @staticmethod
     def zeros(qubit_num: int) -> "Wavefunction":

@@ -306,7 +306,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
             elif mod == "CONTROLLED":
                 child = _strip_modifiers(gate, limit=1)
                 matrix = _gate_matrix(child)
-                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)  # type: ignore
+                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)
             elif mod == "FORKED":
                 if len(gate.params) % 2 != 0:
                     raise ValueError("FORKED gates must have an even number of parameters.")

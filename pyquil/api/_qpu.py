@@ -97,8 +97,7 @@ def _extract_memory_regions(
         region_width = memory_descriptors[mref.name].length
         if end > region_width:
             raise ValueError(
-                f"Attempted to fill {mref.name}[{mref.offset}, {end})"
-                f"but the declared region has width {region_width}."
+                f"Attempted to fill {mref.name}[{mref.offset}, {end})but the declared region has width {region_width}."
             )
 
         regions[mref.name][:, mref.offset : end] = buf

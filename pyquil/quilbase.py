@@ -743,7 +743,9 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
             raise TypeError("Matrix argument must be a list or NumPy array/matrix")
 
         if not _is_perfect_power(rows):
-            raise ValueError(f"Dimension of matrix must be a perfect power of an integer (e.g. 2, 3, 4, 8, 9, ...), got {rows}")
+            raise ValueError(
+                f"Dimension of matrix must be a perfect power of an integer (e.g. 2, 3, 4, 8, 9, ...), got {rows}"
+            )
 
         if not contains_parameters:
             np_matrix = np.asarray(matrix)
@@ -761,8 +763,8 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         For example, `mygate.get_constructor()(1) applies the gate to qubit 1.`
         """
         if self.parameters:
-            return lambda *params: lambda *qubits: Gate(
-                name=self.name, params=list(params), qubits=list(map(unpack_qubit, qubits))
+            return lambda *params: (
+                lambda *qubits: Gate(name=self.name, params=list(params), qubits=list(map(unpack_qubit, qubits)))
             )
         else:
             return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
