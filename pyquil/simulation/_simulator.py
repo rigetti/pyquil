@@ -38,8 +38,10 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import quax as qx
 from jax import Array
+from jax.sharding import Mesh, NamedSharding, PartitionSpec
 
 from pyquil.api import MemoryMap
 from pyquil.noise._channels import get_custom_gates_from_program
@@ -288,7 +290,7 @@ class TrajectorySimulator(ProgramSimulator):
     outcomes.
     """
 
-    __slots__ = ("_kraus_truncation_threshold",)
+    __slots__ = ("_kraus_truncation_threshold", "_devices")
 
     def __init__(
         self,
@@ -298,9 +300,11 @@ class TrajectorySimulator(ProgramSimulator):
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 0,
         kraus_truncation_threshold: float = 1e-6,
+        devices: list[jax.Device] | None = None,
     ) -> None:
         super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
         self._kraus_truncation_threshold = kraus_truncation_threshold
+        self._devices = devices if devices is not None else jax.devices()
 
     def adapt(self, compressed: list[ResolvedOp]) -> list[TrajectoryOp]:
         """Convert compressed ops to trajectory-compatible types."""
@@ -343,11 +347,14 @@ class TrajectorySimulator(ProgramSimulator):
         """Run trajectory simulation in batches, returning only measurement outcomes.
 
         State vectors are discarded after each batch, making this scalable
-        to arbitrarily many trajectories.
+        to arbitrarily many trajectories.  When multiple devices are
+        available, each batch is sharded across them so that every device
+        processes ``batch_size // n_devices`` trajectories concurrently.
 
         :param params: Flat parameter vector from :meth:`linearize`.
         :param num_trajectories: Total number of trajectories to simulate.
-        :param batch_size: Maximum number of trajectories per batch.
+        :param batch_size: Maximum number of trajectories per batch
+            (total across all devices).
         :param random_seed: Seed for the JAX PRNG.
         :return: Measurement outcomes with shape ``(num_trajectories, n_measurements)``.
         """
@@ -363,6 +370,7 @@ class TrajectorySimulator(ProgramSimulator):
             random_seed,
             keep_states=False,
             dims=self.dims,
+            devices=self._devices,
         )
 
         if len(all_outcomes) == 1:
@@ -388,6 +396,10 @@ def _apply_trajectory_operations(
     - ``qx.KrausMap``: probabilistic Kraus operator sampling
     - ``qx.QuantumInstrument``: measurement with outcome recording
 
+    Key generation is sharding-friendly: per-operation keys are derived
+    lazily via ``jax.random.fold_in`` so that the key array is never
+    materialised in full on a single device.
+
     :param operations: Ordered list of (operator, subsystem) pairs.
     :param psi: Initial state vector, optionally batched via ensemble dimension.
     :param key: JAX PRNG key (scalar typed key). Will be split internally to
@@ -398,33 +410,42 @@ def _apply_trajectory_operations(
     """
     measurement_outcomes: list[Array] = []
 
-    n_stochastic = sum(1 for op, _ in operations if isinstance(op, (qx.KrausMap, qx.QuantumInstrument)))
-
     ensemble_size = psi.ensemble_size
 
-    if n_stochastic > 0:
-        if ensemble_size:
-            n_traj = ensemble_size[0]
-            all_keys = jax.random.split(key, n_stochastic * n_traj)
-            all_keys = all_keys.reshape(n_stochastic, n_traj)
+    # Derive per-trajectory base keys once.  When the state is sharded
+    # across devices the resulting key array inherits the same sharding,
+    # so each device only materialises its own slice.
+    if ensemble_size:
+        if key.ndim > 0:
+            # Already per-trajectory keys (e.g. from multi-device sharding
+            # or batched ``compute()``).
+            per_traj_keys = key
         else:
-            all_keys = jax.random.split(key, n_stochastic)
+            per_traj_keys = jax.random.split(key, ensemble_size[0])
+    else:
+        per_traj_keys = None
 
-    key_idx = 0
+    stochastic_idx = 0
 
     for op, subsystem in operations:
         match op:
             case qx.Unitary():
                 psi = qx.targeted_apply_unitary(op, psi, subsystem)
             case qx.KrausMap():
-                op_keys = all_keys[key_idx]
+                if per_traj_keys is not None:
+                    op_keys = jax.vmap(lambda k: jax.random.fold_in(k, stochastic_idx))(per_traj_keys)
+                else:
+                    op_keys = jax.random.fold_in(key, stochastic_idx)
                 psi = qx.targeted_apply_kraus_map_trajectory(op, psi, op_keys, subsystem)
-                key_idx += 1
+                stochastic_idx += 1
             case qx.QuantumInstrument():
-                op_keys = all_keys[key_idx]
+                if per_traj_keys is not None:
+                    op_keys = jax.vmap(lambda k: jax.random.fold_in(k, stochastic_idx))(per_traj_keys)
+                else:
+                    op_keys = jax.random.fold_in(key, stochastic_idx)
                 psi, outcome = qx.targeted_apply_instrument_to_state_vector(op, psi, op_keys, subsystem)
                 measurement_outcomes.append(outcome)
-                key_idx += 1
+                stochastic_idx += 1
             case _:
                 raise TypeError(f"Unsupported operator type: {type(op)}")
 
@@ -436,6 +457,20 @@ def _apply_trajectory_operations(
     return psi, outcomes
 
 
+def _make_mesh(devices: list[jax.Device] | None) -> Mesh | None:
+    """Build a 1-D ``Mesh`` over *devices*, or ``None`` for single-device."""
+    if devices is None:
+        devices = jax.devices()
+    if len(devices) <= 1:
+        return None
+    return Mesh(np.array(devices), axis_names=("traj",))
+
+
+def _round_up_to(n: int, divisor: int) -> int:
+    """Round *n* up to the nearest multiple of *divisor*."""
+    return ((n + divisor - 1) // divisor) * divisor
+
+
 def _run_batched_trajectories(
     operations: list[TrajectoryOp],
     n_qubits: int,
@@ -444,10 +479,20 @@ def _run_batched_trajectories(
     random_seed: int,
     keep_states: bool = True,
     dims: tuple[int, ...] | None = None,
+    devices: list[jax.Device] | None = None,
 ) -> tuple[list[qx.StateVector] | None, list[Array]]:
-    """Run trajectory simulation in batches."""
+    """Run trajectory simulation in batches, optionally sharded across devices.
+
+    When *devices* contains more than one device a :class:`jax.sharding.Mesh`
+    is constructed and both the initial state vector and PRNG keys are sharded
+    along the trajectory (ensemble) axis.  XLA's SPMD partitioner then
+    distributes the work so that each device processes its own slice.
+    """
     if dims is None:
         dims = (2,) * n_qubits
+
+    mesh = _make_mesh(devices)
+    n_devices = len(mesh.devices.flat) if mesh is not None else 1
 
     key = jax.random.key(random_seed)
     all_psis: list[qx.StateVector] = [] if keep_states else []
@@ -458,20 +503,46 @@ def _run_batched_trajectories(
     t_total = 0.0
     while remaining > 0:
         this_batch = min(remaining, batch_size)
+
+        # Pad to a multiple of n_devices so the shard split is even.
+        padded_batch = _round_up_to(this_batch, n_devices) if n_devices > 1 else this_batch
+        n_pad = padded_batch - this_batch
+
         key, batch_key = jax.random.split(key)
 
-        if this_batch == 1:
+        if padded_batch == 1:
             psi = qx.zero_state_vector(dims=dims)
         else:
-            psi = qx.zero_state_vector(dims=dims, ensemble_size=(this_batch,))
+            psi = qx.zero_state_vector(dims=dims, ensemble_size=(padded_batch,))
+
+        # Shard state and key across devices when a mesh is available.
+        if mesh is not None:
+            sharding = NamedSharding(mesh, PartitionSpec("traj"))  # type: ignore[no-untyped-call]
+            psi = qx.StateVector.from_matrix(
+                jax.device_put(psi.matrix, sharding),
+                psi.dims,
+            )
+            # Split a per-trajectory key vector and shard it.
+            batch_keys = jax.random.split(batch_key, padded_batch)
+            batch_keys = jax.device_put(batch_keys, sharding)
+        else:
+            batch_keys = batch_key
 
         t0 = time.perf_counter()
-        psi_out, outcomes = _apply_trajectory_operations(operations, psi, batch_key)
+        psi_out, outcomes = _apply_trajectory_operations(operations, psi, batch_keys)
         psi_out.matrix.block_until_ready()
         t1 = time.perf_counter()
         t_total += t1 - t0
 
-        if this_batch == 1:
+        # Strip padding rows.
+        if n_pad > 0:
+            psi_out = qx.StateVector.from_matrix(
+                psi_out.matrix[:this_batch],
+                psi_out.dims,
+            )
+            outcomes = outcomes[:this_batch]
+
+        if this_batch == 1 and padded_batch == 1:
             psi_out = qx.StateVector.from_matrix(
                 psi_out.matrix[jnp.newaxis],
                 psi_out.dims,
@@ -479,10 +550,12 @@ def _run_batched_trajectories(
             outcomes = outcomes[jnp.newaxis]
 
         logger.debug(
-            "Batch %d: %d trajectories, %d qubits, %.3f s",
+            "Batch %d: %d trajectories (%d padded), %d qubits, %d device(s), %.3f s",
             batch_idx,
             this_batch,
+            padded_batch,
             n_qubits,
+            n_devices,
             t1 - t0,
         )
 
@@ -493,11 +566,12 @@ def _run_batched_trajectories(
         batch_idx += 1
 
     logger.info(
-        "Trajectories complete: %d total, %d batches (size=%d), n_qubits=%d, %.3f s total, %.1f traj/s",
+        "Trajectories complete: %d total, %d batches (size=%d), n_qubits=%d, %d device(s), %.3f s total, %.1f traj/s",
         num_trajectories,
         batch_idx,
         batch_size,
         n_qubits,
+        n_devices,
         t_total,
         num_trajectories / t_total if t_total > 0 else float("inf"),
     )

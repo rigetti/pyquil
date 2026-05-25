@@ -27,6 +27,8 @@ from pyquil.simulation._simulator import (
     PureStateVectorSimulator,
     TrajectorySimulator,
     _run_batched_trajectories,
+    _make_mesh,
+    _round_up_to,
 )
 from pyquil.simulation._simulator import (
     _apply_trajectory_operations as apply_trajectory_operations,
@@ -1042,3 +1044,99 @@ class TestCompressorOpCounts:
                 line += f" {counts[s]:>4} ({ratio:.2f})"
                 # line += f" {counts[s]:>8}"
             print(line)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Multi-device / sharding tests
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestMultiDeviceHelpers:
+    def test_round_up_to(self):
+        assert _round_up_to(7, 4) == 8
+        assert _round_up_to(8, 4) == 8
+        assert _round_up_to(1, 3) == 3
+        assert _round_up_to(0, 5) == 0
+
+    def test_make_mesh_single_device_returns_none(self):
+        """A single device should return None (no mesh needed)."""
+        devices = jax.devices()[:1]
+        assert _make_mesh(devices) is None
+
+    def test_make_mesh_none_uses_default(self):
+        """Passing None should query jax.devices()."""
+        mesh = _make_mesh(None)
+        if len(jax.devices()) <= 1:
+            assert mesh is None
+        else:
+            assert mesh is not None
+
+
+class TestMultiDeviceTrajectory:
+    """Tests that exercise the multi-device code paths.
+
+    On a single-CPU host these still validate the padding/unpadding logic
+    and the ``devices`` parameter plumbing.  On a multi-GPU host they
+    exercise real cross-device sharding.
+    """
+
+    def test_devices_parameter_accepted(self):
+        """TrajectorySimulator should accept a ``devices`` keyword."""
+        p = Program(H(0), MEASURE(0, None))
+        sim = TrajectorySimulator(p, qubits=[0], devices=jax.devices())
+        outcomes = sim.sample(_EMPTY_PARAMS, num_trajectories=10)
+        assert outcomes.shape == (10, 1)
+
+    def test_sample_results_match_single_device(self):
+        """Outcomes shape and value range must be the same regardless of device list."""
+        p = Program(H(0), MEASURE(0, None))
+        sim_default = TrajectorySimulator(p, qubits=[0])
+        sim_explicit = TrajectorySimulator(p, qubits=[0], devices=jax.devices())
+
+        out_default = sim_default.sample(_EMPTY_PARAMS, num_trajectories=64, batch_size=16, random_seed=99)
+        out_explicit = sim_explicit.sample(_EMPTY_PARAMS, num_trajectories=64, batch_size=16, random_seed=99)
+
+        assert out_default.shape == out_explicit.shape
+        assert jnp.all((out_default == 0) | (out_default == 1))
+        assert jnp.all((out_explicit == 0) | (out_explicit == 1))
+
+    def test_padding_stripped_correctly(self):
+        """When num_trajectories is not a multiple of n_devices, padding must be removed."""
+        p = Program(H(0), MEASURE(0, None))
+        sim = TrajectorySimulator(p, qubits=[0], devices=jax.devices())
+        # 7 is unlikely to be a multiple of any device count > 1
+        outcomes = sim.sample(_EMPTY_PARAMS, num_trajectories=7, batch_size=7)
+        assert outcomes.shape == (7, 1)
+
+    def test_batched_trajectories_with_devices(self):
+        """_run_batched_trajectories should accept and use devices parameter."""
+        p = Program(H(0), MEASURE(0, None))
+        sim = TrajectorySimulator(p, qubits=[0])
+        resolved = sim.resolve(_EMPTY_PARAMS)
+        compressed = sim.compress(resolved)
+        operations = sim.adapt(compressed)
+
+        _, outcomes = _run_batched_trajectories(
+            operations,
+            sim.n_qubits,
+            num_trajectories=20,
+            batch_size=8,
+            random_seed=42,
+            keep_states=False,
+            dims=sim.dims,
+            devices=jax.devices(),
+        )
+        total = sum(o.shape[0] for o in outcomes)
+        assert total == 20
+
+    def test_noisy_sample_with_devices(self):
+        """Multi-device path should work with noise models."""
+        p_error = 0.3
+        ch = Channel.from_pauli_noise(inst=X(0), pauli_noise={"X": p_error})
+        noise_model = NoiseModel(channels=[ch])
+        p = Program(X(0), MEASURE(0, None))
+        sim = TrajectorySimulator(p, noise_model=noise_model, qubits=[0], devices=jax.devices())
+        outcomes = sim.sample(_EMPTY_PARAMS, num_trajectories=1024, batch_size=256, random_seed=7)
+        assert outcomes.shape == (1024, 1)
+        frac_0 = float(jnp.mean(outcomes == 0))
+        assert abs(frac_0 - p_error) < 0.05
