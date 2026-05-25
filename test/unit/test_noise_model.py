@@ -109,9 +109,7 @@ class TestChannel:
 
     def test_pauli_twirl(self):
         """Pauli twirl of a channel on a Clifford gate should be a Pauli channel."""
-        ch = Channel.from_random_coherent_error(
-            inst=X(0), process_fidelity=0.97, rng=np.random.default_rng(42)
-        )
+        ch = Channel.from_random_coherent_error(inst=X(0), process_fidelity=0.97, rng=np.random.default_rng(42))
         twirled = ch.pauli_twirl()
         assert twirled.is_pauli()
 
@@ -131,6 +129,36 @@ class TestChannel:
         ch = Channel.from_depolarizing_constant(inst=RX(np.pi, 0), depolarizing_constant=1.0)
         assert ch.fidelity == pytest.approx(1.0, abs=1e-10)
 
+    def test_from_pauli_noise_rejects_invalid_probabilities(self):
+        """Pauli error rates must be probabilities with total error no greater than 1."""
+        with pytest.raises(ValueError, match="negative"):
+            Channel.from_pauli_noise(inst=RX(0.5, 0), pauli_noise={"X": -0.1})
+
+        with pytest.raises(ValueError, match="at most 1.0"):
+            Channel.from_pauli_noise(inst=RX(0.5, 0), pauli_noise={"X": 0.6, "Z": 0.5})
+
+    def test_json_roundtrip_preserves_qutrit_dims(self):
+        """Channel JSON includes explicit dims for non-qubit operators."""
+        qutrit_x = jnp.array(
+            [
+                [0.0, 0.0, 1.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ],
+            dtype=complex,
+        )
+        target_unitary = qx.Unitary.from_matrix(qutrit_x, ((3,), (3,)))
+        channel = Channel(
+            inst=Gate("TX", [], [0]), process=qx.to_superop(target_unitary), target_unitary=target_unitary
+        )
+
+        restored = Channel.from_json(channel.to_json())
+
+        assert restored.inst == channel.inst
+        assert restored.process.dims == ((3,), (3,))
+        assert restored.target_unitary.dims == ((3,), (3,))
+        assert jnp.allclose(restored.process.matrix, channel.process.matrix)
+
 
 # ──────────────────────────────────────────────────────────
 # MeasurementChannel tests
@@ -140,7 +168,6 @@ class TestChannel:
 class TestMeasurementChannel:
     def test_from_readout_fidelity(self):
         """MeasurementChannel.from_readout_fidelity produces a valid quantum instrument."""
-        inst = Measurement(Gate("MEASURE", [], [0]).qubits[0], None)
         # Use the pyquil MEASURE gate to get qubit
         prog = Program(MEASURE(0, None))
         meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
@@ -160,6 +187,19 @@ class TestMeasurementChannel:
         meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
         ch = MeasurementChannel.from_readout_fidelity(inst=meas_inst, fidelity=0.99)
         assert ch.qubits == [5]
+
+    def test_json_roundtrip_preserves_qutrit_dims(self):
+        """MeasurementChannel JSON includes explicit dims for non-qubit instruments."""
+        prog = Program(MEASURE(0, None))
+        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
+        channel = MeasurementChannel.from_readout_fidelity(inst=meas_inst, fidelity=0.95, dim=3)
+
+        restored = MeasurementChannel.from_json(channel.to_json())
+
+        assert restored.inst == channel.inst
+        assert restored.process.dims == channel.process.dims
+        assert restored.process.measured_qudits == channel.process.measured_qudits
+        assert jnp.allclose(restored.process.matrix, channel.process.matrix)
 
 
 # ──────────────────────────────────────────────────────────
@@ -308,3 +348,18 @@ class TestResetChannel:
         rho = _dm(program)
         target_rho = qx.zero_state_matrix(2)
         assert qx.fidelity(rho, target_rho) > 0.9999
+
+    def test_global_reset_channel_rejected(self):
+        """ResetChannel is intentionally scoped to targeted resets."""
+        with pytest.raises(TypeError, match="targeted"):
+            ResetChannel.from_reset_fidelity(inst=RESET(), fidelity=1.0)
+
+    def test_json_roundtrip_preserves_qutrit_dims(self):
+        """ResetChannel JSON includes explicit dims for non-qubit resets."""
+        channel = ResetChannel.from_reset_fidelity(inst=ResetQubit(0), fidelity=0.9, dim=3)
+
+        restored = ResetChannel.from_json(channel.to_json())
+
+        assert restored.inst == channel.inst
+        assert restored.process.dims == ((3,), (3,))
+        assert jnp.allclose(restored.process.matrix, channel.process.matrix)

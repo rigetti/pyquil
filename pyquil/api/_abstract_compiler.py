@@ -19,7 +19,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient
@@ -100,8 +100,8 @@ class AbstractCompiler(ABC):
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
-        client_configuration: Optional[QCSClient] = None,
-        quilc_client: Optional[QuilcClient] = None,
+        client_configuration: QCSClient | None = None,
+        quilc_client: QuilcClient | None = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
@@ -121,7 +121,7 @@ class AbstractCompiler(ABC):
         """
         return {"quilc": self._compiler_client.get_version()}
 
-    def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
+    def quil_to_native_quil(self, program: Program, *, protoquil: bool | None = None) -> Program:
         """Convert a Quil program into native Quil, which is supported for execution on a QPU."""
         result = self._compile_with_quilc(
             program.out(calibrations=False),
@@ -134,7 +134,7 @@ class AbstractCompiler(ABC):
 
         return native_program
 
-    def _compile_with_quilc(self, input: str, options: Optional[CompilerOpts] = None) -> CompilationResult:
+    def _compile_with_quilc(self, input: str, options: CompilerOpts | None = None) -> CompilationResult:
         self._connect()
 
         # convert the pyquil ``TargetDevice`` to the qcs_sdk ``TargetDevice``
@@ -208,8 +208,8 @@ class AbstractBenchmarker(ABC):
         self,
         depth: int,
         gateset: Sequence[Gate],
-        seed: Optional[int] = None,
-        interleaver: Optional[Program] = None,
+        seed: int | None = None,
+        interleaver: Program | None = None,
     ) -> list[Program]:
         r"""Construct a randomized benchmarking experiment on the given qubits, decomposing into gateset.
 

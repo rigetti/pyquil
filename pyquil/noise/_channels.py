@@ -26,10 +26,11 @@ from __future__ import annotations
 import itertools
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from functools import cached_property, reduce
 from itertools import product
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any
 
 import jax.numpy as jnp
 import numpy as np
@@ -41,7 +42,7 @@ from quil.program import Program as RSProgram
 from scipy.linalg import logm as scipy_logm
 
 from pyquil.quilatom import Expression, FormalArgument, Parameter, substitute
-from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset
+from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset, ResetQubit
 
 if TYPE_CHECKING:
     from pyquil import Program
@@ -63,8 +64,65 @@ def _parse_quil_instruction(quil_str: str) -> Gate | Measurement | Reset:
     elif rs_inst.is_measurement():
         return Measurement._from_rs_measurement(rs_inst.to_measurement())
     elif rs_inst.is_reset():
-        return Reset._from_rs_reset(rs_inst.to_reset())
+        reset = rs_inst.to_reset()
+        if reset.qubit is None:
+            return Reset._from_rs_reset(reset)
+        return ResetQubit._from_rs_reset(reset)
     raise ValueError(f"Unsupported instruction type in: {quil_str}")
+
+
+def _pack_complex_array(array: Array | np.ndarray) -> dict[str, Any]:
+    """Pack a complex array into JSON-compatible real/imaginary pairs."""
+    np_array = np.asarray(array)
+    return {
+        "_complex_array": [[float(value.real), float(value.imag)] for value in np_array.flat],
+        "shape": list(np_array.shape),
+    }
+
+
+def _unpack_complex_array(data: dict[str, Any]) -> Array:
+    """Unpack a complex array from :func:`_pack_complex_array` data."""
+    shape = tuple(data["shape"])
+    return jnp.array([complex(pair[0], pair[1]) for pair in data["_complex_array"]], dtype=complex).reshape(shape)
+
+
+def _pack_dims(dims: tuple[tuple[int, ...], tuple[int, ...]]) -> list[list[int]]:
+    """Pack quax operator dims into JSON-compatible lists."""
+    return [list(dims[0]), list(dims[1])]
+
+
+def _unpack_dims(data: list[list[int]]) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Unpack quax operator dims from JSON-compatible lists."""
+    if len(data) != 2:
+        raise ValueError(f"Serialized operator dims must contain output and input dims, got {data}.")
+    return (tuple(int(dim) for dim in data[0]), tuple(int(dim) for dim in data[1]))
+
+
+def _infer_legacy_qubit_dims(shape: tuple[int, ...], *, superoperator: bool) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Infer qubit-only dims for data serialized before dims were stored."""
+    hilbert_dim = int(round(np.sqrt(shape[0]))) if superoperator else int(shape[0])
+    num_qubits = int(round(np.log2(hilbert_dim)))
+    if 2**num_qubits != hilbert_dim:
+        raise ValueError(
+            "Serialized operator data does not include dims and its shape is not compatible with qubit-only dims."
+        )
+    return ((2,) * num_qubits, (2,) * num_qubits)
+
+
+def _pack_operator(operator: qx.SuperOp | qx.Unitary | qx.Choi) -> dict[str, Any]:
+    """Pack a quax operator matrix with explicit dimension metadata."""
+    data = _pack_complex_array(operator.matrix)
+    data["dims"] = _pack_dims(operator.dims)
+    return data
+
+
+def _unpack_operator_dims(
+    data: dict[str, Any], shape: tuple[int, ...], *, superoperator: bool
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Read explicit dims, falling back to the legacy qubit-only inference."""
+    if "dims" in data:
+        return _unpack_dims(data["dims"])
+    return _infer_legacy_qubit_dims(shape, superoperator=superoperator)
 
 
 def _resolve_params(params: list) -> list[float]:
@@ -106,7 +164,7 @@ def get_custom_gates_from_program(program: Program) -> CustomGateMap:
         if defgate.parameters:
 
             def parametric_gate(*args: float, defgate: DefGate = defgate) -> qx.Unitary:
-                parameter_map = {Parameter(p.name): arg for p, arg in zip(defgate.parameters, args)}
+                parameter_map = {Parameter(p.name): arg for p, arg in zip(defgate.parameters, args, strict=False)}
                 matrix = jnp.asarray(
                     [[substitute(element, parameter_map) for element in row] for row in defgate.matrix],  # type: ignore[arg-type]
                     dtype=complex,
@@ -295,6 +353,14 @@ class Channel:
         unitary = get_instruction_unitary(inst, custom_gates)
         num_qubits = len(unitary.dims[0])
 
+        total_error_rate = 0.0
+        for pauli, error_rate in pauli_noise.items():
+            if error_rate < 0.0:
+                raise ValueError(f"Pauli term '{pauli}' has negative error rate {error_rate}.")
+            total_error_rate += error_rate
+        if total_error_rate > 1.0:
+            raise ValueError(f"Pauli error rates must sum to at most 1.0, got {total_error_rate}.")
+
         for pauli in pauli_noise:
             if len(pauli) != num_qubits:
                 raise ValueError(f"Pauli term '{pauli}' has length {len(pauli)}, expected {num_qubits}.")
@@ -310,7 +376,8 @@ class Channel:
             else:
                 error_rate = 0
             pauli_error_rates.append(error_rate)
-        assert jnp.isclose(1.0, sum(pauli_error_rates))  # noqa: S101
+        if not jnp.isclose(1.0, sum(pauli_error_rates)):
+            raise ValueError("Pauli error rates plus the implicit identity rate must sum to 1.0.")
         pauli_error_rates = list(reversed(pauli_error_rates))
 
         # Build Pauli Kraus operators using quax ensembles
@@ -365,7 +432,7 @@ class Channel:
         pauli_matrices = qx.ensembles.PAULIS.matrix  # shape (4, 2, 2)
         pauli_sum = jnp.eye(d, dtype=complex) * id_coeff
         pauli_products = list(itertools.product(pauli_matrices, repeat=num_qubits))[1:]
-        for paulis, coefficient in zip(pauli_products, coeffs):
+        for paulis, coefficient in zip(pauli_products, coeffs, strict=False):
             pauli_sum = pauli_sum + reduce(jnp.kron, paulis) * coefficient
 
         from jax.scipy.linalg import expm as jax_expm
@@ -409,7 +476,7 @@ class Channel:
         # Build the mixture superop: (1-p_total) S(U) + sum p_i S(V_i @ U)
         p0 = 1.0 - error_prob
         noisy_superop_matrix = p0 * qx.to_superop(ideal).matrix
-        for p, v in zip(probabilities, constituents):
+        for p, v in zip(probabilities, constituents, strict=False):
             composed = v @ ideal
             noisy_superop_matrix = noisy_superop_matrix + p * qx.to_superop(composed).matrix
         noisy_superop = qx.SuperOp.from_matrix(noisy_superop_matrix, ideal.dims)
@@ -436,11 +503,13 @@ class Channel:
         unitary = get_instruction_unitary(inst, custom_gates)
         qubits = inst.get_qubit_indices()
         num_sys = len(qubits)
-        assert num_sys == len(t1s)  # noqa: S101
+        if num_sys != len(t1s):
+            raise ValueError(f"Expected {num_sys} T1 values for {inst.out()}, got {len(t1s)}.")
         if t2s is None:
             t2s = [2 * t1 for t1 in t1s]
         else:
-            assert num_sys == len(t2s)  # noqa: S101
+            if num_sys != len(t2s):
+                raise ValueError(f"Expected {num_sys} T2 values for {inst.out()}, got {len(t2s)}.")
 
         t1_array = jnp.asarray(t1s)
         tphi_array = 1 / (1 / jnp.asarray(t2s) - 1 / t1_array)
@@ -690,17 +759,12 @@ class Channel:
 
         :return: JSON string representation.
         """
-        superop_array = np.asarray(self.process.matrix)
-        flat_data = [[float(val.real), float(val.imag)] for val in superop_array.flat]
-
         data = {
+            "schema_version": 1,
             "inst": self.inst.out(),
-            "superop": {"_complex_array": flat_data, "shape": list(superop_array.shape)},
+            "superop": _pack_operator(self.process),
         }
-
-        u_array = np.asarray(self.target_unitary.matrix)
-        u_flat = [[float(val.real), float(val.imag)] for val in u_array.flat]
-        data["target_unitary"] = {"_complex_array": u_flat, "shape": list(u_array.shape)}
+        data["target_unitary"] = _pack_operator(self.target_unitary)
 
         return json.dumps(data)
 
@@ -713,25 +777,20 @@ class Channel:
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
-        assert isinstance(inst, Gate)  # noqa: S101
+        if not isinstance(inst, Gate):
+            raise TypeError(f"Channel JSON must contain a gate instruction, got {type(inst).__name__}.")
 
         superop_data = data["superop"]
-        flat = superop_data["_complex_array"]
         shape = tuple(superop_data["shape"])
-        superop_array = jnp.array([complex(pair[0], pair[1]) for pair in flat], dtype=complex).reshape(shape)
-        # Infer dims from matrix shape: (d^2, d^2) -> d qubits each of dim 2
-        d = int(jnp.sqrt(shape[0]))
-        num_qubits = int(jnp.round(jnp.log2(d)))
-        dims = ((2,) * num_qubits, (2,) * num_qubits)
+        superop_array = _unpack_complex_array(superop_data)
+        dims = _unpack_operator_dims(superop_data, shape, superoperator=True)
         superop = qx.SuperOp.from_matrix(superop_array, dims)
 
         if "target_unitary" in data:
             u_data = data["target_unitary"]
-            u_flat = u_data["_complex_array"]
             u_shape = tuple(u_data["shape"])
-            u_array = jnp.array([complex(pair[0], pair[1]) for pair in u_flat], dtype=complex).reshape(u_shape)
-            u_num_qubits = int(jnp.round(jnp.log2(u_shape[0])))
-            u_dims = ((2,) * u_num_qubits, (2,) * u_num_qubits)
+            u_array = _unpack_complex_array(u_data)
+            u_dims = _unpack_operator_dims(u_data, u_shape, superoperator=False)
             target_unitary = qx.Unitary.from_matrix(u_array, u_dims)
         else:
             target_unitary = get_instruction_unitary(inst)
@@ -1057,15 +1116,14 @@ class MeasurementChannel:
 
         :return: JSON string representation.
         """
-        # Store per-outcome Choi matrices
+        # Store per-outcome superoperator matrices.
         instrument_data = []
         for i in range(self.process.num_outcomes):
-            choi_i, _ = self.process.outcome_choi(i)
-            choi_array = np.asarray(choi_i.matrix)
-            flat = [[float(val.real), float(val.imag)] for val in choi_array.flat]
-            instrument_data.append({"_complex_array": flat, "shape": list(choi_array.shape)})
+            superop_i, _ = self.process.outcome_superop(i)
+            instrument_data.append(_pack_operator(superop_i))
 
         data = {
+            "schema_version": 1,
             "inst": self.inst.out(),
             "instruments": instrument_data,
             "measured_qudits": list(self.process.measured_qudits),
@@ -1081,20 +1139,28 @@ class MeasurementChannel:
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
-        assert isinstance(inst, Measurement)  # noqa: S101
+        if not isinstance(inst, Measurement):
+            raise TypeError(
+                f"MeasurementChannel JSON must contain a measurement instruction, got {type(inst).__name__}."
+            )
         measured_qudits = tuple(data["measured_qudits"])
 
-        choi_list = []
+        superop_matrices = []
+        instrument_dims = None
         for inst_data in data["instruments"]:
-            flat = inst_data["_complex_array"]
             shape = tuple(inst_data["shape"])
-            arr = jnp.array([complex(pair[0], pair[1]) for pair in flat], dtype=complex).reshape(shape)
-            d = int(jnp.sqrt(shape[0]))
-            n_qubits = int(jnp.round(jnp.log2(d)))
-            choi_dims = ((2,) * n_qubits, (2,) * n_qubits)
-            choi_list.append(qx.Choi.from_matrix(arr, choi_dims))
+            arr = _unpack_complex_array(inst_data)
+            op_dims = _unpack_operator_dims(inst_data, shape, superoperator=True)
+            if instrument_dims is None:
+                instrument_dims = op_dims
+            elif instrument_dims != op_dims:
+                raise ValueError("All serialized measurement outcomes must have the same dims.")
+            superop_matrices.append(arr)
 
-        instrument = qx.QuantumInstrument.from_choi(choi_list, measured_qudits)
+        if instrument_dims is None:
+            raise ValueError("MeasurementChannel JSON must contain at least one outcome superoperator.")
+
+        instrument = qx.QuantumInstrument.from_matrix(jnp.stack(superop_matrices), instrument_dims, measured_qudits)
         return cls(inst=inst, process=instrument)
 
     # ──────────────────────────────────────────────
@@ -1155,11 +1221,16 @@ class ResetChannel:
     replaces the reset instruction rather than being applied after it.
     """
 
-    inst: Reset
+    inst: ResetQubit
     """The reset operation to which the channel applies."""
 
     process: qx.SuperOp
     """A superoperator representation of the noisy reset (including ideal reset)."""
+
+    def __post_init__(self) -> None:
+        """Validate that ResetChannel is attached to a targeted reset."""
+        if not isinstance(self.inst, ResetQubit):
+            raise TypeError("ResetChannel only supports targeted ResetQubit instructions.")
 
     # ──────────────────────────────────────────────
     # Constructors
@@ -1168,7 +1239,7 @@ class ResetChannel:
     @classmethod
     def from_reset_fidelity(
         cls: type[ResetChannel],
-        inst: Reset,
+        inst: ResetQubit,
         fidelity: float,
         dim: int = 2,
     ) -> ResetChannel:
@@ -1183,6 +1254,9 @@ class ResetChannel:
         :param dim: Hilbert-space dimension (2 for qubits).
         :return: A ResetChannel instance.
         """
+        if not isinstance(inst, ResetQubit):
+            raise TypeError("ResetChannel only supports targeted ResetQubit instructions.")
+
         ideal_superop = qx.gates.RESET(dim=dim)
         p = 1.0 - fidelity
         d2 = dim * dim
@@ -1264,11 +1338,10 @@ class ResetChannel:
 
         :return: JSON string representation.
         """
-        superop_array = np.asarray(self.process.matrix)
-        flat = [[float(v.real), float(v.imag)] for v in superop_array.flat]
         data = {
+            "schema_version": 1,
             "inst": self.inst.out(),
-            "superop": {"_complex_array": flat, "shape": list(superop_array.shape)},
+            "superop": _pack_operator(self.process),
         }
         return json.dumps(data)
 
@@ -1281,14 +1354,12 @@ class ResetChannel:
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
-        assert isinstance(inst, Reset)  # noqa: S101
+        if not isinstance(inst, ResetQubit):
+            raise TypeError(f"ResetChannel JSON must contain a targeted reset instruction, got {type(inst).__name__}.")
         superop_data = data["superop"]
-        flat = superop_data["_complex_array"]
         shape = tuple(superop_data["shape"])
-        arr = jnp.array([complex(pair[0], pair[1]) for pair in flat], dtype=complex).reshape(shape)
-        d = int(jnp.sqrt(shape[0]))
-        num_qubits = int(jnp.round(jnp.log2(d)))
-        dims = ((2,) * num_qubits, (2,) * num_qubits)
+        arr = _unpack_complex_array(superop_data)
+        dims = _unpack_operator_dims(superop_data, shape, superoperator=True)
         process = qx.SuperOp.from_matrix(arr, dims)
         return cls(inst=inst, process=process)
 

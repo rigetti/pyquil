@@ -118,8 +118,8 @@ def expand_defcircuit_body(
     :param circuit_definitions: All known DEFCIRCUIT definitions (for nested expansion).
     :yields: Concrete instructions with physical qubits and resolved parameters.
     """
-    qarg_to_arg_map = {qarg: q for q, qarg in zip(inst.qubits, defcircuit.qubit_variables)}
-    parg_to_arg_map = {parg: param for param, parg in zip(inst.params, defcircuit.parameters)}
+    qarg_to_arg_map = {qarg: q for q, qarg in zip(inst.qubits, defcircuit.qubit_variables, strict=False)}
+    parg_to_arg_map = {parg: param for param, parg in zip(inst.params, defcircuit.parameters, strict=False)}
 
     for circuit_inst in defcircuit.instructions:
         if isinstance(circuit_inst, Gate):

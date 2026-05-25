@@ -17,7 +17,7 @@
 
 import itertools
 from collections.abc import Iterator, Sequence
-from typing import Optional, cast
+from typing import cast
 
 import numpy as np
 
@@ -143,7 +143,7 @@ class Wavefunction:
             pp_string = pp_string[:-3]  # remove the dangling + if it is there
         return pp_string
 
-    def plot(self, qubit_subset: Optional[Sequence[int]] = None) -> None:
+    def plot(self, qubit_subset: Sequence[int] | None = None) -> None:
         """Plot a bar chart with bitstring on the x-axis and probability on the y-axis.
 
         :param qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.

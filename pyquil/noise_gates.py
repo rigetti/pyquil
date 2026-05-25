@@ -1,7 +1,6 @@
 """Utility functions for generating noise gates compatible with a QVM's instruction set architecture."""
 
 import logging
-from typing import Optional
 
 from pyquil.external.rpcq import CompilerISA, Edge, GateInfo, Supported1QGate, Supported2QGate
 from pyquil.quilatom import Parameter, unpack_qubit
@@ -45,7 +44,7 @@ def _get_qvm_noise_supported_gates(isa: CompilerISA) -> list[Gate]:
     return gates
 
 
-def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, gate: GateInfo) -> Optional[Gate]:
+def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, gate: GateInfo) -> Gate | None:
     if gate.operator == Supported1QGate.RX:
         if len(gate.parameters) == 1 and gate.parameters[0] == 0.0:
             return None

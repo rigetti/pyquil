@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import Optional, Union, cast
+from typing import cast
 
 import numpy as np
 from qcs_sdk.qpu.isa import Characteristic, InstructionSetArchitecture, Operation
@@ -190,7 +190,7 @@ def _make_rz_gates(node_id: int) -> list[GateInfo]:
     ]
 
 
-def _get_frb_sim_1q(node_id: int, benchmarks: Sequence[Operation]) -> Optional[float]:
+def _get_frb_sim_1q(node_id: int, benchmarks: Sequence[Operation]) -> float | None:
     frb_sim_1q = next(
         (benchmark for benchmark in benchmarks if benchmark.name == "randomized_benchmark_simultaneous_1q"), None
     )
@@ -230,15 +230,15 @@ def _transform_qubit_operation_to_gates(
     node_id: int,
     characteristics: Sequence[Characteristic],
     benchmarks: Sequence[Operation],
-) -> list[Union[GateInfo, MeasureInfo]]:
+) -> list[GateInfo | MeasureInfo]:
     if operation_name == Supported1QGate.RX:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_rx_gates(node_id, benchmarks))
+        return cast(list[GateInfo | MeasureInfo], _make_rx_gates(node_id, benchmarks))
     elif operation_name == Supported1QGate.RZ:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_rz_gates(node_id))
+        return cast(list[GateInfo | MeasureInfo], _make_rz_gates(node_id))
     elif operation_name == Supported1QGate.MEASURE:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_measure_gates(node_id, characteristics))
+        return cast(list[GateInfo | MeasureInfo], _make_measure_gates(node_id, characteristics))
     elif operation_name == Supported1QGate.WILDCARD:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_wildcard_1q_gates(node_id))
+        return cast(list[GateInfo | MeasureInfo], _make_wildcard_1q_gates(node_id))
     elif operation_name in {"I", "RESET"}:
         return []
     else:

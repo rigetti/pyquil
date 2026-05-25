@@ -17,7 +17,7 @@ import functools
 import itertools
 from collections.abc import Iterable, Sequence
 from operator import mul
-from typing import Union, cast
+from typing import cast
 
 import networkx as nx
 from networkx.algorithms.approximation.clique import clique_removal
@@ -167,7 +167,7 @@ def group_settings_clique_removal(experiments: Experiment) -> Experiment:
     )
 
 
-def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
+def _max_weight_operator(ops: Iterable[PauliTerm]) -> None | PauliTerm:
     """Construct a PauliTerm operator by taking the non-identity single-qubit operator at each qubit position.
 
     This function will return ``None`` if the input operators do not share a natural tensor product basis.
@@ -189,7 +189,7 @@ def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
     return op
 
 
-def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, TensorProductState]:
+def _max_weight_state(states: Iterable[TensorProductState]) -> None | TensorProductState:
     """Construct a TensorProductState by taking the single-qubit state at each qubit position.
 
     This function will return ``None`` if the input states are not compatible

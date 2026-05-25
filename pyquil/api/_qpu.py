@@ -17,7 +17,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -41,7 +41,7 @@ from pyquil.quilatom import (
 )
 
 
-def decode_buffer(buffer: ExecutionResult) -> Union[NDArray[np.complex64], NDArray[np.int32]]:
+def decode_buffer(buffer: ExecutionResult) -> NDArray[np.complex64] | NDArray[np.int32]:
     """Translate a DataBuffer into a numpy array.
 
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
@@ -109,7 +109,7 @@ def _extract_memory_regions(
 class QPUExecuteResponse:
     job_id: str
     _executable: EncryptedProgram
-    execution_options: Optional[ExecutionOptions]
+    execution_options: ExecutionOptions | None
 
 
 class QPU(QAM[QPUExecuteResponse]):
@@ -118,10 +118,10 @@ class QPU(QAM[QPUExecuteResponse]):
         *,
         quantum_processor_id: str,
         priority: int = 1,
-        timeout: Optional[float] = 30.0,
-        client_configuration: Optional[QCSClient] = None,
-        endpoint_id: Optional[str] = None,
-        execution_options: Optional[ExecutionOptions] = None,
+        timeout: float | None = 30.0,
+        client_configuration: QCSClient | None = None,
+        endpoint_id: str | None = None,
+        execution_options: ExecutionOptions | None = None,
     ) -> None:
         """Connect to the QPU.
 
@@ -140,7 +140,7 @@ class QPU(QAM[QPUExecuteResponse]):
 
         self._client_configuration = client_configuration or QCSClient.load()
         self._last_results: dict[str, np.ndarray] = {}
-        self._memory_results: dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
+        self._memory_results: dict[str, np.ndarray | None] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
         if execution_options is None:
             execution_options_builder = ExecutionOptionsBuilder.default()
@@ -159,8 +159,8 @@ class QPU(QAM[QPUExecuteResponse]):
     def execute(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[MemoryMap] = None,
-        execution_options: Optional[ExecutionOptions] = None,
+        memory_map: MemoryMap | None = None,
+        execution_options: ExecutionOptions | None = None,
         **__: Any,
     ) -> QPUExecuteResponse:
         """Enqueue a job for execution on the QPU.
@@ -185,7 +185,7 @@ class QPU(QAM[QPUExecuteResponse]):
         self,
         executable: QuantumExecutable,
         memory_maps: Iterable[MemoryMap],
-        execution_options: Optional[ExecutionOptions] = None,
+        execution_options: ExecutionOptions | None = None,
         **__: Any,
     ) -> list[QPUExecuteResponse]:
         """Execute a compiled program on a QPU with multiple sets of `memory_maps`.

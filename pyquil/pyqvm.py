@@ -18,7 +18,7 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -71,7 +71,7 @@ class AbstractQuantumSimulator(ABC):
     """An abstract interface for a quantum simulator."""
 
     @abstractmethod
-    def __init__(self, n_qubits: int, rs: Optional[RandomState]):
+    def __init__(self, n_qubits: int, rs: RandomState | None):
         """Initialize.
 
         :param n_qubits: Number of qubits to simulate.
@@ -115,7 +115,7 @@ class AbstractQuantumSimulator(ABC):
         """
 
     @abstractmethod
-    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> complex:
+    def expectation(self, operator: PauliTerm | PauliSum) -> complex:
         """Compute the expectation of an operator.
 
         :param operator: The operator
@@ -156,9 +156,9 @@ class PyQVM(QAM["PyQVM"]):
     def __init__(
         self,
         n_qubits: int,
-        quantum_simulator_type: Optional[type[AbstractQuantumSimulator]] = None,
-        seed: Optional[int] = None,
-        post_gate_noise_probabilities: Optional[dict[str, float]] = None,
+        quantum_simulator_type: type[AbstractQuantumSimulator] | None = None,
+        seed: int | None = None,
+        post_gate_noise_probabilities: dict[str, float] | None = None,
     ):
         """PyQuil's built-in Quil virtual machine.
 
@@ -189,19 +189,19 @@ class PyQVM(QAM["PyQVM"]):
                 quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
-        self.ram: dict[str, list[Union[float, int]]] = {}
+        self.ram: dict[str, list[float | int]] = {}
 
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
         self.post_gate_noise_probabilities = post_gate_noise_probabilities
 
-        self.program: Optional[Program] = None
+        self.program: Program | None = None
         self.program_counter: int = 0
         self.defined_gates: dict[str, np.ndarray] = dict()
 
         # private implementation details
-        self._qubit_to_ram: Optional[dict[int, int]] = None
-        self._ro_size: Optional[int] = None
+        self._qubit_to_ram: dict[int, int] | None = None
+        self._ro_size: int | None = None
         self._memory_results = {}  # type: ignore
 
         self.rs = np.random.RandomState(seed=seed)
@@ -227,7 +227,7 @@ class PyQVM(QAM["PyQVM"]):
             "PyQVM does not support batch execution as the state of the instance is reset at the start of each execute."
         )
 
-    def execute(self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **__: Any) -> "PyQVM":
+    def execute(self, executable: QuantumExecutable, memory_map: MemoryMap | None = None, **__: Any) -> "PyQVM":
         """Execute a program on the PyQVM.
 
         Note that the state of the instance is reset on each call to ``execute``.
@@ -287,7 +287,7 @@ class PyQVM(QAM["PyQVM"]):
             raise ValueError("No memory results available.")
         return np.asarray(self._memory_results[region_name])
 
-    def find_label(self, label: Union[Label, LabelPlaceholder]) -> int:
+    def find_label(self, label: Label | LabelPlaceholder) -> int:
         """Iterate over the program and find a JumpTarget that has a Label matching the input label.
 
         :param label: Label object to search for in program
@@ -332,7 +332,7 @@ class PyQVM(QAM["PyQVM"]):
 
         elif isinstance(instruction, Measurement):
             measured_val = self.wf_simulator.do_measurement(qubit=instruction.get_qubit_indices().pop())
-            meas_reg: Optional[MemoryReference] = instruction.classical_reg
+            meas_reg: MemoryReference | None = instruction.classical_reg
             if meas_reg is None:
                 raise ValueError("Measurement instruction must have a classical register.")
             self.ram[meas_reg.name][meas_reg.offset] = measured_val
@@ -361,7 +361,7 @@ class PyQVM(QAM["PyQVM"]):
 
         elif isinstance(instruction, (JumpWhen, JumpUnless)):
             # JumpWhen/Unless; check classical reg
-            jump_reg: Optional[MemoryReference] = instruction.condition
+            jump_reg: MemoryReference | None = instruction.condition
             if jump_reg is None:
                 raise ValueError("JumpWhen/Unless instruction must have a classical register.")
             cond = self.ram[jump_reg.name][jump_reg.offset]
@@ -411,7 +411,7 @@ class PyQVM(QAM["PyQVM"]):
             if isinstance(instruction, ClassicalAnd):
                 if not isinstance(left_val, int) or not isinstance(right_val, int):
                     raise ValueError("AND requires a data type of INTEGER; not {type(left_val)} and {type(right_val)}")
-                new_val: Union[int, float] = left_val & right_val
+                new_val: int | float = left_val & right_val
             elif isinstance(instruction, ClassicalInclusiveOr):
                 if not isinstance(left_val, int) or not isinstance(right_val, int):
                     raise ValueError("OR requires a data type of INTEGER; not {type(left_val)} and {type(right_val)}")

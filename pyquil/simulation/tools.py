@@ -16,7 +16,7 @@
 """Miscellaneous tools that are helpful for simulation."""
 
 from collections.abc import Sequence
-from typing import Union, cast
+from typing import cast
 
 import numpy as np
 
@@ -348,7 +348,7 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
     return umat
 
 
-def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.ndarray:
+def lifted_pauli(pauli_sum: PauliSum | PauliTerm, qubits: list[int]) -> np.ndarray:
     """Return a matrix corresponding to the tensor representation of the given PauliSum and qubits.
 
     Useful for generating the full Hamiltonian after a particular fermion to
@@ -389,7 +389,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np
     return result_hilbert
 
 
-def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.ndarray:
+def tensor_up(pauli_sum: PauliSum | PauliTerm, qubits: list[int]) -> np.ndarray:
     """Return a matrix corresponding to the tensor representation of the given PauliSum and qubits.
 
     This is the same as :py:func:`lifted_pauli`. Nick R originally wrote this functionality

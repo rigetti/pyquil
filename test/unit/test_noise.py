@@ -1,3 +1,7 @@
+# TODO(pyquil-5.0): Remove this file. These tests exercise the legacy KrausModel/NoiseModel
+# API in pyquil.noise, which is superseded by pyquil.noise._channels / pyquil.noise._noise_model.
+# Equivalent coverage lives in test_noise_model.py.
+
 from collections import OrderedDict
 
 import numpy as np
