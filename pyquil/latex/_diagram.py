@@ -17,7 +17,7 @@
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Optional, cast
+from typing import cast
 from warnings import warn
 
 from pyquil.quil import Program
@@ -144,23 +144,23 @@ def TIKZ_MEASURE() -> str:
     return r"\meter{}"
 
 
-def _format_parameter(param: ParameterDesignator, settings: Optional[DiagramSettings] = None) -> str:
+def _format_parameter(param: ParameterDesignator, settings: DiagramSettings | None = None) -> str:
     formatted: str = format_parameter(param)
     if settings and settings.texify_numerical_constants:
         formatted = formatted.replace("pi", r"\pi")
     return formatted
 
 
-def _format_parameters(params: Iterable[ParameterDesignator], settings: Optional[DiagramSettings] = None) -> str:
+def _format_parameters(params: Iterable[ParameterDesignator], settings: DiagramSettings | None = None) -> str:
     return "(" + ",".join(_format_parameter(param, settings) for param in params) + ")"
 
 
 def TIKZ_GATE(
     name: str,
     size: int = 1,
-    params: Optional[Sequence[ParameterDesignator]] = None,
+    params: Sequence[ParameterDesignator] | None = None,
     dagger: bool = False,
-    settings: Optional[DiagramSettings] = None,
+    settings: DiagramSettings | None = None,
 ) -> str:
     cmd = r"\gate"
     rotations = ["RX", "RY", "RZ"]
@@ -221,7 +221,7 @@ class DiagramState:
         """Add an operation to the rightmost edge of the specified qubit line."""
         self.lines[qubit].append(op)
 
-    def append_diagram(self, diagram: "DiagramState", group: Optional[str] = None) -> "DiagramState":
+    def append_diagram(self, diagram: "DiagramState", group: str | None = None) -> "DiagramState":
         """Add all operations represented by the given diagram to their corresponding qubit lines in this diagram.
 
         If group is not None, then a TIKZ_GATE_GROUP is created with the label indicated by group.
@@ -306,13 +306,13 @@ class DiagramBuilder:
         self.circuit = circuit
         self.settings = settings
         # instructions currently being processed
-        self.working_instructions: Optional[list[AbstractInstruction]] = None
+        self.working_instructions: list[AbstractInstruction] | None = None
         # index into working instructions. we maintain the invariant that
         # working_instructions[0:index] has been processed, with the diagram
         # updated accordingly
         self.index = 0
         # partially constructed diagram
-        self.diagram: Optional[DiagramState] = None
+        self.diagram: DiagramState | None = None
 
     def build(self) -> DiagramState:
         """Build the diagram."""

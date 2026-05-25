@@ -22,13 +22,10 @@ and process tomography, and the variational quantum eigensolver.
 import json
 import logging
 import warnings
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from json import JSONEncoder
 from typing import (
     Any,
-    Callable,
-    Optional,
-    Union,
     cast,
 )
 
@@ -136,7 +133,7 @@ class Experiment:
 
     def __init__(
         self,
-        settings: Union[list[ExperimentSetting], list[list[ExperimentSetting]]],
+        settings: list[ExperimentSetting] | list[list[ExperimentSetting]],
         program: Program,
         *,
         symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
@@ -193,7 +190,7 @@ class Experiment:
     def __contains__(self, item: list[ExperimentSetting]) -> bool:
         return item in self._settings
 
-    def append(self, expts: Union[ExperimentSetting, list[ExperimentSetting]]) -> None:
+    def append(self, expts: ExperimentSetting | list[ExperimentSetting]) -> None:
         if not isinstance(expts, list):
             expts = [expts]
         self._settings.append(expts)
@@ -219,7 +216,7 @@ class Experiment:
     def reverse(self) -> None:
         self._settings.reverse()
 
-    def sort(self, key: Optional[Callable[[list[ExperimentSetting]], Any]] = None, reverse: bool = False) -> None:
+    def sort(self, key: Callable[[list[ExperimentSetting]], Any] | None = None, reverse: bool = False) -> None:
         return self._settings.sort(key=key, reverse=reverse)
 
     def setting_strings(self) -> Generator[str, None, None]:
@@ -228,7 +225,7 @@ class Experiment:
             for i, settings in enumerate(self._settings)
         )
 
-    def settings_string(self, abbrev_after: Optional[int] = None) -> str:
+    def settings_string(self, abbrev_after: int | None = None) -> str:
         setting_strs = list(self.setting_strings())
         if abbrev_after is not None and len(setting_strs) > abbrev_after:
             first_n = abbrev_after // 2
@@ -273,7 +270,7 @@ class Experiment:
             meas_qubits.update(cast(list[int], settings[0].out_operator.get_qubits()))
         return sorted(meas_qubits)
 
-    def get_meas_registers(self, qubits: Optional[Sequence[int]] = None) -> list[int]:
+    def get_meas_registers(self, qubits: Sequence[int] | None = None) -> list[int]:
         """Return the sorted list of memory registers corresponding to the list of qubits provided.
 
         If no qubits are provided, just returns the list of numbers from 0 to n-1 where n is the
@@ -495,7 +492,7 @@ def to_json(fn: str, obj: Any) -> str:
     return fn
 
 
-def _operator_object_hook(obj: Mapping[str, Any]) -> Union[Mapping[str, Any], Experiment]:
+def _operator_object_hook(obj: Mapping[str, Any]) -> Mapping[str, Any] | Experiment:
     if "type" in obj and obj["type"] in ["Experiment", "TomographyExperiment"]:
         # I bet this doesn't work for grouped experiment settings
         settings = [[ExperimentSetting.from_str(s) for s in stt] for stt in obj["settings"]]

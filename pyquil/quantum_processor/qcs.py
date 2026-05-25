@@ -1,7 +1,5 @@
 """An implementation of AbstractQuantumProcessor based on an InstructionSetArchitecture returned from the QCS API."""
 
-from typing import Optional
-
 import networkx as nx
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu.isa import InstructionSetArchitecture, get_instruction_set_architecture
@@ -20,13 +18,13 @@ class QCSQuantumProcessor(AbstractQuantumProcessor):
 
     quantum_processor_id: str
     _isa: InstructionSetArchitecture
-    noise_model: Optional[NoiseModel]
+    noise_model: NoiseModel | None
 
     def __init__(
         self,
         quantum_processor_id: str,
         isa: InstructionSetArchitecture,
-        noise_model: Optional[NoiseModel] = None,
+        noise_model: NoiseModel | None = None,
     ):
         """Initialize a new QCSQuantumProcessor.
 
@@ -61,7 +59,7 @@ class QCSQuantumProcessor(AbstractQuantumProcessor):
 
 def get_qcs_quantum_processor(
     quantum_processor_id: str,
-    client_configuration: Optional[QCSClient] = None,
+    client_configuration: QCSClient | None = None,
     timeout: float = 10.0,
 ) -> QCSQuantumProcessor:
     """Retrieve an instruction set architecture for the specified QPU ID and initialize a ``QCSQuantumProcessor`` with it.

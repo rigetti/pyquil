@@ -121,7 +121,7 @@ class NoiseModel:
         self,
     ) -> dict[Gate | Measurement | ResetQubit, Channel | MeasurementChannel | ResetChannel | CycleChannel]:
         """Map from instruction to channel for fast lookup."""
-        return {ch.inst: ch for ch in self.channels}  # type: ignore[misc]
+        return {ch.inst: ch for ch in self.channels}
 
     @overload
     def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...

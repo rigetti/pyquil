@@ -23,8 +23,6 @@ from contextlib import contextmanager
 from math import log, pi
 from typing import (
     Any,
-    Optional,
-    Union,
     cast,
 )
 
@@ -117,7 +115,7 @@ class QuantumComputer:
         return self.compiler.quantum_processor.to_compiler_isa()
 
     def run(
-        self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **kwargs: Any
+        self, executable: QuantumExecutable, memory_map: MemoryMap | None = None, **kwargs: Any
     ) -> QAMExecutionResult:
         """Run a quil executable.
 
@@ -157,7 +155,7 @@ class QuantumComputer:
     def run_experiment(
         self,
         experiment: Experiment,
-        memory_map: Optional[MemoryMap] = None,
+        memory_map: MemoryMap | None = None,
     ) -> list[ExperimentResult]:
         """Run an ``Experiment`` on a QVM or QPU backend.
 
@@ -249,7 +247,7 @@ class QuantumComputer:
             std_errs = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
 
             joint_results = []
-            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):
+            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs, strict=False):
                 out_operator = PauliTerm.from_list([(setting.out_operator[i], i) for i in qubit_subset])
                 s = ExperimentSetting(
                     in_state=setting.in_state,
@@ -274,7 +272,7 @@ class QuantumComputer:
         program: Program,
         trials: int,
         symm_type: int = 3,
-        meas_qubits: Optional[Sequence[QubitDesignator]] = None,
+        meas_qubits: Sequence[QubitDesignator] | None = None,
     ) -> np.ndarray:
         r"""Run a quil program in such a way that the readout error is made symmetric.
 
@@ -361,7 +359,7 @@ class QuantumComputer:
         to_native_gates: bool = True,
         optimize: bool = True,
         *,
-        protoquil: Optional[bool] = None,
+        protoquil: bool | None = None,
     ) -> QuantumExecutable:
         """Provide a high-level interface for program compilation.
 
@@ -406,7 +404,7 @@ def list_quantum_computers(
     qpus: bool = True,
     qvms: bool = True,
     timeout: float = 10.0,
-    client_configuration: Optional[QCSClient] = None,
+    client_configuration: QCSClient | None = None,
 ) -> list[str]:
     """List the names of available quantum computers.
 
@@ -426,12 +424,12 @@ def list_quantum_computers(
     return qc_names
 
 
-def _parse_name(name: str, as_qvm: Optional[bool], noisy: Optional[bool]) -> tuple[str, Optional[str], bool]:
+def _parse_name(name: str, as_qvm: bool | None, noisy: bool | None) -> tuple[str, str | None, bool]:
     """Try to figure out whether we're getting a (noisy) qvm, and the associated qpu name.
 
     See :py:func:`get_qc` for examples of valid names + flags.
     """
-    qvm_type: Optional[str]
+    qvm_type: str | None
     parts = name.split("-")
     if len(parts) >= 2 and parts[-2] == "noisy" and parts[-1] in ["qvm", "pyqvm"]:
         if as_qvm is not None and (not as_qvm):
@@ -471,7 +469,7 @@ def _parse_name(name: str, as_qvm: Optional[bool], noisy: Optional[bool]) -> tup
     return name, qvm_type, noisy
 
 
-def _canonicalize_name(prefix: str, qvm_type: Optional[str], noisy: bool) -> str:
+def _canonicalize_name(prefix: str, qvm_type: str | None, noisy: bool) -> str:
     """Take the output of _parse_name to create a canonical name."""
     if noisy:
         noise_suffix = "-noisy"
@@ -494,11 +492,11 @@ def _canonicalize_name(prefix: str, qvm_type: Optional[str], noisy: bool) -> str
 def _get_qvm_or_pyqvm(
     *,
     qvm_type: str,
-    qvm_client: Optional[QVMClient],
-    noise_model: Optional[NoiseModel],
-    quantum_processor: Optional[AbstractQuantumProcessor],
+    qvm_client: QVMClient | None,
+    noise_model: NoiseModel | None,
+    quantum_processor: AbstractQuantumProcessor | None,
     execution_timeout: float,
-) -> Union[QVM, PyQVM]:
+) -> QVM | PyQVM:
     if qvm_type == "qvm":
         return QVM(noise_model=noise_model, timeout=execution_timeout, client=qvm_client)
     elif qvm_type == "pyqvm":
@@ -517,9 +515,9 @@ def _get_qvm_qc(
     quantum_processor: AbstractQuantumProcessor,
     compiler_timeout: float,
     execution_timeout: float,
-    noise_model: Optional[NoiseModel],
-    quilc_client: Optional[QuilcClient] = None,
-    qvm_client: Optional[QVMClient] = None,
+    noise_model: NoiseModel | None,
+    quilc_client: QuilcClient | None = None,
+    qvm_client: QVMClient | None = None,
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
 
@@ -561,8 +559,8 @@ def _get_qvm_with_topology(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    quilc_client: Optional[QuilcClient] = None,
-    qvm_client: Optional[QVMClient] = None,
+    quilc_client: QuilcClient | None = None,
+    qvm_client: QVMClient | None = None,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
 
@@ -581,9 +579,7 @@ def _get_qvm_with_topology(
     # Note to developers: consider making this function public and advertising it.
     quantum_processor = NxQuantumProcessor(topology=topology)
     if noisy:
-        noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(
-            isa=quantum_processor.to_compiler_isa()
-        )
+        noise_model: NoiseModel | None = decoherence_noise_with_asymmetric_ro(isa=quantum_processor.to_compiler_isa())
     else:
         noise_model = None
     return _get_qvm_qc(
@@ -607,8 +603,8 @@ def _get_9q_square_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    quilc_client: Optional[QuilcClient] = None,
-    qvm_client: Optional[QVMClient] = None,
+    quilc_client: QuilcClient | None = None,
+    qvm_client: QVMClient | None = None,
 ) -> QuantumComputer:
     """Nine-qubit 3x3 square lattice.
 
@@ -646,8 +642,8 @@ def _get_unrestricted_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    quilc_client: Optional[QuilcClient] = None,
-    qvm_client: Optional[QVMClient] = None,
+    quilc_client: QuilcClient | None = None,
+    qvm_client: QVMClient | None = None,
 ) -> QuantumComputer:
     """QVM with a fully-connected topology.
 
@@ -685,8 +681,8 @@ def _get_qvm_based_on_real_quantum_processor(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    quilc_client: Optional[QuilcClient] = None,
-    qvm_client: Optional[QVMClient] = None,
+    quilc_client: QuilcClient | None = None,
+    qvm_client: QVMClient | None = None,
 ) -> QuantumComputer:
     """QVM based on a real quantum_processor.
 
@@ -722,14 +718,14 @@ def _get_qvm_based_on_real_quantum_processor(
 def get_qc(
     name: str,
     *,
-    as_qvm: Optional[bool] = None,
-    noisy: Optional[bool] = None,
+    as_qvm: bool | None = None,
+    noisy: bool | None = None,
     compiler_timeout: float = 30.0,
     execution_timeout: float = 30.0,
-    client_configuration: Optional[QCSClient] = None,
-    endpoint_id: Optional[str] = None,
-    quilc_client: Optional[QuilcClient] = None,
-    qvm_client: Optional[QVMClient] = None,
+    client_configuration: QCSClient | None = None,
+    endpoint_id: str | None = None,
+    quilc_client: QuilcClient | None = None,
+    qvm_client: QVMClient | None = None,
 ) -> QuantumComputer:
     """Get a quantum computer.
 
@@ -912,7 +908,7 @@ def local_forest_runtime(
     qvm_port: int = 5000,
     quilc_port: int = 5555,
     use_protoquil: bool = False,
-) -> Iterator[tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]]:
+) -> Iterator[tuple[subprocess.Popen | None, subprocess.Popen | None]]:
     """Context manager for local QVM and QUIL compiler.
 
     You must first have installed the `qvm` and `quilc` executables from
@@ -954,8 +950,8 @@ def local_forest_runtime(
         ports is in use, the process won't be started and the respective
         value in the tuple will be ``None``.
     """
-    qvm: Optional[subprocess.Popen] = None
-    quilc: Optional[subprocess.Popen] = None
+    qvm: subprocess.Popen | None = None
+    quilc: subprocess.Popen | None = None
 
     # If the host we should listen to is 0.0.0.0, we replace it
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
@@ -1004,7 +1000,7 @@ def _flip_array_to_prog(flip_array: tuple[bool], qubits: Sequence[QubitDesignato
         raise ValueError("Mismatch of qubits and operations")
 
     prog = Program()
-    for qubit, flip_output in zip(qubits, flip_array):
+    for qubit, flip_output in zip(qubits, flip_array, strict=False):
         if flip_output == 0:
             continue
         elif flip_output == 1:
@@ -1086,7 +1082,7 @@ def _consolidate_symmetrization_outputs(outputs: list[np.ndarray], flip_arrays: 
         raise ValueError("The length of outputs must equal the length of flip_arrays")
 
     output = []
-    for bitarray, flip_array in zip(outputs, flip_arrays):
+    for bitarray, flip_array in zip(outputs, flip_arrays, strict=False):
         if len(flip_array) == 0:
             output.append(bitarray)
         else:

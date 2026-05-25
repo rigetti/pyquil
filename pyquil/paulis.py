@@ -19,13 +19,11 @@ import copy
 import re
 import warnings
 from collections import OrderedDict
-from collections.abc import Hashable, Iterable, Iterator, Sequence
+from collections.abc import Callable, Hashable, Iterable, Iterator, Sequence
 from functools import reduce
 from itertools import product
 from numbers import Complex, Number
 from typing import (
-    Callable,
-    Optional,
     Union,
     cast,
 )
@@ -117,7 +115,7 @@ can't use np.isclose() for hashing terms though.
 """
 
 
-def _valid_qubit(index: Optional[Union[PauliTargetDesignator, QubitPlaceholder]]) -> bool:
+def _valid_qubit(index: PauliTargetDesignator | QubitPlaceholder | None) -> bool:
     return (
         (isinstance(index, integer_types) and index >= 0)
         or isinstance(index, QubitPlaceholder)
@@ -131,7 +129,7 @@ class PauliTerm:
     def __init__(
         self,
         op: str,
-        index: Optional[PauliTargetDesignator],
+        index: PauliTargetDesignator | None,
         coefficient: ExpressionDesignator = 1.0,
     ):
         """Create a new Pauli Term with a Pauli operator at a particular index and a leading coefficient.
@@ -152,7 +150,7 @@ class PauliTerm:
             self._ops[index] = op
 
         if isinstance(coefficient, Number):
-            self.coefficient: Union[complex, Expression] = complex(coefficient)
+            self.coefficient: complex | Expression = complex(coefficient)
         else:
             self.coefficient = coefficient
 
@@ -286,7 +284,7 @@ class PauliTerm:
 
         return new_term
 
-    def __mul__(self, term: Union[PauliDesignator, ExpressionDesignator]) -> PauliDesignator:
+    def __mul__(self, term: PauliDesignator | ExpressionDesignator) -> PauliDesignator:
         """Multiply this Pauli Term with another PauliTerm, PauliSum, or number according to the Pauli algebra rules.
 
         :param term: (PauliTerm or PauliSum or Number) A term to multiply by.
@@ -333,7 +331,7 @@ class PauliTerm:
             result = cast(PauliTerm, result * self)
         return result
 
-    def __add__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
+    def __add__(self, other: PauliDesignator | ExpressionDesignator) -> "PauliSum":
         """Add this PauliTerm with another one.
 
         :param other: A PauliTerm object, a PauliSum object, or a Number
@@ -448,7 +446,7 @@ class PauliTerm:
         # parse the coefficient into either a float or complex
         str_coef = str_coef.replace(" ", "")
         try:
-            coef: Union[float, complex] = float(str_coef)
+            coef: float | complex = float(str_coef)
         except ValueError:
             try:
                 coef = complex(str_coef)
@@ -473,7 +471,7 @@ class PauliTerm:
             raise ValueError(f"Expected operation to be PauliTerm, got {type(op)}.")
         return op
 
-    def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
+    def pauli_string(self, qubits: Iterable[int] | None = None) -> str:
         """Return a string representation of this PauliTerm without its coefficient and with implicit qubit indices.
 
         If an iterable of qubits is provided, each character in the resulting string represents
@@ -506,7 +504,7 @@ def ZERO() -> PauliTerm:
     return PauliTerm("I", 0, 0)
 
 
-def sI(q: Optional[int] = None) -> PauliTerm:
+def sI(q: int | None = None) -> PauliTerm:
     """Return the identity operator, optionally on a particular qubit.
 
     This can be specified without a qubit.
@@ -579,7 +577,7 @@ class PauliSum:
     def _from_rs_pauli_sum(cls, pauli_sum: quil_rs.PauliSum) -> "PauliSum":
         return cls([PauliTerm._from_rs_pauli_term(term) for term in pauli_sum.terms])
 
-    def _to_rs_pauli_sum(self, arguments: Optional[list[PauliTargetDesignator]] = None) -> quil_rs.PauliSum:
+    def _to_rs_pauli_sum(self, arguments: list[PauliTargetDesignator] | None = None) -> quil_rs.PauliSum:
         rs_arguments: list[str]
         if arguments is None:
             argument_set: dict[str, None] = {}
@@ -630,7 +628,7 @@ class PauliSum:
         """Iterate over the PauliTerms in the sum."""
         return self.terms.__iter__()
 
-    def __mul__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
+    def __mul__(self, other: PauliDesignator | ExpressionDesignator) -> "PauliSum":
         """Multiply and simplify this PauliSum with another PauliSum, PauliTerm or Number object.
 
         :param other: a PauliSum, PauliTerm or Number object
@@ -639,7 +637,7 @@ class PauliSum:
         if not isinstance(other, (Expression, Number, PauliTerm, PauliSum)):
             raise ValueError("Cannot multiply PauliSum by term that is not a Number, PauliTerm, or PauliSum")
 
-        other_terms: list[Union[PauliTerm, ExpressionDesignator]] = []
+        other_terms: list[PauliTerm | ExpressionDesignator] = []
         if isinstance(other, PauliSum):
             other_terms += other.terms
         else:
@@ -686,7 +684,7 @@ class PauliSum:
             result *= self
         return result
 
-    def __add__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
+    def __add__(self, other: PauliDesignator | ExpressionDesignator) -> "PauliSum":
         """Add and simplify this PauliSum with another PauliSum, PauliTerm or Number objects.
 
         :param other: a PauliSum, PauliTerm or Number object
@@ -715,7 +713,7 @@ class PauliSum:
             raise TypeError(f"Expected a Number object, got {type(other)}")
         return self + other
 
-    def __sub__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
+    def __sub__(self, other: PauliDesignator | ExpressionDesignator) -> "PauliSum":
         """Subtract and simplify this PauliSum with another PauliSum, PauliTerm or Number object.
 
         :param other: a PauliSum, PauliTerm or Number object
@@ -723,7 +721,7 @@ class PauliSum:
         """
         return self + -1.0 * other
 
-    def __rsub__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
+    def __rsub__(self, other: PauliDesignator | ExpressionDesignator) -> "PauliSum":
         """Subtract and simplify this PauliSum with another PauliSum, PauliTerm or Number object.
 
         :param other: a PauliSum, PauliTerm or Number object
@@ -933,7 +931,7 @@ def exponentiate_commuting_pauli_sum(
 
 
 def exponentiate_pauli_sum(
-    pauli_sum: Union[PauliSum, PauliTerm],
+    pauli_sum: PauliSum | PauliTerm,
 ) -> NDArray[np.complex128]:
     r"""Exponentiate a sequence of PauliTerms, which may or may not commute.
 

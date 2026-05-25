@@ -15,7 +15,7 @@
 ##############################################################################
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from qcs_sdk import ExecutionData, QCSClient, ResultData, qvm
@@ -60,12 +60,12 @@ class QVMExecuteResponse:
 class QVM(QAM[QVMExecuteResponse]):
     def __init__(
         self,
-        noise_model: Optional[NoiseModel] = None,
-        gate_noise: Optional[tuple[float, float, float]] = None,
-        measurement_noise: Optional[tuple[float, float, float]] = None,
-        random_seed: Optional[int] = None,
+        noise_model: NoiseModel | None = None,
+        gate_noise: tuple[float, float, float] | None = None,
+        measurement_noise: tuple[float, float, float] | None = None,
+        random_seed: int | None = None,
         timeout: float = 10.0,
-        client: Optional[QVMClient] = None,
+        client: QVMClient | None = None,
     ) -> None:
         """Return a virtual machine that classically emulates the execution of Quil programs.
 
@@ -138,7 +138,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
     def execute(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[MemoryMap] = None,
+        memory_map: MemoryMap | None = None,
         **__: Any,
     ) -> QVMExecuteResponse:
         """Execute the input program to completion."""
@@ -180,7 +180,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))
 
 
-def validate_noise_probabilities(noise_parameter: Optional[tuple[float, float, float]]) -> None:
+def validate_noise_probabilities(noise_parameter: tuple[float, float, float] | None) -> None:
     """Validate the noise probabilities.
 
     This function checks that the provided noise parameters are in the correct format and within the expected ranges.
