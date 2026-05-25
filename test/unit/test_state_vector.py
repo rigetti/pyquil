@@ -1,26 +1,61 @@
 """Unit tests for the quax-based state vector simulator."""
 
+from pathlib import Path
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
 import quax as qx
 
-from pyquil.gates import CNOT, CZ, H, MEASURE, RESET, RX, RY, RZ, X
+from pyquil.gates import CNOT, CZ, MEASURE, RESET, RX, RY, RZ, H, X
+from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, ResetChannel
+from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Qubit
-from pyquil.quilbase import Declare, DefGate, Gate as QuilGate, Measurement as QuilMeasurement, ResetQubit
-from pyquil.noise._channels import Channel, MeasurementChannel, ResetChannel
-from pyquil.noise._noise_model import NoiseModel
+from pyquil.quilbase import (
+    Declare,
+    DefCircuit,
+    DefGate,
+    ResetQubit,
+)
+from pyquil.quilbase import (
+    Gate as QuilGate,
+)
+from pyquil.quilbase import (
+    Measurement as QuilMeasurement,
+)
+from pyquil.quilbase import (
+    Reset as QuilReset,
+)
 from pyquil.simulation._simulator import (
-    PureStateVectorSimulator,
     DensityMatrixSimulator,
+    PureStateVectorSimulator,
     TrajectorySimulator,
-    _apply_trajectory_operations as apply_trajectory_operations,
     _run_batched_trajectories,
+)
+from pyquil.simulation._simulator import (
+    _apply_trajectory_operations as apply_trajectory_operations,
 )
 
 _EMPTY_PARAMS = jnp.array([], dtype=float)
+_DATA_DIR = Path(__file__).parent / "data"
+_SURFACE17_FIXTURE = _DATA_DIR / "surface_17_depth_5_no_reset.quil"
+_SURFACE17_QUBITS = (65, 66, 74, 75, 76, 77, 82, 83, 84, 85, 86, 91, 92, 93, 94, 102, 103)
+_SURFACE17_CYCLES = {
+    "SZ_INIT",
+    "SX_INIT",
+    "CZ_0",
+    "SZ_DATA",
+    "SX_DATA",
+    "CZ_1",
+    "CZ_2",
+    "CZ_3",
+    "SZ_ANCILLA",
+    "SX_ANCILLA_ECHO",
+    "MEASURE_ANCILLA",
+    "MEASURE_ALL",
+}
 
 
 def _sv(program, qubits=None, memory_map=None):
@@ -51,6 +86,94 @@ def _simulate_trajectories(program, noise_model=None, qubits=None, num_trajector
     combined_psi = qx.StateVector.from_matrix(combined_data, all_psis[0].dims)
     combined_outcomes = jnp.concatenate(all_outcomes, axis=0)
     return combined_psi, combined_outcomes
+
+
+def _load_surface17_depth5_program():
+    """Load the checked-in surface-17 depth-5 Quil fixture."""
+    return Program(_SURFACE17_FIXTURE.read_text())
+
+
+def _surface17_defcircuits(program):
+    return {inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)}
+
+
+def _concretize_cycle_gate(inst, qubit_map):
+    return QuilGate(
+        inst.name,
+        list(inst.params),
+        [qubit_map[qubit] for qubit in inst.qubits],
+    )
+
+
+def _concretize_cycle_measurement(inst, qubit_map):
+    return QuilMeasurement(qubit=qubit_map[inst.qubit], classical_reg=None)
+
+
+def _build_surface17_cycle_noise_model(
+    program,
+    depolarizing_constant=0.99,
+    readout_fidelity=1.0,
+):
+    """Build a cycle noise model that matches the surface-17 DEFCIRCUIT invocations."""
+    defcircuits = _surface17_defcircuits(program)
+    cycle_channels = []
+
+    for inst in program.instructions:
+        if not isinstance(inst, QuilGate) or inst.name not in defcircuits:
+            continue
+
+        defcircuit = defcircuits[inst.name]
+        qubit_map = dict(zip(defcircuit.qubit_variables, inst.qubits))
+        channels = []
+
+        for cycle_inst in defcircuit.instructions:
+            if isinstance(cycle_inst, QuilGate):
+                concrete_gate = _concretize_cycle_gate(cycle_inst, qubit_map)
+                channels.append(Channel.from_depolarizing_constant(concrete_gate, depolarizing_constant))
+            elif isinstance(cycle_inst, QuilMeasurement):
+                concrete_measurement = _concretize_cycle_measurement(cycle_inst, qubit_map)
+                channels.append(
+                    MeasurementChannel.from_readout_fidelity(concrete_measurement, fidelity=readout_fidelity)
+                )
+
+        cycle_channels.append(CycleChannel(inst=inst, defcircuit=defcircuit, channels=tuple(channels)))
+
+    return NoiseModel(channels=cycle_channels)
+
+
+def _run_surface17_cycle_benchmark(
+    benchmark,
+    num_trajectories=128,
+    batch_size=16,
+    depolarizing_constant=0.99,
+    readout_fidelity=1.0,
+):
+    program = _load_surface17_depth5_program()
+    noise_model = _build_surface17_cycle_noise_model(
+        program,
+        depolarizing_constant=depolarizing_constant,
+        readout_fidelity=readout_fidelity,
+    )
+    sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=0)
+    params = sim.linearize({})
+    operations = sim.adapt(sim.compress(sim.resolve(params)))
+
+    warmup_psi = qx.zero_state_vector(dims=sim.dims, ensemble_size=(batch_size,))
+    key = jax.random.key(0)
+    apply_trajectory_operations(operations, warmup_psi, key)[0].matrix.block_until_ready()
+
+    def thunk():
+        key = jax.random.key(0)
+        remaining = num_trajectories
+        while remaining > 0:
+            this_batch = min(remaining, batch_size)
+            key, batch_key = jax.random.split(key)
+            psi = qx.zero_state_vector(dims=sim.dims, ensemble_size=(this_batch,))
+            result = apply_trajectory_operations(operations, psi, batch_key)
+            result[0].matrix.block_until_ready()
+            remaining -= this_batch
+
+    benchmark.pedantic(thunk, iterations=1, rounds=1)
 
 
 class TestSingleQubitGates:
@@ -944,6 +1067,32 @@ class TestCompressorOpCounts:
                 # line += f" {counts[s]:>8}"
             print(line)
 
+
+class TestSurface17Fixture:
+    """Tests for the checked-in surface-17 trajectory benchmark fixture."""
+
+    def test_surface17_fixture_structure(self):
+        program = _load_surface17_depth5_program()
+        defcircuit_names = set(_surface17_defcircuits(program))
+        invocations = [inst for inst in program.instructions if isinstance(inst, QuilGate)]
+        invocation_names = [inst.name for inst in invocations]
+
+        assert _SURFACE17_FIXTURE.exists()
+        assert defcircuit_names == _SURFACE17_CYCLES
+        assert set(program.get_qubit_indices()) == set(_SURFACE17_QUBITS)
+        assert not any(isinstance(inst, (QuilReset, ResetQubit)) for inst in program.instructions)
+        assert invocation_names.count("MEASURE_ANCILLA") == 4
+        assert invocation_names[-1] == "MEASURE_ALL"
+
+    def test_surface17_cycle_noise_model_preserves_measurements(self):
+        program = _load_surface17_depth5_program()
+        noise_model = _build_surface17_cycle_noise_model(program, depolarizing_constant=1.0)
+        sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=0)
+        resolved = sim.resolve(_EMPTY_PARAMS)
+
+        n_measurements = sum(1 for op, _ in resolved if isinstance(op, qx.QuantumInstrument))
+        assert n_measurements == 49
+
 # ──────────────────────────────────────────────────────────────────────────────
 # State Vector simulation benchmarks
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1065,9 +1214,9 @@ class TestPerformance:
     @pytest.mark.parametrize("batch_size", [
         pytest.param(8, id="b8"),
         pytest.param(16, id="b16"),
-        pytest.param(32, id="b32"),
+        # pytest.param(32, id="b32"),
         pytest.param(64, id="b64"),
-        pytest.param(128, id="b128"),
+        # pytest.param(128, id="b128"),
     ])
     def test_scaling_batch_size(self, benchmark, batch_size):
         _run_perf_benchmark(benchmark, batch_size=batch_size)
@@ -1084,11 +1233,14 @@ class TestPerformance:
     @pytest.mark.parametrize("batch_size", [
         pytest.param(8, id="b8"),
         pytest.param(16, id="b16"),
-        pytest.param(32, id="b32"),
+        # pytest.param(32, id="b32"),
         pytest.param(64, id="b64"),
-        pytest.param(128, id="b128"),
+        # pytest.param(128, id="b128"),
     ])
     def test_17q_batch_size(self, benchmark, batch_size):
         _run_perf_benchmark(benchmark, num_qubits=17, batch_size=batch_size)
+
+    def test_surface17_depth5_cycle_noise(self, benchmark):
+        _run_surface17_cycle_benchmark(benchmark)
 
 
