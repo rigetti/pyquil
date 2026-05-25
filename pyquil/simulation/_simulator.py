@@ -42,43 +42,22 @@ import quax as qx
 from jax import Array
 
 from pyquil.api import MemoryMap
+from pyquil.noise._channels import get_custom_gates_from_program
+from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
-
-from pyquil.noise._noise_model import NoiseModelLike
-from pyquil.noise._channels import CycleChannel, get_custom_gates_from_program
-
-from pyquil.transform import expand_defcircuits
-
 from pyquil.simulation._resolver import (
-    Linearizer,
-    Resolver,
     ResolvedOp,
     TrajectoryOp,
-    DensityMatrixOp,
     adapt_for_density_matrix,
     adapt_for_trajectory,
     compressor_from_dag,
     linearizer_from_program,
-    dag_from_program,
     resolver_from_program,
 )
+from pyquil.transform import expand_defcircuits
 
 logger = logging.getLogger(__name__)
-
-
-def _get_cycle_channel_names(noise_model: NoiseModelLike | None) -> frozenset:
-    """Extract DefCircuit names from CycleChannels in the noise model."""
-    if noise_model is None:
-        return frozenset()
-    from pyquil.noise._noise_model import NoiseModel
-    if isinstance(noise_model, NoiseModel):
-        names = frozenset(
-            ch.inst.name for ch in noise_model.channels
-            if isinstance(ch, CycleChannel)
-        )
-        return names
-    return frozenset()
 
 
 # ══════════════════════════════════════════════════════════
@@ -108,31 +87,24 @@ class ProgramSimulator:
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 0,
     ) -> None:
-        # Only expand DefCircuits that don't correspond to CycleChannels in the
-        # noise model.  CycleChannels are keyed by the cycle Gate instruction,
-        # so expanding their DefCircuit would destroy the match.
-        cycle_names = _get_cycle_channel_names(noise_model)
-        if cycle_names:
-            program = expand_defcircuits(program, expand_names_except=cycle_names)
-        else:
-            program = expand_defcircuits(program)
-        self._validate(program)
+        expanded_program = expand_defcircuits(program)
+        self._validate(expanded_program)
 
         if qubits is None:
-            qubits = sorted(program.get_qubit_indices())
+            qubits = sorted(expanded_program.get_qubit_indices())
         self.qubits = qubits
         self.n_qubits = len(qubits)
         qubit_indices = {q: i for i, q in enumerate(qubits)}
 
         custom_gates = get_custom_gates_from_program(program)
 
-        self._linearize_fn = linearizer_from_program(program)
+        self._linearize_fn = linearizer_from_program(expanded_program)
 
-        dag, node_order = dag_from_program(program, qubit_indices)
-
-        self._resolve_fn = resolver_from_program(
-            program, noise_model, qubit_indices, custom_gates or None,
-            dag, node_order,
+        self._resolve_fn, dag, node_order = resolver_from_program(
+            program,
+            noise_model,
+            qubit_indices,
+            custom_gates or None,
         )
 
         # Dims are inferred during resolver construction from gate/channel inspection.
@@ -177,7 +149,7 @@ class PureStateVectorSimulator(ProgramSimulator):
         sim = PureStateVectorSimulator(program)
         params = sim.linearize(memory_map)
         psi = jax.jit(sim.compute)(params)
-        U   = jax.jit(sim.unitary)(params)
+        U = jax.jit(sim.unitary)(params)
     """
 
     __slots__ = ("_psi0",)
@@ -195,15 +167,9 @@ class PureStateVectorSimulator(ProgramSimulator):
     def _validate(self, program: Program) -> None:
         for inst in program.instructions:
             if isinstance(inst, Measurement):
-                raise ValueError(
-                    "PureStateVectorSimulator does not support measurements.  "
-                    f"Found: {inst}"
-                )
+                raise ValueError(f"PureStateVectorSimulator does not support measurements.  Found: {inst}")
             if isinstance(inst, (Reset, ResetQubit)):
-                raise ValueError(
-                    "PureStateVectorSimulator does not support resets.  "
-                    f"Found: {inst}"
-                )
+                raise ValueError(f"PureStateVectorSimulator does not support resets.  Found: {inst}")
 
     def compute(self, params: Array) -> qx.StateVector:
         """Compute the final state vector.
@@ -242,7 +208,7 @@ class PureStateVectorSimulator(ProgramSimulator):
             d = 1
             for dim in self.dims:
                 d *= dim
-            return qx.Unitary.from_matrix(jnp.eye(d, dtype=complex), self.dims)
+            return qx.Unitary.from_matrix(jnp.eye(d, dtype=complex), (self.dims, self.dims))
 
         return accumulated
 
@@ -390,8 +356,13 @@ class TrajectorySimulator(ProgramSimulator):
         operations = self.adapt(compressed)
 
         _, all_outcomes = _run_batched_trajectories(
-            operations, self.n_qubits, num_trajectories, batch_size, random_seed,
-            keep_states=False, dims=self.dims,
+            operations,
+            self.n_qubits,
+            num_trajectories,
+            batch_size,
+            random_seed,
+            keep_states=False,
+            dims=self.dims,
         )
 
         if len(all_outcomes) == 1:
@@ -427,10 +398,7 @@ def _apply_trajectory_operations(
     """
     measurement_outcomes: List[Array] = []
 
-    n_stochastic = sum(
-        1 for op, _ in operations
-        if isinstance(op, (qx.KrausMap, qx.QuantumInstrument))
-    )
+    n_stochastic = sum(1 for op, _ in operations if isinstance(op, (qx.KrausMap, qx.QuantumInstrument)))
 
     ensemble_size = psi.ensemble_size
 
@@ -505,13 +473,17 @@ def _run_batched_trajectories(
 
         if this_batch == 1:
             psi_out = qx.StateVector.from_matrix(
-                psi_out.matrix[jnp.newaxis], psi_out.dims,
+                psi_out.matrix[jnp.newaxis],
+                psi_out.dims,
             )
             outcomes = outcomes[jnp.newaxis]
 
         logger.debug(
             "Batch %d: %d trajectories, %d qubits, %.3f s",
-            batch_idx, this_batch, n_qubits, t1 - t0,
+            batch_idx,
+            this_batch,
+            n_qubits,
+            t1 - t0,
         )
 
         if keep_states:
@@ -521,10 +493,13 @@ def _run_batched_trajectories(
         batch_idx += 1
 
     logger.info(
-        "Trajectories complete: %d total, %d batches (size=%d), "
-        "n_qubits=%d, %.3f s total, %.1f traj/s",
-        num_trajectories, batch_idx, batch_size, n_qubits,
-        t_total, num_trajectories / t_total if t_total > 0 else float("inf"),
+        "Trajectories complete: %d total, %d batches (size=%d), n_qubits=%d, %.3f s total, %.1f traj/s",
+        num_trajectories,
+        batch_idx,
+        batch_size,
+        n_qubits,
+        t_total,
+        num_trajectories / t_total if t_total > 0 else float("inf"),
     )
 
     return (all_psis if keep_states else None), all_outcomes

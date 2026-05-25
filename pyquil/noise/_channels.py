@@ -30,7 +30,7 @@ import logging
 from dataclasses import dataclass, replace
 from functools import cached_property, reduce
 from itertools import product
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Callable
 
 import jax.numpy as jnp
 import numpy as np
@@ -50,7 +50,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Type alias for the custom-gate lookup map used throughout the Channel constructors.
-CustomGateMap = Dict[str, Union[qx.Unitary, Callable[..., qx.Unitary]]]
+CustomGateMap = dict[str, qx.Unitary | Callable[..., qx.Unitary]]
 
 
 def _parse_quil_instruction(quil_str: str) -> Gate | Measurement | Reset:
@@ -68,7 +68,7 @@ def _parse_quil_instruction(quil_str: str) -> Gate | Measurement | Reset:
     raise ValueError(f"Unsupported instruction type in: {quil_str}")
 
 
-def _resolve_params(params: list) -> List[float]:
+def _resolve_params(params: list) -> list[float]:
     """
     Resolve gate parameters to concrete float values.
 
@@ -127,7 +127,7 @@ def get_custom_gates_from_program(program: Program) -> CustomGateMap:
 
 def get_instruction_unitary(
     inst: Gate,
-    custom_gates: Optional[CustomGateMap] = None,
+    custom_gates: CustomGateMap | None = None,
 ) -> qx.Unitary:
     """
     Get the unitary matrix associated with a gate instruction.
@@ -201,7 +201,7 @@ class Channel:
         return self.target_unitary
 
     @cached_property
-    def qubits(self) -> List[int]:
+    def qubits(self) -> list[int]:
         """The qubits which the channel applies to."""
         return self.inst.get_qubit_indices()
 
@@ -216,10 +216,10 @@ class Channel:
 
     @classmethod
     def from_gate_fidelity(
-        cls: Type["Channel"],
+        cls: type[Channel],
         inst: Gate,
         fidelity: float,
-        custom_gates: Optional[CustomGateMap] = None,
+        custom_gates: CustomGateMap | None = None,
     ) -> "Channel":
         """
         Create a depolarizing noise channel from an average gate fidelity.
@@ -239,10 +239,10 @@ class Channel:
 
     @classmethod
     def from_pauli_fidelity(
-        cls: Type["Channel"],
+        cls: type[Channel],
         inst: Gate,
         pauli_fidelity: float,
-        custom_gates: Optional[CustomGateMap] = None,
+        custom_gates: CustomGateMap | None = None,
     ) -> "Channel":
         """
         Create a depolarizing noise channel from a process (Pauli) fidelity.
@@ -261,10 +261,10 @@ class Channel:
 
     @classmethod
     def from_depolarizing_constant(
-        cls: Type["Channel"],
+        cls: type[Channel],
         inst: Gate,
         depolarizing_constant: float,
-        custom_gates: Optional[CustomGateMap] = None,
+        custom_gates: CustomGateMap | None = None,
     ) -> "Channel":
         """
         Create a depolarizing noise channel from a depolarization constant.
@@ -284,10 +284,10 @@ class Channel:
 
     @classmethod
     def from_pauli_noise(
-        cls: Type["Channel"],
+        cls: type[Channel],
         inst: Gate,
-        pauli_noise: Dict[str, float],
-        custom_gates: Optional[CustomGateMap] = None,
+        pauli_noise: dict[str, float],
+        custom_gates: CustomGateMap | None = None,
     ) -> "Channel":
         """
         Create a stochastic Pauli noise channel from Pauli error rates.
@@ -308,7 +308,7 @@ class Channel:
             if len(pauli) != num_qubits:
                 raise ValueError(f"Pauli term '{pauli}' has length {len(pauli)}, expected {num_qubits}.")
 
-        all_pauli_terms = list(map(lambda term: "".join(term), itertools.product(*["IXYZ" for _ in range(num_qubits)])))
+        all_pauli_terms = tuple("".join(term) for term in product("IXYZ", repeat=num_qubits))
 
         pauli_error_rates = []
         for term in reversed(all_pauli_terms):
@@ -339,11 +339,11 @@ class Channel:
 
     @classmethod
     def from_random_coherent_error(
-        cls: Type["Channel"],
+        cls: type[Channel],
         inst: Gate,
         process_fidelity: float,
-        rng: Optional[np.random.Generator] = None,
-        custom_gates: Optional[CustomGateMap] = None,
+        rng: np.random.Generator | None = None,
+        custom_gates: CustomGateMap | None = None,
     ) -> "Channel":
         """
         Create a channel with a random coherent (unitary) error at the specified process fidelity.
@@ -391,11 +391,11 @@ class Channel:
 
     @classmethod
     def from_mixture(
-        cls: Type["Channel"],
+        cls: type[Channel],
         inst: Gate,
-        constituents: List[qx.Unitary],
-        probabilities: List[float],
-        custom_gates: Optional[CustomGateMap] = None,
+        constituents: list[qx.Unitary],
+        probabilities: list[float],
+        custom_gates: CustomGateMap | None = None,
     ) -> "Channel":
         """
         Create a mixture channel from a set of unitary errors with given probabilities.
@@ -428,12 +428,12 @@ class Channel:
 
     @classmethod
     def from_coherence_times(
-        cls: Type["Channel"],
+        cls: type[Channel],
         inst: Gate,
         gate_duration: float,
-        t1s: List[float],
-        t2s: Optional[List[float]] = None,
-        custom_gates: Optional[CustomGateMap] = None,
+        t1s: list[float],
+        t2s: list[float] | None = None,
+        custom_gates: CustomGateMap | None = None,
     ) -> "Channel":
         """
         Create a decoherence Channel based on the coherence times.
@@ -464,6 +464,32 @@ class Channel:
             process=process,
             target_unitary=unitary,
         )
+
+    @classmethod
+    def from_superoperator(
+        cls: type[Channel],
+        inst: Gate,
+        process: qx.SuperOp,
+        target_unitary: qx.Unitary | None = None,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        """
+        Create a Channel from a pre-built superoperator.
+
+        If ``target_unitary`` is not provided it is inferred from the gate
+        instruction using the standard gate set (and ``custom_gates`` if given).
+
+        :param inst: The gate to which the channel applies.
+        :param process: The noisy process superoperator (includes the gate unitary).
+        :param target_unitary: The ideal gate unitary.  Resolved automatically
+            when omitted.
+        :param custom_gates: Optional dictionary of custom gate definitions,
+            used only when ``target_unitary`` is ``None``.
+        :return: A Channel instance.
+        """
+        if target_unitary is None:
+            target_unitary = get_instruction_unitary(inst, custom_gates)
+        return cls(inst=inst, process=process, target_unitary=target_unitary)
 
     # ──────────────────────────────────────────────
     # Cached representation conversions
@@ -701,7 +727,7 @@ class Channel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: Type["Channel"], json_str: str) -> "Channel":
+    def from_json(cls: type[Channel], json_str: str) -> "Channel":
         """
         Deserialize a Channel from a JSON string.
 
@@ -739,7 +765,7 @@ class Channel:
     # Dunder methods
     # ──────────────────────────────────────────────
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """Return a simplified string representation showing the gate and process fidelity."""
         return f"<{self.inst.out()} ~ ({100 * self.pauli_fidelity:.2f}%)>"
 
@@ -751,9 +777,7 @@ class Channel:
             return False
         return bool(jnp.isclose(float(qx.process_fidelity(self.process, other.process)), 1.0, atol=1e-9))
 
-    def __hash__(self) -> int:
-        """Hash based on the instruction (for use in sets/dicts)."""
-        return hash(self.inst)
+    __hash__ = None
 
     def __matmul__(self, other: "Channel") -> "Channel":
         """
@@ -816,7 +840,7 @@ class MeasurementChannel:
     """A quantum instrument representation of the noisy measurement."""
 
     @cached_property
-    def qubits(self) -> List[int]:
+    def qubits(self) -> list[int]:
         """The qubits which the measurement applies to."""
         qubit = self.inst.qubit
         return [qubit.index if hasattr(qubit, "index") else int(qubit)]  # type: ignore[union-attr,arg-type]
@@ -827,7 +851,7 @@ class MeasurementChannel:
 
     @classmethod
     def from_readout_fidelity(
-        cls: Type["MeasurementChannel"],
+        cls: type[MeasurementChannel],
         inst: Measurement,
         fidelity: float,
         asymmetry: float = 0.0,
@@ -872,7 +896,7 @@ class MeasurementChannel:
 
     @classmethod
     def from_confusion_and_transition(
-        cls: Type["MeasurementChannel"],
+        cls: type[MeasurementChannel],
         inst: Measurement,
         confusion_matrix: Array,
         transition_matrix: Array,
@@ -906,7 +930,7 @@ class MeasurementChannel:
 
     @classmethod
     def from_axis(
-        cls: Type["MeasurementChannel"],
+        cls: type[MeasurementChannel],
         inst: Measurement,
         theta: float = 0.0,
         phi: float = 0.0,
@@ -934,7 +958,7 @@ class MeasurementChannel:
 
     @classmethod
     def from_binary_discriminator(
-        cls: Type["MeasurementChannel"],
+        cls: type[MeasurementChannel],
         inst: Measurement,
         dim: int,
         threshold: int,
@@ -1081,7 +1105,7 @@ class MeasurementChannel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: Type["MeasurementChannel"], json_str: str) -> "MeasurementChannel":
+    def from_json(cls: type[MeasurementChannel], json_str: str) -> "MeasurementChannel":
         """
         Deserialize a MeasurementChannel from a JSON string.
 
@@ -1110,7 +1134,7 @@ class MeasurementChannel:
     # Dunder methods
     # ──────────────────────────────────────────────
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """Return a simplified string representation."""
         return f"<MEASURE({self.classification_fidelity:.2f}) {self.qubits[0]} ~ QND({100 * self.non_demolition_fidelity:.2f}%)>"
 
@@ -1122,9 +1146,7 @@ class MeasurementChannel:
             return False
         return bool(jnp.allclose(self.process.matrix, other.process.matrix, atol=1e-9))
 
-    def __hash__(self) -> int:
-        """Hash based on the instruction."""
-        return hash(self.inst)
+    __hash__ = None
 
     def __matmul__(self, other: "MeasurementChannel") -> "MeasurementChannel":
         """
@@ -1181,7 +1203,7 @@ class ResetChannel:
 
     @classmethod
     def from_reset_fidelity(
-        cls: Type["ResetChannel"],
+        cls: type[ResetChannel],
         inst: Reset,
         fidelity: float,
         dim: int = 2,
@@ -1225,7 +1247,7 @@ class ResetChannel:
     # ──────────────────────────────────────────────
 
     @cached_property
-    def qubits(self) -> List[int]:
+    def qubits(self) -> list[int]:
         """The qubit(s) that the reset applies to."""
         qubit = self.inst.qubit
         if qubit is None:
@@ -1290,7 +1312,7 @@ class ResetChannel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: Type["ResetChannel"], json_str: str) -> "ResetChannel":
+    def from_json(cls: type[ResetChannel], json_str: str) -> "ResetChannel":
         """
         Deserialize a ResetChannel from a JSON string.
 
@@ -1314,7 +1336,7 @@ class ResetChannel:
     # Dunder methods
     # ──────────────────────────────────────────────
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """Return a simplified string representation."""
         qubit_str = str(self.qubits[0]) if self.qubits else "?"
         return f"<RESET({self.fidelity:.2f}) {qubit_str}>"
@@ -1327,9 +1349,7 @@ class ResetChannel:
             return False
         return bool(jnp.allclose(self.process.matrix, other.process.matrix, atol=1e-9))
 
-    def __hash__(self) -> int:
-        """Hash based on the instruction."""
-        return hash(self.inst)
+    __hash__ = None
 
 
 @dataclass(frozen=True)
@@ -1347,7 +1367,7 @@ class CycleChannel:
     defcircuit: DefCircuit
     """The DefCircuit representing the logical cycle to which instruction represents."""
 
-    channels: Tuple["Channel | MeasurementChannel", ...]
+    channels: tuple["Channel | MeasurementChannel", ...]
     """Constituent channels (one per operation in the cycle) on disjoint qubits."""
 
     # ──────────────────────────────────────────────
@@ -1355,12 +1375,12 @@ class CycleChannel:
     # ──────────────────────────────────────────────
 
     @cached_property
-    def operator(self) -> Tuple[qx.SuperOp | qx.QuantumInstrument, ...]:
+    def operator(self) -> tuple[qx.SuperOp | qx.QuantumInstrument, ...]:
         """Tuple of process superoperators, one per constituent channel."""
         return tuple(ch.process for ch in self.channels)
 
     @cached_property
-    def qubits(self) -> List[int]:
+    def qubits(self) -> list[int]:
         """All qubits in the cycle, derived from the instruction."""
         return self.inst.get_qubit_indices()
 
@@ -1419,7 +1439,7 @@ class CycleChannel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: Type["CycleChannel"], json_str: str) -> "CycleChannel":
+    def from_json(cls: type[CycleChannel], json_str: str) -> "CycleChannel":
         """
         Deserialize a CycleChannel from a JSON string.
 
@@ -1430,11 +1450,11 @@ class CycleChannel:
         :return: CycleChannel instance.
         """
         data = json.loads(json_str)
-        _type_map: Dict[str, Type["Channel | MeasurementChannel"]] = {
+        _type_map: dict[str, type[Channel | MeasurementChannel]] = {
             "Channel": Channel,
             "MeasurementChannel": MeasurementChannel,
         }
-        constituent_channels: List["Channel | MeasurementChannel"] = [
+        constituent_channels: list["Channel | MeasurementChannel"] = [
             _type_map[ch_data["type"]].from_json(ch_data["data"])  # type: ignore[index]
             for ch_data in data["channels"]
         ]
@@ -1444,7 +1464,7 @@ class CycleChannel:
     # Dunder methods
     # ──────────────────────────────────────────────
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """Return a simplified string representation showing the gate and process fidelity."""
         return f"<{self.inst.out()} ~ ({100 * self.pauli_fidelity:.2f}%)>"
 
@@ -1456,9 +1476,7 @@ class CycleChannel:
             return False
         return self.channels == other.channels
 
-    def __hash__(self) -> int:
-        """Hash based on the instruction."""
-        return hash(self.inst)
+    __hash__ = None
 
 
 def _channel_to_formal_inst(channel: Channel | MeasurementChannel) -> Gate | Measurement:
@@ -1481,7 +1499,7 @@ def _channel_to_formal_inst(channel: Channel | MeasurementChannel) -> Gate | Mea
 
 
 def _build_cycle_channel(
-    channels: List["Channel | MeasurementChannel"],
+    channels: list["Channel | MeasurementChannel"],
 ) -> "CycleChannel":
     """Build a CycleChannel from a list of Channel/MeasurementChannel on disjoint qubits."""
     all_qubits = sorted(q for ch in channels for q in ch.qubits)

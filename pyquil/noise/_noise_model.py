@@ -34,22 +34,14 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import cached_property, reduce
 from operator import mul
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    FrozenSet,
     Iterable,
-    List,
-    Optional,
     Protocol,
     Sequence,
-    Set,
-    Tuple,
-    Type,
-    Union,
     overload,
     runtime_checkable,
 )
@@ -71,7 +63,7 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────
 
 # Channel union type returned by get_channel
-ChannelType = Union[Channel, MeasurementChannel, ResetChannel, CycleChannel]
+ChannelType = Channel | MeasurementChannel | ResetChannel | CycleChannel
 
 
 @runtime_checkable
@@ -95,9 +87,7 @@ class NoiseModelLike(Protocol):
     @overload
     def get_channel(self, inst: ResetQubit) -> ResetChannel | None: ...
 
-    def get_channel(
-        self, inst: Gate | Measurement | ResetQubit
-    ) -> ChannelType | None:
+    def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
         """Retrieve the noise channel for a specific instruction.
 
         :param inst: A gate, measurement, or reset instruction.
@@ -118,12 +108,12 @@ class NoiseModel:
     which is coerced to a tuple for immutable storage.
     """
 
-    channels: Tuple[Union[Channel, MeasurementChannel, ResetChannel, CycleChannel], ...]
+    channels: tuple[Channel | MeasurementChannel | ResetChannel | CycleChannel, ...]
     """Immutable tuple of all noise channels in the model."""
 
     def __init__(
         self,
-        channels: Iterable[Union[Channel, MeasurementChannel, ResetChannel, CycleChannel]] = (),
+        channels: Iterable[Channel | MeasurementChannel | ResetChannel | CycleChannel] = (),
     ) -> None:
         # Accept any iterable, coerce to tuple for immutable storage.
         if isinstance(channels, tuple):
@@ -132,7 +122,9 @@ class NoiseModel:
             object.__setattr__(self, "channels", tuple(channels))
 
     @cached_property
-    def _channel_map(self) -> Dict[Union[Gate, Measurement, ResetQubit], Union[Channel, MeasurementChannel, ResetChannel, CycleChannel]]:
+    def _channel_map(
+        self,
+    ) -> dict[Gate | Measurement | ResetQubit, Channel | MeasurementChannel | ResetChannel | CycleChannel]:
         """Map from instruction to channel for fast lookup."""
         return {ch.inst: ch for ch in self.channels}
 
@@ -161,7 +153,7 @@ class NoiseModel:
     # ──────────────────────────────────────────────
 
     @classmethod
-    def from_isa(cls: Type["NoiseModel"], compiler_isa: "CompilerISA") -> "NoiseModel":
+    def from_isa(cls: type[NoiseModel], compiler_isa: "CompilerISA") -> "NoiseModel":
         """
         Create a noise model from an instruction set architecture.
 
@@ -175,8 +167,8 @@ class NoiseModel:
         from pyquil.external.rpcq import GateInfo, MeasureInfo
         from pyquil.quilatom import Qubit as QuilQubit
 
-        channels: Set[Union[Channel, MeasurementChannel, ResetChannel, CycleChannel]] = set()
-        seen_measure_qubits: Set[int] = set()
+        channels: dict[Gate | Measurement, Channel | MeasurementChannel | ResetChannel | CycleChannel] = {}
+        seen_measure_qubits: set[int] = set()
 
         for qubit_label, qubit in compiler_isa.qubits.items():
             for op_info in qubit.gates:
@@ -192,10 +184,10 @@ class NoiseModel:
                     if not all(isinstance(p, (float, int, complex)) for p in params):
                         continue
 
-                    numeric_params: List[float] = [float(p) for p in params if isinstance(p, (float, int, complex))]
+                    numeric_params: list[float] = [float(p) for p in params if isinstance(p, (float, int, complex))]
                     inst = Gate(name=gate_name, params=numeric_params, qubits=qubits)
                     if fidelity is not None and fidelity < 1.0:
-                        channels.add(Channel.from_gate_fidelity(inst=inst, fidelity=fidelity))
+                        channels[inst] = Channel.from_gate_fidelity(inst=inst, fidelity=fidelity)
 
                 elif isinstance(op_info, MeasureInfo):
                     if op_info.qubit is None:
@@ -213,7 +205,7 @@ class NoiseModel:
                     if fidelity is None:
                         continue
                     m_inst = Measurement(qubit=QuilQubit(qubit_idx), classical_reg=None)
-                    channels.add(MeasurementChannel.from_readout_fidelity(inst=m_inst, fidelity=fidelity))
+                    channels[m_inst] = MeasurementChannel.from_readout_fidelity(inst=m_inst, fidelity=fidelity)
 
         for edge_label, edge in compiler_isa.edges.items():
             for op_info in edge.gates:
@@ -231,9 +223,9 @@ class NoiseModel:
                     numeric_params = [float(p) for p in params if isinstance(p, (float, int, complex))]
                     inst = Gate(name=gate_name, params=numeric_params, qubits=qubits)
                     if fidelity is not None and fidelity < 1.0:
-                        channels.add(Channel.from_gate_fidelity(inst=inst, fidelity=fidelity))
+                        channels[inst] = Channel.from_gate_fidelity(inst=inst, fidelity=fidelity)
 
-        return cls(channels=channels)
+        return cls(channels=channels.values())
 
     # ──────────────────────────────────────────────
     # Serialization
@@ -254,7 +246,7 @@ class NoiseModel:
         return json.dumps({"channels": channel_data})
 
     @classmethod
-    def from_json(cls: Type["NoiseModel"], json_str: str) -> "NoiseModel":
+    def from_json(cls: type[NoiseModel], json_str: str) -> "NoiseModel":
         """
         Deserialize a NoiseModel from a JSON string.
 
@@ -268,7 +260,7 @@ class NoiseModel:
             "ResetChannel": ResetChannel,
             "CycleChannel": CycleChannel,
         }
-        channels: List[Union[Channel, MeasurementChannel, ResetChannel, CycleChannel]] = []
+        channels: list[Channel | MeasurementChannel | ResetChannel | CycleChannel] = []
         for ch_data in data["channels"]:
             ch_cls = _type_map.get(ch_data["type"])
             if ch_cls is None:
@@ -303,7 +295,7 @@ class NoiseModel:
         my_channels = {ch.inst: ch for ch in self.channels}
         other_channels = {ch.inst: ch for ch in other.channels}
 
-        combined: List[Union[Channel, MeasurementChannel, ResetChannel, CycleChannel]] = []
+        combined: list[Channel | MeasurementChannel | ResetChannel | CycleChannel] = []
         all_insts = list(dict.fromkeys(list(my_channels) + list(other_channels)))
         for inst in all_insts:
             mine = my_channels.get(inst)
@@ -353,9 +345,7 @@ class DepolarizingNoiseModel:
     @overload
     def get_channel(self, inst: ResetQubit) -> ResetChannel | None: ...
 
-    def get_channel(
-        self, inst: Gate | Measurement | ResetQubit
-    ) -> ChannelType | None:
+    def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
         """Return a depolarizing channel for gates; ``None`` for measurements/resets."""
         if isinstance(inst, Gate):
             return Channel.from_depolarizing_constant(inst, self.depolarizing_constant)
@@ -372,7 +362,7 @@ class CompositeNoiseModel:
     :param models: Sequence of noise models to query in priority order.
     """
 
-    models: Tuple[NoiseModelLike, ...]
+    models: tuple[NoiseModelLike, ...]
 
     def __init__(self, models: Sequence[NoiseModelLike]) -> None:
         object.__setattr__(self, "models", tuple(models))
@@ -386,9 +376,7 @@ class CompositeNoiseModel:
     @overload
     def get_channel(self, inst: ResetQubit) -> ResetChannel | None: ...
 
-    def get_channel(
-        self, inst: Gate | Measurement | ResetQubit
-    ) -> ChannelType | None:
+    def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
         """Query each model in order, returning the first non-None result."""
         for model in self.models:
             channel = model.get_channel(inst)
@@ -425,7 +413,7 @@ def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> 
     return reduce(mul, gate_fidelities)
 
 
-def _light_cone_program(program: Program, qubits: List[int]) -> Program:
+def _light_cone_program(program: Program, qubits: list[int]) -> Program:
     """Return a sub-program containing only gates in the backward light cone of *qubits*.
 
     Walks backward through the program's gate instructions. Any gate that
@@ -437,7 +425,7 @@ def _light_cone_program(program: Program, qubits: List[int]) -> Program:
 
     gate_instructions = [inst for inst in program.instructions if isinstance(inst, Gate)]
     relevant_qubits = set(qubits)
-    included: List[Gate] = []
+    included: list[Gate] = []
     for inst in reversed(gate_instructions):
         inst_qubits = {q.index for q in inst.qubits}
         if inst_qubits & relevant_qubits:
@@ -452,7 +440,7 @@ def _light_cone_program(program: Program, qubits: List[int]) -> Program:
 def estimate_program_observable_fidelity(
     program: Program,
     noise_model: NoiseModelLike,
-    observable: Union["PauliSum", "PauliTerm"],
+    observable: "PauliSum" | "PauliTerm",
 ) -> float:
     """Estimate program fidelity restricted to the backward light cone of *observable*.
 

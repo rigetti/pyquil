@@ -1,7 +1,5 @@
 """Unit tests for the quax-based state vector simulator."""
 
-from pathlib import Path
-
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -12,7 +10,7 @@ from pyquil.gates import CNOT, CZ, MEASURE, RESET, RX, RY, RZ, H, X
 from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, ResetChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, Qubit
+from pyquil.quilatom import FormalArgument, MemoryReference, Qubit
 from pyquil.quilbase import (
     Declare,
     DefCircuit,
@@ -25,11 +23,7 @@ from pyquil.quilbase import (
 from pyquil.quilbase import (
     Measurement as QuilMeasurement,
 )
-from pyquil.quilbase import (
-    Reset as QuilReset,
-)
 from pyquil.simulation._simulator import (
-    DensityMatrixSimulator,
     PureStateVectorSimulator,
     TrajectorySimulator,
     _run_batched_trajectories,
@@ -39,23 +33,6 @@ from pyquil.simulation._simulator import (
 )
 
 _EMPTY_PARAMS = jnp.array([], dtype=float)
-_DATA_DIR = Path(__file__).parent / "data"
-_SURFACE17_FIXTURE = _DATA_DIR / "surface_17_depth_5_no_reset.quil"
-_SURFACE17_QUBITS = (65, 66, 74, 75, 76, 77, 82, 83, 84, 85, 86, 91, 92, 93, 94, 102, 103)
-_SURFACE17_CYCLES = {
-    "SZ_INIT",
-    "SX_INIT",
-    "CZ_0",
-    "SZ_DATA",
-    "SX_DATA",
-    "CZ_1",
-    "CZ_2",
-    "CZ_3",
-    "SZ_ANCILLA",
-    "SX_ANCILLA_ECHO",
-    "MEASURE_ANCILLA",
-    "MEASURE_ALL",
-}
 
 
 def _sv(program, qubits=None, memory_map=None):
@@ -68,16 +45,20 @@ def _sv(program, qubits=None, memory_map=None):
     return sim.compute(params)
 
 
-def _simulate_trajectories(program, noise_model=None, qubits=None, num_trajectories=1,
-                            batch_size=256, random_seed=0):
+def _simulate_trajectories(program, noise_model=None, qubits=None, num_trajectories=1, batch_size=256, random_seed=0):
     """Helper: build + compress + run trajectories, returning (psi, outcomes)."""
     sim = TrajectorySimulator(program, noise_model=noise_model, qubits=qubits)
     resolved = sim.resolve(_EMPTY_PARAMS)
     compressed = sim.compress(resolved)
     operations = sim.adapt(compressed)
     all_psis, all_outcomes = _run_batched_trajectories(
-        operations, sim.n_qubits, num_trajectories, batch_size, random_seed,
-        keep_states=True, dims=sim.dims,
+        operations,
+        sim.n_qubits,
+        num_trajectories,
+        batch_size,
+        random_seed,
+        keep_states=True,
+        dims=sim.dims,
     )
     assert all_psis is not None
     if len(all_psis) == 1:
@@ -86,94 +67,6 @@ def _simulate_trajectories(program, noise_model=None, qubits=None, num_trajector
     combined_psi = qx.StateVector.from_matrix(combined_data, all_psis[0].dims)
     combined_outcomes = jnp.concatenate(all_outcomes, axis=0)
     return combined_psi, combined_outcomes
-
-
-def _load_surface17_depth5_program():
-    """Load the checked-in surface-17 depth-5 Quil fixture."""
-    return Program(_SURFACE17_FIXTURE.read_text())
-
-
-def _surface17_defcircuits(program):
-    return {inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)}
-
-
-def _concretize_cycle_gate(inst, qubit_map):
-    return QuilGate(
-        inst.name,
-        list(inst.params),
-        [qubit_map[qubit] for qubit in inst.qubits],
-    )
-
-
-def _concretize_cycle_measurement(inst, qubit_map):
-    return QuilMeasurement(qubit=qubit_map[inst.qubit], classical_reg=None)
-
-
-def _build_surface17_cycle_noise_model(
-    program,
-    depolarizing_constant=0.99,
-    readout_fidelity=1.0,
-):
-    """Build a cycle noise model that matches the surface-17 DEFCIRCUIT invocations."""
-    defcircuits = _surface17_defcircuits(program)
-    cycle_channels = []
-
-    for inst in program.instructions:
-        if not isinstance(inst, QuilGate) or inst.name not in defcircuits:
-            continue
-
-        defcircuit = defcircuits[inst.name]
-        qubit_map = dict(zip(defcircuit.qubit_variables, inst.qubits))
-        channels = []
-
-        for cycle_inst in defcircuit.instructions:
-            if isinstance(cycle_inst, QuilGate):
-                concrete_gate = _concretize_cycle_gate(cycle_inst, qubit_map)
-                channels.append(Channel.from_depolarizing_constant(concrete_gate, depolarizing_constant))
-            elif isinstance(cycle_inst, QuilMeasurement):
-                concrete_measurement = _concretize_cycle_measurement(cycle_inst, qubit_map)
-                channels.append(
-                    MeasurementChannel.from_readout_fidelity(concrete_measurement, fidelity=readout_fidelity)
-                )
-
-        cycle_channels.append(CycleChannel(inst=inst, defcircuit=defcircuit, channels=tuple(channels)))
-
-    return NoiseModel(channels=cycle_channels)
-
-
-def _run_surface17_cycle_benchmark(
-    benchmark,
-    num_trajectories=128,
-    batch_size=16,
-    depolarizing_constant=0.99,
-    readout_fidelity=1.0,
-):
-    program = _load_surface17_depth5_program()
-    noise_model = _build_surface17_cycle_noise_model(
-        program,
-        depolarizing_constant=depolarizing_constant,
-        readout_fidelity=readout_fidelity,
-    )
-    sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=0)
-    params = sim.linearize({})
-    operations = sim.adapt(sim.compress(sim.resolve(params)))
-
-    warmup_psi = qx.zero_state_vector(dims=sim.dims, ensemble_size=(batch_size,))
-    key = jax.random.key(0)
-    apply_trajectory_operations(operations, warmup_psi, key)[0].matrix.block_until_ready()
-
-    def thunk():
-        key = jax.random.key(0)
-        remaining = num_trajectories
-        while remaining > 0:
-            this_batch = min(remaining, batch_size)
-            key, batch_key = jax.random.split(key)
-            psi = qx.zero_state_vector(dims=sim.dims, ensemble_size=(this_batch,))
-            result = apply_trajectory_operations(operations, psi, batch_key)
-            result[0].matrix.block_until_ready()
-            remaining -= this_batch
-
-    benchmark.pedantic(thunk, iterations=1, rounds=1)
 
 
 class TestSingleQubitGates:
@@ -230,7 +123,9 @@ class TestMultiQubitGates:
     def test_ghz_state_3q(self):
         p = Program(H(0), CNOT(0, 1), CNOT(1, 2))
         psi = _sv(p, qubits=[0, 1, 2])
-        target = qx.StateVector.from_matrix(jnp.array([1.0, 0, 0, 0, 0, 0, 0, 1.0], dtype=complex) / jnp.sqrt(2), dims=(2, 2, 2))
+        target = qx.StateVector.from_matrix(
+            jnp.array([1.0, 0, 0, 0, 0, 0, 0, 1.0], dtype=complex) / jnp.sqrt(2), dims=(2, 2, 2)
+        )
         assert qx.fidelity(psi, target) > 0.9999
 
     def test_qubit_ordering(self):
@@ -293,26 +188,20 @@ class TestTrajectoryNoiseless:
         """Without noise, trajectory simulation matches unitary simulation."""
         p = Program(H(0))
         psi_noiseless = _sv(p, qubits=[0])
-        psi_traj, outcomes = _simulate_trajectories(
-            p, noise_model=None, qubits=[0], num_trajectories=1
-        )
+        psi_traj, outcomes = _simulate_trajectories(p, noise_model=None, qubits=[0], num_trajectories=1)
         assert qx.fidelity(psi_noiseless, psi_traj) > 0.9999
 
     def test_bell_state_noiseless(self):
         """Multi-qubit noiseless trajectory."""
         p = Program(H(0), CNOT(0, 1))
         psi_noiseless = _sv(p, qubits=[0, 1])
-        psi_traj, outcomes = _simulate_trajectories(
-            p, noise_model=None, qubits=[0, 1], num_trajectories=1
-        )
+        psi_traj, outcomes = _simulate_trajectories(p, noise_model=None, qubits=[0, 1], num_trajectories=1)
         assert qx.fidelity(psi_noiseless, psi_traj) > 0.9999
 
     def test_multiple_trajectories_noiseless_deterministic(self):
         """Multiple noiseless trajectories should all give same result."""
         p = Program(X(0))
-        psi_batch, outcomes = _simulate_trajectories(
-            p, noise_model=None, qubits=[0], num_trajectories=8
-        )
+        psi_batch, outcomes = _simulate_trajectories(p, noise_model=None, qubits=[0], num_trajectories=8)
         # Each trajectory should be |1⟩
         target = qx.StateVector.from_matrix(jnp.array([0.0, 1.0], dtype=complex), dims=(2,))
         probs = qx.probabilities(psi_batch)
@@ -334,25 +223,21 @@ class TestTrajectoryNoisy:
         # Use a Pauli channel: p_I = 1-p, p_X = p, p_Y = 0, p_Z = 0
         pauli_probs = {"X": p_error}
         channel = Channel.from_pauli_noise(inst=inst, pauli_noise=pauli_probs)
-        return NoiseModel(channels=frozenset([channel]))
+        return NoiseModel(channels=[channel])
 
     def _make_depolarizing_noise_model(self, fidelity: float, qubit: int = 0) -> NoiseModel:
         """Create a noise model with depolarizing noise on X gate."""
         inst = X(qubit)
         channel = Channel.from_gate_fidelity(inst=inst, fidelity=fidelity)
-        return NoiseModel(channels=frozenset([channel]))
+        return NoiseModel(channels=[channel])
 
     def test_noiseless_gate_with_noise_model(self):
         """A noise model that doesn't cover the applied gate should leave it noiseless."""
         # Noise model only covers X gate, but we apply H
         noise_model = self._make_bitflip_noise_model(0.1, qubit=0)
         p = Program(H(0))
-        psi, outcomes = _simulate_trajectories(
-            p, noise_model=noise_model, qubits=[0], num_trajectories=1
-        )
-        target = qx.StateVector.from_matrix(
-            jnp.array([1.0, 1.0], dtype=complex) / jnp.sqrt(2), dims=(2,)
-        )
+        psi, outcomes = _simulate_trajectories(p, noise_model=noise_model, qubits=[0], num_trajectories=1)
+        target = qx.StateVector.from_matrix(jnp.array([1.0, 1.0], dtype=complex) / jnp.sqrt(2), dims=(2,))
         assert qx.fidelity(psi, target) > 0.9999
 
     def test_bitflip_statistics(self):
@@ -364,8 +249,12 @@ class TestTrajectoryNoisy:
         p = Program(X(0))
         num_traj = 2048
         psi_batch, outcomes = _simulate_trajectories(
-            p, noise_model=noise_model, qubits=[0], num_trajectories=num_traj,
-            batch_size=256, random_seed=42,
+            p,
+            noise_model=noise_model,
+            qubits=[0],
+            num_trajectories=num_traj,
+            batch_size=256,
+            random_seed=42,
         )
         # Get probabilities for each trajectory
         probs = qx.probabilities(psi_batch)  # shape (num_traj, 2)
@@ -374,9 +263,7 @@ class TestTrajectoryNoisy:
         in_zero = jnp.sum(probs[:, 0] > 0.5)
         observed_flip_rate = float(in_zero) / num_traj
         # Expected: p_error fraction should flip to |0⟩
-        assert abs(observed_flip_rate - p_error) < 0.05, (
-            f"Expected flip rate ~{p_error}, got {observed_flip_rate}"
-        )
+        assert abs(observed_flip_rate - p_error) < 0.05, f"Expected flip rate ~{p_error}, got {observed_flip_rate}"
 
     def test_depolarizing_statistics(self):
         """Depolarizing noise on identity-like circuit should produce mixed results."""
@@ -385,8 +272,12 @@ class TestTrajectoryNoisy:
         p = Program(X(0))
         num_traj = 2048
         psi_batch, outcomes = _simulate_trajectories(
-            p, noise_model=noise_model, qubits=[0], num_trajectories=num_traj,
-            batch_size=256, random_seed=123,
+            p,
+            noise_model=noise_model,
+            qubits=[0],
+            num_trajectories=num_traj,
+            batch_size=256,
+            random_seed=123,
         )
         probs = qx.probabilities(psi_batch)
         # Average probability of |1⟩ across trajectories should be close to
@@ -406,13 +297,17 @@ class TestTrajectoryNoisy:
         inst_q1 = X(1)
         ch0 = Channel.from_pauli_noise(inst=inst_q0, pauli_noise={"X": p_error})
         ch1 = Channel.from_pauli_noise(inst=inst_q1, pauli_noise={"X": p_error})
-        noise_model = NoiseModel(channels=frozenset([ch0, ch1]))
+        noise_model = NoiseModel(channels=[ch0, ch1])
 
         prog = Program(X(0), X(1))
         num_traj = 2048
         psi_batch, _ = _simulate_trajectories(
-            prog, noise_model=noise_model, qubits=[0, 1], num_trajectories=num_traj,
-            batch_size=256, random_seed=7,
+            prog,
+            noise_model=noise_model,
+            qubits=[0, 1],
+            num_trajectories=num_traj,
+            batch_size=256,
+            random_seed=7,
         )
         probs = qx.probabilities(psi_batch)  # shape (num_traj, 4)
         # State |11⟩ = index 3. Both flipped: p_error^2 gives |00⟩
@@ -429,8 +324,12 @@ class TestTrajectoryMeasurement:
         """Measurement should record classical outcome."""
         p = Program(H(0), MEASURE(0, None))
         psi, outcomes = _simulate_trajectories(
-            p, noise_model=None, qubits=[0], num_trajectories=100,
-            batch_size=100, random_seed=42,
+            p,
+            noise_model=None,
+            qubits=[0],
+            num_trajectories=100,
+            batch_size=100,
+            random_seed=42,
         )
         # outcomes shape should be (100, 1) — one measurement
         assert outcomes.shape == (100, 1)
@@ -444,8 +343,12 @@ class TestTrajectoryMeasurement:
         """After measurement, state should be consistent with outcome."""
         p = Program(H(0), MEASURE(0, None))
         psi, outcomes = _simulate_trajectories(
-            p, noise_model=None, qubits=[0], num_trajectories=64,
-            batch_size=64, random_seed=99,
+            p,
+            noise_model=None,
+            qubits=[0],
+            num_trajectories=64,
+            batch_size=64,
+            random_seed=99,
         )
         probs = qx.probabilities(psi)  # (64, 2)
         # For each trajectory, the state should be collapsed
@@ -459,12 +362,16 @@ class TestTrajectoryMeasurement:
         qubit = Qubit(0)
         m_inst = QuilMeasurement(qubit=qubit, classical_reg=None)
         meas_ch = MeasurementChannel.from_readout_fidelity(inst=m_inst, fidelity=0.8)
-        noise_model = NoiseModel(channels=frozenset([meas_ch]))
+        noise_model = NoiseModel(channels=[meas_ch])
 
         p = Program(MEASURE(0, None))
         psi, outcomes = _simulate_trajectories(
-            p, noise_model=noise_model, qubits=[0], num_trajectories=1024,
-            batch_size=256, random_seed=55,
+            p,
+            noise_model=noise_model,
+            qubits=[0],
+            num_trajectories=1024,
+            batch_size=256,
+            random_seed=55,
         )
         # Prepared in |0⟩, ideal measurement gives 0, but with 20% error → ~20% ones
         frac_1 = float(jnp.mean(outcomes == 1))
@@ -478,7 +385,10 @@ class TestTrajectoryReset:
         """Reset should bring qubit to |0⟩."""
         p = Program(X(0), ResetQubit(Qubit(0)))
         psi, _ = _simulate_trajectories(
-            p, noise_model=None, qubits=[0], num_trajectories=1,
+            p,
+            noise_model=None,
+            qubits=[0],
+            num_trajectories=1,
         )
         target = qx.StateVector.from_matrix(jnp.array([1.0, 0.0], dtype=complex), dims=(2,))
         assert qx.fidelity(psi, target) > 0.9999
@@ -487,11 +397,12 @@ class TestTrajectoryReset:
         """Global RESET should reset all qubits."""
         p = Program(X(0), X(1), RESET())
         psi, _ = _simulate_trajectories(
-            p, noise_model=None, qubits=[0, 1], num_trajectories=1,
+            p,
+            noise_model=None,
+            qubits=[0, 1],
+            num_trajectories=1,
         )
-        target = qx.StateVector.from_matrix(
-            jnp.array([1.0, 0.0, 0.0, 0.0], dtype=complex), dims=(2, 2)
-        )
+        target = qx.StateVector.from_matrix(jnp.array([1.0, 0.0, 0.0, 0.0], dtype=complex), dims=(2, 2))
         assert qx.fidelity(psi, target) > 0.9999
 
     def test_noisy_reset(self):
@@ -499,14 +410,18 @@ class TestTrajectoryReset:
         qubit = Qubit(0)
         reset_inst = ResetQubit(qubit)
         reset_ch = ResetChannel.from_reset_fidelity(inst=reset_inst, fidelity=0.9)
-        noise_model = NoiseModel(channels=frozenset([reset_ch]))
+        noise_model = NoiseModel(channels=[reset_ch])
 
         # Start in |1⟩, apply noisy reset
         p = Program(X(0), ResetQubit(Qubit(0)))
         num_traj = 2048
         psi, _ = _simulate_trajectories(
-            p, noise_model=noise_model, qubits=[0], num_trajectories=num_traj,
-            batch_size=256, random_seed=13,
+            p,
+            noise_model=noise_model,
+            qubits=[0],
+            num_trajectories=num_traj,
+            batch_size=256,
+            random_seed=13,
         )
         probs = qx.probabilities(psi)  # (num_traj, 2)
         # With 90% reset fidelity, ~90% should end in |0⟩
@@ -524,13 +439,21 @@ class TestTrajectoryBatching:
 
         # Single batch
         psi_1, outcomes_1 = _simulate_trajectories(
-            p, noise_model=noise_model, qubits=[0], num_trajectories=64,
-            batch_size=64, random_seed=42,
+            p,
+            noise_model=noise_model,
+            qubits=[0],
+            num_trajectories=64,
+            batch_size=64,
+            random_seed=42,
         )
         # Multiple batches (same seed)
         psi_2, outcomes_2 = _simulate_trajectories(
-            p, noise_model=noise_model, qubits=[0], num_trajectories=64,
-            batch_size=16, random_seed=42,
+            p,
+            noise_model=noise_model,
+            qubits=[0],
+            num_trajectories=64,
+            batch_size=16,
+            random_seed=42,
         )
         # Note: different batching may produce different results due to key splitting,
         # but shapes should match
@@ -545,16 +468,14 @@ class TestComputeProgramStateVectorWithNoise:
         """With noise_model=None, behavior is identical to original."""
         p = Program(H(0), CNOT(0, 1))
         psi = _sv(p, qubits=[0, 1])
-        target = qx.StateVector.from_matrix(
-            jnp.array([1.0, 0.0, 0.0, 1.0], dtype=complex) / jnp.sqrt(2), dims=(2, 2)
-        )
+        target = qx.StateVector.from_matrix(jnp.array([1.0, 0.0, 0.0, 1.0], dtype=complex) / jnp.sqrt(2), dims=(2, 2))
         assert qx.fidelity(psi, target) > 0.9999
 
     def test_noise_model_single_trajectory(self):
         """With noise_model provided, runs a single trajectory."""
         inst = X(0)
         channel = Channel.from_gate_fidelity(inst=inst, fidelity=1.0)
-        noise_model = NoiseModel(channels=frozenset([channel]))
+        noise_model = NoiseModel(channels=[channel])
         p = Program(X(0))
         sim = TrajectorySimulator(p, noise_model=noise_model, qubits=[0])
         psi, _ = sim.compute(_EMPTY_PARAMS, jax.random.key(0))
@@ -571,8 +492,10 @@ class TestSampleProgramTrajectories:
         p = Program(H(0), MEASURE(0, None))
         sim = TrajectorySimulator(p, noise_model=None, qubits=[0])
         outcomes = sim.sample(
-            _EMPTY_PARAMS, num_trajectories=100,
-            batch_size=32, random_seed=42,
+            _EMPTY_PARAMS,
+            num_trajectories=100,
+            batch_size=32,
+            random_seed=42,
         )
         assert outcomes.shape == (100, 1)
         assert jnp.all((outcomes == 0) | (outcomes == 1))
@@ -582,7 +505,8 @@ class TestSampleProgramTrajectories:
         p = Program(H(0))
         sim = TrajectorySimulator(p, noise_model=None, qubits=[0])
         outcomes = sim.sample(
-            _EMPTY_PARAMS, num_trajectories=10,
+            _EMPTY_PARAMS,
+            num_trajectories=10,
         )
         assert outcomes.shape == (10, 0)
 
@@ -591,13 +515,15 @@ class TestSampleProgramTrajectories:
         p_error = 0.3
         inst = X(0)
         ch = Channel.from_pauli_noise(inst=inst, pauli_noise={"X": p_error})
-        noise_model = NoiseModel(channels=frozenset([ch]))
+        noise_model = NoiseModel(channels=[ch])
 
         p = Program(X(0), MEASURE(0, None))
         sim = TrajectorySimulator(p, noise_model=noise_model, qubits=[0])
         outcomes = sim.sample(
-            _EMPTY_PARAMS, num_trajectories=2048,
-            batch_size=256, random_seed=42,
+            _EMPTY_PARAMS,
+            num_trajectories=2048,
+            batch_size=256,
+            random_seed=42,
         )
         # X|0⟩ = |1⟩, then bit-flip with p=0.3 → ~30% get |0⟩
         # Measurement outcome reflects the final state
@@ -609,10 +535,14 @@ class TestSampleProgramTrajectories:
         p = Program(H(0), MEASURE(0, None))
         sim = TrajectorySimulator(p, qubits=[0])
         outcomes_small = sim.sample(
-            _EMPTY_PARAMS, num_trajectories=100, batch_size=10,
+            _EMPTY_PARAMS,
+            num_trajectories=100,
+            batch_size=10,
         )
         outcomes_large = sim.sample(
-            _EMPTY_PARAMS, num_trajectories=100, batch_size=100,
+            _EMPTY_PARAMS,
+            num_trajectories=100,
+            batch_size=100,
         )
         assert outcomes_small.shape == outcomes_large.shape == (100, 1)
 
@@ -724,7 +654,7 @@ class TestCompressor:
         channels = [
             Channel.from_coherence_times(RX(np.pi / 2, 0), gate_duration=0.04, t1s=[30.0], t2s=[20.0]),
         ]
-        noise_model = NoiseModel(channels=frozenset(channels))
+        noise_model = NoiseModel(channels=channels)
 
         sim = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=0)
         ops = sim.adapt(sim.compress(sim.resolve(_EMPTY_PARAMS)))
@@ -769,8 +699,10 @@ class TestCompressor:
     def test_independent_qubit_runs(self):
         """1Q gates on different qubits should form separate runs."""
         p = Program(
-            RZ(0.1, 0), RX(0.2, 0),
-            RZ(0.3, 1), RX(0.4, 1),
+            RZ(0.1, 0),
+            RX(0.2, 0),
+            RZ(0.3, 1),
+            RX(0.4, 1),
         )
 
         sim = TrajectorySimulator(p, max_subsystem_size=1)
@@ -802,9 +734,7 @@ class TestCompressor:
 
         assert len(ops) == 2
 
-        psi_direct = _sv(
-            Program(RZ(theta_vals[0], 0), RX(theta_vals[1], 0))
-        )
+        psi_direct = _sv(Program(RZ(theta_vals[0], 0), RX(theta_vals[1], 0)))
         psi = qx.zero_state_vector(sim.n_qubits)
         for op, subsystem in ops:
             if isinstance(op, qx.Unitary):
@@ -817,7 +747,7 @@ class TestCompressor:
         channels = [
             Channel.from_coherence_times(RX(np.pi / 2, 0), gate_duration=0.04, t1s=[30.0], t2s=[20.0]),
         ]
-        noise_model = NoiseModel(channels=frozenset(channels))
+        noise_model = NoiseModel(channels=channels)
 
         sim0 = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=0)
         sim1 = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=1)
@@ -872,7 +802,7 @@ class TestBuildSimulationIntegration:
         channels = [
             Channel.from_coherence_times(CNOT(0, 1), gate_duration=0.1, t1s=[30.0, 30.0], t2s=[20.0, 20.0]),
         ]
-        noise_model = NoiseModel(channels=frozenset(channels))
+        noise_model = NoiseModel(channels=channels)
 
         sim = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=0)
         ops = sim.adapt(sim.compress(sim.resolve(_EMPTY_PARAMS)))
@@ -902,22 +832,67 @@ class TestBuildSimulationIntegration:
         _, outcomes = apply_trajectory_operations(ops, psi, key)
         assert jnp.all(outcomes == 1)
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Compressor op-count benchmarks
-# ──────────────────────────────────────────────────────────────────────────────
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Compressor op-count tests
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 def _op_count(program, max_subsystem_size, noise_model=None):
     """Return the number of compressed ops for a program."""
     sim = TrajectorySimulator(
-        program, noise_model=noise_model, max_subsystem_size=max_subsystem_size,
+        program,
+        noise_model=noise_model,
+        max_subsystem_size=max_subsystem_size,
     )
     return len(sim.adapt(sim.compress(sim.resolve(sim.linearize({})))))
 
 
 class TestCompressorOpCounts:
     """Tests that verify the compressor produces the expected number of ops."""
+
+    def test_cycle_channel_expands_and_compresses(self):
+        formal_qubit = FormalArgument("q")
+        defcircuit = DefCircuit(
+            "SINGLE_QUBIT_CYCLE",
+            [],
+            [formal_qubit],
+            [RX(0.1, formal_qubit), RZ(0.2, formal_qubit), RX(0.3, formal_qubit)],
+        )
+        cycle_inst = QuilGate("SINGLE_QUBIT_CYCLE", [], [0])
+        channels = tuple(
+            Channel.from_depolarizing_constant(inst, depolarizing_constant=0.99)
+            for inst in (RX(0.1, 0), RZ(0.2, 0), RX(0.3, 0))
+        )
+        noise_model = NoiseModel(channels=[CycleChannel(inst=cycle_inst, defcircuit=defcircuit, channels=channels)])
+        program = Program(defcircuit, cycle_inst)
+
+        sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=1)
+        resolved = sim.resolve(_EMPTY_PARAMS)
+        compressed = sim.compress(resolved)
+
+        assert len(resolved) == 3
+        assert all(isinstance(op, qx.SuperOp) for op, _ in resolved)
+        assert len(compressed) == 1
+
+    def test_expanded_cycle_without_cycle_channel_uses_gate_channels(self):
+        formal_qubit = FormalArgument("q")
+        defcircuit = DefCircuit(
+            "INDIVIDUAL_NOISE_CYCLE",
+            [],
+            [formal_qubit],
+            [RX(0.1, formal_qubit), RZ(0.2, formal_qubit)],
+        )
+        cycle_inst = QuilGate("INDIVIDUAL_NOISE_CYCLE", [], [0])
+        noise_model = NoiseModel(channels=[Channel.from_depolarizing_constant(RX(0.1, 0), 0.99)])
+        program = Program(defcircuit, cycle_inst)
+
+        sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=0)
+        resolved = sim.resolve(_EMPTY_PARAMS)
+
+        assert len(resolved) == 2
+        assert isinstance(resolved[0][0], qx.SuperOp)
+        assert isinstance(resolved[1][0], qx.Unitary)
 
     def test_single_qubit_sequence_merges_to_one(self):
         """RZ-RX-RZ-RX-RZ on one qubit → 1 op at max_size ≥ 1."""
@@ -1020,9 +995,7 @@ class TestCompressorOpCounts:
         n_uncompressed = _op_count(p, 0)
 
         # Compression should never increase op count
-        assert n_ops <= n_uncompressed, (
-            f"max_size={max_subsystem_size}: {n_ops} ops > {n_uncompressed} uncompressed"
-        )
+        assert n_ops <= n_uncompressed, f"max_size={max_subsystem_size}: {n_ops} ops > {n_uncompressed} uncompressed"
 
         # With max_size > 0, we expect at least some compression for this circuit
         if max_subsystem_size > 0:
@@ -1033,7 +1006,10 @@ class TestCompressorOpCounts:
         rng = np.random.default_rng(42)
 
         configs = [
-            (4, 5), (8, 5), (12, 5), (16, 3),
+            (4, 5),
+            (8, 5),
+            (12, 5),
+            (16, 3),
         ]
         max_sizes = [0, 1, 2, 3, 4]
 
@@ -1066,181 +1042,3 @@ class TestCompressorOpCounts:
                 line += f" {counts[s]:>4} ({ratio:.2f})"
                 # line += f" {counts[s]:>8}"
             print(line)
-
-
-class TestSurface17Fixture:
-    """Tests for the checked-in surface-17 trajectory benchmark fixture."""
-
-    def test_surface17_fixture_structure(self):
-        program = _load_surface17_depth5_program()
-        defcircuit_names = set(_surface17_defcircuits(program))
-        invocations = [inst for inst in program.instructions if isinstance(inst, QuilGate)]
-        invocation_names = [inst.name for inst in invocations]
-
-        assert _SURFACE17_FIXTURE.exists()
-        assert defcircuit_names == _SURFACE17_CYCLES
-        assert set(program.get_qubit_indices()) == set(_SURFACE17_QUBITS)
-        assert not any(isinstance(inst, (QuilReset, ResetQubit)) for inst in program.instructions)
-        assert invocation_names.count("MEASURE_ANCILLA") == 4
-        assert invocation_names[-1] == "MEASURE_ALL"
-
-    def test_surface17_cycle_noise_model_preserves_measurements(self):
-        program = _load_surface17_depth5_program()
-        noise_model = _build_surface17_cycle_noise_model(program, depolarizing_constant=1.0)
-        sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=0)
-        resolved = sim.resolve(_EMPTY_PARAMS)
-
-        n_measurements = sum(1 for op, _ in resolved if isinstance(op, qx.QuantumInstrument))
-        assert n_measurements == 49
-
-# ──────────────────────────────────────────────────────────────────────────────
-# State Vector simulation benchmarks
-# ──────────────────────────────────────────────────────────────────────────────
-
-_DEFAULT_NUM_QUBITS = 15
-_DEFAULT_NUM_LAYERS = 10
-_DEFAULT_NUM_TRAJECTORIES = 128
-_DEFAULT_BATCH_SIZE = 32
-_DEFAULT_MAX_SUBSYSTEM_SIZE = 1
-
-
-def _build_noisy_program_and_model(num_qubits, num_layers, seed=4867):
-    """Build a layered noisy circuit and matching noise model.
-
-    Circuit structure per layer (×2 for even/odd edge sets):
-        RZ-RX-RZ-RX-RZ on every qubit, then CNOTs on edges.
-    Total: 5*num_layers*num_qubits 1Q gates + (num_qubits-1)*num_layers 2Q gates.
-    """
-    edges_0 = [(i, i + 1) for i in range(0, num_qubits - 1, 2)]
-    edges_1 = [(i, i + 1) for i in range(1, num_qubits - 1, 2)]
-    rng = np.random.default_rng(seed)
-
-    t1s, t2s = {}, {}
-    for q in range(num_qubits):
-        t1 = np.clip(rng.normal(30, 10), 10, 50)
-        t2 = np.clip(rng.normal(30, 20), 5, 2 * t1)
-        t1s[q], t2s[q] = t1, t2
-
-    channels = [
-        Channel.from_coherence_times(
-            CNOT(*edge), gate_duration=0.1, t1s=[t1s[q] for q in edge], t2s=[t2s[q] for q in edge]
-        )
-        for edge in edges_0 + edges_1
-    ] + [
-        Channel.from_coherence_times(RX(np.pi / 2, q), gate_duration=0.04, t1s=[t1s[q]], t2s=[t2s[q]])
-        for q in range(num_qubits)
-    ]
-    noise_model = NoiseModel(channels=frozenset(channels))
-
-    program = Program()
-    for _ in range(num_layers):
-        for edges in [edges_0, edges_1]:
-            program += [RZ(rng.uniform(-np.pi, np.pi), idx) for idx in range(num_qubits)]
-            program += [RX(np.pi / 2, idx) for idx in range(num_qubits)]
-            program += [RZ(rng.uniform(-np.pi, np.pi), idx) for idx in range(num_qubits)]
-            program += [RX(np.pi / 2, idx) for idx in range(num_qubits)]
-            program += [RZ(rng.uniform(-np.pi, np.pi), idx) for idx in range(num_qubits)]
-            program += [CNOT(*edge) for edge in edges]
-
-    return program, noise_model
-
-
-def _run_perf_benchmark(
-    benchmark,
-    num_qubits=_DEFAULT_NUM_QUBITS,
-    num_layers=_DEFAULT_NUM_LAYERS,
-    num_trajectories=_DEFAULT_NUM_TRAJECTORIES,
-    batch_size=_DEFAULT_BATCH_SIZE,
-    max_subsystem_size=_DEFAULT_MAX_SUBSYSTEM_SIZE,
-):
-    """Shared benchmark harness: build, warmup, then benchmark the JAX kernel."""
-    program, noise_model = _build_noisy_program_and_model(num_qubits, num_layers)
-
-    sim = TrajectorySimulator(
-        program, noise_model=noise_model, max_subsystem_size=max_subsystem_size,
-    )
-    params = sim.linearize({})
-    operations = sim.adapt(sim.compress(sim.resolve(params)))
-
-    # Warmup: trigger JIT compilation
-    warmup_psi = qx.zero_state_vector(sim.n_qubits, ensemble_size=(batch_size,))
-    key = jax.random.key(0)
-    apply_trajectory_operations(operations, warmup_psi, key)[0].matrix.block_until_ready()
-
-    def thunk():
-        key = jax.random.key(0)
-        remaining = num_trajectories
-        while remaining > 0:
-            this_batch = min(remaining, batch_size)
-            key, batch_key = jax.random.split(key)
-            psi = qx.zero_state_vector(sim.n_qubits, ensemble_size=(this_batch,))
-            result = apply_trajectory_operations(operations, psi, batch_key)
-            result[0].matrix.block_until_ready()
-            remaining -= this_batch
-
-    benchmark.pedantic(thunk, iterations=1, rounds=3)
-
-
-class TestPerformance:
-    """Trajectory simulator performance benchmarks.
-
-    Defaults: 15 qubits, depth 10, 128 trajectories, batch_size 32,
-    max_subsystem_size 1. Each test varies one axis while holding the
-    others constant.
-    """
-
-    # ── Vary num_qubits ──────────────────────────────────
-    @pytest.mark.parametrize("num_qubits", [
-        pytest.param(3, id="3q"),
-        pytest.param(6, id="6q"),
-        pytest.param(9, id="9q"),
-        pytest.param(12, id="12q"),
-        pytest.param(15, id="15q"),
-    ])
-    def test_scaling_qubits(self, benchmark, num_qubits):
-        _run_perf_benchmark(benchmark, num_qubits=num_qubits)
-
-    # ── Vary depth (num_layers) ──────────────────────────
-    @pytest.mark.parametrize("num_layers", [
-        pytest.param(1, id="1L"),
-        pytest.param(3, id="3L"),
-        pytest.param(10, id="10L"),
-        pytest.param(20, id="20L"),
-    ])
-    def test_scaling_depth(self, benchmark, num_layers):
-        _run_perf_benchmark(benchmark, num_layers=num_layers)
-
-    # ── Vary batch_size ──────────────────────────────────
-    @pytest.mark.parametrize("batch_size", [
-        pytest.param(8, id="b8"),
-        pytest.param(16, id="b16"),
-        # pytest.param(32, id="b32"),
-        pytest.param(64, id="b64"),
-        # pytest.param(128, id="b128"),
-    ])
-    def test_scaling_batch_size(self, benchmark, batch_size):
-        _run_perf_benchmark(benchmark, batch_size=batch_size)
-
-    # ── Vary max_subsystem_size ──────────────────────────
-    @pytest.mark.parametrize("max_subsystem_size", [
-        pytest.param(0, id="s0"),
-        pytest.param(1, id="s1"),
-    ])
-    def test_scaling_subsystem_size(self, benchmark, max_subsystem_size):
-        _run_perf_benchmark(benchmark, max_subsystem_size=max_subsystem_size)
-
-    # ── 17-qubit batch_size sweep ────────────────────────
-    @pytest.mark.parametrize("batch_size", [
-        pytest.param(8, id="b8"),
-        pytest.param(16, id="b16"),
-        # pytest.param(32, id="b32"),
-        pytest.param(64, id="b64"),
-        # pytest.param(128, id="b128"),
-    ])
-    def test_17q_batch_size(self, benchmark, batch_size):
-        _run_perf_benchmark(benchmark, num_qubits=17, batch_size=batch_size)
-
-    def test_surface17_depth5_cycle_noise(self, benchmark):
-        _run_surface17_cycle_benchmark(benchmark)
-
-
