@@ -1,5 +1,4 @@
-"""
-pyquil.noise — Noise modeling for quantum simulators.
+"""pyquil.noise — Noise modeling for quantum simulators.
 
 This package provides:
 
@@ -21,17 +20,17 @@ This package provides:
 from pyquil.noise._legacy_noise import (
     ANGLE_TOLERANCE,
     INFINITY,
-    KrausModel,
     NO_NOISE,
+    KrausModel,
     NoiseModel,
     NoisyGateUndefined,
-    _bitstring_probs_by_qubit,
-    _check_kraus_ops,
-    _create_kraus_pragmas,
-    _decoherence_noise_model,
-    _get_program_gates,
-    _noise_model_program_header,
-    _run,
+    _bitstring_probs_by_qubit,  # noqa: F401
+    _check_kraus_ops,  # noqa: F401
+    _create_kraus_pragmas,  # noqa: F401
+    _decoherence_noise_model,  # noqa: F401
+    _get_program_gates,  # noqa: F401
+    _noise_model_program_header,  # noqa: F401
+    _run,  # noqa: F401
     add_decoherence_noise,
     append_kraus_to_gate,
     apply_noise_model,
@@ -49,7 +48,6 @@ from pyquil.noise._legacy_noise import (
     pauli_kraus_map,
     tensor_kraus_maps,
 )
-
 
 __all__ = [
     # Noise model

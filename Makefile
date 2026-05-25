@@ -3,6 +3,14 @@ DEFAULT_QUILC_URL=tcp://localhost:5555
 DEFAULT_QVM_URL=http://localhost:5000
 DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
 
+.DEFAULT := help
+
+.PHONY: help
+help:
+	@awk 'BEGIN { FS=":.*##"; print "Supported Makefile commands:\n" } \
+          /^[a-zA-Z0-9_-]+:.*##/ { cmd=$$1; desc=$$2; printf "    \033[36m%-20s\033[0m %s\n", cmd, desc } \
+          END { print "" }' $(MAKEFILE_LIST)
+		  
 .PHONY: all
 all: dist
 
