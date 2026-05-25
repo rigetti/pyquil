@@ -170,14 +170,14 @@ class TestMeasurementChannel:
 class TestNoiseModel:
     def test_empty_model(self):
         """An empty NoiseModel has no channels."""
-        nm = NoiseModel(channels=frozenset())
+        nm = NoiseModel(channels=())
         assert nm.get_channel(RX(0.5, 0)) is None
 
     def test_get_channel_gate(self):
         """NoiseModel.get_channel returns the correct Channel for a gate."""
         inst = RX(np.pi / 4, 0)
         ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
-        nm = NoiseModel(channels=frozenset([ch]))
+        nm = NoiseModel(channels=[ch])
         retrieved = nm.get_channel(inst)
         assert retrieved is ch
 
@@ -185,7 +185,7 @@ class TestNoiseModel:
         """get_channel returns None for instructions not in the model."""
         inst = RX(np.pi / 4, 0)
         ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
-        nm = NoiseModel(channels=frozenset([ch]))
+        nm = NoiseModel(channels=[ch])
         other_inst = RY(np.pi / 2, 1)
         assert nm.get_channel(other_inst) is None
 
@@ -197,7 +197,7 @@ class TestNoiseModel:
         ch1 = Channel.from_depolarizing_constant(inst=inst1, depolarizing_constant=0.99)
         ch2 = Channel.from_depolarizing_constant(inst=inst2, depolarizing_constant=0.97)
         ch3 = Channel.from_depolarizing_constant(inst=inst3, depolarizing_constant=0.95)
-        nm = NoiseModel(channels=frozenset([ch1, ch2, ch3]))
+        nm = NoiseModel(channels=[ch1, ch2, ch3])
         assert nm.get_channel(inst1) is ch1
         assert nm.get_channel(inst2) is ch2
         assert nm.get_channel(inst3) is ch3
@@ -260,7 +260,7 @@ class TestResetChannel:
         """An ideal reset on an excited qubit should produce |0><0|."""
         inst = RESET(0)
         ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
-        noise_model = NoiseModel(channels=frozenset([ch]))
+        noise_model = NoiseModel(channels=[ch])
         # Prepare |1> then reset
         program = Program(X(0), RESET(0))
         rho = _dm(program, noise_model=noise_model)
@@ -271,7 +271,7 @@ class TestResetChannel:
         """An ideal reset on a superposition state should produce |0><0|."""
         inst = RESET(0)
         ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
-        noise_model = NoiseModel(channels=frozenset([ch]))
+        noise_model = NoiseModel(channels=[ch])
         # Prepare |+> then reset
         program = Program(RX(np.pi / 2, 0), RESET(0))
         rho = _dm(program, noise_model=noise_model)
@@ -282,7 +282,7 @@ class TestResetChannel:
         """A noisy reset should produce a state with fidelity < 1 relative to |0><0|."""
         inst = RESET(0)
         ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=0.90)
-        noise_model = NoiseModel(channels=frozenset([ch]))
+        noise_model = NoiseModel(channels=[ch])
         program = Program(X(0), RESET(0))
         rho = _dm(program, noise_model=noise_model)
         target_rho = qx.zero_state_matrix(1)
@@ -294,7 +294,7 @@ class TestResetChannel:
         """Reset on one qubit should not affect the other qubit."""
         inst = RESET(0)
         ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
-        noise_model = NoiseModel(channels=frozenset([ch]))
+        noise_model = NoiseModel(channels=[ch])
         # Prepare |11> then reset qubit 0
         program = Program(X(0), X(1), RESET(0))
         rho = _dm(program, noise_model=noise_model)
