@@ -44,7 +44,6 @@ from jax import Array
 from jax.sharding import Mesh, NamedSharding, PartitionSpec
 
 from pyquil.api import MemoryMap
-from pyquil.noise._channels import get_custom_gates_from_program
 from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
@@ -53,9 +52,11 @@ from pyquil.simulation._resolver import (
     TrajectoryOp,
     adapt_for_density_matrix,
     adapt_for_trajectory,
+    build_dag,
     compressor_from_dag,
+    expand_program,
     linearizer_from_program,
-    resolver_from_program,
+    remap_qubits,
 )
 from pyquil.transform import expand_defcircuits
 
@@ -71,8 +72,7 @@ class ProgramSimulator:
     """Base class for program simulators.
 
     Handles all shared preprocessing: circuit expansion, qubit ordering,
-    building the linearizer, resolver, and compressor closures, and
-    inferring per-qudit dimensions.
+    building the linearizer, resolver, and compressor closures.
 
     Subclasses override :meth:`_validate` and :meth:`compute`.
 
@@ -96,23 +96,32 @@ class ProgramSimulator:
             qubits = sorted(expanded_program.get_qubit_indices())
         self.qubits = qubits
         self.n_qubits = len(qubits)
-        qubit_indices = {q: i for i, q in enumerate(qubits)}
-
-        custom_gates = get_custom_gates_from_program(program)
 
         self._linearize_fn = linearizer_from_program(expanded_program)
 
-        self._resolve_fn, dag, node_order = resolver_from_program(
-            program,
-            noise_model,
-            qubit_indices,
-            custom_gates or None,
+        # Build resolver from the expanded program.
+        expanded_ops, phys_qubits = expand_program(program, noise_model)
+        qubit_indices = {q: i for i, q in enumerate(qubits)}
+        mapped_qubits = remap_qubits(phys_qubits, qubit_indices)
+        dag = build_dag(mapped_qubits)
+
+        frozen_ops = list(zip(expanded_ops, mapped_qubits))
+
+        def resolve(params: Array) -> list[ResolvedOp]:
+            return [(item(params) if callable(item) else item, subsystem) for item, subsystem in frozen_ops]
+
+        self.dims = (2,) * self.n_qubits
+        self._resolve_fn = resolve
+
+        # Derive barrier nodes: measurements (QuantumInstrument) should not
+        # be merged by the compressor.
+        barrier_nodes = {
+            i for i, op in enumerate(expanded_ops) if isinstance(op, qx.QuantumInstrument)
+        }
+
+        self._compress_fn = compressor_from_dag(
+            dag, max_subsystem_size, dims=self.dims, barrier_nodes=barrier_nodes,
         )
-
-        # Dims are inferred during resolver construction from gate/channel inspection.
-        self.dims = self._resolve_fn.dims
-
-        self._compress_fn = compressor_from_dag(dag, node_order, max_subsystem_size, dims=self.dims)
 
     # -- hook for subclass validation ---------------------
 
