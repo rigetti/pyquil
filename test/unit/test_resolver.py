@@ -37,7 +37,7 @@ _EMPTY_PARAMS = jnp.array([], dtype=float)
 class TestExpandProgram:
     def test_simple_gates(self):
         p = Program(H(0), X(1), CNOT(0, 1))
-        ops, qubit_tuples = expand_program(p)
+        ops, qubit_tuples, _ = expand_program(p)
         assert len(ops) == 3
         assert len(qubit_tuples) == 3
         # Physical qubit IDs
@@ -47,20 +47,20 @@ class TestExpandProgram:
 
     def test_fixed_gates_are_concrete(self):
         p = Program(H(0), X(1))
-        ops, _ = expand_program(p)
+        ops, _, _ = expand_program(p)
         for op in ops:
             assert isinstance(op, qx.Unitary)
 
     def test_measurement_emitted(self):
         p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
-        ops, qubit_tuples = expand_program(p)
+        ops, qubit_tuples, _ = expand_program(p)
         assert len(ops) == 2
         # Measurement should be a concrete QuantumInstrument
         assert isinstance(ops[1], qx.QuantumInstrument)
 
     def test_reset_emitted(self):
         p = Program(RESET(), H(0))
-        ops, qubit_tuples = expand_program(p)
+        ops, qubit_tuples, _ = expand_program(p)
         # Bare RESET expands to one reset per qubit (only qubit 0 in this program)
         assert len(ops) == 2
         assert isinstance(ops[0], qx.SuperOp)
@@ -69,14 +69,14 @@ class TestExpandProgram:
         p = Program(X(0))
         ch = Channel.from_gate_fidelity(inst=X(0), fidelity=0.99)
         nm = NoiseModel(channels=[ch])
-        ops, _ = expand_program(p, nm)
+        ops, _, _ = expand_program(p, nm)
         assert isinstance(ops[0], qx.SuperOp)
 
     def test_defcircuit_expansion_no_cycle_channel(self):
         q0, q1 = FormalArgument("q0"), FormalArgument("q1")
         dc = DefCircuit("MY_CYCLE", [], [q0, q1], [H(q0), CNOT(q0, q1)])
         p = Program(dc, Gate("MY_CYCLE", [], [Qubit(0), Qubit(1)]))
-        ops, qubit_tuples = expand_program(p)
+        ops, qubit_tuples, _ = expand_program(p)
         assert len(ops) == 2
 
     def test_cycle_channel_expansion(self):
@@ -89,7 +89,7 @@ class TestExpandProgram:
         )
         nm = NoiseModel(channels=[CycleChannel(inst=cycle_inst, defcircuit=dc, channels=channels)])
         p = Program(dc, cycle_inst)
-        ops, qubit_tuples = expand_program(p, nm)
+        ops, qubit_tuples, _ = expand_program(p, nm)
         assert len(ops) == 2
         # All should be concrete noisy SuperOps
         for op in ops:
@@ -97,7 +97,7 @@ class TestExpandProgram:
 
     def test_parameterized_gate_produces_callable(self):
         p = Program(Declare("theta", "REAL", 1), RZ(MemoryReference("theta", 0), 0))
-        ops, _ = expand_program(p)
+        ops, _, _ = expand_program(p)
         assert len(ops) == 1
         assert callable(ops[0])
         result = ops[0](jnp.array([1.23]))
