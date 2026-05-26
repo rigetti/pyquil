@@ -17,32 +17,30 @@
 
 This module provides the simulation preprocessing pipeline:
 
-1. **Linearizer** — converts a ``MemoryMap`` into a flat JAX parameter vector.
-2. **Expander** — expands a program into a flat list of operators and physical
+1. **Expander** — expands a program into a flat list of operators and physical
    qubit tuples, resolving noise channels, custom gates, and DEFCIRCUIT
    bodies.  Fixed (non-parameterized) operations are returned as concrete
    quax types; parameterized gates are returned as callables.
-3. **Resolver** — converts a parameter vector into a list of
+2. **Resolver** — converts a parameter vector into a list of
    ``(operator, subsystem)`` pairs using native quax types.
-4. **Adapters** — convert resolved operations into the form expected by each
+3. **Adapters** — convert resolved operations into the form expected by each
    simulator backend (``SuperOp`` for density matrices; ``Unitary``/``KrausMap``/
    ``QuantumInstrument`` for state-vector trajectories).
-5. **Compressor** — merges adjacent operators via greedy edge contraction.
+4. **Compressor** — merges adjacent operators via greedy edge contraction.
 """
 
 from __future__ import annotations
 
 import heapq
 import logging
-from collections.abc import Callable
-from typing import Any, cast
+from collections.abc import Callable, Iterator
+from copy import deepcopy
+from typing import Any, TypeAlias, cast
 
-import jax.numpy as jnp
 import networkx as nx
 import quax as qx
 from jax import Array
 
-from pyquil.api import MemoryMap
 from pyquil.noise._channels import (
     Channel,
     CycleChannel,
@@ -55,9 +53,8 @@ from pyquil.noise._noise_model import (
     NoiseModelLike,
 )
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
+from pyquil.quilatom import MemoryReference, substitute
 from pyquil.quilbase import DefCircuit, Gate, Measurement, Reset, ResetQubit
-from pyquil.transform import expand_defcircuit_body
 
 logger = logging.getLogger(__name__)
 
@@ -66,11 +63,11 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────
 
 # A fixed (non-parameterized) operator — the most specific native quax type.
-FixedOp = qx.Unitary | qx.SuperOp | qx.KrausMap | qx.QuantumInstrument
+FixedOp: TypeAlias = qx.Unitary | qx.SuperOp | qx.KrausMap | qx.QuantumInstrument
 
 # An expanded item is either a fixed operator or a callable that resolves
 # parameters into a Unitary (only parameterized gates produce callables).
-ExpandedOp = FixedOp | Callable[[Array], qx.Unitary]
+ExpandedOp: TypeAlias = FixedOp | Callable[[Array], qx.Unitary]
 
 # Resolved operations retain the most specific native quax type.
 ResolvedOp = tuple[FixedOp, tuple[int, ...]]
@@ -82,68 +79,51 @@ TrajectoryOp = tuple[qx.Unitary | qx.KrausMap | qx.QuantumInstrument, tuple[int,
 DensityMatrixOp = tuple[qx.SuperOp, tuple[int, ...]]
 
 
-# ══════════════════════════════════════════════════════════
-# Linearizer
-# ══════════════════════════════════════════════════════════
+# ──────────────────────────────────────────────────────────
+# DEFCIRCUIT expansion
+# ──────────────────────────────────────────────────────────
 
 
-class Linearizer:
-    """Converts a MemoryMap into a flat JAX parameter vector.
+def expand_defcircuit_body(
+    inst: Gate,
+    defcircuit: DefCircuit,
+    circuit_definitions: dict[str, DefCircuit],
+) -> Iterator[Gate | Measurement | ResetQubit | Reset]:
+    """Yield concrete instructions from a DEFCIRCUIT invocation.
 
-    Constructed via :func:`linearizer_from_program`. Call instances directly
-    to perform the conversion::
+    Substitutes formal qubit/parameter arguments with the concrete values
+    from ``inst``.  Handles nested DEFCIRCUITs via recursion.
 
-        lin = linearizer_from_program(program)
-        params = lin(memory_map)
-
-    :param n_params: The number of scalar parameters in the vector.
+    :param inst: The Gate that invokes the DEFCIRCUIT.
+    :param defcircuit: The DefCircuit definition to expand.
+    :param circuit_definitions: All known DEFCIRCUIT definitions (for nested expansion).
+    :yields: Concrete instructions with physical qubits and resolved parameters.
     """
+    qarg_to_arg_map = {qarg: q for q, qarg in zip(inst.qubits, defcircuit.qubit_variables, strict=False)}
+    parg_to_arg_map = {parg: param for param, parg in zip(inst.params, defcircuit.parameters, strict=False)}
 
-    __slots__ = ("_linearize_fn", "n_params")
-
-    def __init__(self, linearize_fn: Callable[[MemoryMap], Array], n_params: int) -> None:
-        self._linearize_fn = linearize_fn
-        self.n_params = n_params
-
-    def __call__(self, memory_map: MemoryMap) -> Array:
-        return self._linearize_fn(memory_map)
-
-
-def linearizer_from_program(program: Program) -> Linearizer:
-    """Build a :class:`Linearizer` that converts a memory map to a flat JAX parameter vector.
-
-    Walks the program to identify parameter registers (skipping ``"ro"`` and
-    any register that is the target of a ``MEASURE`` instruction).  For each
-    gate parameter that is a :class:`MemoryReference`, records ``(name, offset)``
-    in program order.
-
-    :param program: Expanded Quil program.
-    :return: A :class:`Linearizer` instance.
-    """
-    # Find registers written to by MEASURE — these are output registers, not params
-    measure_registers: set[str] = set()
-    for inst in program.instructions:
-        if isinstance(inst, Measurement):
-            cr = inst.classical_reg
-            if cr is not None:
-                measure_registers.add(cr.name)
-
-    # Collect parameter references in program order
-    param_refs: list[tuple[str, int]] = []
-    for inst in program.instructions:
-        if isinstance(inst, Gate):
-            for param in inst.params:
-                if isinstance(param, MemoryReference):
-                    if param.name not in measure_registers:
-                        param_refs.append((param.name, param.offset))
-
-    def linearize(memory_map: MemoryMap) -> Array:
-        if not param_refs:
-            return jnp.array([], dtype=float)
-        values = [float(memory_map[name][offset]) for name, offset in param_refs]
-        return jnp.array(values, dtype=float)
-
-    return Linearizer(linearize, n_params=len(param_refs))
+    for circuit_inst in defcircuit.instructions:
+        if isinstance(circuit_inst, Gate):
+            circuit_inst = deepcopy(circuit_inst)
+            circuit_inst.qubits = [qarg_to_arg_map[qarg] for qarg in circuit_inst.qubits]  # type: ignore[index,misc]
+            if hasattr(circuit_inst, "params"):
+                circuit_inst.params = [substitute(param, parg_to_arg_map) for param in circuit_inst.params]  # type: ignore[arg-type]
+            if circuit_inst.name in circuit_definitions:
+                yield from expand_defcircuit_body(
+                    circuit_inst, circuit_definitions[circuit_inst.name], circuit_definitions
+                )
+            else:
+                yield circuit_inst
+        elif isinstance(circuit_inst, Measurement):
+            circuit_inst = deepcopy(circuit_inst)
+            circuit_inst.qubit = qarg_to_arg_map[circuit_inst.qubit]  # type: ignore[index]
+            yield circuit_inst
+        elif isinstance(circuit_inst, ResetQubit):
+            circuit_inst = deepcopy(circuit_inst)
+            circuit_inst.qubit = qarg_to_arg_map[circuit_inst.qubit]  # type: ignore[index]
+            yield circuit_inst
+        else:
+            yield deepcopy(circuit_inst)  # type: ignore[misc]
 
 
 # ══════════════════════════════════════════════════════════
@@ -165,7 +145,7 @@ def _measure_registers(program: Program) -> set[str]:
 def expand_program(
     program: Program,
     noise_model: NoiseModelLike | None = None,
-) -> tuple[list[ExpandedOp], list[tuple[int, ...]]]:
+) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
     """Expand a program into operators and physical qubit tuples.
 
     Fixed (non-parameterized) operations are returned as concrete quax types
@@ -185,9 +165,11 @@ def expand_program(
 
     :param program: Quil program (may contain DEFCIRCUITs).
     :param noise_model: Optional noise model.
-    :return: Tuple of ``(ops, qubit_tuples)`` where each op is either a
-        concrete quax operator or a ``Callable[[Array], Unitary]`` for
-        parameterized gates, and each qubit tuple contains physical qubit IDs.
+    :return: Tuple of ``(ops, qubit_tuples, param_refs)`` where each op is
+        either a concrete quax operator or a ``Callable[[Array], Unitary]``
+        for parameterized gates, each qubit tuple contains physical qubit
+        IDs, and ``param_refs`` is a list of ``(register_name, offset)``
+        pairs for each scalar parameter in program order.
     """
     # Derive circuit definitions and custom gates from the program.
     circuit_definitions: dict[str, DefCircuit] = {}
@@ -202,6 +184,7 @@ def expand_program(
 
     ops: list[ExpandedOp] = []
     qubit_tuples: list[tuple[int, ...]] = []
+    param_refs: list[tuple[str, int]] = []
     param_counter = 0
 
     def _emit_op(op: ExpandedOp, qubits: tuple[int, ...]) -> None:
@@ -235,6 +218,7 @@ def expand_program(
             for p in inst.params:
                 if isinstance(p, MemoryReference) and p.name not in measure_regs:
                     param_indices.append(param_counter)
+                    param_refs.append((p.name, p.offset))
                     param_counter += 1
                 else:
                     param_indices.append(-1)
@@ -275,7 +259,7 @@ def expand_program(
 
     def _resolve_reset_qubit(inst: ResetQubit) -> tuple[FixedOp, tuple[int, ...]]:
         """Resolve a targeted reset instruction."""
-        qubits = tuple(inst.get_qubit_indices())  # type: ignore[union-attr]
+        qubits = tuple(inst.get_qubit_indices())  # type: ignore[arg-type]
         channel = noise_model.get_channel(inst) if noise_model is not None else None
         if isinstance(channel, ResetChannel):
             return channel.process, qubits
@@ -311,14 +295,12 @@ def expand_program(
                     _emit_op(sub_ch.process, sub_qubits)
             else:
                 # Expand DEFCIRCUIT body and resolve each instruction.
-                for expanded_inst in expand_defcircuit_body(
-                    inst, circuit_definitions[inst.name], circuit_definitions
-                ):
+                for expanded_inst in expand_defcircuit_body(inst, circuit_definitions[inst.name], circuit_definitions):
                     _emit_instruction(expanded_inst)
         elif isinstance(inst, (Gate, Measurement, ResetQubit, Reset)):
             _emit_instruction(inst)
 
-    return ops, qubit_tuples
+    return ops, qubit_tuples, param_refs
 
 
 # ══════════════════════════════════════════════════════════
@@ -349,7 +331,7 @@ def build_dag(qubit_tuples: list[tuple[int, ...]]) -> nx.DiGraph:
     :param qubit_tuples: Remapped qubit tuples (0-based indices).
     :return: DAG with node attribute ``"qubits"`` storing each node's qubit tuple.
     """
-    dag = nx.DiGraph()
+    dag: nx.DiGraph = nx.DiGraph()
     last_on_qubit: dict[int, int] = {}
 
     for idx, qubits in enumerate(qubit_tuples):
@@ -418,7 +400,7 @@ def resolver_from_program(
     :return: Tuple of ``(Resolver, dag)``.
     """
     # Phase 1: Expand into flat operators + physical qubit tuples.
-    expanded_ops, phys_qubits = expand_program(program, noise_model)
+    expanded_ops, phys_qubits, _param_refs = expand_program(program, noise_model)
 
     # Phase 2: Remap physical qubits to 0-based indices.
     if qubits is None:
@@ -430,10 +412,13 @@ def resolver_from_program(
     dag = build_dag(mapped_qubits)
 
     # Phase 4: Build the resolve closure.
-    frozen_ops = list(zip(expanded_ops, mapped_qubits))
+    frozen_ops = list(zip(expanded_ops, mapped_qubits, strict=False))
 
     def resolve(params: Array) -> list[ResolvedOp]:
-        return [(item(params) if callable(item) else item, subsystem) for item, subsystem in frozen_ops]
+        return [
+            (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
+            for item, subsystem in frozen_ops
+        ]
 
     n_qubits = len(qubits)
     dims = (2,) * n_qubits
@@ -616,6 +601,7 @@ def compressor_from_dag(
     n_original = dag.number_of_nodes()
 
     if max_subsystem_size == 0 or n_original == 0:
+
         def compress_passthrough(ops: list[ResolvedOp]) -> list[ResolvedOp]:
             return ops
 
@@ -662,9 +648,12 @@ def compressor_from_dag(
             del group_qubits[old_root]
 
         # Re-enqueue edges from the newly merged group to its neighbours.
-        for neighbour in set(dag.successors(u_node)) | set(dag.predecessors(u_node)) | set(
-            dag.successors(v_node)
-        ) | set(dag.predecessors(v_node)):
+        for neighbour in (
+            set(dag.successors(u_node))
+            | set(dag.predecessors(u_node))
+            | set(dag.successors(v_node))
+            | set(dag.predecessors(v_node))
+        ):
             rn = uf.find(neighbour)
             if rn == new_root or neighbour in barrier_nodes:
                 continue

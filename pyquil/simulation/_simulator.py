@@ -32,9 +32,8 @@ to ``jax.jit`` or ``jax.grad``.
 
 from __future__ import annotations
 
-import logging
-import time
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 
 import jax
 import jax.numpy as jnp
@@ -55,13 +54,8 @@ from pyquil.simulation._resolver import (
     build_dag,
     compressor_from_dag,
     expand_program,
-    linearizer_from_program,
     remap_qubits,
 )
-from pyquil.transform import expand_defcircuits
-
-logger = logging.getLogger(__name__)
-
 
 # ══════════════════════════════════════════════════════════
 # Base class
@@ -87,40 +81,49 @@ class ProgramSimulator:
         qubits: list[int] | None = None,
         *,
         noise_model: NoiseModelLike | None = None,
-        max_subsystem_size: int = 0,
+        max_subsystem_size: int = 2,
     ) -> None:
-        expanded_program = expand_defcircuits(program)
-        self._validate(expanded_program)
+        self._validate(program)
 
         if qubits is None:
-            qubits = sorted(expanded_program.get_qubit_indices())
+            qubits = sorted(program.get_qubit_indices())
         self.qubits = qubits
         self.n_qubits = len(qubits)
 
-        self._linearize_fn = linearizer_from_program(expanded_program)
-
         # Build resolver from the expanded program.
-        expanded_ops, phys_qubits = expand_program(program, noise_model)
+        expanded_ops, phys_qubits, param_refs = expand_program(program, noise_model)
         qubit_indices = {q: i for i, q in enumerate(qubits)}
         mapped_qubits = remap_qubits(phys_qubits, qubit_indices)
         dag = build_dag(mapped_qubits)
 
-        frozen_ops = list(zip(expanded_ops, mapped_qubits))
+        frozen_ops = list(zip(expanded_ops, mapped_qubits, strict=False))
 
         def resolve(params: Array) -> list[ResolvedOp]:
-            return [(item(params) if callable(item) else item, subsystem) for item, subsystem in frozen_ops]
+            return [
+                (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
+                for item, subsystem in frozen_ops
+            ]
+
+        # Build linearizer from parameter references discovered during expansion.
+        def linearize(memory_map: MemoryMap) -> Array:
+            if not param_refs:
+                return jnp.array([], dtype=float)
+            values = [float(memory_map[name][offset]) for name, offset in param_refs]
+            return jnp.array(values, dtype=float)
 
         self.dims = (2,) * self.n_qubits
+        self._linearize_fn = linearize
         self._resolve_fn = resolve
 
         # Derive barrier nodes: measurements (QuantumInstrument) should not
         # be merged by the compressor.
-        barrier_nodes = {
-            i for i, op in enumerate(expanded_ops) if isinstance(op, qx.QuantumInstrument)
-        }
+        barrier_nodes = {i for i, op in enumerate(expanded_ops) if isinstance(op, qx.QuantumInstrument)}
 
         self._compress_fn = compressor_from_dag(
-            dag, max_subsystem_size, dims=self.dims, barrier_nodes=barrier_nodes,
+            dag,
+            max_subsystem_size,
+            dims=self.dims,
+            barrier_nodes=barrier_nodes,
         )
 
     # -- hook for subclass validation ---------------------
@@ -170,7 +173,7 @@ class PureStateVectorSimulator(ProgramSimulator):
         program: Program,
         qubits: list[int] | None = None,
         *,
-        max_subsystem_size: int = 0,
+        max_subsystem_size: int = 2,
     ) -> None:
         super().__init__(program, qubits, noise_model=None, max_subsystem_size=max_subsystem_size)
         self._psi0 = qx.zero_state_vector(dims=self.dims)
@@ -247,7 +250,7 @@ class DensityMatrixSimulator(ProgramSimulator):
         qubits: list[int] | None = None,
         *,
         noise_model: NoiseModelLike | None = None,
-        max_subsystem_size: int = 0,
+        max_subsystem_size: int = 2,
     ) -> None:
         super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
         self._rho0 = qx.zero_state_matrix(dims=self.dims)
@@ -307,7 +310,7 @@ class TrajectorySimulator(ProgramSimulator):
         qubits: list[int] | None = None,
         *,
         noise_model: NoiseModelLike | None = None,
-        max_subsystem_size: int = 0,
+        max_subsystem_size: int = 2,
         kraus_truncation_threshold: float = 1e-6,
         devices: list[jax.Device] | None = None,
     ) -> None:
@@ -442,14 +445,14 @@ def _apply_trajectory_operations(
                 psi = qx.targeted_apply_unitary(op, psi, subsystem)
             case qx.KrausMap():
                 if per_traj_keys is not None:
-                    op_keys = jax.vmap(lambda k: jax.random.fold_in(k, stochastic_idx))(per_traj_keys)
+                    op_keys = jax.vmap(lambda k, s=stochastic_idx: jax.random.fold_in(k, s))(per_traj_keys)
                 else:
                     op_keys = jax.random.fold_in(key, stochastic_idx)
                 psi = qx.targeted_apply_kraus_map_trajectory(op, psi, op_keys, subsystem)
                 stochastic_idx += 1
             case qx.QuantumInstrument():
                 if per_traj_keys is not None:
-                    op_keys = jax.vmap(lambda k: jax.random.fold_in(k, stochastic_idx))(per_traj_keys)
+                    op_keys = jax.vmap(lambda k, s=stochastic_idx: jax.random.fold_in(k, s))(per_traj_keys)
                 else:
                     op_keys = jax.random.fold_in(key, stochastic_idx)
                 psi, outcome = qx.targeted_apply_instrument_to_state_vector(op, psi, op_keys, subsystem)
@@ -508,8 +511,6 @@ def _run_batched_trajectories(
     all_outcomes: list[Array] = []
 
     remaining = num_trajectories
-    batch_idx = 0
-    t_total = 0.0
     while remaining > 0:
         this_batch = min(remaining, batch_size)
 
@@ -537,11 +538,8 @@ def _run_batched_trajectories(
         else:
             batch_keys = batch_key
 
-        t0 = time.perf_counter()
         psi_out, outcomes = _apply_trajectory_operations(operations, psi, batch_keys)
         psi_out.matrix.block_until_ready()
-        t1 = time.perf_counter()
-        t_total += t1 - t0
 
         # Strip padding rows.
         if n_pad > 0:
@@ -558,31 +556,9 @@ def _run_batched_trajectories(
             )
             outcomes = outcomes[jnp.newaxis]
 
-        logger.debug(
-            "Batch %d: %d trajectories (%d padded), %d qubits, %d device(s), %.3f s",
-            batch_idx,
-            this_batch,
-            padded_batch,
-            n_qubits,
-            n_devices,
-            t1 - t0,
-        )
-
         if keep_states:
             all_psis.append(psi_out)
         all_outcomes.append(outcomes)
         remaining -= this_batch
-        batch_idx += 1
-
-    logger.info(
-        "Trajectories complete: %d total, %d batches (size=%d), n_qubits=%d, %d device(s), %.3f s total, %.1f traj/s",
-        num_trajectories,
-        batch_idx,
-        batch_size,
-        n_qubits,
-        n_devices,
-        t_total,
-        num_trajectories / t_total if t_total > 0 else float("inf"),
-    )
 
     return (all_psis if keep_states else None), all_outcomes
