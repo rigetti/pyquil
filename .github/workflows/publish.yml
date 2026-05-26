@@ -12,7 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
     - uses: snok/install-poetry@v1
       with:
         virtualenvs-in-project: true
@@ -43,7 +45,9 @@ jobs:
       contents: read
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
     - uses: snok/install-poetry@v1
       with:
         virtualenvs-in-project: true

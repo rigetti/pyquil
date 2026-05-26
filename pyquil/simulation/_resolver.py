@@ -15,23 +15,27 @@
 ##############################################################################
 """Shared infrastructure for the density-matrix and state-vector simulators.
 
-This module provides the three front-end stages of the simulation pipeline:
+This module provides the simulation preprocessing pipeline:
 
 1. **Linearizer** — converts a ``MemoryMap`` into a flat JAX parameter vector.
-2. **Resolver** — converts a parameter vector into a list of
+2. **Expander** — expands a program into a flat list of operators and physical
+   qubit tuples, resolving noise channels, custom gates, and DEFCIRCUIT
+   bodies.  Fixed (non-parameterized) operations are returned as concrete
+   quax types; parameterized gates are returned as callables.
+3. **Resolver** — converts a parameter vector into a list of
    ``(operator, subsystem)`` pairs using native quax types.
-3. **Adapters** — convert resolved operations into the form expected by each
+4. **Adapters** — convert resolved operations into the form expected by each
    simulator backend (``SuperOp`` for density matrices; ``Unitary``/``KrausMap``/
    ``QuantumInstrument`` for state-vector trajectories).
-
-It also provides shared utilities: DAG construction, dimension inference.
+5. **Compressor** — merges adjacent operators via greedy edge contraction.
 """
 
 from __future__ import annotations
 
+import heapq
 import logging
 from collections.abc import Callable
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import jax.numpy as jnp
 import networkx as nx
@@ -44,6 +48,7 @@ from pyquil.noise._channels import (
     CycleChannel,
     MeasurementChannel,
     ResetChannel,
+    get_custom_gates_from_program,
     get_instruction_unitary,
 )
 from pyquil.noise._noise_model import (
@@ -60,20 +65,21 @@ logger = logging.getLogger(__name__)
 # Type aliases
 # ──────────────────────────────────────────────────────────
 
+# A fixed (non-parameterized) operator — the most specific native quax type.
+FixedOp = qx.Unitary | qx.SuperOp | qx.KrausMap | qx.QuantumInstrument
+
+# An expanded item is either a fixed operator or a callable that resolves
+# parameters into a Unitary (only parameterized gates produce callables).
+ExpandedOp = FixedOp | Callable[[Array], qx.Unitary]
+
 # Resolved operations retain the most specific native quax type.
-ResolvedOp = tuple[qx.Unitary | qx.SuperOp | qx.KrausMap | qx.QuantumInstrument, tuple[int, ...]]
-RecipeOp = Union[qx.Unitary, qx.SuperOp, qx.KrausMap, qx.QuantumInstrument]
-RecipeCallable = Callable[[Array], RecipeOp]
-Recipe = tuple[RecipeOp | RecipeCallable, tuple[int, ...]]
+ResolvedOp = tuple[FixedOp, tuple[int, ...]]
 
 # Trajectory operations for the state-vector simulator.
 TrajectoryOp = tuple[qx.Unitary | qx.KrausMap | qx.QuantumInstrument, tuple[int, ...]]
 
 # Density-matrix operations.
 DensityMatrixOp = tuple[qx.SuperOp, tuple[int, ...]]
-
-# Custom gate definitions.
-CustomGateMap = dict
 
 
 # ══════════════════════════════════════════════════════════
@@ -141,6 +147,222 @@ def linearizer_from_program(program: Program) -> Linearizer:
 
 
 # ══════════════════════════════════════════════════════════
+# Expander
+# ══════════════════════════════════════════════════════════
+
+
+def _measure_registers(program: Program) -> set[str]:
+    """Return the set of register names that are targets of MEASURE instructions."""
+    regs: set[str] = set()
+    for inst in program.instructions:
+        if isinstance(inst, Measurement):
+            cr = inst.classical_reg
+            if cr is not None:
+                regs.add(cr.name)
+    return regs
+
+
+def expand_program(
+    program: Program,
+    noise_model: NoiseModelLike | None = None,
+) -> tuple[list[ExpandedOp], list[tuple[int, ...]]]:
+    """Expand a program into operators and physical qubit tuples.
+
+    Fixed (non-parameterized) operations are returned as concrete quax types
+    (``Unitary``, ``SuperOp``, ``QuantumInstrument``).  Only parameterized
+    gates are returned as ``Callable[[Array], Unitary]``.
+
+    DEFCIRCUIT invocations are expanded:
+
+    * If a cycle invocation matches a :class:`CycleChannel` in the noise
+      model, the cycle is expanded using the channel's constituent operators.
+    * Otherwise the DEFCIRCUIT body is expanded via qubit/param substitution
+      and each resulting instruction is resolved individually.
+
+    The noise model is fully resolved during expansion: noisy gates become
+    ``SuperOp``, noisy measurements become ``QuantumInstrument``, and noisy
+    resets become ``SuperOp``.
+
+    :param program: Quil program (may contain DEFCIRCUITs).
+    :param noise_model: Optional noise model.
+    :return: Tuple of ``(ops, qubit_tuples)`` where each op is either a
+        concrete quax operator or a ``Callable[[Array], Unitary]`` for
+        parameterized gates, and each qubit tuple contains physical qubit IDs.
+    """
+    # Derive circuit definitions and custom gates from the program.
+    circuit_definitions: dict[str, DefCircuit] = {}
+    for inst in program.instructions:
+        if isinstance(inst, DefCircuit):
+            circuit_definitions[inst.name] = inst
+
+    custom_gates = get_custom_gates_from_program(program) or None
+
+    measure_regs = _measure_registers(program)
+    all_qubits = sorted(program.get_qubit_indices())
+
+    ops: list[ExpandedOp] = []
+    qubit_tuples: list[tuple[int, ...]] = []
+    param_counter = 0
+
+    def _emit_op(op: ExpandedOp, qubits: tuple[int, ...]) -> None:
+        ops.append(op)
+        qubit_tuples.append(qubits)
+
+    def _resolve_gate(inst: Gate) -> tuple[ExpandedOp, tuple[int, ...]]:
+        """Resolve a single gate instruction to an operator or callable."""
+        nonlocal param_counter
+        qubits = tuple(inst.get_qubit_indices())
+
+        # Check noise model first.
+        channel = noise_model.get_channel(inst) if noise_model is not None else None
+        if isinstance(channel, Channel):
+            return channel.process, qubits
+        if isinstance(channel, CycleChannel):
+            raise ValueError(f"CycleChannel for {inst.name} was not expanded before gate resolution.")
+
+        # Parameterized gate → callable that resolves params at call time.
+        if any(isinstance(p, MemoryReference) for p in inst.params):
+            gate_name = inst.name
+            if custom_gates is not None and gate_name in custom_gates:
+                gate_def = custom_gates[gate_name]
+            elif gate_name in qx.gates.QUANTUM_GATES:
+                gate_def = qx.gates.QUANTUM_GATES[gate_name]
+            else:
+                raise KeyError(f"Unknown gate '{gate_name}'.")
+
+            param_indices: list[int] = []
+            concrete_params = list(inst.params)
+            for p in inst.params:
+                if isinstance(p, MemoryReference) and p.name not in measure_regs:
+                    param_indices.append(param_counter)
+                    param_counter += 1
+                else:
+                    param_indices.append(-1)
+
+            def _make_param_callable(
+                gdef: object,
+                cp: list,
+                pi: list[int],
+            ) -> Callable[[Array], qx.Unitary]:
+                def resolve_params(params: Array) -> qx.Unitary:
+                    resolved: list[Any] = []
+                    for p, pv in zip(cp, pi, strict=False):
+                        if pv >= 0:
+                            resolved.append(params[pv])
+                        else:
+                            resolved.append(float(p.real) if hasattr(p, "real") else float(p))
+                    result = gdef(*resolved) if callable(gdef) else gdef
+                    if not isinstance(result, qx.Unitary):
+                        result = cast(Any, result)
+                        result = qx.Unitary.from_matrix(result.matrix, result.dims)
+                    return result
+
+                return resolve_params
+
+            return _make_param_callable(gate_def, concrete_params, param_indices), qubits
+
+        # Fixed gate → resolve to Unitary now.
+        unitary = get_instruction_unitary(inst, custom_gates=custom_gates)
+        return unitary, qubits
+
+    def _resolve_measurement(inst: Measurement) -> tuple[FixedOp, tuple[int, ...]]:
+        """Resolve a measurement instruction."""
+        qubits = tuple(inst.get_qubit_indices())
+        channel = noise_model.get_channel(inst) if noise_model is not None else None
+        if isinstance(channel, MeasurementChannel):
+            return channel.process, qubits
+        return qx.gates.MEASURE(), qubits
+
+    def _resolve_reset_qubit(inst: ResetQubit) -> tuple[FixedOp, tuple[int, ...]]:
+        """Resolve a targeted reset instruction."""
+        qubits = tuple(inst.get_qubit_indices())  # type: ignore[union-attr]
+        channel = noise_model.get_channel(inst) if noise_model is not None else None
+        if isinstance(channel, ResetChannel):
+            return channel.process, qubits
+        return qx.gates.RESET(), qubits
+
+    def _emit_instruction(inst: Gate | Measurement | ResetQubit | Reset) -> None:
+        """Resolve and emit a single instruction."""
+        match inst:
+            case Gate():
+                op, qubits = _resolve_gate(inst)
+                _emit_op(op, qubits)
+            case Measurement():
+                op, qubits = _resolve_measurement(inst)
+                _emit_op(op, qubits)
+            case ResetQubit():
+                op, qubits = _resolve_reset_qubit(inst)
+                _emit_op(op, qubits)
+            case Reset():
+                for q in all_qubits:
+                    _emit_op(qx.gates.RESET(), (q,))
+
+    for inst in program.instructions:
+        if isinstance(inst, DefCircuit):
+            continue
+
+        if isinstance(inst, Gate) and inst.name in circuit_definitions:
+            channel = noise_model.get_channel(inst) if noise_model is not None else None
+
+            if isinstance(channel, CycleChannel):
+                # Expand using the channel's constituent operators.
+                for sub_ch in channel.channels:
+                    sub_qubits = tuple(sub_ch.inst.get_qubit_indices())
+                    _emit_op(sub_ch.process, sub_qubits)
+            else:
+                # Expand DEFCIRCUIT body and resolve each instruction.
+                for expanded_inst in expand_defcircuit_body(
+                    inst, circuit_definitions[inst.name], circuit_definitions
+                ):
+                    _emit_instruction(expanded_inst)
+        elif isinstance(inst, (Gate, Measurement, ResetQubit, Reset)):
+            _emit_instruction(inst)
+
+    return ops, qubit_tuples
+
+
+# ══════════════════════════════════════════════════════════
+# DAG construction & qubit remapping
+# ══════════════════════════════════════════════════════════
+
+
+def remap_qubits(
+    qubit_tuples: list[tuple[int, ...]],
+    qubit_indices: dict[int, int],
+) -> list[tuple[int, ...]]:
+    """Remap physical qubit IDs to 0-based indices.
+
+    :param qubit_tuples: List of physical qubit tuples from :func:`expand_program`.
+    :param qubit_indices: Mapping from physical qubit id → 0-based index.
+    :return: Remapped qubit tuples.
+    """
+    return [tuple(qubit_indices[q] for q in qubits) for qubits in qubit_tuples]
+
+
+def build_dag(qubit_tuples: list[tuple[int, ...]]) -> nx.DiGraph:
+    """Build a dependency DAG from qubit tuples.
+
+    Each node corresponds to one operation (indexed 0..N-1). An edge
+    ``(u, v)`` exists when ``u`` and ``v`` act on a shared qubit and
+    ``u`` precedes ``v`` in program order.
+
+    :param qubit_tuples: Remapped qubit tuples (0-based indices).
+    :return: DAG with node attribute ``"qubits"`` storing each node's qubit tuple.
+    """
+    dag = nx.DiGraph()
+    last_on_qubit: dict[int, int] = {}
+
+    for idx, qubits in enumerate(qubit_tuples):
+        dag.add_node(idx, qubits=qubits)
+        for q in qubits:
+            if q in last_on_qubit:
+                dag.add_edge(last_on_qubit[q], idx)
+            last_on_qubit[q] = idx
+
+    return dag
+
+
+# ══════════════════════════════════════════════════════════
 # Resolver
 # ══════════════════════════════════════════════════════════
 
@@ -166,335 +388,15 @@ class Resolver:
         return self._resolve_fn(params)
 
 
-def _is_parameterized(inst: Gate) -> bool:
-    """Check if a gate instruction has any MemoryReference parameters."""
-    return any(isinstance(p, MemoryReference) for p in inst.params)
-
-
-def _measure_registers(program: Program) -> set[str]:
-    """Return the set of register names that are targets of MEASURE instructions."""
-    regs: set[str] = set()
-    for inst in program.instructions:
-        if isinstance(inst, Measurement):
-            cr = inst.classical_reg
-            if cr is not None:
-                regs.add(cr.name)
-    return regs
-
-
-def _collect_circuit_definitions(program: Program) -> dict[str, DefCircuit]:
-    """Extract DEFCIRCUIT definitions from a program.
-
-    :param program: Quil program.
-    :return: Mapping from circuit name to definition.
-    """
-    circuit_definitions: dict[str, DefCircuit] = {}
-    for inst in program.instructions:
-        if isinstance(inst, DefCircuit):
-            circuit_definitions[inst.name] = inst
-    return circuit_definitions
-
-
-# ── Instruction expansion result ──
-
-
-class _ExpandedProgram:
-    """Result of :func:`_expand_instructions`.
-
-    Bundles the expanded instruction/channel lists with the dependency DAG
-    and topological node order so they can be passed to downstream phases
-    without a long argument list.
-    """
-
-    __slots__ = ("insts", "channels", "dag", "node_order")
-
-    def __init__(self) -> None:
-        self.insts: list[Gate | Measurement | ResetQubit | Reset] = []
-        self.channels: list[Channel | MeasurementChannel | None] = []
-        self.dag: nx.DiGraph = nx.DiGraph()
-        self.node_order: list[int] = []
-
-
-def _expand_instructions(
-    program: Program,
-    noise_model: NoiseModelLike | None,
-    qubit_indices: dict[int, int],
-    circuit_definitions: dict[str, DefCircuit],
-) -> _ExpandedProgram:
-    """Expand a program's instructions, building a dependency DAG.
-
-    DEFCIRCUIT invocations are expanded:
-
-    * If a cycle invocation matches a :class:`CycleChannel` in the noise
-      model, the cycle is expanded using the channel's constituent operators.
-    * Otherwise the DEFCIRCUIT body is expanded via qubit/param substitution
-      and each resulting instruction is resolved individually.
-
-    :param program: Quil program.
-    :param noise_model: Optional noise model.
-    :param qubit_indices: Mapping from physical qubit id → 0-based index.
-    :param circuit_definitions: DEFCIRCUIT definitions from the program.
-    :return: An :class:`_ExpandedProgram` containing instructions, channels, DAG, and node order.
-    """
-    ep = _ExpandedProgram()
-    last_on_qubit: dict[int, int] = {}
-
-    def _emit(
-        inst: Gate | Measurement | ResetQubit | Reset, channel: Channel | MeasurementChannel | None = None
-    ) -> None:
-        if isinstance(inst, Gate):
-            qubits = tuple(qubit_indices[q] for q in inst.get_qubit_indices())
-        elif isinstance(inst, Measurement):
-            qubits = tuple(qubit_indices[q] for q in inst.get_qubit_indices())
-        elif isinstance(inst, ResetQubit):
-            qubits = tuple(qubit_indices[q] for q in inst.get_qubit_indices())  # type: ignore[union-attr]
-        else:  # Reset
-            qubits = tuple(sorted(qubit_indices.values()))
-        node_key = len(ep.insts)
-        ep.dag.add_node(node_key, inst=inst, qubits=qubits)
-        ep.node_order.append(node_key)
-        for q in qubits:
-            if q in last_on_qubit:
-                ep.dag.add_edge(last_on_qubit[q], node_key)
-            last_on_qubit[q] = node_key
-        ep.insts.append(inst)
-        ep.channels.append(channel)
-
-    def _lookup_and_emit(inst: Gate | Measurement | ResetQubit | Reset) -> None:
-        if isinstance(inst, Gate):
-            ch = noise_model.get_channel(inst) if noise_model is not None else None
-            if isinstance(ch, CycleChannel):
-                ch = None
-            _emit(inst, ch)
-        elif isinstance(inst, Measurement):
-            ch_m: MeasurementChannel | None = noise_model.get_channel(inst) if noise_model is not None else None
-            _emit(inst, ch_m if isinstance(ch_m, MeasurementChannel) else None)
-        else:
-            _emit(inst)
-
-    for inst in program.instructions:
-        if isinstance(inst, DefCircuit):
-            continue
-
-        if isinstance(inst, Gate) and inst.name in circuit_definitions:
-            channel = noise_model.get_channel(inst) if noise_model is not None else None
-
-            if isinstance(channel, CycleChannel):
-                for sub_ch in channel.channels:
-                    _emit(sub_ch.inst, sub_ch)
-            else:
-                for expanded_inst in expand_defcircuit_body(inst, circuit_definitions[inst.name], circuit_definitions):
-                    _lookup_and_emit(expanded_inst)
-        elif isinstance(inst, (Gate, Measurement, ResetQubit, Reset)):
-            _lookup_and_emit(inst)
-
-    return ep
-
-
-def _assign_param_indices(
-    ep: _ExpandedProgram,
-    measure_regs: set[str],
-) -> tuple[dict[int, list[int]], int]:
-    """Assign parameter-vector indices to each gate's ``MemoryReference`` parameters.
-
-    :param ep: Expanded program.
-    :param measure_regs: Register names that are targets of MEASURE (excluded from params).
-    :return: Tuple of ``(gate_param_indices, total_param_count)``.
-        ``gate_param_indices`` maps node key → list of param-vector indices
-        (``-1`` for literal/non-parameter slots).
-    """
-    param_counter = 0
-    gate_param_indices: dict[int, list[int]] = {}
-    for idx in ep.node_order:
-        inst = ep.insts[idx]
-        if isinstance(inst, Gate):
-            indices = []
-            for param in inst.params:
-                if isinstance(param, MemoryReference) and param.name not in measure_regs:
-                    indices.append(param_counter)
-                    param_counter += 1
-                else:
-                    indices.append(-1)
-            gate_param_indices[idx] = indices
-    return gate_param_indices, param_counter
-
-
-def _infer_dims_from_instructions(
-    ep: _ExpandedProgram,
-    noise_model: NoiseModelLike | None,
-    custom_gates: CustomGateMap | None,
-) -> dict[int, int]:
-    """Infer per-qudit dimensions from the expanded instruction list.
-
-    Scans all expanded instructions — gates, measurements, and resets — and
-    their associated channels/unitaries to determine the Hilbert-space
-    dimension of each qubit slot (defaulting to 2 for standard qubits).
-
-    :param ep: Expanded program.
-    :param noise_model: Optional noise model.
-    :param custom_gates: Custom gate definitions.
-    :return: Mapping from qubit index → dimension (only entries > 2 are guaranteed present).
-    """
-    qudit_dims: dict[int, int] = {}
-
-    def _update(subsystem: tuple[int, ...], op_dims: tuple[int, ...]) -> None:
-        for slot, dim in zip(subsystem, op_dims, strict=False):
-            if dim > qudit_dims.get(slot, 2):
-                qudit_dims[slot] = dim
-
-    for node_key in ep.node_order:
-        inst = ep.insts[node_key]
-        subsystem = ep.dag.nodes[node_key]["qubits"]
-        channel: Channel | MeasurementChannel | ResetChannel | CycleChannel | None = ep.channels[node_key]
-
-        if isinstance(inst, Gate):
-            if channel is None and noise_model is not None:
-                channel = noise_model.get_channel(inst)
-            if isinstance(channel, Channel):
-                _update(subsystem, channel.process.dims[0])
-            elif isinstance(channel, CycleChannel):
-                continue
-            else:
-                try:
-                    unitary = get_instruction_unitary(inst, custom_gates=custom_gates)
-                    _update(subsystem, unitary.dims[0])
-                except Exception:  # noqa: S112
-                    continue
-
-        elif isinstance(inst, Measurement):
-            if channel is None and noise_model is not None:
-                channel = noise_model.get_channel(inst)
-            if isinstance(channel, MeasurementChannel):
-                _update(subsystem, channel.process.dims[0])
-
-        elif isinstance(inst, ResetQubit):
-            reset_ch = None
-            if noise_model is not None:
-                reset_ch = noise_model.get_channel(inst)
-            if isinstance(reset_ch, ResetChannel):
-                _update(subsystem, reset_ch.process.dims[0])
-
-    return qudit_dims
-
-
-def _build_recipes(
-    ep: _ExpandedProgram,
-    noise_model: NoiseModelLike | None,
-    qubit_indices: dict[int, int],
-    custom_gates: CustomGateMap | None,
-    gate_param_indices: dict[int, list[int]],
-    measure_regs: set[str],
-    qudit_dims: dict[int, int],
-) -> list[Recipe]:
-    """Convert expanded instructions into operator recipes.
-
-    Each recipe is either a concrete quax operator or a callable that
-    accepts a flat parameter vector and returns an operator.
-
-    :param ep: Expanded program.
-    :param noise_model: Optional noise model.
-    :param qubit_indices: Mapping from physical qubit id → 0-based index.
-    :param custom_gates: Custom gate definitions.
-    :param gate_param_indices: Parameter-vector indices per gate node.
-    :param measure_regs: Register names that are targets of MEASURE.
-    :param qudit_dims: Per-qubit dimensions from :func:`_infer_dims_from_instructions`.
-    :return: Ordered list of ``(operator_or_callable, subsystem)`` recipes.
-    """
-    recipes: list[Recipe] = []
-
-    for node_key in ep.node_order:
-        inst = ep.insts[node_key]
-        subsystem = ep.dag.nodes[node_key]["qubits"]
-
-        match inst:
-            case Gate():
-                channel2: Channel | MeasurementChannel | CycleChannel | None = ep.channels[node_key]
-                if channel2 is None and noise_model is not None:
-                    channel2 = noise_model.get_channel(inst)
-
-                if channel2 is not None and isinstance(channel2, Channel):
-                    recipes.append((channel2.process, subsystem))
-                elif channel2 is not None and isinstance(channel2, MeasurementChannel):
-                    raise ValueError(f"MeasurementChannel cannot be applied to expanded gate {inst}.")
-                elif channel2 is not None and isinstance(channel2, CycleChannel):
-                    raise ValueError(f"CycleChannel for {inst.name} was not expanded before resolver construction.")
-                elif _is_parameterized(inst):
-                    gate_name = inst.name
-                    if custom_gates is not None and gate_name in custom_gates:
-                        gate_def = custom_gates[gate_name]
-                    elif gate_name in qx.gates.QUANTUM_GATES:
-                        gate_def = qx.gates.QUANTUM_GATES[gate_name]
-                    else:
-                        raise KeyError(f"Unknown gate '{gate_name}'.")
-                    pidx = gate_param_indices[node_key]
-                    cparams = list(inst.params)
-
-                    def _make_param_recipe(
-                        gdef: object,
-                        cp: list,
-                        pi: list[int],
-                    ) -> Callable[[Array], qx.Unitary]:
-                        def recipe(params: Array) -> qx.Unitary:
-                            resolved: list[Any] = []
-                            for p, pv in zip(cp, pi, strict=False):
-                                if pv >= 0:
-                                    resolved.append(params[pv])
-                                else:
-                                    resolved.append(float(p.real) if hasattr(p, "real") else float(p))
-                            result = gdef(*resolved) if callable(gdef) else gdef
-                            if not isinstance(result, qx.Unitary):
-                                result = cast(Any, result)
-                                result = qx.Unitary.from_matrix(result.matrix, result.dims)
-                            return result
-
-                        return recipe
-
-                    recipes.append((_make_param_recipe(gate_def, cparams, pidx), subsystem))
-
-                else:
-                    unitary = get_instruction_unitary(inst, custom_gates=custom_gates)
-                    recipes.append((unitary, subsystem))
-
-            case Measurement():
-                meas_channel = ep.channels[node_key]
-                if meas_channel is None and noise_model is not None:
-                    meas_channel = noise_model.get_channel(inst)
-                if meas_channel is not None and isinstance(meas_channel, MeasurementChannel):
-                    recipes.append((meas_channel.process, subsystem))
-                elif meas_channel is not None and isinstance(meas_channel, Channel):
-                    raise ValueError(f"Channel cannot be applied to expanded measurement {inst}.")
-                else:
-                    dim = qudit_dims.get(subsystem[0], 2)
-                    recipes.append((qx.gates.MEASURE(dim=dim), subsystem))
-
-            case ResetQubit():
-                reset_channel = None
-                if noise_model is not None:
-                    reset_channel = noise_model.get_channel(inst)
-                if reset_channel is not None and isinstance(reset_channel, ResetChannel):
-                    recipes.append((reset_channel.process, subsystem))
-                else:
-                    dim = qudit_dims.get(subsystem[0], 2)
-                    recipes.append((qx.gates.RESET(dim=dim), subsystem))
-
-            case Reset():
-                for _, q_idx in sorted(qubit_indices.items()):
-                    dim = qudit_dims.get(q_idx, 2)
-                    recipes.append((qx.gates.RESET(dim=dim), (q_idx,)))
-
-    return recipes
-
-
 def resolver_from_program(
     program: Program,
-    noise_model: NoiseModelLike | None,
-    qubit_indices: dict[int, int],
-    custom_gates: CustomGateMap | None,
-) -> tuple[Resolver, nx.DiGraph, list[int]]:
-    """Build a :class:`Resolver`, DAG, and node order from a program.
+    noise_model: NoiseModelLike | None = None,
+    qubits: list[int] | None = None,
+) -> tuple[Resolver, nx.DiGraph]:
+    """Build a :class:`Resolver` and dependency DAG from a program.
 
     The resolver accepts a flat parameter vector and produces one
-    ``(operator, subsystem)`` pair per DAG node, in ``node_order``.
+    ``(operator, subsystem)`` pair per operation, in program order.
 
     Operators are returned in their most specific native type:
 
@@ -505,44 +407,38 @@ def resolver_from_program(
     * Noisy resets (``ResetChannel``) → ``qx.SuperOp``
     * Ideal resets → ``qx.SuperOp``
 
-    No type conversion (``to_kraus``, ``to_superop``) is performed here;
-    that is the adapter's responsibility.
+    Custom gate definitions (DEFGATE) and circuit definitions (DEFCIRCUIT)
+    are derived from the program automatically.
 
-    :param program: Quil program (may contain DEFCIRCUITs).
+    :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
     :param noise_model: Optional noise model.
-    :param qubit_indices: Mapping from physical qubit id → 0-based index.
-    :param custom_gates: Custom gate definitions.
-    :return: Tuple of ``(Resolver, dag, node_order)``.
+    :param qubits: Optional explicit qubit list. If ``None``, inferred from
+        the program. Use this when the simulator knows about qubits that
+        don't appear in the program.
+    :return: Tuple of ``(Resolver, dag)``.
     """
-    measure_regs = _measure_registers(program)
-    circuit_defs = _collect_circuit_definitions(program)
+    # Phase 1: Expand into flat operators + physical qubit tuples.
+    expanded_ops, phys_qubits = expand_program(program, noise_model)
 
-    # Phase 1: Expand instructions and build the dependency DAG.
-    ep = _expand_instructions(program, noise_model, qubit_indices, circuit_defs)
+    # Phase 2: Remap physical qubits to 0-based indices.
+    if qubits is None:
+        qubits = sorted(program.get_qubit_indices())
+    qubit_indices = {q: i for i, q in enumerate(qubits)}
+    mapped_qubits = remap_qubits(phys_qubits, qubit_indices)
 
-    # Phase 2: Assign parameter-vector indices.
-    gate_param_indices, _ = _assign_param_indices(ep, measure_regs)
+    # Phase 3: Build dependency DAG.
+    dag = build_dag(mapped_qubits)
 
-    # Phase 3: Infer per-qudit dimensions.
-    qudit_dims = _infer_dims_from_instructions(ep, noise_model, custom_gates)
+    # Phase 4: Build the resolve closure.
+    frozen_ops = list(zip(expanded_ops, mapped_qubits))
 
-    # Phase 4: Build operator recipes.
-    recipes = _build_recipes(ep, noise_model, qubit_indices, custom_gates, gate_param_indices, measure_regs, qudit_dims)
-
-    # Phase 5: Build the resolve closure.
     def resolve(params: Array) -> list[ResolvedOp]:
-        ops: list[ResolvedOp] = []
-        for op_or_fn, subsystem in recipes:
-            if isinstance(op_or_fn, (qx.Unitary, qx.KrausMap, qx.SuperOp, qx.QuantumInstrument)):
-                ops.append((op_or_fn, subsystem))
-            else:
-                ops.append((op_or_fn(params), subsystem))
-        return ops
+        return [(item(params) if callable(item) else item, subsystem) for item, subsystem in frozen_ops]
 
-    n_qubits = len(qubit_indices)
-    dims = tuple(qudit_dims.get(i, 2) for i in range(n_qubits))
+    n_qubits = len(qubits)
+    dims = (2,) * n_qubits
 
-    return Resolver(resolve, dims=dims), ep.dag, ep.node_order
+    return Resolver(resolve, dims=dims), dag
 
 
 # ══════════════════════════════════════════════════════════
@@ -572,13 +468,13 @@ def adapt_for_density_matrix(
     """
     result: list[DensityMatrixOp] = []
     for op, subsystem in ops:
-        if isinstance(op, qx.SuperOp):
-            result.append((op, subsystem))
-        elif isinstance(op, qx.QuantumInstrument):
-            result.append((qx.to_superop(op.total_channel()), subsystem))
-        else:
-            # Unitary, KrausMap
-            result.append((qx.to_superop(op), subsystem))
+        match op:
+            case qx.SuperOp():
+                result.append((op, subsystem))
+            case qx.QuantumInstrument():
+                result.append((qx.to_superop(op.total_channel()), subsystem))
+            case qx.Unitary() | qx.KrausMap():
+                result.append((qx.to_superop(op), subsystem))
     return result
 
 
@@ -599,12 +495,12 @@ def adapt_for_trajectory(
     """
     result: list[TrajectoryOp] = []
     for op, subsystem in ops:
-        if isinstance(op, qx.SuperOp):
-            km = qx.truncate_kraus(qx.to_kraus(op), atol=kraus_truncation_threshold)
-            result.append((km, subsystem))
-        else:
-            # Unitary, KrausMap, QuantumInstrument — pass through
-            result.append((op, subsystem))
+        match op:
+            case qx.SuperOp():
+                km = qx.truncate_kraus(qx.to_kraus(op), atol=kraus_truncation_threshold)
+                result.append((km, subsystem))
+            case qx.Unitary() | qx.KrausMap() | qx.QuantumInstrument():
+                result.append((op, subsystem))
     return result
 
 
@@ -687,32 +583,39 @@ class _UnionFind:
 
 def compressor_from_dag(
     dag: nx.DiGraph,
-    node_order: list[int],
     max_subsystem_size: int,
     dims: tuple[int, ...] = (),
+    *,
+    barrier_nodes: set[int] | None = None,
 ) -> Callable[[list[ResolvedOp]], list[ResolvedOp]]:
     """Build a compressor that merges operators via greedy edge contraction.
 
-    The algorithm:
-    1. Classify each node as *mergeable* (gate, reset) or *barrier* (measurement).
-    2. Greedily contract DAG edges: for each edge ``(u, v)`` in topological
-       order, merge the groups of ``u`` and ``v`` if both are mergeable and
-       the union of their qubit sets fits within ``max_subsystem_size``.
-    3. Build a merge plan mapping each group to its constituent nodes and
-       merged qubit subsystem.
+    The algorithm prioritises merging small gates into larger groups, which
+    reduces the number of distinct subsystem shapes and therefore JIT
+    compilation time.
+
+    1. Classify each node as *mergeable* or *barrier* (e.g. measurement).
+       Barrier nodes are never merged.
+    2. Build a priority queue of candidate edge merges sorted by resulting
+       subsystem size (ascending), so 1-qubit gates are absorbed into
+       neighbouring multi-qubit groups first.
+    3. Greedily contract edges while the merged subsystem fits within
+       ``max_subsystem_size``.
     4. Return a closure that receives the resolved operator list and produces
        a compressed operator list.
 
-    :param dag: Program dependency DAG.
-    :param node_order: Node keys in instruction order.
+    :param dag: Program dependency DAG (nodes indexed 0..N-1, each with
+        a ``"qubits"`` attribute).
     :param max_subsystem_size: Maximum number of qubits in a merged group.
         0 disables merging entirely.
-    :return: A closure ``compress(ops) -> List[ResolvedOp]``.
+    :param dims: Per-qudit dimensions tuple for embedding during merge.
+    :param barrier_nodes: Optional set of node indices that should not be
+        merged (e.g. measurement nodes). If ``None``, all nodes are mergeable.
+    :return: A closure ``compress(ops) -> list[ResolvedOp]``.
     """
-    n_original = len(node_order)
+    n_original = dag.number_of_nodes()
 
     if max_subsystem_size == 0 or n_original == 0:
-        # No merging — pass through
         def compress_passthrough(ops: list[ResolvedOp]) -> list[ResolvedOp]:
             return ops
 
@@ -722,39 +625,56 @@ def compressor_from_dag(
         )
         return compress_passthrough
 
-    def _is_mergeable(node_key: int) -> bool:
-        inst = dag.nodes[node_key]["inst"]
-        return isinstance(inst, (Gate, Measurement, ResetQubit, Reset)) and not isinstance(inst, Measurement)
+    if barrier_nodes is None:
+        barrier_nodes = set()
 
-    # --- Greedy edge contraction ---
+    # --- Priority-queue based greedy edge contraction ---
     uf = _UnionFind()
-    group_qubits: dict[int, set[int]] = {}  # root → set of qubit indices
+    group_qubits: dict[int, set[int]] = {}
 
-    for nk in node_order:
+    for nk in dag.nodes:
         uf.make_set(nk)
         group_qubits[nk] = set(dag.nodes[nk]["qubits"])
 
-    topo_order = list(nx.topological_sort(dag))
+    # Build initial candidate heap: (union_size, u, v)
+    # Smaller union sizes are processed first.
+    heap: list[tuple[int, int, int]] = []
+    for u_node, v_node in dag.edges:
+        if u_node in barrier_nodes or v_node in barrier_nodes:
+            continue
+        union_size = len(group_qubits[u_node] | group_qubits[v_node])
+        if union_size <= max_subsystem_size:
+            heapq.heappush(heap, (union_size, u_node, v_node))
 
-    for u_node in topo_order:
-        for v_node in dag.successors(u_node):
-            ru = uf.find(u_node)
-            rv = uf.find(v_node)
-            if ru == rv:
+    while heap:
+        _, u_node, v_node = heapq.heappop(heap)
+        ru = uf.find(u_node)
+        rv = uf.find(v_node)
+        if ru == rv:
+            continue
+        union_qubits = group_qubits[ru] | group_qubits[rv]
+        if len(union_qubits) > max_subsystem_size:
+            continue
+        new_root = uf.union(ru, rv)
+        group_qubits[new_root] = union_qubits
+        old_root = rv if new_root == ru else ru
+        if old_root in group_qubits:
+            del group_qubits[old_root]
+
+        # Re-enqueue edges from the newly merged group to its neighbours.
+        for neighbour in set(dag.successors(u_node)) | set(dag.predecessors(u_node)) | set(
+            dag.successors(v_node)
+        ) | set(dag.predecessors(v_node)):
+            rn = uf.find(neighbour)
+            if rn == new_root or neighbour in barrier_nodes:
                 continue
-            if not _is_mergeable(u_node) or not _is_mergeable(v_node):
-                continue
-            union_qubits = group_qubits[ru] | group_qubits[rv]
-            if len(union_qubits) > max_subsystem_size:
-                continue
-            new_root = uf.union(ru, rv)
-            group_qubits[new_root] = union_qubits
-            # Clean up the non-root entry
-            old_root = rv if new_root == ru else ru
-            if old_root in group_qubits:
-                del group_qubits[old_root]
+            new_union_size = len(group_qubits[new_root] | group_qubits[rn])
+            if new_union_size <= max_subsystem_size:
+                heapq.heappush(heap, (new_union_size, u_node, neighbour))
 
     # --- Build merge plan ---
+    topo_order = list(nx.topological_sort(dag))
+
     root_to_nodes: dict[int, list[int]] = {}
     for nk in topo_order:
         root = uf.find(nk)
@@ -763,8 +683,6 @@ def compressor_from_dag(
     root_to_subsystem: dict[int, tuple[int, ...]] = {}
     for root, qubits in group_qubits.items():
         root_to_subsystem[root] = tuple(sorted(qubits))
-
-    node_key_to_idx: dict[int, int] = {nk: i for i, nk in enumerate(node_order)}
 
     emit_order: list[tuple[int, list[int], tuple[int, ...]]] = []
     emitted_roots: set[int] = set()
@@ -800,43 +718,11 @@ def compressor_from_dag(
         result: list[ResolvedOp] = []
         for _, nodes, subsystem in emit_order:
             if len(nodes) == 1:
-                idx = node_key_to_idx[nodes[0]]
-                result.append(ops[idx])
+                result.append(ops[nodes[0]])
             else:
-                group_ops = [(ops[node_key_to_idx[nk]][0], ops[node_key_to_idx[nk]][1]) for nk in nodes]
+                group_ops = [(ops[nk][0], ops[nk][1]) for nk in nodes]
                 merged = _merge_ops(group_ops, subsystem, dims)
                 result.append(merged)
         return result
 
     return compress
-
-
-# ══════════════════════════════════════════════════════════
-# Dimension inference
-# ══════════════════════════════════════════════════════════
-
-
-def infer_qudit_dims(
-    operations: list[ResolvedOp] | list[TrajectoryOp] | list[DensityMatrixOp],
-    n_qudits: int,
-) -> tuple[int, ...]:
-    """Infer per-qudit dimensions from resolved operations.
-
-    Starts with all registers at dimension 2 (qubit).  For each operation,
-    checks the operator's dims and upgrades any slot whose operator dimension
-    exceeds the current assignment.
-
-    :param operations: Resolved list of ``(operator, subsystem)`` pairs.
-    :param n_qudits: Number of qudit slots.
-    :return: Tuple of per-qudit dimensions, e.g. ``(2, 3, 2)``.
-    """
-    qudit_dims: list[int] = [2] * n_qudits
-    for op, subsystem in operations:
-        # All quax operators expose dims as ((out_dims), (in_dims))
-        op_dims = op.dims[0] if hasattr(op, "dims") else None
-        if op_dims is None:
-            continue
-        for slot, dim in zip(subsystem, op_dims, strict=False):
-            if dim > qudit_dims[slot]:
-                qudit_dims[slot] = dim
-    return tuple(qudit_dims)
