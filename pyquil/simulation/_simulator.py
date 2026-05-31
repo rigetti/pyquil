@@ -247,69 +247,189 @@ class ProgramSimulator:
 # ══════════════════════════════════════════════════════════
 
 
+def _embed_matrix_np(mat: np.ndarray, op_subsystem: tuple[int, ...],
+                     group_subsystem: tuple[int, ...], dims: tuple[int, ...],
+                     d_max: int) -> np.ndarray:
+    """Embed a gate matrix into a larger subsystem (numpy, for constant ops).
+
+    Computes the d_max×d_max padded matrix that applies ``mat`` on
+    ``op_subsystem`` within the Hilbert space of ``group_subsystem``.
+    """
+    if op_subsystem == group_subsystem:
+        return np.pad(mat, [(0, d_max - s) for s in mat.shape])
+    import quax as qx  # noqa: F811 — local re-import for clarity
+    target_dims = tuple(dims[q] for q in group_subsystem)
+    positions = tuple(group_subsystem.index(q) for q in op_subsystem)
+    op = qx.Unitary.from_matrix(jnp.array(mat), tuple((dims[q] for q in op_subsystem),) * 2)
+    embedded = qx.embed(op, target_dims=target_dims, positions=positions)
+    result = np.asarray(embedded.matrix)
+    return np.pad(result, [(0, d_max - s) for s in result.shape])
+
+
+def _make_embed_fn(
+    op_subsystem: tuple[int, ...],
+    group_subsystem: tuple[int, ...],
+    dims: tuple[int, ...],
+    d_max: int,
+) -> Callable[[Array], Array]:
+    """Return a JIT-friendly function that embeds a gate matrix into a group subsystem.
+
+    Uses simple Kronecker products rather than the full qx.embed machinery
+    to minimize the traced graph size.
+    """
+    if op_subsystem == group_subsystem:
+        D = math.prod(dims[q] for q in op_subsystem)
+        pad_w = ((0, d_max - D),) * 2
+        def _identity_embed(mat: Array) -> Array:
+            return jnp.pad(mat, pad_w)
+        return _identity_embed
+
+    # General case: embed via Kronecker products.
+    # The group_subsystem is ordered; figure out which positions in the group
+    # the op occupies, and insert identities for the remaining positions.
+    target_dims = tuple(dims[q] for q in group_subsystem)
+    positions = tuple(group_subsystem.index(q) for q in op_subsystem)
+    n_group = len(group_subsystem)
+    D = math.prod(target_dims)
+    pad_w = ((0, d_max - D),) * 2
+
+    # Precompute which group positions are "identity" positions.
+    # Strategy: reshape the op matrix into a tensor, then embed into the full
+    # group tensor, then reshape back.  This avoids the overhead of qx objects.
+    op_dims = tuple(dims[q] for q in op_subsystem)
+    n_op = len(op_subsystem)
+
+    # Build a permutation: the full group tensor has axes for each qubit.
+    # We place op axes at their positions, then the remaining axes carry identity.
+    # Result = I ⊗ ... ⊗ op ⊗ ... ⊗ I (with op spread across `positions`).
+
+    # For the common case: 1-qubit gate in a 2-qubit group
+    if n_op == 1 and n_group == 2 and all(d == 2 for d in target_dims):
+        pos = positions[0]
+        I2 = jnp.eye(2, dtype=complex)
+        if pos == 0:
+            def _embed(mat: Array) -> Array:
+                return jnp.pad(jnp.kron(mat, I2), pad_w)
+            return _embed
+        else:
+            def _embed(mat: Array) -> Array:
+                return jnp.pad(jnp.kron(I2, mat), pad_w)
+            return _embed
+
+    # General fallback: use einsum-based embedding
+    # Build the full unitary as a tensor product with identities.
+    non_op_positions = [i for i in range(n_group) if i not in positions]
+    non_op_dims = [target_dims[i] for i in non_op_positions]
+    identity_factors = [jnp.eye(d, dtype=complex) for d in non_op_dims]
+
+    def _embed_general(mat: Array) -> Array:
+        # Reshape op into a tensor
+        op_tensor = mat.reshape([op_dims[i] for i in range(n_op)] * 2)
+        # Build full group tensor via einsum
+        # Start with the op tensor, then kron with identities for non-op positions
+        result = mat
+        for i, nop in enumerate(non_op_positions):
+            # Determine if this identity goes before or after
+            d = non_op_dims[i]
+            # Simple sequential kron (ordering may need adjustment)
+            result = jnp.kron(result, identity_factors[i]) if nop > max(positions) else jnp.kron(identity_factors[i], result)
+        return jnp.pad(result, pad_w)
+
+    return _embed_general
+
+
 def _build_vectorized_unitary_constructor(
     expanded_ops: tuple,
     raw_subsystems: tuple[tuple[int, ...], ...],
+    emit_order: list,
+    dims: tuple[int, ...],
     d_max: int,
-) -> Callable[[Array], Array]:
-    """Build a function that constructs all raw gate matrices via ``jax.vmap``.
+) -> tuple[Callable[[Array], Array], np.ndarray, np.ndarray]:
+    """Build a vectorized constructor that produces *embedded* gate matrices.
 
-    Parametric gates are grouped by their constructor function (e.g. all
-    ``RX`` gates together).  Each group is batch-constructed with a single
-    ``vmap`` call, so the traced graph contains one subgraph per gate *type*
-    rather than per gate *instance* — typically reducing HLO size by 10–100×.
+    Each raw gate matrix is embedded into its merge group's subsystem so that
+    compression can be performed as a simple segmented matmul scan.
 
-    Constant (non-parametric) gates are pre-built and placed as a single
-    concrete array.
+    Returns ``(build_fn, sort_order, group_boundaries)`` where:
+    - ``build_fn(params)`` → ``(N_raw, d_max, d_max)`` array of embedded matrices
+      in group-sorted order (ops within each group are consecutive).
+    - ``sort_order[i]`` = raw op index for position *i* in the sorted array.
+    - ``group_boundaries[g]`` = start index of group *g* in the sorted array.
+      The final compressed op for group *g* is the product of sorted ops from
+      ``group_boundaries[g]`` to ``group_boundaries[g+1]``.
     """
     n_ops = len(expanded_ops)
 
-    # ── Group parametric gates by (gate_fn, concrete layout) ──
-    GroupInfo = tuple[Callable, tuple[int, ...], tuple[float, ...], list[int], list[list[int]]]
-    param_groups: dict[tuple, GroupInfo] = {}
-    const_positions: list[int] = []
-    const_matrices: list[np.ndarray] = []
+    # ── Compute group membership and embedding for each raw op ──
+    # raw_to_group[i] = which compressed group raw op i belongs to
+    # raw_to_embed_key[i] = (id(gate_fn_or_None), concrete_key, embed_key) for grouping
+    raw_to_group = np.empty(n_ops, dtype=np.int32)
+    raw_to_group_sub: list[tuple[int, ...]] = [() for _ in range(n_ops)]
 
-    for i, eop in enumerate(expanded_ops):
+    sorted_raw_indices: list[int] = []  # raw op indices in group-then-topo order
+    group_boundaries: list[int] = [0]
+    for group_idx, (_, nodes, subsystem) in enumerate(emit_order):
+        for nk in nodes:
+            raw_to_group[nk] = group_idx
+            raw_to_group_sub[nk] = subsystem
+            sorted_raw_indices.append(nk)
+        group_boundaries.append(len(sorted_raw_indices))
+
+    sort_order = np.array(sorted_raw_indices, dtype=np.int32)
+    group_bounds = np.array(group_boundaries, dtype=np.int32)
+
+    # ── Group ops by (gate_fn, concrete_layout, embedding_config) for vmap ──
+    # The embedding_config is (op_subsystem, group_subsystem) which determines
+    # how the raw matrix is expanded into the group's Hilbert space.
+    param_groups: dict[tuple, tuple[Callable, tuple, tuple, list[int], list[list[int]], Callable]] = {}
+    const_entries: list[tuple[int, np.ndarray]] = []  # (sorted_position, embedded_matrix)
+
+    for sorted_pos, raw_idx in enumerate(sorted_raw_indices):
+        eop = expanded_ops[raw_idx]
+        op_sub = raw_subsystems[raw_idx]
+        grp_sub = raw_to_group_sub[raw_idx]
+
         if isinstance(eop, ParametricGate):
             concrete_mask = tuple(j for j, pi in enumerate(eop.param_indices) if pi < 0)
             concrete_vals = tuple(eop.concrete_values[j] for j in concrete_mask)
-            key = (id(eop.gate_fn), concrete_mask, concrete_vals)
+            # Group by embedding TYPE not physical qubits: all embeddings with
+            # the same (op_dims, target_dims, positions_within_group) produce
+            # identical traced graphs, so they can share a single vmap.
+            op_dims_key = tuple(dims[q] for q in op_sub)
+            target_dims_key = tuple(dims[q] for q in grp_sub)
+            positions_key = tuple(grp_sub.index(q) for q in op_sub)
+            embed_key = (op_dims_key, target_dims_key, positions_key)
+            key = (id(eop.gate_fn), concrete_mask, concrete_vals, embed_key)
             if key not in param_groups:
-                param_groups[key] = (eop.gate_fn, eop.param_indices, eop.concrete_values, [], [])
-            param_groups[key][3].append(i)
+                embed_fn = _make_embed_fn(op_sub, grp_sub, dims, d_max)
+                param_groups[key] = (eop.gate_fn, eop.param_indices, eop.concrete_values,
+                                     [], [], embed_fn)
+            param_groups[key][3].append(sorted_pos)
             param_groups[key][4].append([pi for pi in eop.param_indices if pi >= 0])
         else:
-            const_positions.append(i)
             mat = np.asarray(eop.matrix)
-            const_matrices.append(np.pad(mat, [(0, d_max - s) for s in mat.shape]))
+            embedded = _embed_matrix_np(mat, op_sub, grp_sub, dims, d_max)
+            const_entries.append((sorted_pos, embedded))
 
     # ── Build vmapped constructors ──
     vmapped_specs: list[tuple[np.ndarray, Callable[[Array], Array]]] = []
 
-    for gate_fn, template_pi, template_cv, positions, pidx_lists in param_groups.values():
+    for gate_fn, template_pi, template_cv, positions, pidx_lists, embed_fn in param_groups.values():
         pos_arr = np.array(positions)
-        n_parametric = len(pidx_lists[0])
 
-        # Probe for output matrix shape → pad widths
-        probe_args = [0.0 if pi >= 0 else cv for pi, cv in zip(template_pi, template_cv)]
-        probe_mat = gate_fn(*probe_args).matrix
-        pad_w = tuple((0, d_max - s) for s in probe_mat.shape)
-
-        # Build partial function that bakes in concrete values
         parametric_slots = [j for j, pi in enumerate(template_pi) if pi >= 0]
         concrete_slots = [(j, cv) for j, (pi, cv) in enumerate(zip(template_pi, template_cv)) if pi < 0]
         n_total = len(template_pi)
 
         def _make_batch(gf: Callable, ps: list[int], cs: list[tuple[int, float]],
-                        nt: int, pw: tuple, np_: int, pidx: Array) -> Callable[[Array], Array]:
+                        nt: int, ef: Callable, pidx: Array) -> Callable[[Array], Array]:
             def _single(parametric_values: Array) -> Array:
                 args: list[Any] = [None] * nt
                 for slot, val in cs:
                     args[slot] = val
                 for k, slot in enumerate(ps):
                     args[slot] = parametric_values[k]
-                return jnp.pad(gf(*args).matrix, pw)
+                return ef(gf(*args).matrix)
 
             batched = jax.vmap(_single)
 
@@ -318,28 +438,60 @@ def _build_vectorized_unitary_constructor(
 
             return build
 
-        pidx_arr = jnp.array(pidx_lists)  # (n_gates, n_parametric)
+        pidx_arr = jnp.array(pidx_lists)
         builder = _make_batch(gate_fn, parametric_slots, concrete_slots,
-                              n_total, pad_w, n_parametric, pidx_arr)
+                              n_total, embed_fn, pidx_arr)
         vmapped_specs.append((pos_arr, builder))
 
-    # ── Pre-build constant matrix array ──
-    if const_matrices:
-        const_pos_arr = np.array(const_positions)
-        const_stack = jnp.array(np.stack(const_matrices))
+    # ── Pre-build constant embedded matrices ──
+    if const_entries:
+        const_positions = np.array([p for p, _ in const_entries])
+        const_stack = jnp.array(np.stack([m for _, m in const_entries]))
     else:
-        const_pos_arr = None
+        const_positions = None
         const_stack = None
 
-    def build_op_stack(params: Array) -> Array:
-        result = jnp.zeros((n_ops, d_max, d_max), dtype=complex)
-        for pos_arr, builder in vmapped_specs:
-            result = result.at[pos_arr].set(builder(params))
-        if const_stack is not None:
-            result = result.at[const_pos_arr].set(const_stack)
-        return result
+    # ── Build gather index for padded parallel composition ──
+    n_groups = len(group_boundaries) - 1
+    group_sizes = np.diff(group_boundaries)
+    max_group_size = int(group_sizes.max()) if n_groups > 0 else 1
 
-    return build_op_stack
+    # gather_idx[g, k] = sorted position of the k-th op in group g,
+    # or n_ops (the identity sentinel position) for padding.
+    gather_idx = np.full((n_groups, max_group_size), n_ops, dtype=np.int32)
+    for g in range(n_groups):
+        start, end = group_boundaries[g], group_boundaries[g + 1]
+        size = end - start
+        gather_idx[g, :size] = np.arange(start, end)
+    gather_idx_jax = jnp.array(gather_idx)
+    eye_mat = jnp.eye(d_max, dtype=complex)
+
+    def build_compressed_stack(params: Array) -> Array:
+        """Build all gate matrices and compose within each merge group.
+
+        Returns ``(n_groups, d_max, d_max)`` — one compressed matrix per group.
+        """
+        # 1. Build all embedded gate matrices in group-sorted order.
+        raw_mats = jnp.zeros((n_ops, d_max, d_max), dtype=complex)
+        for pos_arr, builder in vmapped_specs:
+            raw_mats = raw_mats.at[pos_arr].set(builder(params))
+        if const_stack is not None:
+            raw_mats = raw_mats.at[const_positions].set(const_stack)
+
+        # 2. Append identity sentinel and gather into (n_groups, max_size, d, d).
+        raw_mats_plus = jnp.concatenate([raw_mats, eye_mat[None]], axis=0)
+        padded = raw_mats_plus[gather_idx_jax]  # (n_groups, max_size, d, d)
+
+        # 3. Parallel fold: vmap a scan over all groups simultaneously.
+        def group_product(mats: Array) -> Array:
+            def body(acc: Array, mat: Array) -> tuple[Array, None]:
+                return mat @ acc, None
+            final, _ = jax.lax.scan(body, eye_mat, mats)
+            return final
+
+        return jax.vmap(group_product)(padded)  # (n_groups, d, d)
+
+    return build_compressed_stack, sort_order, group_bounds
 
 
 # ══════════════════════════════════════════════════════════
@@ -358,7 +510,8 @@ class PureStateVectorSimulator(ProgramSimulator):
         U = jax.jit(sim.unitary)(params)
     """
 
-    __slots__ = ("_psi0", "_branches", "_idx_arr", "_const_op_stack", "_vmapped_build_fn")
+    __slots__ = ("_psi0", "_branches", "_idx_arr", "_const_op_stack",
+                 "_vmapped_build_fn")
 
     def __init__(
         self,
@@ -372,33 +525,24 @@ class PureStateVectorSimulator(ProgramSimulator):
 
         if self._has_params:
             # ── Parametric path ──
-            # Use raw (uncompressed) ops with vectorized gate construction.
-            # This trades ~4× more scan steps for ~100× smaller traced graph
-            # by batching gate matrix construction with ``jax.vmap``.
+            # Vectorized gate construction (vmap per gate type) followed by a
+            # segmented matmul scan for compression.  This gives both fast
+            # compilation (small traced graph) AND fast runtime (compressed
+            # op count in the state-evolution scan).
             self._const_op_stack = None
 
-            # Build raw-op bases (from original subsystems, not compressed).
-            raw_bases: list[tuple[int, ...]] = []
-            raw_sub_to_branch: dict[tuple[int, ...], int] = {}
-            raw_op_index: list[int] = []
-            for sub in self._raw_subsystems:
-                if sub not in raw_sub_to_branch:
-                    raw_sub_to_branch[sub] = len(raw_bases)
-                    raw_bases.append(sub)
-                raw_op_index.append(raw_sub_to_branch[sub])
-
-            raw_base_dims = [tuple(self.dims[q] for q in b) for b in raw_bases]
-            raw_base_total_dim = [math.prod(d) for d in raw_base_dims]
-            raw_d_max = max(raw_base_total_dim) if raw_base_total_dim else 1
-
-            self._branches = [
-                _make_unitary_branch(base, bd, bt)
-                for base, bd, bt in zip(raw_bases, raw_base_dims, raw_base_total_dim, strict=True)
-            ]
-            self._idx_arr = jnp.asarray(raw_op_index, dtype=jnp.int32)
-            self._vmapped_build_fn = _build_vectorized_unitary_constructor(
-                self._expanded_ops, self._raw_subsystems, raw_d_max,
+            emit_order = self._compress_fn.emit_order  # type: ignore[attr-defined]
+            build_fn, sort_order, group_bounds = _build_vectorized_unitary_constructor(
+                self._expanded_ops, self._raw_subsystems, emit_order, self.dims, self.d_max,
             )
+            self._vmapped_build_fn = build_fn
+
+            # Compressed-op branch index (same as non-parametric path).
+            self._branches = [
+                _make_unitary_branch(base, base_dims, db)
+                for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
+            ]
+            self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
         else:
             # ── Non-parametric path ──
             # Operator stack is a compile-time constant → build eagerly using
@@ -444,6 +588,8 @@ class PureStateVectorSimulator(ProgramSimulator):
         if self._const_op_stack is not None:
             op_stack = self._const_op_stack
         elif self._vmapped_build_fn is not None:
+            # Vectorized parametric path: builds embedded matrices via vmap,
+            # then composes within each merge group via parallel fold.
             op_stack = self._vmapped_build_fn(params)
         else:
             resolved = self.resolve(params)

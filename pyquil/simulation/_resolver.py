@@ -735,4 +735,7 @@ def compressor_from_dag(
                 result.append(merged)
         return result
 
+    # Expose merge recipe: for each group, (nodes_in_topo_order, merged_subsystem).
+    compress.emit_order = emit_order  # type: ignore[attr-defined]
+
     return compress
