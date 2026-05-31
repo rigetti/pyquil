@@ -132,7 +132,7 @@ class ProgramSimulator:
     """
 
     __slots__ = ("n_qubits", "qubits", "dims", "_linearize_fn", "_resolve_fn", "_compress_fn",
-                 "bases", "op_index", "base_dims", "base_total_dim", "d_max")
+                 "bases", "op_index", "base_dims", "base_total_dim", "d_max", "_has_params")
 
     def __init__(
         self,
@@ -173,6 +173,13 @@ class ProgramSimulator:
         self.dims = (2,) * self.n_qubits
         self._linearize_fn = linearize
         self._resolve_fn = resolve
+
+        # Whether any gate matrix depends on a runtime parameter.  When it does
+        # not, the compressed operator stack is a compile-time constant and can
+        # be materialised eagerly (outside the traced graph), which avoids XLA
+        # constant-folding/autotuning a large ``compose_operator`` subgraph — the
+        # dominant JIT cost on accelerators for deep, literal-angle programs.
+        self._has_params = bool(param_refs)
 
         # Derive barrier nodes: measurements (QuantumInstrument) should not
         # be merged by the compressor.
@@ -247,7 +254,7 @@ class PureStateVectorSimulator(ProgramSimulator):
         U = jax.jit(sim.unitary)(params)
     """
 
-    __slots__ = ("_psi0", "_branches", "_idx_arr")
+    __slots__ = ("_psi0", "_branches", "_idx_arr", "_const_op_stack")
 
     def __init__(
         self,
@@ -263,6 +270,16 @@ class PureStateVectorSimulator(ProgramSimulator):
             for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
         ]
         self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
+
+        # For programs without runtime parameters the operator stack is constant.
+        # Build it eagerly once so the traced ``compute`` graph contains only the
+        # scan over a small concrete array, not the (constant-folded, autotuned)
+        # ``compress``/``compose_operator`` construction.
+        self._const_op_stack: Array | None = None
+        if not self._has_params and self.op_index:
+            self._const_op_stack = jax.block_until_ready(
+                self._stack_unitaries(self.resolve(jnp.zeros(0)))
+            )
 
     def _validate(self, program: Program) -> None:
         for inst in program.instructions:
@@ -290,10 +307,13 @@ class PureStateVectorSimulator(ProgramSimulator):
         :param params: Flat parameter vector from :meth:`linearize`.
         :return: The final state vector.
         """
-        resolved = self.resolve(params)
-        if not resolved:
-            return self._psi0
-        op_stack = self._stack_unitaries(resolved)
+        if self._const_op_stack is not None:
+            op_stack = self._const_op_stack
+        else:
+            resolved = self.resolve(params)
+            if not resolved:
+                return self._psi0
+            op_stack = self._stack_unitaries(resolved)
         branches = self._branches
 
         def body(psi: qx.StateVector, xs: tuple[Array, Array]) -> tuple[qx.StateVector, None]:
@@ -349,7 +369,7 @@ class DensityMatrixSimulator(ProgramSimulator):
         rho = jax.jit(sim.compute)(params)
     """
 
-    __slots__ = ("_rho0", "_branches", "_idx_arr")
+    __slots__ = ("_rho0", "_branches", "_idx_arr", "_const_op_stack")
 
     def __init__(
         self,
@@ -366,6 +386,15 @@ class DensityMatrixSimulator(ProgramSimulator):
             for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
         ]
         self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
+
+        # See :class:`PureStateVectorSimulator`: for parameter-free programs the
+        # superoperator stack is constant, so build it eagerly to keep the traced
+        # graph to just the scan over a concrete array.
+        self._const_op_stack: Array | None = None
+        if not self._has_params and self.op_index:
+            self._const_op_stack = jax.block_until_ready(
+                self._stack_superops(self.resolve(jnp.zeros(0)))
+            )
 
     def _stack_superops(self, resolved: list[ResolvedOp]) -> Array:
         """Compress, promote each op to a SuperOp, and stack."""
@@ -386,10 +415,13 @@ class DensityMatrixSimulator(ProgramSimulator):
         :param params: Flat parameter vector from :meth:`linearize`.
         :return: The final density matrix.
         """
-        resolved = self.resolve(params)
-        if not resolved:
-            return self._rho0
-        op_stack = self._stack_superops(resolved)
+        if self._const_op_stack is not None:
+            op_stack = self._const_op_stack
+        else:
+            resolved = self.resolve(params)
+            if not resolved:
+                return self._rho0
+            op_stack = self._stack_superops(resolved)
         branches = self._branches
 
         def body(rho: qx.DensityMatrix, xs: tuple[Array, Array]) -> tuple[qx.DensityMatrix, None]:
