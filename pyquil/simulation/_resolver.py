@@ -65,9 +65,48 @@ logger = logging.getLogger(__name__)
 # A fixed (non-parameterized) operator — the most specific native quax type.
 FixedOp: TypeAlias = qx.Unitary | qx.SuperOp | qx.KrausMap | qx.QuantumInstrument
 
-# An expanded item is either a fixed operator or a callable that resolves
-# parameters into a Unitary (only parameterized gates produce callables).
-ExpandedOp: TypeAlias = FixedOp | Callable[[Array], qx.Unitary]
+
+class ParametricGate:
+    """A parametric gate whose matrix depends on runtime parameters.
+
+    Instances are callable: ``gate(params) -> qx.Unitary``.  They also expose
+    the gate constructor and parameter layout so that the simulator can group
+    gates by type and use ``jax.vmap`` for efficient batch construction.
+    """
+
+    __slots__ = ("gate_fn", "param_indices", "concrete_values")
+
+    def __init__(
+        self,
+        gate_fn: Callable[..., qx.Unitary],
+        param_indices: tuple[int, ...],
+        concrete_values: tuple[float, ...],
+    ) -> None:
+        #: The quax gate constructor (e.g. ``qx.gates.RX``).
+        self.gate_fn = gate_fn
+        #: Per-argument index into the flat parameter vector, or ``-1``
+        #: when that argument is a compile-time constant.
+        self.param_indices = param_indices
+        #: Per-argument concrete value (``nan`` for runtime-parametric slots).
+        self.concrete_values = concrete_values
+
+    def __call__(self, params: Array) -> qx.Unitary:
+        resolved: list[Any] = []
+        for pi, cv in zip(self.param_indices, self.concrete_values):
+            if pi >= 0:
+                resolved.append(params[pi])
+            else:
+                resolved.append(cv)
+        result = self.gate_fn(*resolved)
+        if not isinstance(result, qx.Unitary):
+            result = cast(Any, result)
+            result = qx.Unitary.from_matrix(result.matrix, result.dims)
+        return result
+
+
+# An expanded item is either a fixed operator or a ParametricGate that
+# resolves parameters into a Unitary.
+ExpandedOp: TypeAlias = FixedOp | ParametricGate
 
 # Resolved operations retain the most specific native quax type.
 ResolvedOp = tuple[FixedOp, tuple[int, ...]]
@@ -214,36 +253,18 @@ def expand_program(
                 raise KeyError(f"Unknown gate '{gate_name}'.")
 
             param_indices: list[int] = []
-            concrete_params = list(inst.params)
+            concrete_values: list[float] = []
             for p in inst.params:
                 if isinstance(p, MemoryReference) and p.name not in measure_regs:
                     param_indices.append(param_counter)
+                    concrete_values.append(float("nan"))
                     param_refs.append((p.name, p.offset))
                     param_counter += 1
                 else:
                     param_indices.append(-1)
+                    concrete_values.append(float(p.real) if hasattr(p, "real") else float(p))
 
-            def _make_param_callable(
-                gdef: object,
-                cp: list,
-                pi: list[int],
-            ) -> Callable[[Array], qx.Unitary]:
-                def resolve_params(params: Array) -> qx.Unitary:
-                    resolved: list[Any] = []
-                    for p, pv in zip(cp, pi, strict=False):
-                        if pv >= 0:
-                            resolved.append(params[pv])
-                        else:
-                            resolved.append(float(p.real) if hasattr(p, "real") else float(p))
-                    result = gdef(*resolved) if callable(gdef) else gdef
-                    if not isinstance(result, qx.Unitary):
-                        result = cast(Any, result)
-                        result = qx.Unitary.from_matrix(result.matrix, result.dims)
-                    return result
-
-                return resolve_params
-
-            return _make_param_callable(gate_def, concrete_params, param_indices), qubits
+            return ParametricGate(gate_def, tuple(param_indices), tuple(concrete_values)), qubits
 
         # Fixed gate → resolve to Unitary now.
         unitary = get_instruction_unitary(inst, custom_gates=custom_gates)

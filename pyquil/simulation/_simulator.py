@@ -49,6 +49,7 @@ from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
 from pyquil.simulation._resolver import (
+    ParametricGate,
     ResolvedOp,
     TrajectoryOp,
     adapt_for_density_matrix,
@@ -132,7 +133,8 @@ class ProgramSimulator:
     """
 
     __slots__ = ("n_qubits", "qubits", "dims", "_linearize_fn", "_resolve_fn", "_compress_fn",
-                 "bases", "op_index", "base_dims", "base_total_dim", "d_max", "_has_params")
+                 "bases", "op_index", "base_dims", "base_total_dim", "d_max", "_has_params",
+                 "_expanded_ops", "_raw_subsystems")
 
     def __init__(
         self,
@@ -173,6 +175,8 @@ class ProgramSimulator:
         self.dims = (2,) * self.n_qubits
         self._linearize_fn = linearize
         self._resolve_fn = resolve
+        self._expanded_ops = tuple(expanded_ops)
+        self._raw_subsystems = tuple(mapped_qubits)
 
         # Whether any gate matrix depends on a runtime parameter.  When it does
         # not, the compressed operator stack is a compile-time constant and can
@@ -239,6 +243,106 @@ class ProgramSimulator:
 
 
 # ══════════════════════════════════════════════════════════
+# Vectorized gate construction
+# ══════════════════════════════════════════════════════════
+
+
+def _build_vectorized_unitary_constructor(
+    expanded_ops: tuple,
+    raw_subsystems: tuple[tuple[int, ...], ...],
+    d_max: int,
+) -> Callable[[Array], Array]:
+    """Build a function that constructs all raw gate matrices via ``jax.vmap``.
+
+    Parametric gates are grouped by their constructor function (e.g. all
+    ``RX`` gates together).  Each group is batch-constructed with a single
+    ``vmap`` call, so the traced graph contains one subgraph per gate *type*
+    rather than per gate *instance* — typically reducing HLO size by 10–100×.
+
+    Constant (non-parametric) gates are pre-built and placed as a single
+    concrete array.
+    """
+    n_ops = len(expanded_ops)
+
+    # ── Group parametric gates by (gate_fn, concrete layout) ──
+    GroupInfo = tuple[Callable, tuple[int, ...], tuple[float, ...], list[int], list[list[int]]]
+    param_groups: dict[tuple, GroupInfo] = {}
+    const_positions: list[int] = []
+    const_matrices: list[np.ndarray] = []
+
+    for i, eop in enumerate(expanded_ops):
+        if isinstance(eop, ParametricGate):
+            concrete_mask = tuple(j for j, pi in enumerate(eop.param_indices) if pi < 0)
+            concrete_vals = tuple(eop.concrete_values[j] for j in concrete_mask)
+            key = (id(eop.gate_fn), concrete_mask, concrete_vals)
+            if key not in param_groups:
+                param_groups[key] = (eop.gate_fn, eop.param_indices, eop.concrete_values, [], [])
+            param_groups[key][3].append(i)
+            param_groups[key][4].append([pi for pi in eop.param_indices if pi >= 0])
+        else:
+            const_positions.append(i)
+            mat = np.asarray(eop.matrix)
+            const_matrices.append(np.pad(mat, [(0, d_max - s) for s in mat.shape]))
+
+    # ── Build vmapped constructors ──
+    vmapped_specs: list[tuple[np.ndarray, Callable[[Array], Array]]] = []
+
+    for gate_fn, template_pi, template_cv, positions, pidx_lists in param_groups.values():
+        pos_arr = np.array(positions)
+        n_parametric = len(pidx_lists[0])
+
+        # Probe for output matrix shape → pad widths
+        probe_args = [0.0 if pi >= 0 else cv for pi, cv in zip(template_pi, template_cv)]
+        probe_mat = gate_fn(*probe_args).matrix
+        pad_w = tuple((0, d_max - s) for s in probe_mat.shape)
+
+        # Build partial function that bakes in concrete values
+        parametric_slots = [j for j, pi in enumerate(template_pi) if pi >= 0]
+        concrete_slots = [(j, cv) for j, (pi, cv) in enumerate(zip(template_pi, template_cv)) if pi < 0]
+        n_total = len(template_pi)
+
+        def _make_batch(gf: Callable, ps: list[int], cs: list[tuple[int, float]],
+                        nt: int, pw: tuple, np_: int, pidx: Array) -> Callable[[Array], Array]:
+            def _single(parametric_values: Array) -> Array:
+                args: list[Any] = [None] * nt
+                for slot, val in cs:
+                    args[slot] = val
+                for k, slot in enumerate(ps):
+                    args[slot] = parametric_values[k]
+                return jnp.pad(gf(*args).matrix, pw)
+
+            batched = jax.vmap(_single)
+
+            def build(params: Array) -> Array:
+                return batched(params[pidx])
+
+            return build
+
+        pidx_arr = jnp.array(pidx_lists)  # (n_gates, n_parametric)
+        builder = _make_batch(gate_fn, parametric_slots, concrete_slots,
+                              n_total, pad_w, n_parametric, pidx_arr)
+        vmapped_specs.append((pos_arr, builder))
+
+    # ── Pre-build constant matrix array ──
+    if const_matrices:
+        const_pos_arr = np.array(const_positions)
+        const_stack = jnp.array(np.stack(const_matrices))
+    else:
+        const_pos_arr = None
+        const_stack = None
+
+    def build_op_stack(params: Array) -> Array:
+        result = jnp.zeros((n_ops, d_max, d_max), dtype=complex)
+        for pos_arr, builder in vmapped_specs:
+            result = result.at[pos_arr].set(builder(params))
+        if const_stack is not None:
+            result = result.at[const_pos_arr].set(const_stack)
+        return result
+
+    return build_op_stack
+
+
+# ══════════════════════════════════════════════════════════
 # Pure state-vector simulator
 # ══════════════════════════════════════════════════════════
 
@@ -254,7 +358,7 @@ class PureStateVectorSimulator(ProgramSimulator):
         U = jax.jit(sim.unitary)(params)
     """
 
-    __slots__ = ("_psi0", "_branches", "_idx_arr", "_const_op_stack")
+    __slots__ = ("_psi0", "_branches", "_idx_arr", "_const_op_stack", "_vmapped_build_fn")
 
     def __init__(
         self,
@@ -265,21 +369,51 @@ class PureStateVectorSimulator(ProgramSimulator):
     ) -> None:
         super().__init__(program, qubits, noise_model=None, max_subsystem_size=max_subsystem_size)
         self._psi0 = qx.zero_state_vector(dims=self.dims)
-        self._branches = [
-            _make_unitary_branch(base, base_dims, db)
-            for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
-        ]
-        self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
 
-        # For programs without runtime parameters the operator stack is constant.
-        # Build it eagerly once so the traced ``compute`` graph contains only the
-        # scan over a small concrete array, not the (constant-folded, autotuned)
-        # ``compress``/``compose_operator`` construction.
-        self._const_op_stack: Array | None = None
-        if not self._has_params and self.op_index:
-            self._const_op_stack = jax.block_until_ready(
-                self._stack_unitaries(self.resolve(jnp.zeros(0)))
+        if self._has_params:
+            # ── Parametric path ──
+            # Use raw (uncompressed) ops with vectorized gate construction.
+            # This trades ~4× more scan steps for ~100× smaller traced graph
+            # by batching gate matrix construction with ``jax.vmap``.
+            self._const_op_stack = None
+
+            # Build raw-op bases (from original subsystems, not compressed).
+            raw_bases: list[tuple[int, ...]] = []
+            raw_sub_to_branch: dict[tuple[int, ...], int] = {}
+            raw_op_index: list[int] = []
+            for sub in self._raw_subsystems:
+                if sub not in raw_sub_to_branch:
+                    raw_sub_to_branch[sub] = len(raw_bases)
+                    raw_bases.append(sub)
+                raw_op_index.append(raw_sub_to_branch[sub])
+
+            raw_base_dims = [tuple(self.dims[q] for q in b) for b in raw_bases]
+            raw_base_total_dim = [math.prod(d) for d in raw_base_dims]
+            raw_d_max = max(raw_base_total_dim) if raw_base_total_dim else 1
+
+            self._branches = [
+                _make_unitary_branch(base, bd, bt)
+                for base, bd, bt in zip(raw_bases, raw_base_dims, raw_base_total_dim, strict=True)
+            ]
+            self._idx_arr = jnp.asarray(raw_op_index, dtype=jnp.int32)
+            self._vmapped_build_fn = _build_vectorized_unitary_constructor(
+                self._expanded_ops, self._raw_subsystems, raw_d_max,
             )
+        else:
+            # ── Non-parametric path ──
+            # Operator stack is a compile-time constant → build eagerly using
+            # the compressor and feed as a concrete array into the scan.
+            self._vmapped_build_fn = None
+            self._branches = [
+                _make_unitary_branch(base, base_dims, db)
+                for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
+            ]
+            self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
+            self._const_op_stack = None
+            if self.op_index:
+                self._const_op_stack = jax.block_until_ready(
+                    self._stack_unitaries(self.resolve(jnp.zeros(0)))
+                )
 
     def _validate(self, program: Program) -> None:
         for inst in program.instructions:
@@ -309,6 +443,8 @@ class PureStateVectorSimulator(ProgramSimulator):
         """
         if self._const_op_stack is not None:
             op_stack = self._const_op_stack
+        elif self._vmapped_build_fn is not None:
+            op_stack = self._vmapped_build_fn(params)
         else:
             resolved = self.resolve(params)
             if not resolved:
