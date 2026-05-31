@@ -32,6 +32,7 @@ to ``jax.jit`` or ``jax.grad``.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -41,6 +42,7 @@ import numpy as np
 import quax as qx
 from jax import Array
 from jax.sharding import Mesh, NamedSharding, PartitionSpec
+from quax._apply import _sample_kraus_map_trajectory
 
 from pyquil.api import MemoryMap
 from pyquil.noise._noise_model import NoiseModelLike
@@ -56,6 +58,62 @@ from pyquil.simulation._resolver import (
     expand_program,
     remap_qubits,
 )
+
+
+def _pad_matrix(mat: Array, *target: int) -> Array:
+    """Zero-pad the trailing dimensions of *mat* up to *target* sizes.
+
+    Only the last ``len(target)`` axes are padded (top-left aligned); any
+    leading (ensemble/stack) axes are left untouched.
+    """
+    if all(mat.shape[-len(target) + i] == t for i, t in enumerate(target)):
+        return mat
+    pad = [(0, 0)] * (mat.ndim - len(target)) + [
+        (0, t - mat.shape[mat.ndim - len(target) + i]) for i, t in enumerate(target)
+    ]
+    return jnp.pad(mat, pad)
+
+
+def _make_unitary_branch(
+    base: tuple[int, ...],
+    base_dims: tuple[int, ...],
+    db: int,
+) -> Callable[[Array, qx.StateVector], qx.StateVector]:
+    """Build a ``jax.lax.switch`` branch that applies a unitary on *base*."""
+
+    def branch(op_mat: Array, psi: qx.StateVector) -> qx.StateVector:
+        unitary = qx.Unitary.from_matrix(op_mat[:db, :db], (base_dims, base_dims))
+        return qx.targeted_apply_unitary(unitary, psi, base)
+
+    return branch
+
+
+def _make_superop_branch(
+    base: tuple[int, ...],
+    base_dims: tuple[int, ...],
+    db2: int,
+) -> Callable[[Array, qx.DensityMatrix], qx.DensityMatrix]:
+    """Build a ``jax.lax.switch`` branch that applies a superoperator on *base*."""
+
+    def branch(op_mat: Array, rho: qx.DensityMatrix) -> qx.DensityMatrix:
+        superop = qx.SuperOp.from_matrix(op_mat[:db2, :db2], (base_dims, base_dims))
+        return qx.targeted_apply_superop(superop, rho, base)
+
+    return branch
+
+
+def _make_kraus_trajectory_branch(
+    base: tuple[int, ...],
+    base_dims: tuple[int, ...],
+    db: int,
+) -> Callable[[Array, qx.StateVector, Array], tuple[qx.StateVector, Array]]:
+    """Build a ``jax.lax.switch`` branch that samples a Kraus trajectory on *base*."""
+
+    def branch(op_mat: Array, psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
+        kraus_map = qx.KrausMap.from_matrix(op_mat[:, :db, :db], (base_dims, base_dims))
+        return _sample_kraus_map_trajectory(kraus_map, psi, key, base)
+
+    return branch
 
 # ══════════════════════════════════════════════════════════
 # Base class
@@ -73,7 +131,8 @@ class ProgramSimulator:
     Instances are immutable after construction.
     """
 
-    __slots__ = ("n_qubits", "qubits", "dims", "_linearize_fn", "_resolve_fn", "_compress_fn")
+    __slots__ = ("n_qubits", "qubits", "dims", "_linearize_fn", "_resolve_fn", "_compress_fn",
+                 "bases", "op_index", "base_dims", "base_total_dim", "d_max")
 
     def __init__(
         self,
@@ -126,6 +185,28 @@ class ProgramSimulator:
             barrier_nodes=barrier_nodes,
         )
 
+        # Enumerate the *base subsystems* produced by the compressor.  The merge
+        # structure depends only on the DAG (not on parameter values), so a
+        # structural probe with zero parameters yields exactly the subsystem
+        # sequence that ``compress`` will produce for any parameters.  The
+        # lax-loop ``compute`` methods dispatch each compressed operation through
+        # a ``jax.lax.switch`` keyed by its base, so the number of distinct bases
+        # (rather than the number of operations) determines the size of the
+        # traced/compiled graph.
+        probe = self._compress_fn(self._resolve_fn(jnp.zeros(len(param_refs))))
+        self.bases = []
+        sub_to_branch: dict[tuple[int, ...], int] = {}
+        op_index: list[int] = []
+        for _, subsystem in probe:
+            if subsystem not in sub_to_branch:
+                sub_to_branch[subsystem] = len(self.bases)
+                self.bases.append(subsystem)
+            op_index.append(sub_to_branch[subsystem])
+        self.op_index = tuple(op_index)
+        self.base_dims = [tuple(self.dims[q] for q in base) for base in self.bases]
+        self.base_total_dim = [math.prod(d) for d in self.base_dims]
+        self.d_max = max(self.base_total_dim) if self.base_total_dim else 1
+
     # -- hook for subclass validation ---------------------
 
     def _validate(self, program: Program) -> None:
@@ -166,7 +247,7 @@ class PureStateVectorSimulator(ProgramSimulator):
         U = jax.jit(sim.unitary)(params)
     """
 
-    __slots__ = ("_psi0",)
+    __slots__ = ("_psi0", "_branches", "_idx_arr")
 
     def __init__(
         self,
@@ -177,6 +258,11 @@ class PureStateVectorSimulator(ProgramSimulator):
     ) -> None:
         super().__init__(program, qubits, noise_model=None, max_subsystem_size=max_subsystem_size)
         self._psi0 = qx.zero_state_vector(dims=self.dims)
+        self._branches = [
+            _make_unitary_branch(base, base_dims, db)
+            for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
+        ]
+        self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
 
     def _validate(self, program: Program) -> None:
         for inst in program.instructions:
@@ -185,18 +271,39 @@ class PureStateVectorSimulator(ProgramSimulator):
             if isinstance(inst, (Reset, ResetQubit)):
                 raise ValueError(f"PureStateVectorSimulator does not support resets.  Found: {inst}")
 
+    def _stack_unitaries(self, resolved: list[ResolvedOp]) -> Array:
+        """Compress, then stack each gate's matrix into ``(N, d_max, d_max)``."""
+        compressed = self.compress(resolved)
+        mats = [_pad_matrix(cast(qx.Unitary, op).matrix, self.d_max, self.d_max) for op, _ in compressed]
+        return jnp.stack(mats, axis=0)
+
     def compute(self, params: Array) -> qx.StateVector:  # type: ignore[override]
         """Compute the final state vector.
+
+        Operators are stacked into a single array and applied with a
+        :func:`jax.lax.scan` whose body dispatches each operator to the right
+        base subsystem via :func:`jax.lax.switch`.  This keeps the traced graph
+        size proportional to the number of distinct base subsystems rather than
+        the number of operations, dramatically reducing JIT compilation time
+        for large programs.
 
         :param params: Flat parameter vector from :meth:`linearize`.
         :return: The final state vector.
         """
         resolved = self.resolve(params)
-        compressed = self.compress(resolved)
-        psi = self._psi0
-        for unitary, subsystem in compressed:
-            psi = qx.targeted_apply_unitary(unitary, psi, subsystem)
+        if not resolved:
+            return self._psi0
+        op_stack = self._stack_unitaries(resolved)
+        branches = self._branches
+
+        def body(psi: qx.StateVector, xs: tuple[Array, Array]) -> tuple[qx.StateVector, None]:
+            op_mat, sidx = xs
+            psi = jax.lax.switch(sidx, branches, op_mat, psi)
+            return psi, None
+
+        psi, _ = jax.lax.scan(body, self._psi0, (op_stack, self._idx_arr))
         return psi
+
 
     def __call__(self, params: Array) -> qx.StateVector:
         return self.compute(params)
@@ -242,7 +349,7 @@ class DensityMatrixSimulator(ProgramSimulator):
         rho = jax.jit(sim.compute)(params)
     """
 
-    __slots__ = ("_rho0",)
+    __slots__ = ("_rho0", "_branches", "_idx_arr")
 
     def __init__(
         self,
@@ -254,19 +361,43 @@ class DensityMatrixSimulator(ProgramSimulator):
     ) -> None:
         super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
         self._rho0 = qx.zero_state_matrix(dims=self.dims)
+        self._branches = [
+            _make_superop_branch(base, base_dims, db * db)
+            for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
+        ]
+        self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
+
+    def _stack_superops(self, resolved: list[ResolvedOp]) -> Array:
+        """Compress, promote each op to a SuperOp, and stack."""
+        compressed = self.compress(resolved)
+        superops = adapt_for_density_matrix(compressed)
+        d_max2 = self.d_max * self.d_max
+        mats = [_pad_matrix(superop.matrix, d_max2, d_max2) for superop, _ in superops]
+        return jnp.stack(mats, axis=0)
 
     def compute(self, params: Array) -> qx.DensityMatrix:  # type: ignore[override]
         """Compute the final density matrix.
+
+        Superoperators are stacked and applied with a :func:`jax.lax.scan`
+        whose body dispatches to the correct base subsystem via
+        :func:`jax.lax.switch`, keeping the compiled graph size proportional to
+        the number of distinct base subsystems.
 
         :param params: Flat parameter vector from :meth:`linearize`.
         :return: The final density matrix.
         """
         resolved = self.resolve(params)
-        compressed = self.compress(resolved)
-        operations = adapt_for_density_matrix(compressed)
-        rho = self._rho0
-        for superop, subsystem in operations:
-            rho = qx.targeted_apply_superop(superop, rho, subsystem)
+        if not resolved:
+            return self._rho0
+        op_stack = self._stack_superops(resolved)
+        branches = self._branches
+
+        def body(rho: qx.DensityMatrix, xs: tuple[Array, Array]) -> tuple[qx.DensityMatrix, None]:
+            op_mat, sidx = xs
+            rho = jax.lax.switch(sidx, branches, op_mat, rho)
+            return rho, None
+
+        rho, _ = jax.lax.scan(body, self._rho0, (op_stack, self._idx_arr))
         return rho
 
     def __call__(self, params: Array) -> qx.DensityMatrix:
@@ -395,76 +526,139 @@ class TrajectorySimulator(ProgramSimulator):
 # ══════════════════════════════════════════════════════════
 
 
+def _op_to_kraus_matrix(
+    op: qx.Unitary | qx.KrausMap | qx.QuantumInstrument,
+) -> tuple[Array, int, bool]:
+    """Convert a single trajectory operator to a padded Kraus matrix.
+
+    Every trajectory operator is expressed as a Kraus map so that a single,
+    uniform ``jax.lax.switch`` branch (Kraus trajectory sampling) can handle
+    all operation types:
+
+    - ``qx.Unitary`` → a one-operator Kraus map.
+    - ``qx.KrausMap`` → itself.
+    - ``qx.QuantumInstrument`` → its outcome and Kraus axes are merged into a
+      single Kraus axis (replicating the flattening in
+      :func:`quax.targeted_apply_instrument_to_state_vector`).  The returned
+      *divisor* is the number of Kraus operators per outcome, so the sampled
+      Kraus index ``k`` decodes to the measurement outcome ``k // divisor``.
+
+    :param op: The operator (already acting on its base subsystem).
+    :return: ``(matrix, divisor, is_measurement)`` where ``matrix`` has shape
+        ``(n_kraus, d, d)``.
+    """
+    match op:
+        case qx.Unitary():
+            return op.matrix[jnp.newaxis, :, :], 1, False
+        case qx.KrausMap():
+            return op.matrix, 1, False
+        case qx.QuantumInstrument():
+            kraus_map = qx.superop_to_kraus(qx.SuperOp(op.data, op.num_qubits))
+            data = kraus_map.data
+            n_ens_i = len(op.ensemble_size)
+            shape = data.shape
+            n_kraus_per_outcome = shape[n_ens_i + 1]
+            n_total_kraus = op.num_outcomes * n_kraus_per_outcome
+            data = data.reshape(shape[:n_ens_i] + (n_total_kraus,) + shape[n_ens_i + 2 :])
+            merged = qx.KrausMap(data=data, num_qubits=kraus_map.num_qubits)
+            return merged.matrix, n_kraus_per_outcome, True
+        case _:
+            raise TypeError(f"Unsupported operator type: {type(op)}")
+
+
 def _apply_trajectory_operations(
     operations: list[TrajectoryOp],
     psi: qx.StateVector,
     key: Array,
 ) -> tuple[qx.StateVector, Array]:
-    """Apply trajectory operations to a (batched) state vector.
+    """Apply trajectory operations to a (batched) state vector via a JAX loop.
 
-    Dispatches each operation by type:
+    Every operator is converted to a (zero-padded) Kraus map and stacked into a
+    single array.  A :func:`jax.lax.fori_loop` then iterates over the stack,
+    dispatching each operator to the correct base subsystem with a
+    :func:`jax.lax.switch`.  Because only one loop body and one switch branch
+    per distinct subsystem are traced, the compiled graph size scales with the
+    number of distinct subsystems rather than the number of operations.
 
-    - ``qx.Unitary``: deterministic gate application
-    - ``qx.KrausMap``: probabilistic Kraus operator sampling
-    - ``qx.QuantumInstrument``: measurement with outcome recording
+    Measurements are handled uniformly: a quantum instrument is flattened so
+    that sampling a Kraus index also selects an outcome (``index // divisor``).
+    Zero-padded Kraus operators have zero Born probability and are therefore
+    never sampled.
 
-    Key generation is sharding-friendly: per-operation keys are derived
-    lazily via ``jax.random.fold_in`` so that the key array is never
-    materialised in full on a single device.
+    Key generation is sharding-friendly: per-operation keys are derived lazily
+    via ``jax.random.fold_in`` so the key array is never materialised in full.
 
-    :param operations: Ordered list of (operator, subsystem) pairs.
+    :param operations: Ordered list of ``(operator, subsystem)`` pairs.
     :param psi: Initial state vector, optionally batched via ensemble dimension.
-    :param key: JAX PRNG key (scalar typed key). Will be split internally to
-        produce per-trajectory, per-operation sub-keys.
+    :param key: JAX PRNG key (scalar) or per-trajectory key vector.
     :return: Tuple of ``(final_state_vector, measurement_outcomes)`` where
         measurement_outcomes has shape ``(*ensemble, n_measurements)`` with
         dtype int32.
     """
-    measurement_outcomes: list[Array] = []
-
     ensemble_size = psi.ensemble_size
 
-    # Derive per-trajectory base keys once.  When the state is sharded
-    # across devices the resulting key array inherits the same sharding,
-    # so each device only materialises its own slice.
+    if not operations:
+        return psi, jnp.empty((*ensemble_size, 0), dtype=jnp.int32)
+
+    # 1. Enumerate distinct subsystems → one switch branch each.
+    distinct_subsystems: list[tuple[int, ...]] = []
+    sub_to_branch: dict[tuple[int, ...], int] = {}
+    for _, subsystem in operations:
+        if subsystem not in sub_to_branch:
+            sub_to_branch[subsystem] = len(distinct_subsystems)
+            distinct_subsystems.append(subsystem)
+
+    branches = [
+        _make_kraus_trajectory_branch(
+            subsystem,
+            tuple(psi.dims[q] for q in subsystem),
+            math.prod(psi.dims[q] for q in subsystem),
+        )
+        for subsystem in distinct_subsystems
+    ]
+
+    # 2. Convert every operator to a padded Kraus matrix and stack.
+    kraus_mats: list[Array] = []
+    divisors: list[int] = []
+    measure_positions: list[int] = []
+    branch_index: list[int] = []
+    for i, (op, subsystem) in enumerate(operations):
+        mat, divisor, is_measure = _op_to_kraus_matrix(op)
+        kraus_mats.append(mat)
+        divisors.append(divisor)
+        branch_index.append(sub_to_branch[subsystem])
+        if is_measure:
+            measure_positions.append(i)
+
+    max_k = max(mat.shape[0] for mat in kraus_mats)
+    d_max = max(mat.shape[-1] for mat in kraus_mats)
+    op_stack = jnp.stack([_pad_matrix(mat, max_k, d_max, d_max) for mat in kraus_mats], axis=0)
+    branch_arr = jnp.asarray(branch_index, dtype=jnp.int32)
+
+    # 3. Per-trajectory base keys.
     if ensemble_size:
-        if key.ndim > 0:
-            # Already per-trajectory keys (e.g. from multi-device sharding
-            # or batched ``compute()``).
-            per_traj_keys = key
-        else:
-            per_traj_keys = jax.random.split(key, ensemble_size[0])
+        per_traj_keys = key if key.ndim > 0 else jax.random.split(key, ensemble_size[0])
     else:
         per_traj_keys = None
 
-    stochastic_idx = 0
+    n_ops = len(operations)
+    sampled_init = jnp.zeros((n_ops, *ensemble_size), dtype=jnp.int32)
 
-    for op, subsystem in operations:
-        match op:
-            case qx.Unitary():
-                psi = qx.targeted_apply_unitary(op, psi, subsystem)
-            case qx.KrausMap():
-                if per_traj_keys is not None:
-                    op_keys = jax.vmap(lambda k, s=stochastic_idx: jax.random.fold_in(k, s))(per_traj_keys)
-                else:
-                    op_keys = jax.random.fold_in(key, stochastic_idx)
-                psi = qx.targeted_apply_kraus_map_trajectory(op, psi, op_keys, subsystem)
-                stochastic_idx += 1
-            case qx.QuantumInstrument():
-                if per_traj_keys is not None:
-                    op_keys = jax.vmap(lambda k, s=stochastic_idx: jax.random.fold_in(k, s))(per_traj_keys)
-                else:
-                    op_keys = jax.random.fold_in(key, stochastic_idx)
-                psi, outcome = qx.targeted_apply_instrument_to_state_vector(op, psi, op_keys, subsystem)
-                measurement_outcomes.append(outcome)
-                stochastic_idx += 1
-            case _:
-                raise TypeError(f"Unsupported operator type: {type(op)}")
+    def body(i: Array, carry: tuple[qx.StateVector, Array]) -> tuple[qx.StateVector, Array]:
+        psi_c, sampled = carry
+        if per_traj_keys is not None:
+            op_key = jax.vmap(lambda k: jax.random.fold_in(k, i))(per_traj_keys)
+        else:
+            op_key = jax.random.fold_in(key, i)
+        psi_c, sampled_idx = jax.lax.switch(branch_arr[i], branches, op_stack[i], psi_c, op_key)
+        return psi_c, sampled.at[i].set(sampled_idx.astype(jnp.int32))
 
-    if measurement_outcomes:
-        outcomes = jnp.stack(measurement_outcomes, axis=-1)
+    psi, sampled = jax.lax.fori_loop(0, n_ops, body, (psi, sampled_init))
+
+    if measure_positions:
+        outcomes = jnp.stack([sampled[p] // divisors[p] for p in measure_positions], axis=-1)
     else:
-        outcomes = jnp.empty((*psi.ensemble_size, 0), dtype=jnp.int32)
+        outcomes = jnp.empty((*ensemble_size, 0), dtype=jnp.int32)
 
     return psi, outcomes
 
