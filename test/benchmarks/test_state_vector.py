@@ -19,6 +19,8 @@ from pyquil.quilbase import Gate as QuilGate
 from pyquil.quilbase import Measurement as QuilMeasurement
 from pyquil.quilbase import Reset as QuilReset
 from pyquil.simulation._simulator import (
+    DensityMatrixSimulator,
+    PureStateVectorSimulator,
     TrajectorySimulator,
 )
 from pyquil.simulation._simulator import (
@@ -418,3 +420,93 @@ class TestPerformance:
 
     def test_surface17_depth5_cycle_noise_measurements_only_micro(self, benchmark):
         _run_surface17_benchmark(benchmark, variant="measurements_only", num_trajectories=4, batch_size=4)
+
+
+def _build_gate_program(num_qubits, num_layers, seed=4867):
+    """Build a layered gate-only (noise-free) brickwork circuit."""
+    rng = np.random.default_rng(seed)
+    program = Program()
+    for _ in range(num_layers):
+        for q in range(num_qubits):
+            program += RX(rng.uniform(-np.pi, np.pi), q)
+            program += RZ(rng.uniform(-np.pi, np.pi), q)
+        for q in range(0, num_qubits - 1, 2):
+            program += CNOT(q, q + 1)
+        for q in range(1, num_qubits - 1, 2):
+            program += CNOT(q, q + 1)
+    return program
+
+
+def _benchmark_compile_time(benchmark, sim, params, extra=None):
+    """Benchmark the JIT compile time of ``sim.compute``.
+
+    A fresh ``jax.jit`` wrapper is created on every round so the XLA compilation
+    cache is bypassed and the full lower+compile cost is measured each time.
+    """
+    if hasattr(benchmark, "extra_info") and extra:
+        benchmark.extra_info.update(extra)
+
+    def thunk():
+        return jax.jit(lambda p: sim.compute(p)).lower(params).compile()
+
+    benchmark.pedantic(thunk, iterations=1, rounds=1)
+
+
+class TestJitCompileTime:
+    """JIT compile-time benchmarks for the lax-loop simulators.
+
+    These measure how compilation time scales with program depth.  The lax-loop
+    ``compute`` traces a single loop body plus one switch branch per distinct
+    base subsystem, so the compiled graph size is bounded by the number of
+    distinct subsystems rather than the number of operations.
+    """
+
+    @pytest.mark.parametrize(
+        "num_layers",
+        [
+            pytest.param(10, id="10L"),
+            pytest.param(40, id="40L"),
+            pytest.param(80, id="80L"),
+        ],
+    )
+    def test_state_vector_compile_depth(self, benchmark, num_layers):
+        num_qubits = 10
+        program = _build_gate_program(num_qubits, num_layers)
+        sim = PureStateVectorSimulator(program, qubits=list(range(num_qubits)))
+        params = sim.linearize({})
+        _benchmark_compile_time(
+            benchmark,
+            sim,
+            params,
+            extra={
+                "num_qubits": num_qubits,
+                "num_layers": num_layers,
+                "num_ops": len(program.instructions),
+                "num_bases": len(sim.bases),
+            },
+        )
+
+    @pytest.mark.parametrize(
+        "num_layers",
+        [
+            pytest.param(5, id="5L"),
+            pytest.param(20, id="20L"),
+            pytest.param(40, id="40L"),
+        ],
+    )
+    def test_density_matrix_compile_depth(self, benchmark, num_layers):
+        num_qubits = 6
+        program = _build_gate_program(num_qubits, num_layers)
+        sim = DensityMatrixSimulator(program, qubits=list(range(num_qubits)))
+        params = sim.linearize({})
+        _benchmark_compile_time(
+            benchmark,
+            sim,
+            params,
+            extra={
+                "num_qubits": num_qubits,
+                "num_layers": num_layers,
+                "num_ops": len(program.instructions),
+                "num_bases": len(sim.bases),
+            },
+        )
