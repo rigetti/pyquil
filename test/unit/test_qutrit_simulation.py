@@ -8,8 +8,8 @@ import quax as qx
 
 from pyquil.gates import H, MEASURE, X
 from pyquil.quil import Program
-from pyquil.quilatom import Qubit
-from pyquil.quilbase import DefGate, Gate, Measurement
+from pyquil.quilatom import MemoryReference, Qubit
+from pyquil.quilbase import Declare, DefGate, Gate, Measurement
 
 from pyquil.noise._channels import Channel, MeasurementChannel, ResetChannel
 from pyquil.noise._noise_model import NoiseModel
@@ -156,6 +156,145 @@ class TestQutritProgramSimulation:
         expected_vec = jnp.kron(q0, q1)
         expected = qx.StateVector.from_matrix(expected_vec, dims=(3, 3))
         assert qx.fidelity(psi, expected) > 0.9999
+
+
+# ══════════════════════════════════════════════════════════
+# Test: All quax qutrit gates through the pure-state simulator
+# ══════════════════════════════════════════════════════════
+
+
+def _quax_qutrit_gates():
+    """Yield ``(name, gate)`` for every unitary qutrit gate in quax.
+
+    Projectors (TP0/TP1/TP2) are excluded because they are not unitary and
+    therefore not valid for the pure-state simulator.
+    """
+    for name, gate in qx.gates.QUANTUM_GATES.items():
+        if name.startswith("TP"):
+            continue  # projectors are not unitary
+        if callable(gate):
+            # Parametric gates accept one or more angles; probe arity.
+            unitary = None
+            for n_args in (1, 2, 3):
+                try:
+                    unitary = gate(*([0.0] * n_args))
+                    break
+                except TypeError:
+                    continue
+            if unitary is None:
+                continue
+        else:
+            unitary = gate
+        if any(d == 3 for d in unitary.dims[1]):
+            yield name, gate
+
+
+class TestAllQutritGates:
+    """Every unitary qutrit gate in quax simulates correctly on |0...0>."""
+
+    # Single-qutrit fixed gates (non-parametric, dims == (3,)).
+    SINGLE_FIXED = [
+        name
+        for name, gate in _quax_qutrit_gates()
+        if not callable(gate) and gate.dims[1] == (3,)
+    ]
+    # Parametric single-qutrit rotations (callable, dims == (3,)).
+    SINGLE_PARAM = [
+        name
+        for name, gate in _quax_qutrit_gates()
+        if callable(gate)
+    ]
+
+    def test_gate_inventory_is_nonempty(self):
+        """Sanity check: quax exposes the expected qutrit gate families."""
+        # Clock/shift, Hadamard, Pauli-like, and Weyl operators are all present.
+        for expected in ("TX", "TY", "TZ", "TH", "TSHIFT", "TSWAP", "W00", "W22"):
+            assert expected in qx.gates.QUANTUM_GATES
+        assert set(self.SINGLE_PARAM) >= {
+            "TRX01", "TRY01", "TRZ01",
+            "TRX02", "TRY02", "TRZ02",
+            "TRX12", "TRY12", "TRZ12",
+        }
+
+    @pytest.mark.parametrize("name", SINGLE_FIXED)
+    def test_single_qutrit_fixed_gate(self, name):
+        """Each fixed single-qutrit gate produces the expected |0> column."""
+        p = Program(Gate(name, [], [0]))
+        psi = _sv(p, qubits=[0])
+        assert psi.dims == (3,)
+        # The output equals the gate's first column (its action on |0>).
+        expected = qx.gates.QUANTUM_GATES[name].matrix[:, 0]
+        np.testing.assert_allclose(psi.matrix, expected, atol=1e-6)
+        # Unitary gates preserve normalization.
+        np.testing.assert_allclose(
+            float(jnp.sum(jnp.abs(psi.matrix) ** 2)), 1.0, atol=1e-6
+        )
+
+    @pytest.mark.parametrize("name", SINGLE_PARAM)
+    def test_single_qutrit_parametric_gate(self, name):
+        """Each parametric single-qutrit rotation simulates and is unitary."""
+        angle = np.pi / 3
+        p = Program(Gate(name, [angle], [0]))
+        sim = PureStateVectorSimulator(p, qubits=[0])
+        psi = sim.compute(jnp.array([], dtype=float))
+        assert psi.dims == (3,)
+        expected = qx.gates.QUANTUM_GATES[name](angle).matrix[:, 0]
+        np.testing.assert_allclose(psi.matrix, expected, atol=1e-6)
+        np.testing.assert_allclose(
+            float(jnp.sum(jnp.abs(psi.matrix) ** 2)), 1.0, atol=1e-6
+        )
+
+    def test_parametric_qutrit_via_memory_map(self):
+        """A parametric qutrit rotation resolves a runtime memory parameter."""
+        p = Program()
+        p += Declare("theta", "REAL", 1)
+        p += Gate("TRX01", [MemoryReference("theta")], [0])
+        sim = PureStateVectorSimulator(p, qubits=[0])
+        params = sim.linearize({"theta": [np.pi]})
+        psi = sim.compute(params)
+        # TRX01(pi)|0> = -i|1> (pi rotation in the 0-1 subspace).
+        expected = qx.StateVector.from_matrix(
+            jnp.array([0, -1j, 0], dtype=complex), dims=(3,)
+        )
+        assert qx.fidelity(psi, expected) > 0.9999
+
+    def test_two_qutrit_tswap_at_position_one(self):
+        """A single-qutrit gate merged at the high slot of a TSWAP pair.
+
+        Exercises embedding a qutrit gate at a non-zero position within a
+        two-qutrit merge group (TH on slot 1 alongside TSWAP on (0, 1)).
+        """
+        p = Program()
+        p += Gate("TX", [], [0])        # |0> -> |2> on slot 0
+        p += Gate("TH", [], [1])        # superposition on slot 1
+        p += Gate("TSWAP", [], [0, 1])  # swap the two qutrits
+        psi = _sv(p, qubits=[0, 1])
+        assert psi.dims == (3, 3)
+        # After swap: slot 0 holds TH|0>, slot 1 holds |2>.
+        q0 = jnp.array([1, 1, 1], dtype=complex) / jnp.sqrt(3)
+        q1 = jnp.array([0, 0, 1], dtype=complex)
+        expected = qx.StateVector.from_matrix(jnp.kron(q0, q1), dims=(3, 3))
+        assert qx.fidelity(psi, expected) > 0.9999
+
+    def test_jit_and_grad_qutrit(self):
+        """The qutrit pure-state simulator is jit- and grad-friendly."""
+        p = Program()
+        p += Declare("theta", "REAL", 1)
+        p += Gate("TRX01", [MemoryReference("theta")], [0])
+        sim = PureStateVectorSimulator(p, qubits=[0])
+
+        def excited_population(theta):
+            params = jnp.array([theta], dtype=float)
+            psi = sim.compute(params)
+            return jnp.abs(psi.matrix[1]) ** 2
+
+        # jit produces the same result as eager execution.
+        val_eager = float(excited_population(np.pi / 2))
+        val_jit = float(jax.jit(excited_population)(np.pi / 2))
+        np.testing.assert_allclose(val_jit, val_eager, atol=1e-6)
+        # grad is finite and well-defined.
+        g = float(jax.grad(excited_population)(np.pi / 2))
+        assert np.isfinite(g)
 
 
 # ══════════════════════════════════════════════════════════

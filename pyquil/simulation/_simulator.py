@@ -116,6 +116,27 @@ def _make_kraus_trajectory_branch(
 
     return branch
 
+
+def _infer_dims(resolved: list[ResolvedOp], n_qubits: int) -> tuple[int, ...]:
+    """Infer per-qudit dimensions from a resolved operation list.
+
+    Each operator carries its own per-qudit input dimensions via
+    ``op.dims[1]``.  A slot's dimension is the maximum dimension seen across
+    every operation acting on it, defaulting to ``2`` (qubit) for slots that
+    no operation touches.
+
+    :param resolved: Resolved ``(operator, subsystem)`` pairs.
+    :param n_qubits: Number of qudit slots.
+    :return: Inferred per-qudit dimensions tuple.
+    """
+    dims = [2] * n_qubits
+    for op, subsystem in resolved:
+        op_dims = op.dims[1]
+        for q, d in zip(subsystem, op_dims, strict=False):
+            dims[q] = max(dims[q], d)
+    return tuple(dims)
+
+
 # ══════════════════════════════════════════════════════════
 # Base class
 # ══════════════════════════════════════════════════════════
@@ -143,6 +164,7 @@ class ProgramSimulator:
         *,
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 2,
+        dims: tuple[int, ...] | None = None,
     ) -> None:
         self._validate(program)
 
@@ -153,6 +175,8 @@ class ProgramSimulator:
 
         # Build resolver from the expanded program.
         expanded_ops, phys_qubits, param_refs = expand_program(program, noise_model)
+
+        # Remap the qudits from 0 to n
         qubit_indices = {q: i for i, q in enumerate(qubits)}
         mapped_qubits = remap_qubits(phys_qubits, qubit_indices)
         dag = build_dag(mapped_qubits)
@@ -172,11 +196,21 @@ class ProgramSimulator:
             values = [float(memory_map[name][offset]) for name, offset in param_refs]
             return jnp.array(values, dtype=float)
 
-        self.dims = (2,) * self.n_qubits
         self._linearize_fn = linearize
         self._resolve_fn = resolve
         self._expanded_ops = tuple(expanded_ops)
         self._raw_subsystems = tuple(mapped_qubits)
+
+        # Per-qudit dimensions: use the explicit override when provided,
+        # otherwise infer each slot's dimension from the operators acting on it
+        # (e.g. a qutrit gate upgrades its slots to dimension 3).  Inference
+        # resolves the ops once with zero parameters; the matrix *shapes* are
+        # parameter-independent, so this yields the correct dimensions for any
+        # parameter values.
+        if dims is not None:
+            self.dims = dims
+        else:
+            self.dims = _infer_dims(resolve(jnp.zeros(len(param_refs))), self.n_qubits)
 
         # Whether any gate matrix depends on a runtime parameter.  When it does
         # not, the compressed operator stack is a compile-time constant and can
@@ -260,7 +294,8 @@ def _embed_matrix_np(mat: np.ndarray, op_subsystem: tuple[int, ...],
     import quax as qx  # noqa: F811 — local re-import for clarity
     target_dims = tuple(dims[q] for q in group_subsystem)
     positions = tuple(group_subsystem.index(q) for q in op_subsystem)
-    op = qx.Unitary.from_matrix(jnp.array(mat), tuple((dims[q] for q in op_subsystem),) * 2)
+    op_dims = tuple(dims[q] for q in op_subsystem)
+    op = qx.Unitary.from_matrix(jnp.array(mat), (op_dims, op_dims))
     embedded = qx.embed(op, target_dims=target_dims, positions=positions)
     result = np.asarray(embedded.matrix)
     return np.pad(result, [(0, d_max - s) for s in result.shape])
@@ -510,8 +545,7 @@ class PureStateVectorSimulator(ProgramSimulator):
         U = jax.jit(sim.unitary)(params)
     """
 
-    __slots__ = ("_psi0", "_branches", "_idx_arr", "_const_op_stack",
-                 "_vmapped_build_fn")
+    __slots__ = ("_psi0", "_branches", "_idx_arr", "_vmapped_build_fn")
 
     def __init__(
         self,
@@ -523,41 +557,21 @@ class PureStateVectorSimulator(ProgramSimulator):
         super().__init__(program, qubits, noise_model=None, max_subsystem_size=max_subsystem_size)
         self._psi0 = qx.zero_state_vector(dims=self.dims)
 
-        if self._has_params:
-            # ── Parametric path ──
-            # Vectorized gate construction (vmap per gate type) followed by a
-            # segmented matmul scan for compression.  This gives both fast
-            # compilation (small traced graph) AND fast runtime (compressed
-            # op count in the state-evolution scan).
-            self._const_op_stack = None
+        # Vectorized gate construction (vmap per gate type) followed by a
+        # segmented matmul scan for compression.  This gives both fast
+        # compilation (small traced graph) AND fast runtime (compressed
+        # op count in the state-evolution scan).
+        emit_order = getattr(self._compress_fn, "emit_order", [])
+        build_fn, _sort_order, _group_bounds = _build_vectorized_unitary_constructor(
+            self._expanded_ops, self._raw_subsystems, emit_order, self.dims, self.d_max,
+        )
+        self._vmapped_build_fn = build_fn
 
-            emit_order = self._compress_fn.emit_order  # type: ignore[attr-defined]
-            build_fn, sort_order, group_bounds = _build_vectorized_unitary_constructor(
-                self._expanded_ops, self._raw_subsystems, emit_order, self.dims, self.d_max,
-            )
-            self._vmapped_build_fn = build_fn
-
-            # Compressed-op branch index (same as non-parametric path).
-            self._branches = [
-                _make_unitary_branch(base, base_dims, db)
-                for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
-            ]
-            self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
-        else:
-            # ── Non-parametric path ──
-            # Operator stack is a compile-time constant → build eagerly using
-            # the compressor and feed as a concrete array into the scan.
-            self._vmapped_build_fn = None
-            self._branches = [
-                _make_unitary_branch(base, base_dims, db)
-                for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
-            ]
-            self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
-            self._const_op_stack = None
-            if self.op_index:
-                self._const_op_stack = jax.block_until_ready(
-                    self._stack_unitaries(self.resolve(jnp.zeros(0)))
-                )
+        self._branches = [
+            _make_unitary_branch(base, base_dims, db)
+            for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
+        ]
+        self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
 
     def _validate(self, program: Program) -> None:
         for inst in program.instructions:
@@ -565,12 +579,6 @@ class PureStateVectorSimulator(ProgramSimulator):
                 raise ValueError(f"PureStateVectorSimulator does not support measurements.  Found: {inst}")
             if isinstance(inst, (Reset, ResetQubit)):
                 raise ValueError(f"PureStateVectorSimulator does not support resets.  Found: {inst}")
-
-    def _stack_unitaries(self, resolved: list[ResolvedOp]) -> Array:
-        """Compress, then stack each gate's matrix into ``(N, d_max, d_max)``."""
-        compressed = self.compress(resolved)
-        mats = [_pad_matrix(cast(qx.Unitary, op).matrix, self.d_max, self.d_max) for op, _ in compressed]
-        return jnp.stack(mats, axis=0)
 
     def compute(self, params: Array) -> qx.StateVector:  # type: ignore[override]
         """Compute the final state vector.
@@ -585,17 +593,13 @@ class PureStateVectorSimulator(ProgramSimulator):
         :param params: Flat parameter vector from :meth:`linearize`.
         :return: The final state vector.
         """
-        if self._const_op_stack is not None:
-            op_stack = self._const_op_stack
-        elif self._vmapped_build_fn is not None:
-            # Vectorized parametric path: builds embedded matrices via vmap,
-            # then composes within each merge group via parallel fold.
-            op_stack = self._vmapped_build_fn(params)
-        else:
-            resolved = self.resolve(params)
-            if not resolved:
-                return self._psi0
-            op_stack = self._stack_unitaries(resolved)
+        # No operations (e.g. empty program) → the initial state is the result.
+        if not self._branches:
+            return self._psi0
+
+        # Vectorized construction: build embedded matrices via vmap, then
+        # compose within each merge group via a parallel fold.
+        op_stack = self._vmapped_build_fn(params)
         branches = self._branches
 
         def body(psi: qx.StateVector, xs: tuple[Array, Array]) -> tuple[qx.StateVector, None]:
@@ -758,8 +762,9 @@ class TrajectorySimulator(ProgramSimulator):
         max_subsystem_size: int = 2,
         kraus_truncation_threshold: float = 1e-6,
         devices: list[jax.Device] | None = None,
+        dims: tuple[int, ...] | None = None,
     ) -> None:
-        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
+        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size, dims=dims)
         self._kraus_truncation_threshold = kraus_truncation_threshold
         self._devices = devices if devices is not None else jax.devices()
 
