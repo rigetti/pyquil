@@ -643,6 +643,50 @@ def compressor_from_dag(
         uf.make_set(nk)
         group_qubits[nk] = set(dag.nodes[nk]["qubits"])
 
+    # Quotient graph over current group roots, kept in lock-step with the
+    # union-find structure.  It starts as a copy of the dependency DAG and is
+    # contracted whenever two groups merge.  It is the authority on whether a
+    # candidate merge is *convex*: contracting two groups must not reorder any
+    # operation that lies topologically between them (see ``_contraction_cycles``).
+    quotient: nx.DiGraph = nx.DiGraph()
+    quotient.add_nodes_from(dag.nodes)
+    quotient.add_edges_from(dag.edges)
+
+    def _contraction_cycles(root_a: int, root_b: int) -> bool:
+        """Return ``True`` if merging two groups would create a cycle.
+
+        The quotient graph is always a DAG, so contracting ``root_a`` and
+        ``root_b`` introduces a cycle iff there is a directed path of length
+        ``>= 2`` between them in *either* direction — i.e. some other group is
+        sandwiched on a dependency path from one to the other.  Merging across
+        such a node would force it to be reordered relative to the merged group,
+        which is exactly what must be forbidden for barriers (measurements) and
+        for any non-commuting gate.  A direct edge ``root_a -> root_b`` alone is
+        fine; only an *indirect* path is a problem.
+        """
+        for src, dst in ((root_a, root_b), (root_b, root_a)):
+            stack = [s for s in quotient.successors(src) if s != dst]
+            seen = set(stack)
+            while stack:
+                node = stack.pop()
+                if node == dst:
+                    return True
+                for nxt in quotient.successors(node):
+                    if nxt not in seen:
+                        seen.add(nxt)
+                        stack.append(nxt)
+        return False
+
+    def _contract_quotient(keep: int, drop: int) -> None:
+        """Contract ``drop`` into ``keep`` in the quotient graph."""
+        for pred in list(quotient.predecessors(drop)):
+            if pred != keep:
+                quotient.add_edge(pred, keep)
+        for succ in list(quotient.successors(drop)):
+            if succ != keep:
+                quotient.add_edge(keep, succ)
+        quotient.remove_node(drop)
+
     # Build initial candidate heap: (union_size, u, v)
     # Smaller union sizes are processed first.
     heap: list[tuple[int, int, int]] = []
@@ -662,11 +706,18 @@ def compressor_from_dag(
         union_qubits = group_qubits[ru] | group_qubits[rv]
         if len(union_qubits) > max_subsystem_size:
             continue
+        # Reject merges that would move a barrier (measurement) or a
+        # non-commuting gate across the merged group.  Without this check the
+        # compressor can fuse two gates that straddle a mid-circuit measurement,
+        # silently reordering the measurement and corrupting the result.
+        if _contraction_cycles(ru, rv):
+            continue
         new_root = uf.union(ru, rv)
         group_qubits[new_root] = union_qubits
         old_root = rv if new_root == ru else ru
         if old_root in group_qubits:
             del group_qubits[old_root]
+        _contract_quotient(new_root, old_root)
 
         # Re-enqueue edges from the newly merged group to its neighbours.
         for neighbour in (
@@ -683,7 +734,17 @@ def compressor_from_dag(
                 heapq.heappush(heap, (new_union_size, u_node, neighbour))
 
     # --- Build merge plan ---
-    topo_order = list(nx.topological_sort(dag))
+    # Use a *lexicographical* topological sort keyed by node index (= program
+    # order).  Any topological order is physically valid, but breaking ties by
+    # program index guarantees that barrier nodes — measurements in particular,
+    # which are never merged and therefore each form a singleton group — are
+    # emitted in program order.  Because a measurement's predecessors all have
+    # smaller indices, this sort can never emit a later measurement before an
+    # earlier one, so the order in which ``QuantumInstrument`` ops appear in the
+    # compressed list (and hence the order of measurement-outcome columns in
+    # :func:`_apply_trajectory_operations`) matches the order of ``MEASURE``
+    # instructions in the program, independent of how gates are merged.
+    topo_order = list(nx.lexicographical_topological_sort(dag))
 
     root_to_nodes: dict[int, list[int]] = {}
     for nk in topo_order:
