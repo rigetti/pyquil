@@ -419,13 +419,15 @@ def format_parameter(element: ParameterDesignator) -> str:
             out += repr(r)
 
         if i == 1:
-            if not np.isclose(r, 0, atol=1e-14):
-                raise ValueError(f"Invalid complex number: {element}")
-            out = "i"
+            if np.isclose(r, 0, atol=1e-14):
+                out = "i"
+            else:
+                out += "+i"
         elif i == -1:
-            if not np.isclose(r, 0, atol=1e-14):
-                raise ValueError(f"Invalid complex number: {element}")
-            out = "-i"
+            if np.isclose(r, 0, atol=1e-14):
+                out = "-i"
+            else:
+                out += "-i"
         elif i < 0:
             out += repr(i) + "i"
         elif r != 0:
