@@ -24,6 +24,9 @@ def test_format_parameter():
         (-1j, "-i"),
         (1e-15 + 1j, "i"),
         (1e-15 - 1j, "-i"),
+        (2 + 1j, "2.0+i"),
+        (2 - 1j, "2.0-i"),
+        (-3 + 1j, "-3.0+i"),
     ]
 
     for test_case in test_cases:
