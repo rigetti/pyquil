@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.17.1-rc.0 (2026-06-17)
+
+### Fixes
+
+#### format complex params with nonzero real and unit imaginary part (#1850)
+
 ## 4.17.0 (2025-10-08)
 
 ### Features
