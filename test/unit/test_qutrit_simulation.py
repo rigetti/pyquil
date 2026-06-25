@@ -6,16 +6,15 @@ import numpy as np
 import pytest
 import quax as qx
 
-from pyquil.gates import H, MEASURE, X
+from pyquil.gates import H, X
+from pyquil.noise._channels import Channel, MeasurementChannel, ResetChannel
+from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Qubit
 from pyquil.quilbase import Declare, DefGate, Gate, Measurement
-
-from pyquil.noise._channels import Channel, MeasurementChannel, ResetChannel
-from pyquil.noise._noise_model import NoiseModel
 from pyquil.simulation._simulator import (
-    PureStateVectorSimulator,
     DensityMatrixSimulator,
+    PureStateVectorSimulator,
     TrajectorySimulator,
 )
 
@@ -430,6 +429,20 @@ class TestQutritMeasurements:
             p, qubits=[0], num_trajectories=100, random_seed=42
         )
         assert jnp.all(outcomes == 1)
+
+    def test_qutrit_ideal_reset(self):
+        """An ideal qutrit reset returns any qutrit level to |0>."""
+        from pyquil.quilbase import ResetQubit
+
+        p = Program()
+        p += Gate("TX", [], [0])
+        p += ResetQubit(Qubit(0))
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        outcomes = _sample(
+            p, qubits=[0], num_trajectories=100, random_seed=42
+        )
+        assert jnp.all(outcomes == 0)
 
     def test_qutrit_measure_superposition_statistics(self):
         """TH|0> = (|0>+|1>+|2>)/sqrt(3) gives uniform measurement distribution."""

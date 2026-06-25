@@ -33,10 +33,11 @@ from __future__ import annotations
 
 import heapq
 import logging
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from copy import deepcopy
 from typing import Any, TypeAlias, cast
 
+import jax.numpy as jnp
 import networkx as nx
 import quax as qx
 from jax import Array
@@ -92,7 +93,7 @@ class ParametricGate:
 
     def __call__(self, params: Array) -> qx.Unitary:
         resolved: list[Any] = []
-        for pi, cv in zip(self.param_indices, self.concrete_values):
+        for pi, cv in zip(self.param_indices, self.concrete_values, strict=False):
             if pi >= 0:
                 resolved.append(params[pi])
             else:
@@ -184,6 +185,7 @@ def _measure_registers(program: Program) -> set[str]:
 def expand_program(
     program: Program,
     noise_model: NoiseModelLike | None = None,
+    qubit_dimensions: Mapping[int, int] | None = None,
 ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
     """Expand a program into operators and physical qubit tuples.
 
@@ -204,6 +206,9 @@ def expand_program(
 
     :param program: Quil program (may contain DEFCIRCUITs).
     :param noise_model: Optional noise model.
+    :param qubit_dimensions: Optional mapping from physical qubit id to its
+        Hilbert-space dimension. Used for ideal measurement and reset operators,
+        whose quax constructors otherwise default to qubit dimension.
     :return: Tuple of ``(ops, qubit_tuples, param_refs)`` where each op is
         either a concrete quax operator or a ``Callable[[Array], Unitary]``
         for parameterized gates, each qubit tuple contains physical qubit
@@ -270,13 +275,16 @@ def expand_program(
         unitary = get_instruction_unitary(inst, custom_gates=custom_gates)
         return unitary, qubits
 
+    def _dimension_for(qubit: int) -> int:
+        return qubit_dimensions.get(qubit, 2) if qubit_dimensions is not None else 2
+
     def _resolve_measurement(inst: Measurement) -> tuple[FixedOp, tuple[int, ...]]:
         """Resolve a measurement instruction."""
         qubits = tuple(inst.get_qubit_indices())
         channel = noise_model.get_channel(inst) if noise_model is not None else None
         if isinstance(channel, MeasurementChannel):
             return channel.process, qubits
-        return qx.gates.MEASURE(), qubits
+        return qx.gates.MEASURE(dim=_dimension_for(qubits[0])), qubits
 
     def _resolve_reset_qubit(inst: ResetQubit) -> tuple[FixedOp, tuple[int, ...]]:
         """Resolve a targeted reset instruction."""
@@ -284,7 +292,7 @@ def expand_program(
         channel = noise_model.get_channel(inst) if noise_model is not None else None
         if isinstance(channel, ResetChannel):
             return channel.process, qubits
-        return qx.gates.RESET(), qubits
+        return qx.gates.RESET(dim=_dimension_for(qubits[0])), qubits
 
     def _emit_instruction(inst: Gate | Measurement | ResetQubit | Reset) -> None:
         """Resolve and emit a single instruction."""
@@ -300,7 +308,7 @@ def expand_program(
                 _emit_op(op, qubits)
             case Reset():
                 for q in all_qubits:
-                    _emit_op(qx.gates.RESET(), (q,))
+                    _emit_op(qx.gates.RESET(dim=_dimension_for(q)), (q,))
 
     for inst in program.instructions:
         if isinstance(inst, DefCircuit):
@@ -365,6 +373,15 @@ def build_dag(qubit_tuples: list[tuple[int, ...]]) -> nx.DiGraph:
     return dag
 
 
+def _infer_dims(resolved: list[ResolvedOp], n_qubits: int) -> tuple[int, ...]:
+    """Infer per-qudit dimensions from resolved operators."""
+    dims = [2] * n_qubits
+    for op, subsystem in resolved:
+        for q, d in zip(subsystem, op.dims[1], strict=False):
+            dims[q] = max(dims[q], d)
+    return tuple(dims)
+
+
 # ══════════════════════════════════════════════════════════
 # Resolver
 # ══════════════════════════════════════════════════════════
@@ -420,19 +437,31 @@ def resolver_from_program(
         don't appear in the program.
     :return: Tuple of ``(Resolver, dag)``.
     """
-    # Phase 1: Expand into flat operators + physical qubit tuples.
-    expanded_ops, phys_qubits, _param_refs = expand_program(program, noise_model)
-
-    # Phase 2: Remap physical qubits to 0-based indices.
     if qubits is None:
         qubits = sorted(program.get_qubit_indices())
     qubit_indices = {q: i for i, q in enumerate(qubits)}
+    n_qubits = len(qubits)
+
+    initial_expanded_ops, initial_phys_qubits, initial_param_refs = expand_program(program, noise_model)
+    initial_mapped_qubits = remap_qubits(initial_phys_qubits, qubit_indices)
+    initial_frozen_ops = list(zip(initial_expanded_ops, initial_mapped_qubits, strict=False))
+
+    def initial_resolve(params: Array) -> list[ResolvedOp]:
+        return [
+            (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
+            for item, subsystem in initial_frozen_ops
+        ]
+
+    dims = _infer_dims(initial_resolve(jnp.zeros(len(initial_param_refs))), n_qubits)
+
+    qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
+    expanded_ops, phys_qubits, _param_refs = expand_program(
+        program,
+        noise_model,
+        qubit_dimensions=qubit_dimensions,
+    )
     mapped_qubits = remap_qubits(phys_qubits, qubit_indices)
-
-    # Phase 3: Build dependency DAG.
     dag = build_dag(mapped_qubits)
-
-    # Phase 4: Build the resolve closure.
     frozen_ops = list(zip(expanded_ops, mapped_qubits, strict=False))
 
     def resolve(params: Array) -> list[ResolvedOp]:
@@ -440,9 +469,6 @@ def resolver_from_program(
             (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
             for item, subsystem in frozen_ops
         ]
-
-    n_qubits = len(qubits)
-    dims = (2,) * n_qubits
 
     return Resolver(resolve, dims=dims), dag
 
@@ -622,10 +648,15 @@ def compressor_from_dag(
     n_original = dag.number_of_nodes()
 
     if max_subsystem_size == 0 or n_original == 0:
+        emit_order = [
+            (nk, [nk], tuple(dag.nodes[nk]["qubits"]))
+            for nk in nx.lexicographical_topological_sort(dag)
+        ]
 
         def compress_passthrough(ops: list[ResolvedOp]) -> list[ResolvedOp]:
             return ops
 
+        compress_passthrough.emit_order = emit_order  # type: ignore[attr-defined]
         logger.info(
             "Compressor: %d ops (no merging), max_subsystem_size=0",
             n_original,

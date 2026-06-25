@@ -43,7 +43,7 @@ pandoc = {version = "2.4b0", optional = true}
 matplotlib = {version = "^3.9.0", optional = true}
 matplotlib-inline = {version = "^0.1.7", optional = true}
 seaborn = {version = "^0.13.2", optional = true}
-rigetti-quax = ">=0.6.2"
+rigetti-quax = ">=0.6.4"
 
 [tool.poetry.extras]
 latex = ["ipython"]

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import quax as qx
 
-from pyquil.gates import CNOT, CZ, MEASURE, RESET, RX, RY, RZ, H, X
+from pyquil.gates import CNOT, CPHASE, CZ, MEASURE, RESET, RX, RY, RZ, H, X
 from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, ResetChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
@@ -609,6 +609,34 @@ class TestCompressor:
     """Tests for the compressor at various max_subsystem_size settings."""
 
     # ── max_subsystem_size=0 (no merging) ──
+
+    def test_no_merge_pure_state_compute_matches_compressed(self):
+        """PureStateVectorSimulator should support disabling compression."""
+        p = Program(H(0), CNOT(0, 1), RZ(0.5, 0))
+        compressed = PureStateVectorSimulator(p)
+        uncompressed = PureStateVectorSimulator(p, max_subsystem_size=0)
+
+        psi_compressed = compressed.compute(_EMPTY_PARAMS)
+        psi_uncompressed = uncompressed.compute(_EMPTY_PARAMS)
+
+        assert qx.fidelity(psi_uncompressed, psi_compressed) > 0.9999
+
+    def test_parametric_non_contiguous_gate_embeds_in_larger_group(self):
+        """Parametric multi-qubit gates should embed correctly into larger groups."""
+        p = Program()
+        p += Declare("theta", "REAL", 1)
+        p += H(0)
+        p += H(1)
+        p += H(2)
+        p += CPHASE(MemoryReference("theta", 0), 0, 2)
+        p += CPHASE(0.37, 0, 1)
+
+        compressed = PureStateVectorSimulator(p, qubits=[0, 1, 2], max_subsystem_size=3)
+        uncompressed = PureStateVectorSimulator(p, qubits=[0, 1, 2], max_subsystem_size=0)
+        params = compressed.linearize({"theta": [0.91]})
+
+        assert compressed.bases == [(0, 1, 2)]
+        assert qx.fidelity(compressed.compute(params), uncompressed.compute(params)) > 0.9999
 
     def test_no_merge_noiseless_matches_direct(self):
         """max_subsystem_size=0 compressor output should match direct computation."""

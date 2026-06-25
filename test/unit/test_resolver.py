@@ -2,11 +2,10 @@
 
 import jax.numpy as jnp
 import numpy as np
-import pytest
 import quax as qx
 
-from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, RZ, H, X
-from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, ResetChannel
+from pyquil.gates import CNOT, H, MEASURE, RESET, RX, RZ, X
+from pyquil.noise._channels import Channel, CycleChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import FormalArgument, MemoryReference, Qubit
@@ -15,11 +14,8 @@ from pyquil.quilbase import (
     DefCircuit,
     Gate,
     Measurement,
-    Reset,
-    ResetQubit,
 )
 from pyquil.simulation._resolver import (
-    _measure_registers,
     build_dag,
     expand_program,
     remap_qubits,
@@ -181,3 +177,11 @@ class TestResolverFromProgram:
         assert len(ops) == 2
         assert isinstance(ops[0][0], qx.Unitary)
         assert isinstance(ops[1][0], qx.QuantumInstrument)
+
+    def test_qutrit_measurement_dimensions(self):
+        p = Program(Gate("TX", [], [0]), Measurement(Qubit(0), None))
+        resolver, _ = resolver_from_program(p)
+        ops = resolver(_EMPTY_PARAMS)
+        assert resolver.dims == (3,)
+        assert isinstance(ops[1][0], qx.QuantumInstrument)
+        assert ops[1][0].dims == ((3,), (3,))

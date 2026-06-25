@@ -173,14 +173,38 @@ class ProgramSimulator:
         self.qubits = qubits
         self.n_qubits = len(qubits)
 
-        # Build resolver from the expanded program.
-        expanded_ops, phys_qubits, param_refs = expand_program(program, noise_model)
-
-        # Remap the qudits from 0 to n
         qubit_indices = {q: i for i, q in enumerate(qubits)}
+
+        # First expand with default ideal measurement/reset dimensions so we can
+        # infer the register dimensions from gates and noisy channels.
+        if dims is None:
+            initial_expanded_ops, initial_phys_qubits, initial_param_refs = expand_program(
+                program,
+                noise_model,
+            )
+            initial_mapped_qubits = remap_qubits(initial_phys_qubits, qubit_indices)
+            initial_frozen_ops = list(zip(initial_expanded_ops, initial_mapped_qubits, strict=False))
+
+            def initial_resolve(params: Array) -> list[ResolvedOp]:
+                return [
+                    (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
+                    for item, subsystem in initial_frozen_ops
+                ]
+
+            self.dims = _infer_dims(initial_resolve(jnp.zeros(len(initial_param_refs))), self.n_qubits)
+        else:
+            self.dims = dims
+
+        # Expand again with inferred dimensions so ideal measurement/reset
+        # instruments are not stuck at qubit dimension.
+        qubit_dimensions = {q: self.dims[i] for q, i in qubit_indices.items()}
+        expanded_ops, phys_qubits, param_refs = expand_program(
+            program,
+            noise_model,
+            qubit_dimensions=qubit_dimensions,
+        )
         mapped_qubits = remap_qubits(phys_qubits, qubit_indices)
         dag = build_dag(mapped_qubits)
-
         frozen_ops = list(zip(expanded_ops, mapped_qubits, strict=False))
 
         def resolve(params: Array) -> list[ResolvedOp]:
@@ -200,17 +224,6 @@ class ProgramSimulator:
         self._resolve_fn = resolve
         self._expanded_ops = tuple(expanded_ops)
         self._raw_subsystems = tuple(mapped_qubits)
-
-        # Per-qudit dimensions: use the explicit override when provided,
-        # otherwise infer each slot's dimension from the operators acting on it
-        # (e.g. a qutrit gate upgrades its slots to dimension 3).  Inference
-        # resolves the ops once with zero parameters; the matrix *shapes* are
-        # parameter-independent, so this yields the correct dimensions for any
-        # parameter values.
-        if dims is not None:
-            self.dims = dims
-        else:
-            self.dims = _infer_dims(resolve(jnp.zeros(len(param_refs))), self.n_qubits)
 
         # Whether any gate matrix depends on a runtime parameter.  When it does
         # not, the compressed operator stack is a compile-time constant and can
@@ -315,60 +328,59 @@ def _make_embed_fn(
     if op_subsystem == group_subsystem:
         D = math.prod(dims[q] for q in op_subsystem)
         pad_w = ((0, d_max - D),) * 2
+
         def _identity_embed(mat: Array) -> Array:
             return jnp.pad(mat, pad_w)
+
         return _identity_embed
 
-    # General case: embed via Kronecker products.
-    # The group_subsystem is ordered; figure out which positions in the group
-    # the op occupies, and insert identities for the remaining positions.
+    # General case: embed a tensor-format operator by placing its output/input
+    # axes at the requested positions and identity tensors on untouched axes.
     target_dims = tuple(dims[q] for q in group_subsystem)
+    op_dims = tuple(dims[q] for q in op_subsystem)
     positions = tuple(group_subsystem.index(q) for q in op_subsystem)
     n_group = len(group_subsystem)
     D = math.prod(target_dims)
     pad_w = ((0, d_max - D),) * 2
-
-    # Precompute which group positions are "identity" positions.
-    # Strategy: reshape the op matrix into a tensor, then embed into the full
-    # group tensor, then reshape back.  This avoids the overhead of qx objects.
-    op_dims = tuple(dims[q] for q in op_subsystem)
     n_op = len(op_subsystem)
-
-    # Build a permutation: the full group tensor has axes for each qubit.
-    # We place op axes at their positions, then the remaining axes carry identity.
-    # Result = I ⊗ ... ⊗ op ⊗ ... ⊗ I (with op spread across `positions`).
 
     # For the common case: 1-qubit gate in a 2-qubit group
     if n_op == 1 and n_group == 2 and all(d == 2 for d in target_dims):
         pos = positions[0]
         I2 = jnp.eye(2, dtype=complex)
         if pos == 0:
+
             def _embed(mat: Array) -> Array:
                 return jnp.pad(jnp.kron(mat, I2), pad_w)
+
             return _embed
         else:
+
             def _embed(mat: Array) -> Array:
                 return jnp.pad(jnp.kron(I2, mat), pad_w)
+
             return _embed
 
-    # General fallback: use einsum-based embedding
-    # Build the full unitary as a tensor product with identities.
     non_op_positions = [i for i in range(n_group) if i not in positions]
-    non_op_dims = [target_dims[i] for i in non_op_positions]
-    identity_factors = [jnp.eye(d, dtype=complex) for d in non_op_dims]
+    identity_factors = [jnp.eye(target_dims[i], dtype=complex) for i in non_op_positions]
+
+    # Example for op positions (0, 2) in a 3-qudit group:
+    # op tensor axes are out0,out2,in0,in2; identity axes are out1,in1;
+    # output order must be out0,out1,out2,in0,in1,in2.
+    labels = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    if 2 * n_group > len(labels):
+        raise ValueError(f"Cannot build an einsum embedding for {n_group} subsystems.")
+    out_labels = labels[:n_group]
+    in_labels = labels[n_group : 2 * n_group]
+    op_subscript = "".join(out_labels[p] for p in positions) + "".join(in_labels[p] for p in positions)
+    identity_subscripts = [out_labels[p] + in_labels[p] for p in non_op_positions]
+    embedded_subscript = out_labels + in_labels
+    einsum_spec = ",".join([op_subscript, *identity_subscripts]) + f"->{embedded_subscript}"
 
     def _embed_general(mat: Array) -> Array:
-        # Reshape op into a tensor
-        op_tensor = mat.reshape([op_dims[i] for i in range(n_op)] * 2)
-        # Build full group tensor via einsum
-        # Start with the op tensor, then kron with identities for non-op positions
-        result = mat
-        for i, nop in enumerate(non_op_positions):
-            # Determine if this identity goes before or after
-            d = non_op_dims[i]
-            # Simple sequential kron (ordering may need adjustment)
-            result = jnp.kron(result, identity_factors[i]) if nop > max(positions) else jnp.kron(identity_factors[i], result)
-        return jnp.pad(result, pad_w)
+        op_tensor = mat.reshape(op_dims + op_dims)
+        embedded = jnp.einsum(einsum_spec, op_tensor, *identity_factors)
+        return jnp.pad(embedded.reshape(D, D), pad_w)
 
     return _embed_general
 
@@ -453,7 +465,7 @@ def _build_vectorized_unitary_constructor(
         pos_arr = np.array(positions)
 
         parametric_slots = [j for j, pi in enumerate(template_pi) if pi >= 0]
-        concrete_slots = [(j, cv) for j, (pi, cv) in enumerate(zip(template_pi, template_cv)) if pi < 0]
+        concrete_slots = [(j, cv) for j, (pi, cv) in enumerate(zip(template_pi, template_cv, strict=False)) if pi < 0]
         n_total = len(template_pi)
 
         def _make_batch(gf: Callable, ps: list[int], cs: list[tuple[int, float]],
@@ -872,15 +884,13 @@ def _op_to_kraus_matrix(
         case qx.KrausMap():
             return op.matrix, 1, False
         case qx.QuantumInstrument():
-            kraus_map = qx.superop_to_kraus(qx.SuperOp(op.data, op.num_qubits))
-            data = kraus_map.data
-            n_ens_i = len(op.ensemble_size)
-            shape = data.shape
-            n_kraus_per_outcome = shape[n_ens_i + 1]
-            n_total_kraus = op.num_outcomes * n_kraus_per_outcome
-            data = data.reshape(shape[:n_ens_i] + (n_total_kraus,) + shape[n_ens_i + 2 :])
-            merged = qx.KrausMap(data=data, num_qubits=kraus_map.num_qubits)
-            return merged.matrix, n_kraus_per_outcome, True
+            kraus_mats = [
+                qx.superop_to_kraus(op.outcome_superop(i)[0]).matrix
+                for i in range(op.num_outcomes)
+            ]
+            n_kraus_per_outcome = kraus_mats[0].shape[-3]
+            merged = jnp.concatenate(kraus_mats, axis=-3)
+            return merged, n_kraus_per_outcome, True
         case _:
             raise TypeError(f"Unsupported operator type: {type(op)}")
 
