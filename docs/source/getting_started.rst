@@ -40,7 +40,7 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 
 .. note::
 
-    pyQuil requires Python 3.9 or later.
+    pyQuil requires Python 3.11 or later and supports Python versions earlier than 3.13.
 
 .. testcode:: verify-min-version
     :hide:
@@ -58,7 +58,7 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 .. testoutput:: verify-min-version
     :hide:
 
-    ^3.9...
+    >=3.11, <3.13
 
 .. note::
 
@@ -165,7 +165,7 @@ the terminal windows where your servers are running, you should see output print
     pyQuil also provides the :py:func:`~pyquil.api.local_forest_runtime()` context manager to ensure both ``quilc`` and ``qvm`` servers are running
     by starting them as subprocesses if they aren't already.
 
-    .. testcode:: first-program
+    .. code:: python
 
         from pyquil import get_qc, Program
         from pyquil.gates import CNOT, Z, MEASURE
