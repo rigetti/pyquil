@@ -648,15 +648,14 @@ def compressor_from_dag(
     n_original = dag.number_of_nodes()
 
     if max_subsystem_size == 0 or n_original == 0:
-        emit_order = [
-            (nk, [nk], tuple(dag.nodes[nk]["qubits"]))
-            for nk in nx.lexicographical_topological_sort(dag)
+        passthrough_emit_order = [
+            (nk, [nk], tuple(dag.nodes[nk]["qubits"])) for nk in nx.lexicographical_topological_sort(dag)
         ]
 
         def compress_passthrough(ops: list[ResolvedOp]) -> list[ResolvedOp]:
             return ops
 
-        compress_passthrough.emit_order = emit_order  # type: ignore[attr-defined]
+        compress_passthrough.emit_order = passthrough_emit_order  # type: ignore[attr-defined]
         logger.info(
             "Compressor: %d ops (no merging), max_subsystem_size=0",
             n_original,

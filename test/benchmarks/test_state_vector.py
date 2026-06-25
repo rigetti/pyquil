@@ -139,10 +139,12 @@ def _surface17_program_variant(variant="full"):
 
 def _build_surface17_cycle_noise_model(program, depolarizing_constant=0.99, readout_fidelity=1.0):
     defcircuits = _surface17_defcircuits(program)
-    cycle_channels = []
+    cycle_channels = {}
 
     for inst in program.instructions:
         if not isinstance(inst, QuilGate) or inst.name not in defcircuits:
+            continue
+        if inst in cycle_channels:
             continue
 
         defcircuit = defcircuits[inst.name]
@@ -163,9 +165,9 @@ def _build_surface17_cycle_noise_model(program, depolarizing_constant=0.99, read
                     MeasurementChannel.from_readout_fidelity(concrete_measurement, fidelity=readout_fidelity)
                 )
 
-        cycle_channels.append(CycleChannel(inst=inst, defcircuit=defcircuit, channels=tuple(channels)))
+        cycle_channels[inst] = CycleChannel(inst=inst, defcircuit=defcircuit, channels=tuple(channels))
 
-    return NoiseModel.from_channels(cycle_channels)
+    return NoiseModel(channels=cycle_channels)
 
 
 def _prepare_trajectory_operations(program, noise_model, max_subsystem_size=0):

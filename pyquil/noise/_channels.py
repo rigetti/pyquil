@@ -36,7 +36,6 @@ import jax.numpy as jnp
 import numpy as np
 import quax as qx
 from jax import Array
-from plotly.graph_objs import Figure
 from quil.expression import Expression as QuilExpression
 from quil.program import Program as RSProgram
 from scipy.linalg import logm as scipy_logm
@@ -45,6 +44,8 @@ from pyquil.quilatom import Expression, FormalArgument, Parameter, substitute
 from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset, ResetQubit
 
 if TYPE_CHECKING:
+    from plotly.graph_objs import Figure
+
     from pyquil import Program
 
 logger = logging.getLogger(__name__)

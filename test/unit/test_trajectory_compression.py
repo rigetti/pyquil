@@ -659,9 +659,7 @@ def _noisy_channel_cases():
     )
 
 
-@pytest.mark.parametrize(
-    "case", _noisy_channel_cases(), ids=lambda c: c[0]
-)
+@pytest.mark.parametrize("case", tuple(_noisy_channel_cases()), ids=lambda c: c[0])
 def test_compression_preserves_total_channel_exactly(case):
     """Compression must not change the *channel* the sampler implements.
 
@@ -824,6 +822,5 @@ def test_compression_does_not_merge_gates_across_mid_circuit_measurement():
         return np.bincount(codes, minlength=8) / len(codes)
 
     assert _total_variation(_joint(0), _joint(2)) < 0.02
-
 
 

@@ -121,7 +121,9 @@ class NoiseModel:
         channel_map: dict[NoiseInstruction, ChannelType] = {}
         for inst, channel in channels.items():
             if channel.inst != inst:
-                raise ValueError(f"NoiseModel channel key {inst!r} does not match channel instruction {channel.inst!r}.")
+                raise ValueError(
+                    f"NoiseModel channel key {inst!r} does not match channel instruction {channel.inst!r}."
+                )
             channel_map[inst] = channel
         object.__setattr__(self, "channels", MappingProxyType(channel_map))
 
@@ -184,7 +186,7 @@ class NoiseModel:
         from pyquil.external.rpcq import GateInfo, MeasureInfo
         from pyquil.quilatom import Qubit as QuilQubit
 
-        channels: dict[Gate | Measurement, Channel | MeasurementChannel | ResetChannel | CycleChannel] = {}
+        channels: dict[NoiseInstruction, ChannelType] = {}
         seen_measure_qubits: set[int] = set()
 
         for qubit_label, qubit in compiler_isa.qubits.items():

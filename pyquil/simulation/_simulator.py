@@ -112,7 +112,7 @@ def _make_kraus_trajectory_branch(
 
     def branch(op_mat: Array, psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
         kraus_map = qx.KrausMap.from_matrix(op_mat[:, :db, :db], (base_dims, base_dims))
-        return _sample_kraus_map_trajectory(kraus_map, psi, key, base)
+        return cast(tuple[qx.StateVector, Array], _sample_kraus_map_trajectory(kraus_map, psi, key, base))
 
     return branch
 
@@ -153,9 +153,22 @@ class ProgramSimulator:
     Instances are immutable after construction.
     """
 
-    __slots__ = ("n_qubits", "qubits", "dims", "_linearize_fn", "_resolve_fn", "_compress_fn",
-                 "bases", "op_index", "base_dims", "base_total_dim", "d_max", "_has_params",
-                 "_expanded_ops", "_raw_subsystems")
+    __slots__ = (
+        "n_qubits",
+        "qubits",
+        "dims",
+        "_linearize_fn",
+        "_resolve_fn",
+        "_compress_fn",
+        "bases",
+        "op_index",
+        "base_dims",
+        "base_total_dim",
+        "d_max",
+        "_has_params",
+        "_expanded_ops",
+        "_raw_subsystems",
+    )
 
     def __init__(
         self,
@@ -252,7 +265,7 @@ class ProgramSimulator:
         # (rather than the number of operations) determines the size of the
         # traced/compiled graph.
         probe = self._compress_fn(self._resolve_fn(jnp.zeros(len(param_refs))))
-        self.bases = []
+        self.bases: list[tuple[int, ...]] = []
         sub_to_branch: dict[tuple[int, ...], int] = {}
         op_index: list[int] = []
         for _, subsystem in probe:
@@ -294,9 +307,9 @@ class ProgramSimulator:
 # ══════════════════════════════════════════════════════════
 
 
-def _embed_matrix_np(mat: np.ndarray, op_subsystem: tuple[int, ...],
-                     group_subsystem: tuple[int, ...], dims: tuple[int, ...],
-                     d_max: int) -> np.ndarray:
+def _embed_matrix_np(
+    mat: np.ndarray, op_subsystem: tuple[int, ...], group_subsystem: tuple[int, ...], dims: tuple[int, ...], d_max: int
+) -> np.ndarray:
     """Embed a gate matrix into a larger subsystem (numpy, for constant ops).
 
     Computes the d_max×d_max padded matrix that applies ``mat`` on
@@ -305,6 +318,7 @@ def _embed_matrix_np(mat: np.ndarray, op_subsystem: tuple[int, ...],
     if op_subsystem == group_subsystem:
         return np.pad(mat, [(0, d_max - s) for s in mat.shape])
     import quax as qx  # noqa: F811 — local re-import for clarity
+
     target_dims = tuple(dims[q] for q in group_subsystem)
     positions = tuple(group_subsystem.index(q) for q in op_subsystem)
     op_dims = tuple(dims[q] for q in op_subsystem)
@@ -449,8 +463,7 @@ def _build_vectorized_unitary_constructor(
             key = (id(eop.gate_fn), concrete_mask, concrete_vals, embed_key)
             if key not in param_groups:
                 embed_fn = _make_embed_fn(op_sub, grp_sub, dims, d_max)
-                param_groups[key] = (eop.gate_fn, eop.param_indices, eop.concrete_values,
-                                     [], [], embed_fn)
+                param_groups[key] = (eop.gate_fn, eop.param_indices, eop.concrete_values, [], [], embed_fn)
             param_groups[key][3].append(sorted_pos)
             param_groups[key][4].append([pi for pi in eop.param_indices if pi >= 0])
         else:
@@ -468,15 +481,16 @@ def _build_vectorized_unitary_constructor(
         concrete_slots = [(j, cv) for j, (pi, cv) in enumerate(zip(template_pi, template_cv, strict=False)) if pi < 0]
         n_total = len(template_pi)
 
-        def _make_batch(gf: Callable, ps: list[int], cs: list[tuple[int, float]],
-                        nt: int, ef: Callable, pidx: Array) -> Callable[[Array], Array]:
+        def _make_batch(
+            gf: Callable, ps: list[int], cs: list[tuple[int, float]], nt: int, ef: Callable, pidx: Array
+        ) -> Callable[[Array], Array]:
             def _single(parametric_values: Array) -> Array:
                 args: list[Any] = [None] * nt
                 for slot, val in cs:
                     args[slot] = val
                 for k, slot in enumerate(ps):
                     args[slot] = parametric_values[k]
-                return ef(gf(*args).matrix)
+                return cast(Array, ef(gf(*args).matrix))
 
             batched = jax.vmap(_single)
 
@@ -486,8 +500,7 @@ def _build_vectorized_unitary_constructor(
             return build
 
         pidx_arr = jnp.array(pidx_lists)
-        builder = _make_batch(gate_fn, parametric_slots, concrete_slots,
-                              n_total, embed_fn, pidx_arr)
+        builder = _make_batch(gate_fn, parametric_slots, concrete_slots, n_total, embed_fn, pidx_arr)
         vmapped_specs.append((pos_arr, builder))
 
     # ── Pre-build constant embedded matrices ──
@@ -533,6 +546,7 @@ def _build_vectorized_unitary_constructor(
         def group_product(mats: Array) -> Array:
             def body(acc: Array, mat: Array) -> tuple[Array, None]:
                 return mat @ acc, None
+
             final, _ = jax.lax.scan(body, eye_mat, mats)
             return final
 
@@ -575,7 +589,11 @@ class PureStateVectorSimulator(ProgramSimulator):
         # op count in the state-evolution scan).
         emit_order = getattr(self._compress_fn, "emit_order", [])
         build_fn, _sort_order, _group_bounds = _build_vectorized_unitary_constructor(
-            self._expanded_ops, self._raw_subsystems, emit_order, self.dims, self.d_max,
+            self._expanded_ops,
+            self._raw_subsystems,
+            emit_order,
+            self.dims,
+            self.d_max,
         )
         self._vmapped_build_fn = build_fn
 
@@ -621,7 +639,6 @@ class PureStateVectorSimulator(ProgramSimulator):
 
         psi, _ = jax.lax.scan(body, self._psi0, (op_stack, self._idx_arr))
         return psi
-
 
     def __call__(self, params: Array) -> qx.StateVector:
         return self.compute(params)
@@ -690,9 +707,7 @@ class DensityMatrixSimulator(ProgramSimulator):
         # graph to just the scan over a concrete array.
         self._const_op_stack: Array | None = None
         if not self._has_params and self.op_index:
-            self._const_op_stack = jax.block_until_ready(
-                self._stack_superops(self.resolve(jnp.zeros(0)))
-            )
+            self._const_op_stack = self._stack_superops(self.resolve(jnp.zeros(0))).block_until_ready()
 
     def _stack_superops(self, resolved: list[ResolvedOp]) -> Array:
         """Compress, promote each op to a SuperOp, and stack."""
@@ -884,10 +899,7 @@ def _op_to_kraus_matrix(
         case qx.KrausMap():
             return op.matrix, 1, False
         case qx.QuantumInstrument():
-            kraus_mats = [
-                qx.superop_to_kraus(op.outcome_superop(i)[0]).matrix
-                for i in range(op.num_outcomes)
-            ]
+            kraus_mats = [qx.superop_to_kraus(op.outcome_superop(i)[0]).matrix for i in range(op.num_outcomes)]
             n_kraus_per_outcome = kraus_mats[0].shape[-3]
             merged = jnp.concatenate(kraus_mats, axis=-3)
             return merged, n_kraus_per_outcome, True
