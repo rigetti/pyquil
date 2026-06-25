@@ -225,13 +225,13 @@ class TestTrajectoryNoisy:
         # Use a Pauli channel: p_I = 1-p, p_X = p, p_Y = 0, p_Z = 0
         pauli_probs = {"X": p_error}
         channel = Channel.from_pauli_noise(inst=inst, pauli_noise=pauli_probs)
-        return NoiseModel(channels=[channel])
+        return NoiseModel.from_channels([channel])
 
     def _make_depolarizing_noise_model(self, fidelity: float, qubit: int = 0) -> NoiseModel:
         """Create a noise model with depolarizing noise on X gate."""
         inst = X(qubit)
         channel = Channel.from_gate_fidelity(inst=inst, fidelity=fidelity)
-        return NoiseModel(channels=[channel])
+        return NoiseModel.from_channels([channel])
 
     def test_noiseless_gate_with_noise_model(self):
         """A noise model that doesn't cover the applied gate should leave it noiseless."""
@@ -299,7 +299,7 @@ class TestTrajectoryNoisy:
         inst_q1 = X(1)
         ch0 = Channel.from_pauli_noise(inst=inst_q0, pauli_noise={"X": p_error})
         ch1 = Channel.from_pauli_noise(inst=inst_q1, pauli_noise={"X": p_error})
-        noise_model = NoiseModel(channels=[ch0, ch1])
+        noise_model = NoiseModel.from_channels([ch0, ch1])
 
         prog = Program(X(0), X(1))
         num_traj = 2048
@@ -364,7 +364,7 @@ class TestTrajectoryMeasurement:
         qubit = Qubit(0)
         m_inst = QuilMeasurement(qubit=qubit, classical_reg=None)
         meas_ch = MeasurementChannel.from_readout_fidelity(inst=m_inst, fidelity=0.8)
-        noise_model = NoiseModel(channels=[meas_ch])
+        noise_model = NoiseModel.from_channels([meas_ch])
 
         p = Program(MEASURE(0, None))
         psi, outcomes = _simulate_trajectories(
@@ -412,7 +412,7 @@ class TestTrajectoryReset:
         qubit = Qubit(0)
         reset_inst = ResetQubit(qubit)
         reset_ch = ResetChannel.from_reset_fidelity(inst=reset_inst, fidelity=0.9)
-        noise_model = NoiseModel(channels=[reset_ch])
+        noise_model = NoiseModel.from_channels([reset_ch])
 
         # Start in |1⟩, apply noisy reset
         p = Program(X(0), ResetQubit(Qubit(0)))
@@ -477,7 +477,7 @@ class TestComputeProgramStateVectorWithNoise:
         """With noise_model provided, runs a single trajectory."""
         inst = X(0)
         channel = Channel.from_gate_fidelity(inst=inst, fidelity=1.0)
-        noise_model = NoiseModel(channels=[channel])
+        noise_model = NoiseModel.from_channels([channel])
         p = Program(X(0))
         sim = TrajectorySimulator(p, noise_model=noise_model, qubits=[0])
         psi, _ = sim.compute(_EMPTY_PARAMS, jax.random.key(0))
@@ -517,7 +517,7 @@ class TestSampleProgramTrajectories:
         p_error = 0.3
         inst = X(0)
         ch = Channel.from_pauli_noise(inst=inst, pauli_noise={"X": p_error})
-        noise_model = NoiseModel(channels=[ch])
+        noise_model = NoiseModel.from_channels([ch])
 
         p = Program(X(0), MEASURE(0, None))
         sim = TrajectorySimulator(p, noise_model=noise_model, qubits=[0])
@@ -684,7 +684,7 @@ class TestCompressor:
         channels = [
             Channel.from_coherence_times(RX(np.pi / 2, 0), gate_duration=0.04, t1s=[30.0], t2s=[20.0]),
         ]
-        noise_model = NoiseModel(channels=channels)
+        noise_model = NoiseModel.from_channels(channels)
 
         sim = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=0)
         ops = sim.adapt(sim.compress(sim.resolve(_EMPTY_PARAMS)))
@@ -777,7 +777,7 @@ class TestCompressor:
         channels = [
             Channel.from_coherence_times(RX(np.pi / 2, 0), gate_duration=0.04, t1s=[30.0], t2s=[20.0]),
         ]
-        noise_model = NoiseModel(channels=channels)
+        noise_model = NoiseModel.from_channels(channels)
 
         sim0 = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=0)
         sim1 = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=1)
@@ -832,7 +832,7 @@ class TestBuildSimulationIntegration:
         channels = [
             Channel.from_coherence_times(CNOT(0, 1), gate_duration=0.1, t1s=[30.0, 30.0], t2s=[20.0, 20.0]),
         ]
-        noise_model = NoiseModel(channels=channels)
+        noise_model = NoiseModel.from_channels(channels)
 
         sim = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=0)
         ops = sim.adapt(sim.compress(sim.resolve(_EMPTY_PARAMS)))
@@ -894,7 +894,7 @@ class TestCompressorOpCounts:
             Channel.from_depolarizing_constant(inst, depolarizing_constant=0.99)
             for inst in (RX(0.1, 0), RZ(0.2, 0), RX(0.3, 0))
         )
-        noise_model = NoiseModel(channels=[CycleChannel(inst=cycle_inst, defcircuit=defcircuit, channels=channels)])
+        noise_model = NoiseModel.from_channels([CycleChannel(inst=cycle_inst, defcircuit=defcircuit, channels=channels)])
         program = Program(defcircuit, cycle_inst)
 
         sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=1)
@@ -914,7 +914,7 @@ class TestCompressorOpCounts:
             [RX(0.1, formal_qubit), RZ(0.2, formal_qubit)],
         )
         cycle_inst = QuilGate("INDIVIDUAL_NOISE_CYCLE", [], [0])
-        noise_model = NoiseModel(channels=[Channel.from_depolarizing_constant(RX(0.1, 0), 0.99)])
+        noise_model = NoiseModel.from_channels([Channel.from_depolarizing_constant(RX(0.1, 0), 0.99)])
         program = Program(defcircuit, cycle_inst)
 
         sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=0)
@@ -1161,7 +1161,7 @@ class TestMultiDeviceTrajectory:
         """Multi-device path should work with noise models."""
         p_error = 0.3
         ch = Channel.from_pauli_noise(inst=X(0), pauli_noise={"X": p_error})
-        noise_model = NoiseModel(channels=[ch])
+        noise_model = NoiseModel.from_channels([ch])
         p = Program(X(0), MEASURE(0, None))
         sim = TrajectorySimulator(p, noise_model=noise_model, qubits=[0], devices=jax.devices())
         outcomes = sim.sample(_EMPTY_PARAMS, num_trajectories=1024, batch_size=256, random_seed=7)

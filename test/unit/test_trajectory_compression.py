@@ -281,8 +281,8 @@ def _qutrit_circuit_5():
 
 def _depolarizing_model(insts, fidelity):
     """Build a depolarizing noise model for the given instructions."""
-    return NoiseModel(
-        channels=[Channel.from_gate_fidelity(inst=inst, fidelity=fidelity) for inst in insts]
+    return NoiseModel.from_channels(
+        [Channel.from_gate_fidelity(inst=inst, fidelity=fidelity) for inst in insts]
     )
 
 
@@ -494,8 +494,8 @@ def test_compression_two_qubit_measurements_with_noise():
     program += meas2
     qubits, dims = QUBITS_2, (2, 2)
 
-    noise_model = NoiseModel(
-        channels=[
+    noise_model = NoiseModel.from_channels(
+        [
             Channel.from_gate_fidelity(inst=CNOT(5, 2), fidelity=0.97),
             Channel.from_gate_fidelity(inst=H(5), fidelity=0.98),
             MeasurementChannel.from_readout_fidelity(inst=meas5, fidelity=0.95),
@@ -531,8 +531,8 @@ def test_compression_five_qubit_measurements_with_noise():
         measurements.append(m)
         program += m
 
-    noise_model = NoiseModel(
-        channels=[
+    noise_model = NoiseModel.from_channels(
+        [
             Channel.from_gate_fidelity(inst=CZ(7, 2), fidelity=0.99),
             Channel.from_gate_fidelity(inst=CZ(9, 4), fidelity=0.99),
             Channel.from_gate_fidelity(inst=CNOT(2, 9), fidelity=0.99),
@@ -730,8 +730,8 @@ def test_asymmetric_readout_error_rate_column_mapping_under_compression():
     # qubit 2 measured |1> with 30% flip (fidelity 0.70); qubit 5 measured |0>
     # with 1% flip (fidelity 0.99).  The two error rates are deliberately far
     # apart so any column swap is unmistakable.
-    noise_model = NoiseModel(
-        channels=[
+    noise_model = NoiseModel.from_channels(
+        [
             MeasurementChannel.from_readout_fidelity(inst=meas2, fidelity=0.70),
             MeasurementChannel.from_readout_fidelity(inst=meas5, fidelity=0.99),
         ]
@@ -824,7 +824,6 @@ def test_compression_does_not_merge_gates_across_mid_circuit_measurement():
         return np.bincount(codes, minlength=8) / len(codes)
 
     assert _total_variation(_joint(0), _joint(2)) < 0.02
-
 
 
 

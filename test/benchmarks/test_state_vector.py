@@ -73,7 +73,7 @@ def _build_noisy_program_and_model(num_qubits, num_layers, seed=4867):
         Channel.from_coherence_times(RX(np.pi / 2, q), gate_duration=0.04, t1s=[t1s[q]], t2s=[t2s[q]])
         for q in range(num_qubits)
     ]
-    noise_model = NoiseModel(channels=channels)
+    noise_model = NoiseModel.from_channels(channels)
 
     program = Program()
     for _ in range(num_layers):
@@ -165,7 +165,7 @@ def _build_surface17_cycle_noise_model(program, depolarizing_constant=0.99, read
 
         cycle_channels.append(CycleChannel(inst=inst, defcircuit=defcircuit, channels=tuple(channels)))
 
-    return NoiseModel(channels=cycle_channels)
+    return NoiseModel.from_channels(cycle_channels)
 
 
 def _prepare_trajectory_operations(program, noise_model, max_subsystem_size=0):

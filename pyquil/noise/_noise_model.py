@@ -33,10 +33,11 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property, reduce
 from operator import mul
+from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Protocol,
@@ -60,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 # Channel union type returned by get_channel
 ChannelType = Channel | MeasurementChannel | ResetChannel | CycleChannel
+NoiseInstruction = Gate | Measurement | ResetQubit
 
 
 @runtime_checkable
@@ -99,29 +101,36 @@ class NoiseModel:
 
     This includes gate channels, measurement channels, reset channels, and cycle channels.
 
-    The constructor accepts any iterable of channels (list, tuple, set, generator, etc.)
-    which is coerced to a tuple for immutable storage.
+    The constructor accepts a mapping from instruction to channel. Use
+    :meth:`from_channels` when constructing from a list, tuple, set, generator,
+    or other channel iterable.
     """
 
-    channels: tuple[Channel | MeasurementChannel | ResetChannel | CycleChannel, ...]
-    """Immutable tuple of all noise channels in the model."""
+    channels: Mapping[NoiseInstruction, ChannelType]
+    """Immutable mapping from instruction to its noise channel."""
 
     def __init__(
         self,
-        channels: Iterable[Channel | MeasurementChannel | ResetChannel | CycleChannel] = (),
+        channels: Mapping[NoiseInstruction, ChannelType] | None = None,
     ) -> None:
-        # Accept any iterable, coerce to tuple for immutable storage.
-        if isinstance(channels, tuple):
-            object.__setattr__(self, "channels", channels)
-        else:
-            object.__setattr__(self, "channels", tuple(channels))
+        if channels is None:
+            channels = {}
+        if not isinstance(channels, Mapping):
+            raise TypeError("NoiseModel channels must be a mapping. Use NoiseModel.from_channels(...) for iterables.")
+
+        channel_map: dict[NoiseInstruction, ChannelType] = {}
+        for inst, channel in channels.items():
+            if channel.inst != inst:
+                raise ValueError(f"NoiseModel channel key {inst!r} does not match channel instruction {channel.inst!r}.")
+            channel_map[inst] = channel
+        object.__setattr__(self, "channels", MappingProxyType(channel_map))
 
     @cached_property
     def _channel_map(
         self,
-    ) -> dict[Gate | Measurement | ResetQubit, Channel | MeasurementChannel | ResetChannel | CycleChannel]:
+    ) -> Mapping[NoiseInstruction, ChannelType]:
         """Map from instruction to channel for fast lookup."""
-        return {ch.inst: ch for ch in self.channels}
+        return self.channels
 
     @overload
     def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...
@@ -145,6 +154,21 @@ class NoiseModel:
     # ──────────────────────────────────────────────
     # Constructors
     # ──────────────────────────────────────────────
+
+    @classmethod
+    def from_channels(cls: type[NoiseModel], channels: Iterable[ChannelType] = ()) -> NoiseModel:
+        """Create a noise model from an iterable of channels.
+
+        :param channels: Noise channels to include in the model.
+        :return: A NoiseModel keyed by each channel's instruction.
+        :raises ValueError: If more than one channel targets the same instruction.
+        """
+        channel_map: dict[NoiseInstruction, ChannelType] = {}
+        for channel in channels:
+            if channel.inst in channel_map:
+                raise ValueError(f"Duplicate noise channel for instruction {channel.inst!r}.")
+            channel_map[channel.inst] = channel
+        return cls(channels=channel_map)
 
     @classmethod
     def from_isa(cls: type[NoiseModel], compiler_isa: CompilerISA) -> NoiseModel:
@@ -218,7 +242,7 @@ class NoiseModel:
                     if fidelity is not None and fidelity < 1.0:
                         channels[inst] = Channel.from_gate_fidelity(inst=inst, fidelity=fidelity)
 
-        return cls(channels=channels.values())
+        return cls(channels=channels)
 
     # ──────────────────────────────────────────────
     # Serialization
@@ -230,7 +254,7 @@ class NoiseModel:
         :return: JSON string representation.
         """
         channel_data = []
-        for ch in self.channels:
+        for ch in self.channels.values():
             if isinstance(ch, (Channel, MeasurementChannel, ResetChannel, CycleChannel)):
                 channel_data.append({"type": type(ch).__name__, "data": ch.to_json()})
             else:
@@ -257,7 +281,7 @@ class NoiseModel:
             if ch_cls is None:
                 raise ValueError(f"Unknown channel type: {ch_data['type']}")
             channels.append(ch_cls.from_json(ch_data["data"]))  # type: ignore[attr-defined]
-        return cls(channels=channels)
+        return cls.from_channels(channels)
 
     # ──────────────────────────────────────────────
     # Dunder methods
@@ -267,7 +291,7 @@ class NoiseModel:
         """Check if two NoiseModels contain equivalent channel maps."""
         if not isinstance(other, NoiseModel):
             return False
-        return self._channel_map == other._channel_map
+        return dict(self.channels) == dict(other.channels)
 
     def __hash__(self) -> int:
         """Hash based on id (NoiseModel is not value-hashable due to array contents)."""
@@ -282,24 +306,35 @@ class NoiseModel:
         if not isinstance(other, NoiseModel):
             return NotImplemented
 
-        my_channels = {ch.inst: ch for ch in self.channels}
-        other_channels = {ch.inst: ch for ch in other.channels}
-
-        combined: list[Channel | MeasurementChannel | ResetChannel | CycleChannel] = []
-        all_insts = list(dict.fromkeys(list(my_channels) + list(other_channels)))
+        combined: dict[NoiseInstruction, ChannelType] = {}
+        all_insts = list(dict.fromkeys(list(self.channels) + list(other.channels)))
         for inst in all_insts:
-            mine = my_channels.get(inst)
-            theirs = other_channels.get(inst)
+            mine = self.channels.get(inst)
+            theirs = other.channels.get(inst)
             if mine is not None and theirs is not None:
                 # Both have a channel for this instruction — compose them
                 # (only same-type composition is defined)
                 composed = mine @ theirs  # type: ignore[operator]
-                combined.append(composed)
+                combined[inst] = composed
             elif mine is not None:
-                combined.append(mine)
+                combined[inst] = mine
             elif theirs is not None:
-                combined.append(theirs)
+                combined[inst] = theirs
 
+        return NoiseModel(channels=combined)
+
+    def with_channels(self, channels: Iterable[ChannelType]) -> NoiseModel:
+        """Return a new model with additional channels.
+
+        :param channels: New channels to add.
+        :return: A NoiseModel containing the existing and new channels.
+        :raises ValueError: If a new channel targets an instruction already in the model.
+        """
+        combined = dict(self.channels)
+        for channel in channels:
+            if channel.inst in combined:
+                raise ValueError(f"Duplicate noise channel for instruction {channel.inst!r}.")
+            combined[channel.inst] = channel
         return NoiseModel(channels=combined)
 
 

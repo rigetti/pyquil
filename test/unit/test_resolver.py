@@ -64,7 +64,7 @@ class TestExpandProgram:
     def test_noise_channel_resolved(self):
         p = Program(X(0))
         ch = Channel.from_gate_fidelity(inst=X(0), fidelity=0.99)
-        nm = NoiseModel(channels=[ch])
+        nm = NoiseModel.from_channels([ch])
         ops, _, _ = expand_program(p, nm)
         assert isinstance(ops[0], qx.SuperOp)
 
@@ -83,7 +83,7 @@ class TestExpandProgram:
         channels = tuple(
             Channel.from_depolarizing_constant(inst, depolarizing_constant=0.99) for inst in (RX(0.1, 0), RZ(0.2, 0))
         )
-        nm = NoiseModel(channels=[CycleChannel(inst=cycle_inst, defcircuit=dc, channels=channels)])
+        nm = NoiseModel.from_channels([CycleChannel(inst=cycle_inst, defcircuit=dc, channels=channels)])
         p = Program(dc, cycle_inst)
         ops, qubit_tuples, _ = expand_program(p, nm)
         assert len(ops) == 2
@@ -149,7 +149,7 @@ class TestResolverFromProgram:
     def test_with_noise(self):
         p = Program(X(0), H(1))
         ch = Channel.from_gate_fidelity(inst=X(0), fidelity=0.99)
-        nm = NoiseModel(channels=[ch])
+        nm = NoiseModel.from_channels([ch])
         resolver, dag = resolver_from_program(p, nm)
         ops = resolver(_EMPTY_PARAMS)
         assert len(ops) == 2

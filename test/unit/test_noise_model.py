@@ -210,14 +210,44 @@ class TestMeasurementChannel:
 class TestNoiseModel:
     def test_empty_model(self):
         """An empty NoiseModel has no channels."""
-        nm = NoiseModel(channels=())
+        nm = NoiseModel()
         assert nm.get_channel(RX(0.5, 0)) is None
+
+    def test_constructor_accepts_instruction_mapping(self):
+        """NoiseModel stores channels keyed by instruction."""
+        inst = RX(np.pi / 4, 0)
+        ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
+        nm = NoiseModel(channels={inst: ch})
+        assert nm.channels[inst] is ch
+        assert nm.get_channel(inst) is ch
+
+    def test_constructor_rejects_channel_iterable(self):
+        """Sequence construction should go through from_channels."""
+        inst = RX(np.pi / 4, 0)
+        ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
+        with pytest.raises(TypeError, match="from_channels"):
+            NoiseModel(channels=[ch])  # type: ignore[arg-type]
+
+    def test_constructor_rejects_mismatched_mapping_key(self):
+        """Mapping keys must match the instruction stored on each channel."""
+        inst = RX(np.pi / 4, 0)
+        ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
+        with pytest.raises(ValueError, match="does not match"):
+            NoiseModel(channels={RY(np.pi / 2, 0): ch})
+
+    def test_from_channels_rejects_duplicates(self):
+        """Duplicate instruction channels are ambiguous and rejected."""
+        inst = RX(np.pi / 4, 0)
+        ch1 = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
+        ch2 = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.97)
+        with pytest.raises(ValueError, match="Duplicate noise channel"):
+            NoiseModel.from_channels([ch1, ch2])
 
     def test_get_channel_gate(self):
         """NoiseModel.get_channel returns the correct Channel for a gate."""
         inst = RX(np.pi / 4, 0)
         ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
-        nm = NoiseModel(channels=[ch])
+        nm = NoiseModel.from_channels([ch])
         retrieved = nm.get_channel(inst)
         assert retrieved is ch
 
@@ -225,7 +255,7 @@ class TestNoiseModel:
         """get_channel returns None for instructions not in the model."""
         inst = RX(np.pi / 4, 0)
         ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
-        nm = NoiseModel(channels=[ch])
+        nm = NoiseModel.from_channels([ch])
         other_inst = RY(np.pi / 2, 1)
         assert nm.get_channel(other_inst) is None
 
@@ -237,10 +267,55 @@ class TestNoiseModel:
         ch1 = Channel.from_depolarizing_constant(inst=inst1, depolarizing_constant=0.99)
         ch2 = Channel.from_depolarizing_constant(inst=inst2, depolarizing_constant=0.97)
         ch3 = Channel.from_depolarizing_constant(inst=inst3, depolarizing_constant=0.95)
-        nm = NoiseModel(channels=[ch1, ch2, ch3])
+        nm = NoiseModel.from_channels([ch1, ch2, ch3])
         assert nm.get_channel(inst1) is ch1
         assert nm.get_channel(inst2) is ch2
         assert nm.get_channel(inst3) is ch3
+
+    def test_json_roundtrip(self):
+        """NoiseModel JSON keeps the existing channel-list wire format."""
+        ch = Channel.from_depolarizing_constant(inst=RX(np.pi / 4, 0), depolarizing_constant=0.98)
+        meas_ch = MeasurementChannel.from_readout_fidelity(inst=MEASURE(1, None), fidelity=0.95)
+        nm = NoiseModel.from_channels([ch, meas_ch])
+
+        restored = NoiseModel.from_json(nm.to_json())
+
+        assert restored == nm
+        assert set(restored.channels) == {ch.inst, meas_ch.inst}
+
+    def test_add_combines_disjoint_channels(self):
+        """NoiseModel addition preserves disjoint channels from both operands."""
+        ch1 = Channel.from_depolarizing_constant(inst=RX(np.pi / 4, 0), depolarizing_constant=0.98)
+        ch2 = Channel.from_depolarizing_constant(inst=RY(np.pi / 4, 1), depolarizing_constant=0.97)
+
+        combined = NoiseModel.from_channels([ch1]) + NoiseModel.from_channels([ch2])
+
+        assert combined.get_channel(ch1.inst) == ch1
+        assert combined.get_channel(ch2.inst) == ch2
+
+    def test_add_composes_overlapping_channels(self):
+        """NoiseModel addition composes channels with the same instruction."""
+        inst = RX(np.pi / 4, 0)
+        ch1 = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
+        ch2 = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.97)
+
+        combined = NoiseModel.from_channels([ch1]) + NoiseModel.from_channels([ch2])
+
+        assert combined.get_channel(inst) == (ch1 @ ch2)
+
+    def test_with_channels_returns_extended_model(self):
+        """with_channels returns a new model and rejects duplicate instructions."""
+        ch1 = Channel.from_depolarizing_constant(inst=RX(np.pi / 4, 0), depolarizing_constant=0.98)
+        ch2 = Channel.from_depolarizing_constant(inst=RY(np.pi / 4, 1), depolarizing_constant=0.97)
+        nm = NoiseModel.from_channels([ch1])
+
+        extended = nm.with_channels([ch2])
+
+        assert nm.get_channel(ch2.inst) is None
+        assert extended.get_channel(ch1.inst) is ch1
+        assert extended.get_channel(ch2.inst) is ch2
+        with pytest.raises(ValueError, match="Duplicate noise channel"):
+            nm.with_channels([ch1])
 
 
 # ──────────────────────────────────────────────────────────
@@ -300,7 +375,7 @@ class TestResetChannel:
         """An ideal reset on an excited qubit should produce |0><0|."""
         inst = RESET(0)
         ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
-        noise_model = NoiseModel(channels=[ch])
+        noise_model = NoiseModel.from_channels([ch])
         # Prepare |1> then reset
         program = Program(X(0), RESET(0))
         rho = _dm(program, noise_model=noise_model)
@@ -311,7 +386,7 @@ class TestResetChannel:
         """An ideal reset on a superposition state should produce |0><0|."""
         inst = RESET(0)
         ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
-        noise_model = NoiseModel(channels=[ch])
+        noise_model = NoiseModel.from_channels([ch])
         # Prepare |+> then reset
         program = Program(RX(np.pi / 2, 0), RESET(0))
         rho = _dm(program, noise_model=noise_model)
@@ -322,7 +397,7 @@ class TestResetChannel:
         """A noisy reset should produce a state with fidelity < 1 relative to |0><0|."""
         inst = RESET(0)
         ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=0.90)
-        noise_model = NoiseModel(channels=[ch])
+        noise_model = NoiseModel.from_channels([ch])
         program = Program(X(0), RESET(0))
         rho = _dm(program, noise_model=noise_model)
         target_rho = qx.zero_state_matrix(1)
@@ -334,7 +409,7 @@ class TestResetChannel:
         """Reset on one qubit should not affect the other qubit."""
         inst = RESET(0)
         ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
-        noise_model = NoiseModel(channels=[ch])
+        noise_model = NoiseModel.from_channels([ch])
         # Prepare |11> then reset qubit 0
         program = Program(X(0), X(1), RESET(0))
         rho = _dm(program, noise_model=noise_model)

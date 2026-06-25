@@ -465,7 +465,7 @@ class TestQutritMeasurements:
         meas_ch = MeasurementChannel.from_readout_fidelity(
             inst=meas_inst, fidelity=0.9, dim=3
         )
-        noise_model = NoiseModel(channels=[meas_ch])
+        noise_model = NoiseModel.from_channels([meas_ch])
 
         # Prepare |2> (TX|0>=|2>) and measure with noise
         p = Program()
@@ -604,7 +604,7 @@ class TestQutritNoiseChannels:
         """A depolarizing channel on a qutrit gate mixes the state."""
         inst = Gate("TX", [], [0])
         channel = Channel.from_gate_fidelity(inst=inst, fidelity=0.8)
-        noise_model = NoiseModel(channels=[channel])
+        noise_model = NoiseModel.from_channels([channel])
 
         # Density matrix should show mixed state
         p = Program(Gate("TX", [], [0]))
@@ -618,7 +618,7 @@ class TestQutritNoiseChannels:
         """Trajectory simulation with qutrit depolarizing noise."""
         inst = Gate("TX", [], [0])
         channel = Channel.from_gate_fidelity(inst=inst, fidelity=0.9)
-        noise_model = NoiseModel(channels=[channel])
+        noise_model = NoiseModel.from_channels([channel])
 
         p = Program()
         p += Gate("TX", [], [0])
@@ -639,7 +639,7 @@ class TestQutritNoiseChannels:
 
         reset_inst = ResetQubit(Qubit(0))
         reset_ch = ResetChannel.from_reset_fidelity(inst=reset_inst, fidelity=0.9, dim=3)
-        noise_model = NoiseModel(channels=[reset_ch])
+        noise_model = NoiseModel.from_channels([reset_ch])
 
         # Prepare |1> (TX^2|0>=|1>), then reset — should mostly go to |0>
         p = Program()
@@ -667,7 +667,7 @@ class TestQutritNoiseChannels:
         ch_qutrit = Channel.from_gate_fidelity(
             inst=Gate("TX", [], [1]), fidelity=0.95
         )
-        noise_model = NoiseModel(channels=[ch_qubit, ch_qutrit])
+        noise_model = NoiseModel.from_channels([ch_qubit, ch_qutrit])
 
         p = Program()
         p += X(0)
