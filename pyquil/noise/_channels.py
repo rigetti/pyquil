@@ -38,6 +38,8 @@ import quax as qx
 from jax import Array
 from quil.expression import Expression as QuilExpression
 from quil.program import Program as RSProgram
+from scipy.linalg import expm as scipy_expm
+from scipy.linalg import fractional_matrix_power
 from scipy.linalg import logm as scipy_logm
 
 from pyquil.quilatom import Expression, FormalArgument, Parameter, substitute
@@ -381,16 +383,16 @@ class Channel:
             raise ValueError("Pauli error rates plus the implicit identity rate must sum to 1.0.")
         pauli_error_rates = list(reversed(pauli_error_rates))
 
-        # Build Pauli Kraus operators using quax ensembles
-        single_paulis = qx.ensembles.PAULIS  # ensemble of (I, X, Y, Z)
-        if num_qubits == 1:
-            pauli_ops = single_paulis
-        else:
-            pauli_ops = reduce(lambda a, b: a | b, [single_paulis for _ in range(num_qubits)])
+        # Build the 4**num_qubits Pauli operators as tensor (Kronecker) products of the
+        # single-qubit Paulis, in lexicographic (I, X, Y, Z) order matching pauli_error_rates.
+        single_pauli_matrices = qx.ensembles.PAULIS.matrix  # (4, 2, 2): I, X, Y, Z
+        pauli_op_matrices = jnp.stack(
+            [reduce(jnp.kron, paulis) for paulis in product(single_pauli_matrices, repeat=num_qubits)]
+        )  # (4**num_qubits, 2**num_qubits, 2**num_qubits)
 
         # Scale each Pauli by sqrt(probability) to form Kraus operators
         coeffs = jnp.sqrt(jnp.array(pauli_error_rates, dtype=float))
-        kraus_matrices = coeffs[:, None, None] * pauli_ops.matrix
+        kraus_matrices = coeffs[:, None, None] * pauli_op_matrices
         kraus_map = qx.KrausMap.from_matrix(kraus_matrices, unitary.dims)
 
         process_superop = qx.to_superop(kraus_map @ unitary)
@@ -807,12 +809,20 @@ class Channel:
         return f"<{self.inst.out()} ~ ({100 * self.pauli_fidelity:.2f}%)>"
 
     def __eq__(self, other: object) -> bool:
-        """Check equality based on instruction and process fidelity."""
+        """Check equality by instruction and exact process and ideal-gate matrices.
+
+        Equality is exact (no fidelity tolerance): two channels are equal only if they
+        share the same instruction and bit-for-bit identical process and target-unitary
+        matrices. Making tolerance decisions on the user's behalf is deliberately avoided.
+        """
         if not isinstance(other, Channel):
             return False
         if self.inst != other.inst:
             return False
-        return bool(jnp.isclose(float(qx.process_fidelity(self.process, other.process)), 1.0, atol=1e-9))
+        return bool(
+            jnp.array_equal(self.process.matrix, other.process.matrix)
+            and jnp.array_equal(self.target_unitary.matrix, other.target_unitary.matrix)
+        )
 
     __hash__ = None  # type: ignore[assignment]
 
@@ -836,6 +846,22 @@ class Channel:
         u_dag_superop = qx.to_superop(self.unitary.h)
         composed_superop = qx.to_superop(self.process @ u_dag_superop @ other.process)
         return replace(self, process=composed_superop)
+
+    def __pow__(self, power: float) -> Channel:
+        r"""Raise the channel's noise to a fractional ``power``, preserving the gate.
+
+        With the channel written :math:`\\mathcal{E} = \\Lambda \\circ \\mathcal{U}`, this returns
+        :math:`\\Lambda^{power} \\circ \\mathcal{U}`: only the noise :math:`\\Lambda` is raised to the
+        fractional matrix power, while the ideal gate is kept. So ``power = 0`` yields the noiseless
+        gate, ``1`` leaves the channel unchanged, and ``> 1`` strengthens the noise. This is the knob
+        used to sweep noise strength.
+        """
+        if not isinstance(power, (int, float)):
+            return NotImplemented
+        powered_noise_matrix = fractional_matrix_power(np.asarray(self.noise_process.matrix), power)
+        powered_noise = qx.SuperOp.from_matrix(jnp.asarray(powered_noise_matrix), self.noise_process.dims)
+        process = qx.to_superop(powered_noise @ qx.to_superop(self.unitary))
+        return replace(self, process=process)
 
     def __or__(self, other: Channel | MeasurementChannel) -> CycleChannel:
         """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
@@ -1173,12 +1199,12 @@ class MeasurementChannel:
         return f"<MEASURE({self.classification_fidelity:.2f}) {self.qubits[0]} ~ QND({100 * self.non_demolition_fidelity:.2f}%)>"
 
     def __eq__(self, other: object) -> bool:
-        """Check equality based on instruction and operator."""
+        """Check equality by instruction and exact instrument matrix (no tolerance)."""
         if not isinstance(other, MeasurementChannel):
             return False
         if self.inst != other.inst:
             return False
-        return bool(jnp.allclose(self.process.matrix, other.process.matrix, atol=1e-9))
+        return bool(jnp.array_equal(self.process.matrix, other.process.matrix))
 
     __hash__ = None  # type: ignore[assignment]
 
@@ -1196,6 +1222,47 @@ class MeasurementChannel:
             )
         composed = self.process @ other.process
         return replace(self, process=composed)
+
+    def __pow__(self, power: float) -> MeasurementChannel:
+        r"""Raise the measurement's classification noise to a fractional ``power``.
+
+        The confusion and transition matrices are column-stochastic, so a fractional power is
+        only well-defined through their *generator*: with :math:`M = e^{G}` (where :math:`G` has
+        zero column sums), the principled power is :math:`M^{p} = e^{p G}`, which is again
+        column-stochastic.  This avoids the non-physical (e.g. negative) entries that a naive
+        ``fractional_matrix_power`` of a stochastic matrix can produce.
+
+        So ``power = 0`` is an ideal (noiseless) measurement, ``1`` leaves it unchanged, and
+        ``> 1`` degrades it.  Mirrors :meth:`Channel.__pow__` for sweeping readout-noise strength.
+
+        :raises ValueError: If the matrix is not embeddable (no real generator) so that the
+            powered matrix is not a valid stochastic matrix.
+        """
+        if not isinstance(power, (int, float)):
+            return NotImplemented
+
+        def _powered_stochastic(matrix: Array) -> Array:
+            m = np.asarray(matrix, dtype=complex)
+            # Generator G = log(M); M**power = exp(power * G). Zero column sums of G are
+            # preserved under scaling, so exp(power * G) stays column-stochastic.
+            powered = scipy_expm(power * scipy_logm(m))
+            if np.max(np.abs(powered.imag)) > 1e-9:
+                raise ValueError(
+                    f"MeasurementChannel ** {power} has no real generator; the matrix is not "
+                    "embeddable, so the powered measurement is not a valid stochastic matrix."
+                )
+            powered = powered.real
+            if np.any(powered < -1e-9) or not np.allclose(powered.sum(axis=0), 1.0, atol=1e-6):
+                raise ValueError(
+                    f"MeasurementChannel ** {power} is not a valid (non-negative, column-stochastic) "
+                    "matrix; the underlying confusion/transition matrix is not embeddable for this power."
+                )
+            # Clip away sub-tolerance numerical negatives validated above.
+            return jnp.asarray(np.clip(powered, 0.0, None))
+
+        confusion = _powered_stochastic(self.confusion_matrix)
+        transition = _powered_stochastic(self.transition_matrix)
+        return MeasurementChannel.from_confusion_and_transition(self.inst, confusion, transition)
 
     def __or__(self, other: Channel | MeasurementChannel) -> CycleChannel:
         """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
@@ -1374,12 +1441,12 @@ class ResetChannel:
         return f"<RESET({self.fidelity:.2f}) {qubit_str}>"
 
     def __eq__(self, other: object) -> bool:
-        """Check equality based on instruction and process matrix."""
+        """Check equality by instruction and exact process matrix (no tolerance)."""
         if not isinstance(other, ResetChannel):
             return False
         if self.inst != other.inst:
             return False
-        return bool(jnp.allclose(self.process.matrix, other.process.matrix, atol=1e-9))
+        return bool(jnp.array_equal(self.process.matrix, other.process.matrix))
 
     __hash__ = None  # type: ignore[assignment]
 

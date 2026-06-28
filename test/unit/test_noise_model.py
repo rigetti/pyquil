@@ -19,10 +19,12 @@ import numpy as np
 import pytest
 import quax as qx
 
+from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, X
 from pyquil.noise._channels import Channel, MeasurementChannel, ResetChannel, get_instruction_unitary
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
+from pyquil.quilatom import Qubit
 from pyquil.quilbase import Gate, Measurement, ResetQubit
 from pyquil.simulation._simulator import DensityMatrixSimulator
 
@@ -137,6 +139,29 @@ class TestChannel:
         with pytest.raises(ValueError, match="at most 1.0"):
             Channel.from_pauli_noise(inst=RX(0.5, 0), pauli_noise={"X": 0.6, "Z": 0.5})
 
+    def test_from_pauli_noise_two_qubit(self):
+        """from_pauli_noise builds the correct 16-term Pauli channel for a 2Q gate (regression)."""
+        pauli_noise = {"IX": 0.01, "XI": 0.005, "ZZ": 0.02}
+        ch = Channel.from_pauli_noise(inst=CNOT(0, 1), pauli_noise=pauli_noise)
+        pv = np.asarray(ch.pauli_vector)
+        assert pv.size == 16
+        assert float(jnp.sum(ch.pauli_vector)) == pytest.approx(1.0, abs=1e-3)
+        terms = [a + b for a in "IXYZ" for b in "IXYZ"]
+        rates = dict(zip(terms, pv, strict=True))
+        for term, rate in pauli_noise.items():
+            assert rates[term] == pytest.approx(rate, abs=1e-3)
+        assert rates["II"] == pytest.approx(1.0 - sum(pauli_noise.values()), abs=1e-3)
+
+    def test_pow_scales_noise(self):
+        """Channel ** power scales the noise while preserving the gate."""
+        ch = Channel.from_depolarizing_constant(inst=RX(np.pi / 2, 0), depolarizing_constant=0.99)
+        assert (ch**0.0).pauli_infidelity == pytest.approx(0.0, abs=1e-3)
+        assert (ch**1.0).pauli_infidelity == pytest.approx(ch.pauli_infidelity, abs=1e-3)
+        assert (ch**2.0).pauli_infidelity > ch.pauli_infidelity
+        # The ideal gate is preserved.
+        assert (ch**2.0).qubits == ch.qubits
+        assert jnp.allclose((ch**2.0).target_unitary.matrix, ch.target_unitary.matrix)
+
     def test_json_roundtrip_preserves_qutrit_dims(self):
         """Channel JSON includes explicit dims for non-qubit operators."""
         qutrit_x = jnp.array(
@@ -188,6 +213,35 @@ class TestMeasurementChannel:
         ch = MeasurementChannel.from_readout_fidelity(inst=meas_inst, fidelity=0.99)
         assert ch.qubits == [5]
 
+    @pytest.mark.parametrize("asymmetry", [0.0, 0.5])
+    def test_pow_scales_readout_noise(self, asymmetry):
+        """MeasurementChannel ** power scales readout noise via the stochastic generator."""
+        prog = Program(MEASURE(0, None))
+        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
+        ch = MeasurementChannel.from_readout_fidelity(inst=meas_inst, fidelity=0.95, asymmetry=asymmetry)
+
+        def bitflip(channel):
+            cm = np.asarray(channel.confusion_matrix)
+            return 1.0 - 0.5 * (float(cm[0, 0]) + float(cm[1, 1]))
+
+        assert bitflip(ch**0.0) == pytest.approx(0.0, abs=1e-3)
+        assert bitflip(ch**1.0) == pytest.approx(bitflip(ch), abs=1e-3)
+        assert bitflip(ch**2.0) > bitflip(ch)
+        # The generator construction keeps the result exactly column-stochastic and non-negative.
+        powered = np.asarray((ch**1.5).confusion_matrix)
+        assert np.all(powered >= -1e-9)
+        assert np.allclose(powered.sum(axis=0), 1.0, atol=1e-6)
+
+    def test_pow_rejects_non_embeddable_measurement(self):
+        """A confusion matrix with no real generator cannot be fractionally powered."""
+        prog = Program(MEASURE(0, None))
+        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
+        # Near-complete bit flip: eigenvalue ~ -0.8, so the matrix is not embeddable.
+        confusion = jnp.array([[0.1, 0.9], [0.9, 0.1]])
+        ch = MeasurementChannel.from_confusion_and_transition(meas_inst, confusion, jnp.eye(2))
+        with pytest.raises(ValueError, match="not embeddable|not a valid"):
+            _ = ch**0.5
+
     def test_json_roundtrip_preserves_qutrit_dims(self):
         """MeasurementChannel JSON includes explicit dims for non-qubit instruments."""
         prog = Program(MEASURE(0, None))
@@ -227,6 +281,28 @@ class TestNoiseModel:
         ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
         with pytest.raises(TypeError, match="from_channels"):
             NoiseModel(channels=[ch])  # type: ignore[arg-type]
+
+    def test_pickle_roundtrip(self):
+        """NoiseModel survives pickling (its MappingProxyType channels would otherwise block it).
+
+        This is what lets a model be shipped to multiprocessing workers.
+        """
+        import pickle
+
+        gate = RX(np.pi / 4, 0)
+        prog = Program(MEASURE(0, None))
+        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
+        nm = NoiseModel.from_channels(
+            [
+                Channel.from_depolarizing_constant(inst=gate, depolarizing_constant=0.98),
+                MeasurementChannel.from_readout_fidelity(inst=meas_inst, fidelity=0.95),
+            ]
+        )
+        restored = pickle.loads(pickle.dumps(nm))
+        assert set(restored.channels) == set(nm.channels)
+        assert isinstance(restored.get_channel(gate), Channel)
+        # Channels survive the round-trip intact (exercises value-based __eq__).
+        assert restored == nm
 
     def test_constructor_rejects_mismatched_mapping_key(self):
         """Mapping keys must match the instruction stored on each channel."""
@@ -293,15 +369,14 @@ class TestNoiseModel:
         assert combined.get_channel(ch1.inst) == ch1
         assert combined.get_channel(ch2.inst) == ch2
 
-    def test_add_composes_overlapping_channels(self):
-        """NoiseModel addition composes channels with the same instruction."""
+    def test_add_rejects_overlapping_channels(self):
+        """Addition is a disjoint union; a shared instruction is a conflict, not a composition."""
         inst = RX(np.pi / 4, 0)
         ch1 = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
         ch2 = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.97)
 
-        combined = NoiseModel.from_channels([ch1]) + NoiseModel.from_channels([ch2])
-
-        assert combined.get_channel(inst) == (ch1 @ ch2)
+        with pytest.raises(ValueError, match="same instruction"):
+            _ = NoiseModel.from_channels([ch1]) + NoiseModel.from_channels([ch2])
 
     def test_with_channels_returns_extended_model(self):
         """with_channels returns a new model and rejects duplicate instructions."""
@@ -316,6 +391,12 @@ class TestNoiseModel:
         assert extended.get_channel(ch2.inst) is ch2
         with pytest.raises(ValueError, match="Duplicate noise channel"):
             nm.with_channels([ch1])
+
+    def test_noise_model_is_unhashable(self):
+        """NoiseModel is unhashable (consistent with value-based equality)."""
+        nm = NoiseModel.from_channels([Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)])
+        with pytest.raises(TypeError):
+            hash(nm)
 
 
 # ──────────────────────────────────────────────────────────
@@ -438,3 +519,119 @@ class TestResetChannel:
         assert restored.inst == channel.inst
         assert restored.process.dims == ((3,), (3,))
         assert jnp.allclose(restored.process.matrix, channel.process.matrix)
+
+
+# ──────────────────────────────────────────────────────────
+# Channel equality / hashing semantics
+# ──────────────────────────────────────────────────────────
+
+
+class TestChannelEqualityAndHashing:
+    def test_channels_are_unhashable(self):
+        """Channels hold jax arrays and are intentionally unhashable."""
+        ch = Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)
+        with pytest.raises(TypeError):
+            hash(ch)
+
+    def test_channel_equality_is_exact(self):
+        """Channel equality is exact: identical builds are equal, different ones are not."""
+        ch1 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)
+        ch2 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)
+        ch3 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.97)
+        assert ch1 == ch2
+        assert ch1 != ch3
+        assert ch1 != "not a channel"
+
+    def test_channel_inequality_on_different_instruction(self):
+        """Channels on different instructions are never equal."""
+        ch_a = Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)
+        ch_b = Channel.from_depolarizing_constant(RX(0.5, 1), 0.98)
+        assert ch_a != ch_b
+
+
+# ──────────────────────────────────────────────────────────
+# Channel construction / analysis coverage
+# ──────────────────────────────────────────────────────────
+
+
+class TestChannelAnalysis:
+    def test_from_mixture(self):
+        """from_mixture builds a noisy channel from unitary errors with probabilities."""
+        z = qx.Unitary.from_matrix(jnp.array([[1, 0], [0, -1]], dtype=complex), ((2,), (2,)))
+        ch = Channel.from_mixture(X(0), constituents=[z], probabilities=[0.1])
+        assert isinstance(ch.process, qx.SuperOp)
+        assert ch.pauli_infidelity > 0.0
+
+    def test_coherent_and_stochastic_decomposition(self):
+        """to_coherent_channel / to_stochastic_channel split the noise into components."""
+        ch = Channel.from_random_coherent_error(X(0), process_fidelity=0.95, rng=np.random.default_rng(0))
+        coherent = ch.to_coherent_channel()
+        stochastic = ch.to_stochastic_channel()
+        assert isinstance(coherent, Channel)
+        assert isinstance(stochastic, Channel)
+        # Coherent + stochastic infidelity decomposition is non-negative and finite.
+        assert np.isfinite(ch.coherent_infidelity)
+        assert np.isfinite(ch.stochastic_infidelity)
+
+    def test_pauli_twirl_is_pauli(self):
+        """Twirling a coherent-error channel yields a stochastic Pauli channel."""
+        ch = Channel.from_random_coherent_error(X(0), process_fidelity=0.95, rng=np.random.default_rng(1))
+        twirled = ch.pauli_twirl()
+        assert twirled.is_pauli()
+
+
+# ──────────────────────────────────────────────────────────
+# NoiseModel.from_isa
+# ──────────────────────────────────────────────────────────
+
+
+class TestFromIsa:
+    @staticmethod
+    def _isa() -> CompilerISA:
+        return CompilerISA.parse_obj(
+            {
+                "1Q": {
+                    "0": {
+                        "id": 0,
+                        "gates": [
+                            {
+                                "operator_type": "gate",
+                                "operator": "RX",
+                                "parameters": [1.5707963267948966],
+                                "arguments": ["_"],
+                                "fidelity": 0.99,
+                            },
+                            # A fidelity-less measurement entry must not mask the real one below.
+                            {"operator_type": "measure", "qubit": "0", "fidelity": None},
+                            {"operator_type": "measure", "qubit": "0", "fidelity": 0.95},
+                        ],
+                    },
+                    "1": {"id": 1, "gates": []},
+                },
+                "2Q": {
+                    "0-1": {
+                        "ids": [0, 1],
+                        "gates": [
+                            {
+                                "operator_type": "gate",
+                                "operator": "CZ",
+                                "parameters": [],
+                                "arguments": ["_", "_"],
+                                "fidelity": 0.9,
+                            }
+                        ],
+                    }
+                },
+            }
+        )
+
+    def test_builds_gate_and_edge_channels(self):
+        nm = NoiseModel.from_isa(self._isa())
+        assert isinstance(nm.get_channel(Gate("RX", [1.5707963267948966], [0])), Channel)
+        assert isinstance(nm.get_channel(Gate("CZ", [], [0, 1])), Channel)
+
+    def test_measurement_dedup_prefers_real_fidelity(self):
+        """A None-fidelity measure entry must not block a later usable one (dedup ordering)."""
+        nm = NoiseModel.from_isa(self._isa())
+        channel = nm.get_channel(Measurement(qubit=Qubit(0), classical_reg=None))
+        assert isinstance(channel, MeasurementChannel)

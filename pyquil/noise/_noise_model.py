@@ -25,7 +25,6 @@ This module defines:
   depolarizing channel for any gate.
 - ``CompositeNoiseModel``: Chains multiple noise models, returning the first
   non-None channel.
-- ``NO_NOISE``: A sentinel noise model that always returns ``None``.
 - Program-level fidelity estimation utilities.
 """
 
@@ -35,7 +34,7 @@ import json
 import logging
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from functools import cached_property, reduce
+from functools import reduce
 from operator import mul
 from types import MappingProxyType
 from typing import (
@@ -127,12 +126,12 @@ class NoiseModel:
             channel_map[inst] = channel
         object.__setattr__(self, "channels", MappingProxyType(channel_map))
 
-    @cached_property
-    def _channel_map(
-        self,
-    ) -> Mapping[NoiseInstruction, ChannelType]:
-        """Map from instruction to channel for fast lookup."""
-        return self.channels
+    def __getstate__(self) -> dict[str, dict[NoiseInstruction, ChannelType]]:
+        # ``channels`` is a MappingProxyType (unpicklable); serialize it as a plain dict.
+        return {"channels": dict(self.channels)}
+
+    def __setstate__(self, state: Mapping[str, Mapping[NoiseInstruction, ChannelType]]) -> None:
+        object.__setattr__(self, "channels", MappingProxyType(dict(state["channels"])))
 
     @overload
     def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...
@@ -151,7 +150,7 @@ class NoiseModel:
         :param inst: The instruction (gate, measurement, or reset) for which to retrieve the noise channel.
         :return: The noise channel associated with the instruction, or None if no channel is found.
         """
-        return self._channel_map.get(inst)
+        return self.channels.get(inst)
 
     # ──────────────────────────────────────────────
     # Constructors
@@ -179,6 +178,13 @@ class NoiseModel:
         Gate fidelities are converted to depolarizing channels and measurement
         errors are symmetric. Only gates with concrete numeric parameters are
         included.
+
+        .. note::
+            Two-qubit gate channels are keyed by the ISA edge's operand order
+            (e.g. ``CZ 0 1``). A program that issues the gate with the operands
+            reversed (``CZ 1 0``) will not match this channel, even for symmetric
+            gates. Issue gates in the ISA operand order, or build channels
+            explicitly for both orderings.
 
         :param compiler_isa: The compiler ISA.
         :return: A NoiseModel with channels according to the provided fidelities.
@@ -220,9 +226,11 @@ class NoiseModel:
                     fidelity = op_info.fidelity
                     if qubit_idx in seen_measure_qubits:
                         continue
-                    seen_measure_qubits.add(qubit_idx)
                     if fidelity is None:
+                        # Don't mark the qubit seen on a fidelity-less entry; a later
+                        # MeasureInfo for the same qubit may carry a usable fidelity.
                         continue
+                    seen_measure_qubits.add(qubit_idx)
                     m_inst = Measurement(qubit=QuilQubit(qubit_idx), classical_reg=None)
                     channels[m_inst] = MeasurementChannel.from_readout_fidelity(inst=m_inst, fidelity=fidelity)
 
@@ -295,35 +303,32 @@ class NoiseModel:
             return False
         return dict(self.channels) == dict(other.channels)
 
-    def __hash__(self) -> int:
-        """Hash based on id (NoiseModel is not value-hashable due to array contents)."""
-        return id(self)
+    # Unhashable: its channels hold jax arrays and are themselves unhashable, and an
+    # ``id``-based hash would be inconsistent with the value-based ``__eq__``.
+    __hash__ = None  # type: ignore[assignment]
 
     def __add__(self, other: NoiseModel) -> NoiseModel:
-        """Combine two NoiseModels.
+        """Combine two NoiseModels into their disjoint union.
 
-        For channels with matching instructions, compose them (``channel_A @ channel_B``).
-        For non-overlapping channels, include both.
+        The two models must not both define a channel for the same instruction.
+        Addition is a union of channels, not a composition: overlapping channels are
+        a conflict, not an "addition". Compose channels explicitly
+        (``channel_a @ channel_b``) if that is what you intend.
+
+        :raises ValueError: If both models define a channel for the same instruction.
         """
         if not isinstance(other, NoiseModel):
             return NotImplemented
 
-        combined: dict[NoiseInstruction, ChannelType] = {}
-        all_insts = list(dict.fromkeys(list(self.channels) + list(other.channels)))
-        for inst in all_insts:
-            mine = self.channels.get(inst)
-            theirs = other.channels.get(inst)
-            if mine is not None and theirs is not None:
-                # Both have a channel for this instruction — compose them
-                # (only same-type composition is defined)
-                composed = mine @ theirs  # type: ignore[operator]
-                combined[inst] = composed
-            elif mine is not None:
-                combined[inst] = mine
-            elif theirs is not None:
-                combined[inst] = theirs
+        overlap = set(self.channels) & set(other.channels)
+        if overlap:
+            insts = ", ".join(repr(inst) for inst in overlap)
+            raise ValueError(
+                f"Cannot add NoiseModels: both define a channel for the same instruction(s): {insts}. "
+                "Addition is a disjoint union; compose the channels explicitly if that is intended."
+            )
 
-        return NoiseModel(channels=combined)
+        return NoiseModel(channels={**self.channels, **other.channels})
 
     def with_channels(self, channels: Iterable[ChannelType]) -> NoiseModel:
         """Return a new model with additional channels.
@@ -343,10 +348,6 @@ class NoiseModel:
 # ──────────────────────────────────────────────────────────
 # Convenience NoiseModelLike implementations
 # ──────────────────────────────────────────────────────────
-
-
-NOISELESS: NoiseModelLike = NoiseModel()
-"""Sentinel noise model that applies no noise to any instruction."""
 
 
 @dataclass(frozen=True)
@@ -431,9 +432,7 @@ def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> 
     for inst in program.instructions:
         if isinstance(inst, Gate):
             channel = noise_model.get_channel(inst)
-            if channel is not None and isinstance(channel, Channel):
-                gate_fidelities.append(channel.pauli_fidelity)
-            elif channel is not None and isinstance(channel, CycleChannel):
+            if isinstance(channel, (Channel, CycleChannel)):
                 gate_fidelities.append(channel.pauli_fidelity)
 
     return reduce(mul, gate_fidelities)

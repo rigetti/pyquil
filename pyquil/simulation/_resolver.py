@@ -35,7 +35,7 @@ import heapq
 import logging
 from collections.abc import Callable, Iterator, Mapping
 from copy import deepcopy
-from typing import Any, TypeAlias, cast
+from typing import Any, NamedTuple, TypeAlias, cast
 
 import jax.numpy as jnp
 import networkx as nx
@@ -44,6 +44,7 @@ from jax import Array
 
 from pyquil.noise._channels import (
     Channel,
+    CustomGateMap,
     CycleChannel,
     MeasurementChannel,
     ResetChannel,
@@ -182,10 +183,37 @@ def _measure_registers(program: Program) -> set[str]:
     return regs
 
 
+class _ExpansionContext(NamedTuple):
+    """Program-level derivations that are independent of qubit dimensions.
+
+    Computing these once lets :func:`resolve_program` expand a program twice
+    (dimension inference, then final expansion) without re-deriving the custom
+    gates, circuit definitions, etc. on each pass.
+    """
+
+    circuit_definitions: dict[str, DefCircuit]
+    custom_gates: CustomGateMap | None
+    measure_regs: set[str]
+    all_qubits: list[int]
+
+
+def _build_expansion_context(program: Program) -> _ExpansionContext:
+    """Derive the dimension-independent expansion context for a program."""
+    circuit_definitions: dict[str, DefCircuit] = {
+        inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)
+    }
+    custom_gates = get_custom_gates_from_program(program) or None
+    measure_regs = _measure_registers(program)
+    all_qubits = sorted(program.get_qubit_indices())
+    return _ExpansionContext(circuit_definitions, custom_gates, measure_regs, all_qubits)
+
+
 def expand_program(
     program: Program,
     noise_model: NoiseModelLike | None = None,
     qubit_dimensions: Mapping[int, int] | None = None,
+    *,
+    context: _ExpansionContext | None = None,
 ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
     """Expand a program into operators and physical qubit tuples.
 
@@ -209,22 +237,22 @@ def expand_program(
     :param qubit_dimensions: Optional mapping from physical qubit id to its
         Hilbert-space dimension. Used for ideal measurement and reset operators,
         whose quax constructors otherwise default to qubit dimension.
+    :param context: Optional precomputed :class:`_ExpansionContext`. When omitted
+        it is derived from the program; pass it to avoid recomputing the
+        dimension-independent derivations across multiple expansion passes.
     :return: Tuple of ``(ops, qubit_tuples, param_refs)`` where each op is
         either a concrete quax operator or a ``Callable[[Array], Unitary]``
         for parameterized gates, each qubit tuple contains physical qubit
         IDs, and ``param_refs`` is a list of ``(register_name, offset)``
         pairs for each scalar parameter in program order.
     """
-    # Derive circuit definitions and custom gates from the program.
-    circuit_definitions: dict[str, DefCircuit] = {}
-    for inst in program.instructions:
-        if isinstance(inst, DefCircuit):
-            circuit_definitions[inst.name] = inst
-
-    custom_gates = get_custom_gates_from_program(program) or None
-
-    measure_regs = _measure_registers(program)
-    all_qubits = sorted(program.get_qubit_indices())
+    # Derive (or reuse) the dimension-independent program context.
+    if context is None:
+        context = _build_expansion_context(program)
+    circuit_definitions = context.circuit_definitions
+    custom_gates = context.custom_gates
+    measure_regs = context.measure_regs
+    all_qubits = context.all_qubits
 
     ops: list[ExpandedOp] = []
     qubit_tuples: list[tuple[int, ...]] = []
@@ -387,90 +415,95 @@ def _infer_dims(resolved: list[ResolvedOp], n_qubits: int) -> tuple[int, ...]:
 # ══════════════════════════════════════════════════════════
 
 
-class Resolver:
-    """Resolves a flat parameter vector into a list of (operator, subsystem) pairs.
+def _freeze_resolver(
+    ops: list[ExpandedOp],
+    subsystems: list[tuple[int, ...]],
+) -> Callable[[Array], list[ResolvedOp]]:
+    """Build the closure that turns a parameter vector into resolved operations.
 
-    Constructed via :func:`resolver_from_program`. Call instances directly::
-
-        resolver = resolver_from_program(program, ...)
-        ops = resolver(params)
-
-    :param dims: Inferred per-qudit dimensions (e.g. ``(2, 2, 3)``).
+    Fixed operators pass straight through; ``ParametricGate`` items are called
+    with the parameter vector to produce a concrete ``Unitary``.
     """
-
-    __slots__ = ("_resolve_fn", "dims")
-
-    def __init__(self, resolve_fn: Callable[[Array], list[ResolvedOp]], dims: tuple[int, ...]) -> None:
-        self._resolve_fn = resolve_fn
-        self.dims = dims
-
-    def __call__(self, params: Array) -> list[ResolvedOp]:
-        return self._resolve_fn(params)
-
-
-def resolver_from_program(
-    program: Program,
-    noise_model: NoiseModelLike | None = None,
-    qubits: list[int] | None = None,
-) -> tuple[Resolver, nx.DiGraph]:
-    """Build a :class:`Resolver` and dependency DAG from a program.
-
-    The resolver accepts a flat parameter vector and produces one
-    ``(operator, subsystem)`` pair per operation, in program order.
-
-    Operators are returned in their most specific native type:
-
-    * Ideal gates → ``qx.Unitary``
-    * Noisy gates (``Channel``) → ``qx.SuperOp``
-    * Expanded cycle gates with ``CycleChannel`` noise → constituent ``qx.SuperOp``
-    * Measurements → ``qx.QuantumInstrument``
-    * Noisy resets (``ResetChannel``) → ``qx.SuperOp``
-    * Ideal resets → ``qx.SuperOp``
-
-    Custom gate definitions (DEFGATE) and circuit definitions (DEFCIRCUIT)
-    are derived from the program automatically.
-
-    :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
-    :param noise_model: Optional noise model.
-    :param qubits: Optional explicit qubit list. If ``None``, inferred from
-        the program. Use this when the simulator knows about qubits that
-        don't appear in the program.
-    :return: Tuple of ``(Resolver, dag)``.
-    """
-    if qubits is None:
-        qubits = sorted(program.get_qubit_indices())
-    qubit_indices = {q: i for i, q in enumerate(qubits)}
-    n_qubits = len(qubits)
-
-    initial_expanded_ops, initial_phys_qubits, initial_param_refs = expand_program(program, noise_model)
-    initial_mapped_qubits = remap_qubits(initial_phys_qubits, qubit_indices)
-    initial_frozen_ops = list(zip(initial_expanded_ops, initial_mapped_qubits, strict=False))
-
-    def initial_resolve(params: Array) -> list[ResolvedOp]:
-        return [
-            (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
-            for item, subsystem in initial_frozen_ops
-        ]
-
-    dims = _infer_dims(initial_resolve(jnp.zeros(len(initial_param_refs))), n_qubits)
-
-    qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
-    expanded_ops, phys_qubits, _param_refs = expand_program(
-        program,
-        noise_model,
-        qubit_dimensions=qubit_dimensions,
-    )
-    mapped_qubits = remap_qubits(phys_qubits, qubit_indices)
-    dag = build_dag(mapped_qubits)
-    frozen_ops = list(zip(expanded_ops, mapped_qubits, strict=False))
+    frozen = list(zip(ops, subsystems, strict=False))
 
     def resolve(params: Array) -> list[ResolvedOp]:
         return [
             (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
-            for item, subsystem in frozen_ops
+            for item, subsystem in frozen
         ]
 
-    return Resolver(resolve, dims=dims), dag
+    return resolve
+
+
+class Resolution(NamedTuple):
+    """Everything the simulators need from a program after expansion.
+
+    :param dims: Inferred per-qudit dimensions (e.g. ``(2, 2, 3)``).
+    :param ops: Expanded operators, one per DAG node, in program order.
+    :param subsystems: 0-based qubit tuple each operator acts on.
+    :param param_refs: ``(register_name, offset)`` for each scalar parameter.
+    :param resolve: Closure mapping a parameter vector to ``(operator, subsystem)`` pairs.
+    """
+
+    dims: tuple[int, ...]
+    ops: list[ExpandedOp]
+    subsystems: list[tuple[int, ...]]
+    param_refs: list[tuple[str, int]]
+    resolve: Callable[[Array], list[ResolvedOp]]
+
+
+def resolve_program(
+    program: Program,
+    noise_model: NoiseModelLike | None = None,
+    qubits: list[int] | None = None,
+    dims: tuple[int, ...] | None = None,
+) -> Resolution:
+    """Expand a program and build its parameter-resolving closure.
+
+    Operators are returned in their most specific native type:
+
+    * Ideal gates → ``qx.Unitary`` (parametric gates as a ``ParametricGate`` callable)
+    * Noisy gates (``Channel``) → ``qx.SuperOp``
+    * Expanded cycle gates with ``CycleChannel`` noise → constituent ``qx.SuperOp``
+    * Measurements → ``qx.QuantumInstrument``
+    * Noisy/ideal resets → ``qx.SuperOp``
+
+    The program is expanded twice: first with default (qubit) register
+    dimensions to infer each register's true dimension from the gates and noisy
+    channels, then again with those dimensions so ideal measurement/reset
+    instruments use the correct dimension.  Passing *dims* skips the first pass.
+
+    :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
+    :param noise_model: Optional noise model.
+    :param qubits: Optional explicit qubit list. If ``None``, inferred from the
+        program. Use this when the simulator knows about qubits that don't
+        appear in the program.
+    :param dims: Optional pre-determined per-qudit dimensions.
+    :return: A :class:`Resolution`.
+    """
+    if qubits is None:
+        qubits = sorted(program.get_qubit_indices())
+    qubit_indices = {q: i for i, q in enumerate(qubits)}
+
+    # Derive the dimension-independent context once and reuse it across both passes.
+    context = _build_expansion_context(program)
+
+    def expand(
+        qubit_dimensions: Mapping[int, int] | None,
+    ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
+        ops, phys_qubits, param_refs = expand_program(
+            program, noise_model, qubit_dimensions=qubit_dimensions, context=context
+        )
+        return ops, remap_qubits(phys_qubits, qubit_indices), param_refs
+
+    if dims is None:
+        ops, subsystems, param_refs = expand(None)
+        resolve = _freeze_resolver(ops, subsystems)
+        dims = _infer_dims(resolve(jnp.zeros(len(param_refs))), len(qubits))
+
+    qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
+    ops, subsystems, param_refs = expand(qubit_dimensions)
+    return Resolution(dims, ops, subsystems, param_refs, _freeze_resolver(ops, subsystems))
 
 
 # ══════════════════════════════════════════════════════════
@@ -500,13 +533,11 @@ def adapt_for_density_matrix(
     """
     result: list[DensityMatrixOp] = []
     for op, subsystem in ops:
-        match op:
-            case qx.SuperOp():
-                result.append((op, subsystem))
-            case qx.QuantumInstrument():
-                result.append((qx.to_superop(op.total_channel()), subsystem))
-            case qx.Unitary() | qx.KrausMap():
-                result.append((qx.to_superop(op), subsystem))
+        # ``qx.to_superop`` is single-dispatch and idempotent on SuperOp, so it
+        # covers Unitary/SuperOp/KrausMap directly; only an instrument needs its
+        # total channel taken first.
+        channel = op.total_channel() if isinstance(op, qx.QuantumInstrument) else op
+        result.append((qx.to_superop(channel), subsystem))
     return result
 
 
@@ -533,6 +564,8 @@ def adapt_for_trajectory(
                 result.append((km, subsystem))
             case qx.Unitary() | qx.KrausMap() | qx.QuantumInstrument():
                 result.append((op, subsystem))
+            case _:
+                raise TypeError(f"Cannot adapt operator of type {type(op).__name__} for trajectory simulation.")
     return result
 
 
@@ -548,15 +581,12 @@ def _merge_ops(
 ) -> ResolvedOp:
     """Merge a sequence of operators into a single operator on the union subsystem.
 
-    Each operator is embedded into the merged Hilbert space and then composed
-    sequentially using the ``@`` operator, which handles type promotion
-    automatically (Unitary, SuperOp, KrausMap).
-
-    For groups containing only ``Unitary`` operators, the result is a ``Unitary``.
-    For groups containing any noisy operator (``SuperOp``, ``KrausMap``), all
-    operators are promoted to ``SuperOp``, composed, and the result is returned
-    as a ``SuperOp``.  Downstream adapters handle final conversion (e.g. to
-    ``KrausMap`` for trajectories).
+    Each operator is embedded into the merged Hilbert space with :func:`quax.embed`
+    and composed sequentially with ``@``.  Quax's operator ``@`` promotes mixed
+    types automatically (requires ``rigetti-quax >= 0.6.5``), so an all-``Unitary``
+    group yields a ``Unitary`` while a group containing any channel promotes to a
+    ``SuperOp``.  Downstream adapters handle final conversion (e.g. to ``KrausMap``
+    for trajectories).
 
     :param ops_with_subsystems: Ordered list of ``(operator, subsystem)`` pairs
         to merge (applied in order: first element is applied first).
@@ -564,19 +594,12 @@ def _merge_ops(
     :param dims: Global per-qudit dimensions tuple.
     :return: A single ``(operator, merged_subsystem)`` pair.
     """
-    has_noisy = any(isinstance(op, (qx.KrausMap, qx.SuperOp)) for op, _ in ops_with_subsystems)
-
     target_dims = tuple(dims[q] for q in merged_subsystem)
 
-    accumulated = None
+    accumulated: FixedOp | None = None
     for op, subsystem in ops_with_subsystems:
         positions = tuple(merged_subsystem.index(q) for q in subsystem)
-
-        if has_noisy:
-            embedded = qx.embed(qx.to_superop(op), target_dims=target_dims, positions=positions)
-        else:
-            embedded = qx.embed(op, target_dims=target_dims, positions=positions)
-
+        embedded = qx.embed(op, target_dims=target_dims, positions=positions)
         accumulated = embedded if accumulated is None else embedded @ accumulated
 
     if accumulated is None:

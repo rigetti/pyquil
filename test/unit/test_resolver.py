@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import numpy as np
 import quax as qx
 
-from pyquil.gates import CNOT, H, MEASURE, RESET, RX, RZ, X
+from pyquil.gates import CNOT, MEASURE, RESET, RX, RZ, H, X
 from pyquil.noise._channels import Channel, CycleChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
@@ -19,7 +19,7 @@ from pyquil.simulation._resolver import (
     build_dag,
     expand_program,
     remap_qubits,
-    resolver_from_program,
+    resolve_program,
 )
 
 _EMPTY_PARAMS = jnp.array([], dtype=float)
@@ -133,55 +133,55 @@ class TestRemapAndDag:
 
 
 # ──────────────────────────────────────────────────────────
-# resolver_from_program (integration)
+# resolve_program (integration)
 # ──────────────────────────────────────────────────────────
 
 
-class TestResolverFromProgram:
+class TestResolveProgram:
     def test_basic_roundtrip(self):
         p = Program(H(0), CNOT(0, 1), X(1))
-        resolver, dag = resolver_from_program(p)
-        ops = resolver(_EMPTY_PARAMS)
+        res = resolve_program(p)
+        ops = res.resolve(_EMPTY_PARAMS)
         assert len(ops) == 3
         assert all(isinstance(op, qx.Unitary) for op, _ in ops)
-        assert resolver.dims == (2, 2)
+        assert res.dims == (2, 2)
 
     def test_with_noise(self):
         p = Program(X(0), H(1))
         ch = Channel.from_gate_fidelity(inst=X(0), fidelity=0.99)
         nm = NoiseModel.from_channels([ch])
-        resolver, dag = resolver_from_program(p, nm)
-        ops = resolver(_EMPTY_PARAMS)
+        res = resolve_program(p, nm)
+        ops = res.resolve(_EMPTY_PARAMS)
         assert len(ops) == 2
         assert isinstance(ops[0][0], qx.SuperOp)
         assert isinstance(ops[1][0], qx.Unitary)
 
     def test_parameterized(self):
         p = Program(Declare("theta", "REAL", 1), RZ(MemoryReference("theta", 0), 0))
-        resolver, _ = resolver_from_program(p)
+        res = resolve_program(p)
         params = jnp.array([np.pi / 4])
-        ops = resolver(params)
+        ops = res.resolve(params)
         assert len(ops) == 1
         assert isinstance(ops[0][0], qx.Unitary)
 
     def test_dag_structure(self):
         p = Program(H(0), X(0), CNOT(0, 1))
-        _, dag = resolver_from_program(p)
+        dag = build_dag(resolve_program(p).subsystems)
         assert dag.has_edge(0, 1)
         assert dag.has_edge(1, 2)
 
     def test_measurement_and_reset(self):
         p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
-        resolver, _ = resolver_from_program(p)
-        ops = resolver(_EMPTY_PARAMS)
+        res = resolve_program(p)
+        ops = res.resolve(_EMPTY_PARAMS)
         assert len(ops) == 2
         assert isinstance(ops[0][0], qx.Unitary)
         assert isinstance(ops[1][0], qx.QuantumInstrument)
 
     def test_qutrit_measurement_dimensions(self):
         p = Program(Gate("TX", [], [0]), Measurement(Qubit(0), None))
-        resolver, _ = resolver_from_program(p)
-        ops = resolver(_EMPTY_PARAMS)
-        assert resolver.dims == (3,)
+        res = resolve_program(p)
+        ops = res.resolve(_EMPTY_PARAMS)
+        assert res.dims == (3,)
         assert isinstance(ops[1][0], qx.QuantumInstrument)
         assert ops[1][0].dims == ((3,), (3,))

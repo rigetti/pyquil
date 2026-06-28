@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import Any, cast
 
 import jax
@@ -56,8 +57,7 @@ from pyquil.simulation._resolver import (
     adapt_for_trajectory,
     build_dag,
     compressor_from_dag,
-    expand_program,
-    remap_qubits,
+    resolve_program,
 )
 
 
@@ -117,26 +117,6 @@ def _make_kraus_trajectory_branch(
     return branch
 
 
-def _infer_dims(resolved: list[ResolvedOp], n_qubits: int) -> tuple[int, ...]:
-    """Infer per-qudit dimensions from a resolved operation list.
-
-    Each operator carries its own per-qudit input dimensions via
-    ``op.dims[1]``.  A slot's dimension is the maximum dimension seen across
-    every operation acting on it, defaulting to ``2`` (qubit) for slots that
-    no operation touches.
-
-    :param resolved: Resolved ``(operator, subsystem)`` pairs.
-    :param n_qubits: Number of qudit slots.
-    :return: Inferred per-qudit dimensions tuple.
-    """
-    dims = [2] * n_qubits
-    for op, subsystem in resolved:
-        op_dims = op.dims[1]
-        for q, d in zip(subsystem, op_dims, strict=False):
-            dims[q] = max(dims[q], d)
-    return tuple(dims)
-
-
 # ══════════════════════════════════════════════════════════
 # Base class
 # ══════════════════════════════════════════════════════════
@@ -186,45 +166,14 @@ class ProgramSimulator:
         self.qubits = qubits
         self.n_qubits = len(qubits)
 
-        qubit_indices = {q: i for i, q in enumerate(qubits)}
-
-        # First expand with default ideal measurement/reset dimensions so we can
-        # infer the register dimensions from gates and noisy channels.
-        if dims is None:
-            initial_expanded_ops, initial_phys_qubits, initial_param_refs = expand_program(
-                program,
-                noise_model,
-            )
-            initial_mapped_qubits = remap_qubits(initial_phys_qubits, qubit_indices)
-            initial_frozen_ops = list(zip(initial_expanded_ops, initial_mapped_qubits, strict=False))
-
-            def initial_resolve(params: Array) -> list[ResolvedOp]:
-                return [
-                    (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
-                    for item, subsystem in initial_frozen_ops
-                ]
-
-            self.dims = _infer_dims(initial_resolve(jnp.zeros(len(initial_param_refs))), self.n_qubits)
-        else:
-            self.dims = dims
-
-        # Expand again with inferred dimensions so ideal measurement/reset
-        # instruments are not stuck at qubit dimension.
-        qubit_dimensions = {q: self.dims[i] for q, i in qubit_indices.items()}
-        expanded_ops, phys_qubits, param_refs = expand_program(
-            program,
-            noise_model,
-            qubit_dimensions=qubit_dimensions,
-        )
-        mapped_qubits = remap_qubits(phys_qubits, qubit_indices)
-        dag = build_dag(mapped_qubits)
-        frozen_ops = list(zip(expanded_ops, mapped_qubits, strict=False))
-
-        def resolve(params: Array) -> list[ResolvedOp]:
-            return [
-                (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
-                for item, subsystem in frozen_ops
-            ]
+        # Expand the program into operators, inferring register dimensions when
+        # not supplied.  See :func:`resolve_program`.
+        res = resolve_program(program, noise_model, qubits, dims=dims)
+        self.dims = res.dims
+        self._resolve_fn = res.resolve
+        self._expanded_ops = tuple(res.ops)
+        self._raw_subsystems = tuple(res.subsystems)
+        param_refs = res.param_refs
 
         # Build linearizer from parameter references discovered during expansion.
         def linearize(memory_map: MemoryMap) -> Array:
@@ -234,9 +183,8 @@ class ProgramSimulator:
             return jnp.array(values, dtype=float)
 
         self._linearize_fn = linearize
-        self._resolve_fn = resolve
-        self._expanded_ops = tuple(expanded_ops)
-        self._raw_subsystems = tuple(mapped_qubits)
+
+        dag = build_dag(res.subsystems)
 
         # Whether any gate matrix depends on a runtime parameter.  When it does
         # not, the compressed operator stack is a compile-time constant and can
@@ -247,7 +195,7 @@ class ProgramSimulator:
 
         # Derive barrier nodes: measurements (QuantumInstrument) should not
         # be merged by the compressor.
-        barrier_nodes = {i for i, op in enumerate(expanded_ops) if isinstance(op, qx.QuantumInstrument)}
+        barrier_nodes = {i for i, op in enumerate(res.ops) if isinstance(op, qx.QuantumInstrument)}
 
         self._compress_fn = compressor_from_dag(
             dag,
@@ -301,31 +249,48 @@ class ProgramSimulator:
         """Compute the simulation result.  Subclasses must override."""
         raise NotImplementedError
 
+    def _evolve(self, state: Any, op_stack: Array) -> Any:
+        """Apply a stack of operator matrices to *state* via a scan + switch.
+
+        Each operator is dispatched to the switch branch for its base subsystem
+        (``self._branches``, keyed by ``self._idx_arr``), so the compiled graph
+        size scales with the number of distinct base subsystems rather than the
+        number of operations.  Used by the state-vector and density-matrix
+        simulators, which differ only in their branch and state types.
+        """
+        branches = self._branches  # type: ignore[attr-defined]
+
+        def body(state: Any, xs: tuple[Array, Array]) -> tuple[Any, None]:
+            op_mat, sidx = xs
+            return jax.lax.switch(sidx, branches, op_mat, state), None
+
+        state, _ = jax.lax.scan(body, state, (op_stack, self._idx_arr))  # type: ignore[attr-defined]
+        return state
+
 
 # ══════════════════════════════════════════════════════════
 # Vectorized gate construction
 # ══════════════════════════════════════════════════════════
 
 
-def _embed_matrix_np(
-    mat: np.ndarray, op_subsystem: tuple[int, ...], group_subsystem: tuple[int, ...], dims: tuple[int, ...], d_max: int
-) -> np.ndarray:
-    """Embed a gate matrix into a larger subsystem (numpy, for constant ops).
+def _embed_constant_matrix(
+    mat: Array, op_subsystem: tuple[int, ...], group_subsystem: tuple[int, ...], dims: tuple[int, ...], d_max: int
+) -> Array:
+    """Embed a constant gate matrix into its merge group, padded to ``d_max``.
 
-    Computes the d_max×d_max padded matrix that applies ``mat`` on
-    ``op_subsystem`` within the Hilbert space of ``group_subsystem``.
+    Computes the ``d_max × d_max`` matrix that applies ``mat`` on ``op_subsystem``
+    within the Hilbert space of ``group_subsystem`` via :func:`quax.embed`.  This
+    runs eagerly (once per parameter-free gate, outside any ``jit``); the result
+    is closed over as a compile-time constant.  The final pad to ``d_max`` — the
+    uniform stack width across all groups — is plain array padding, not a
+    tensor-product embedding, so it has no quax equivalent.
     """
-    if op_subsystem == group_subsystem:
-        return np.pad(mat, [(0, d_max - s) for s in mat.shape])
-    import quax as qx  # noqa: F811 — local re-import for clarity
-
+    op_dims = tuple(dims[q] for q in op_subsystem)
     target_dims = tuple(dims[q] for q in group_subsystem)
     positions = tuple(group_subsystem.index(q) for q in op_subsystem)
-    op_dims = tuple(dims[q] for q in op_subsystem)
-    op = qx.Unitary.from_matrix(jnp.array(mat), (op_dims, op_dims))
-    embedded = qx.embed(op, target_dims=target_dims, positions=positions)
-    result = np.asarray(embedded.matrix)
-    return np.pad(result, [(0, d_max - s) for s in result.shape])
+    op = qx.Unitary.from_matrix(jnp.asarray(mat), (op_dims, op_dims))
+    embedded = qx.embed(op, target_dims=target_dims, positions=positions).matrix
+    return jnp.pad(embedded, [(0, d_max - s) for s in embedded.shape])
 
 
 def _make_embed_fn(
@@ -399,160 +364,155 @@ def _make_embed_fn(
     return _embed_general
 
 
+@dataclass
+class _GateBatch:
+    """A set of gates sharing one constructor, concrete layout, and embedding.
+
+    Members differ only in which entries of the parameter vector feed their
+    free arguments, so all of them are built with a single ``jax.vmap``.  This
+    keeps the traced graph proportional to the number of distinct gate *kinds*
+    rather than the number of gates.
+    """
+
+    gate_fn: Callable[..., qx.Unitary]
+    n_args: int
+    #: ``(slot, value)`` for each compile-time-constant argument.
+    concrete_args: tuple[tuple[int, float], ...]
+    #: Embeds a raw gate matrix into its merge group, padded to ``d_max``.
+    embed_fn: Callable[[Array], Array]
+    #: Sorted-array positions this batch fills, one per member.
+    positions: list[int] = field(default_factory=list)
+    #: Parameter-vector index for each free argument, one list per member.
+    param_indices: list[list[int]] = field(default_factory=list)
+
+    def builder(self) -> Callable[[Array], Array]:
+        """Return ``params -> (n_members, d_max, d_max)`` embedded gate matrices."""
+        concrete = {slot for slot, _ in self.concrete_args}
+        free_slots = [j for j in range(self.n_args) if j not in concrete]
+        gate_fn, embed_fn, n_args, concrete_args = self.gate_fn, self.embed_fn, self.n_args, self.concrete_args
+        param_indices = jnp.asarray(self.param_indices)  # (n_members, n_free)
+
+        def single(free_values: Array) -> Array:
+            args: list[Any] = [None] * n_args
+            for slot, val in concrete_args:
+                args[slot] = val
+            for k, slot in enumerate(free_slots):
+                args[slot] = free_values[k]
+            return embed_fn(gate_fn(*args).matrix)
+
+        batched = jax.vmap(single)
+        return lambda params: batched(params[param_indices])
+
+
+def _make_group_fold(group_start: list[int], n_ops: int, d_max: int) -> Callable[[Array], Array]:
+    """Build the per-group matrix-product fold.
+
+    ``fold(raw)`` takes ``(n_ops, d_max, d_max)`` embedded gate matrices laid out
+    in group order and returns ``(n_groups, d_max, d_max)`` — the ordered matrix
+    product of each group's gates.  Groups are gathered into a padded
+    ``(n_groups, max_size, ...)`` array (short groups padded with an identity
+    sentinel) so every group folds under a single ``jax.vmap``.
+    """
+    n_groups = len(group_start) - 1
+    sizes = np.diff(group_start)
+    max_size = int(sizes.max()) if n_groups else 1
+
+    # gather[g, k] = sorted position of group g's k-th gate, or n_ops (the
+    # identity sentinel appended in ``fold``) for padding.
+    gather = np.full((n_groups, max_size), n_ops, dtype=np.int32)
+    for g in range(n_groups):
+        gather[g, : sizes[g]] = np.arange(group_start[g], group_start[g + 1])
+    gather_jax = jnp.asarray(gather)
+    eye = jnp.eye(d_max, dtype=complex)
+
+    def group_product(mats: Array) -> Array:
+        final, _ = jax.lax.scan(lambda acc, m: (m @ acc, None), eye, mats)
+        return final
+
+    def fold(raw: Array) -> Array:
+        padded = jnp.concatenate([raw, eye[None]], axis=0)[gather_jax]  # (n_groups, max_size, d, d)
+        return jax.vmap(group_product)(padded)
+
+    return fold
+
+
 def _build_vectorized_unitary_constructor(
-    expanded_ops: tuple,
+    expanded_ops: tuple[Any, ...],
     raw_subsystems: tuple[tuple[int, ...], ...],
-    emit_order: list,
+    emit_order: list[tuple[int, list[int], tuple[int, ...]]],
     dims: tuple[int, ...],
     d_max: int,
-) -> tuple[Callable[[Array], Array], np.ndarray, np.ndarray]:
-    """Build a vectorized constructor that produces *embedded* gate matrices.
+) -> Callable[[Array], Array]:
+    """Build a JIT-friendly constructor for the compressed unitary stack.
 
-    Each raw gate matrix is embedded into its merge group's subsystem so that
-    compression can be performed as a simple segmented matmul scan.
-
-    Returns ``(build_fn, sort_order, group_boundaries)`` where:
-    - ``build_fn(params)`` → ``(N_raw, d_max, d_max)`` array of embedded matrices
-      in group-sorted order (ops within each group are consecutive).
-    - ``sort_order[i]`` = raw op index for position *i* in the sorted array.
-    - ``group_boundaries[g]`` = start index of group *g* in the sorted array.
-      The final compressed op for group *g* is the product of sorted ops from
-      ``group_boundaries[g]`` to ``group_boundaries[g+1]``.
+    Returns ``build(params) -> (n_groups, d_max, d_max)``: one matrix per merge
+    group, equal to ``compress(resolve(params))`` but assembled so the traced
+    graph scales with the number of distinct gate *kinds* rather than the number
+    of gates.  Each gate is embedded into its merge group's Hilbert space, then
+    the gates of every group are folded together via :func:`_make_group_fold`.
     """
     n_ops = len(expanded_ops)
 
-    # ── Compute group membership and embedding for each raw op ──
-    # raw_to_group[i] = which compressed group raw op i belongs to
-    # raw_to_embed_key[i] = (id(gate_fn_or_None), concrete_key, embed_key) for grouping
-    raw_to_group = np.empty(n_ops, dtype=np.int32)
-    raw_to_group_sub: list[tuple[int, ...]] = [() for _ in range(n_ops)]
-
-    sorted_raw_indices: list[int] = []  # raw op indices in group-then-topo order
-    group_boundaries: list[int] = [0]
-    for group_idx, (_, nodes, subsystem) in enumerate(emit_order):
+    # Lay raw ops out in group order: group g occupies sorted positions
+    # [group_start[g], group_start[g + 1]).
+    sorted_indices: list[int] = []
+    group_subsystems: list[tuple[int, ...]] = []  # merge subsystem per sorted position
+    group_start: list[int] = [0]
+    for _, nodes, subsystem in emit_order:
         for nk in nodes:
-            raw_to_group[nk] = group_idx
-            raw_to_group_sub[nk] = subsystem
-            sorted_raw_indices.append(nk)
-        group_boundaries.append(len(sorted_raw_indices))
+            sorted_indices.append(nk)
+            group_subsystems.append(subsystem)
+        group_start.append(len(sorted_indices))
 
-    sort_order = np.array(sorted_raw_indices, dtype=np.int32)
-    group_bounds = np.array(group_boundaries, dtype=np.int32)
-
-    # ── Group ops by (gate_fn, concrete_layout, embedding_config) for vmap ──
-    # The embedding_config is (op_subsystem, group_subsystem) which determines
-    # how the raw matrix is expanded into the group's Hilbert space.
-    param_groups: dict[tuple, tuple[Callable, tuple, tuple, list[int], list[list[int]], Callable]] = {}
-    const_entries: list[tuple[int, np.ndarray]] = []  # (sorted_position, embedded_matrix)
-
-    for sorted_pos, raw_idx in enumerate(sorted_raw_indices):
-        eop = expanded_ops[raw_idx]
+    # Plan how each op's embedded matrix is produced: parametric gates are
+    # collected into vmapped batches; constant gates are embedded eagerly.
+    batches: dict[tuple, _GateBatch] = {}
+    const_positions: list[int] = []
+    const_mats: list[Array] = []
+    for pos, raw_idx in enumerate(sorted_indices):
+        op = expanded_ops[raw_idx]
         op_sub = raw_subsystems[raw_idx]
-        grp_sub = raw_to_group_sub[raw_idx]
-
-        if isinstance(eop, ParametricGate):
-            concrete_mask = tuple(j for j, pi in enumerate(eop.param_indices) if pi < 0)
-            concrete_vals = tuple(eop.concrete_values[j] for j in concrete_mask)
-            # Group by embedding TYPE not physical qubits: all embeddings with
-            # the same (op_dims, target_dims, positions_within_group) produce
-            # identical traced graphs, so they can share a single vmap.
-            op_dims_key = tuple(dims[q] for q in op_sub)
-            target_dims_key = tuple(dims[q] for q in grp_sub)
-            positions_key = tuple(grp_sub.index(q) for q in op_sub)
-            embed_key = (op_dims_key, target_dims_key, positions_key)
-            key = (id(eop.gate_fn), concrete_mask, concrete_vals, embed_key)
-            if key not in param_groups:
-                embed_fn = _make_embed_fn(op_sub, grp_sub, dims, d_max)
-                param_groups[key] = (eop.gate_fn, eop.param_indices, eop.concrete_values, [], [], embed_fn)
-            param_groups[key][3].append(sorted_pos)
-            param_groups[key][4].append([pi for pi in eop.param_indices if pi >= 0])
+        grp_sub = group_subsystems[pos]
+        if isinstance(op, ParametricGate):
+            # Key by embedding *type* (dims + positions within the group), not
+            # physical qubits: embeddings that trace to the same graph share a vmap.
+            embed_key = (
+                tuple(dims[q] for q in op_sub),
+                tuple(dims[q] for q in grp_sub),
+                tuple(grp_sub.index(q) for q in op_sub),
+            )
+            concrete_args = tuple((j, op.concrete_values[j]) for j, pi in enumerate(op.param_indices) if pi < 0)
+            key = (id(op.gate_fn), concrete_args, embed_key)
+            batch = batches.get(key)
+            if batch is None:
+                batch = _GateBatch(
+                    gate_fn=op.gate_fn,
+                    n_args=len(op.param_indices),
+                    concrete_args=concrete_args,
+                    embed_fn=_make_embed_fn(op_sub, grp_sub, dims, d_max),
+                )
+                batches[key] = batch
+            batch.positions.append(pos)
+            batch.param_indices.append([pi for pi in op.param_indices if pi >= 0])
         else:
-            mat = np.asarray(eop.matrix)
-            embedded = _embed_matrix_np(mat, op_sub, grp_sub, dims, d_max)
-            const_entries.append((sorted_pos, embedded))
+            const_positions.append(pos)
+            const_mats.append(_embed_constant_matrix(op.matrix, op_sub, grp_sub, dims, d_max))
 
-    # ── Build vmapped constructors ──
-    vmapped_specs: list[tuple[np.ndarray, Callable[[Array], Array]]] = []
+    builders = [(np.asarray(b.positions), b.builder()) for b in batches.values()]
+    const_pos_arr = np.asarray(const_positions) if const_positions else None
+    const_stack = jnp.stack(const_mats) if const_mats else None
 
-    for gate_fn, template_pi, template_cv, positions, pidx_lists, embed_fn in param_groups.values():
-        pos_arr = np.array(positions)
+    fold = _make_group_fold(group_start, n_ops, d_max)
 
-        parametric_slots = [j for j, pi in enumerate(template_pi) if pi >= 0]
-        concrete_slots = [(j, cv) for j, (pi, cv) in enumerate(zip(template_pi, template_cv, strict=False)) if pi < 0]
-        n_total = len(template_pi)
-
-        def _make_batch(
-            gf: Callable, ps: list[int], cs: list[tuple[int, float]], nt: int, ef: Callable, pidx: Array
-        ) -> Callable[[Array], Array]:
-            def _single(parametric_values: Array) -> Array:
-                args: list[Any] = [None] * nt
-                for slot, val in cs:
-                    args[slot] = val
-                for k, slot in enumerate(ps):
-                    args[slot] = parametric_values[k]
-                return cast(Array, ef(gf(*args).matrix))
-
-            batched = jax.vmap(_single)
-
-            def build(params: Array) -> Array:
-                return batched(params[pidx])
-
-            return build
-
-        pidx_arr = jnp.array(pidx_lists)
-        builder = _make_batch(gate_fn, parametric_slots, concrete_slots, n_total, embed_fn, pidx_arr)
-        vmapped_specs.append((pos_arr, builder))
-
-    # ── Pre-build constant embedded matrices ──
-    if const_entries:
-        const_positions = np.array([p for p, _ in const_entries])
-        const_stack = jnp.array(np.stack([m for _, m in const_entries]))
-    else:
-        const_positions = None
-        const_stack = None
-
-    # ── Build gather index for padded parallel composition ──
-    n_groups = len(group_boundaries) - 1
-    group_sizes = np.diff(group_boundaries)
-    max_group_size = int(group_sizes.max()) if n_groups > 0 else 1
-
-    # gather_idx[g, k] = sorted position of the k-th op in group g,
-    # or n_ops (the identity sentinel position) for padding.
-    gather_idx = np.full((n_groups, max_group_size), n_ops, dtype=np.int32)
-    for g in range(n_groups):
-        start, end = group_boundaries[g], group_boundaries[g + 1]
-        size = end - start
-        gather_idx[g, :size] = np.arange(start, end)
-    gather_idx_jax = jnp.array(gather_idx)
-    eye_mat = jnp.eye(d_max, dtype=complex)
-
-    def build_compressed_stack(params: Array) -> Array:
-        """Build all gate matrices and compose within each merge group.
-
-        Returns ``(n_groups, d_max, d_max)`` — one compressed matrix per group.
-        """
-        # 1. Build all embedded gate matrices in group-sorted order.
-        raw_mats = jnp.zeros((n_ops, d_max, d_max), dtype=complex)
-        for pos_arr, builder in vmapped_specs:
-            raw_mats = raw_mats.at[pos_arr].set(builder(params))
+    def build(params: Array) -> Array:
+        raw = jnp.zeros((n_ops, d_max, d_max), dtype=complex)
+        for positions, builder in builders:
+            raw = raw.at[positions].set(builder(params))
         if const_stack is not None:
-            raw_mats = raw_mats.at[const_positions].set(const_stack)
+            raw = raw.at[const_pos_arr].set(const_stack)
+        return fold(raw)
 
-        # 2. Append identity sentinel and gather into (n_groups, max_size, d, d).
-        raw_mats_plus = jnp.concatenate([raw_mats, eye_mat[None]], axis=0)
-        padded = raw_mats_plus[gather_idx_jax]  # (n_groups, max_size, d, d)
-
-        # 3. Parallel fold: vmap a scan over all groups simultaneously.
-        def group_product(mats: Array) -> Array:
-            def body(acc: Array, mat: Array) -> tuple[Array, None]:
-                return mat @ acc, None
-
-            final, _ = jax.lax.scan(body, eye_mat, mats)
-            return final
-
-        return jax.vmap(group_product)(padded)  # (n_groups, d, d)
-
-    return build_compressed_stack, sort_order, group_bounds
+    return build
 
 
 # ══════════════════════════════════════════════════════════
@@ -588,14 +548,13 @@ class PureStateVectorSimulator(ProgramSimulator):
         # compilation (small traced graph) AND fast runtime (compressed
         # op count in the state-evolution scan).
         emit_order = getattr(self._compress_fn, "emit_order", [])
-        build_fn, _sort_order, _group_bounds = _build_vectorized_unitary_constructor(
+        self._vmapped_build_fn = _build_vectorized_unitary_constructor(
             self._expanded_ops,
             self._raw_subsystems,
             emit_order,
             self.dims,
             self.d_max,
         )
-        self._vmapped_build_fn = build_fn
 
         self._branches = [
             _make_unitary_branch(base, base_dims, db)
@@ -630,15 +589,7 @@ class PureStateVectorSimulator(ProgramSimulator):
         # Vectorized construction: build embedded matrices via vmap, then
         # compose within each merge group via a parallel fold.
         op_stack = self._vmapped_build_fn(params)
-        branches = self._branches
-
-        def body(psi: qx.StateVector, xs: tuple[Array, Array]) -> tuple[qx.StateVector, None]:
-            op_mat, sidx = xs
-            psi = jax.lax.switch(sidx, branches, op_mat, psi)
-            return psi, None
-
-        psi, _ = jax.lax.scan(body, self._psi0, (op_stack, self._idx_arr))
-        return psi
+        return self._evolve(self._psi0, op_stack)
 
     def __call__(self, params: Array) -> qx.StateVector:
         return self.compute(params)
@@ -661,9 +612,7 @@ class PureStateVectorSimulator(ProgramSimulator):
                 accumulated = embedded @ accumulated
 
         if accumulated is None:
-            d = 1
-            for dim in self.dims:
-                d *= dim
+            d = math.prod(self.dims)
             return qx.Unitary.from_matrix(jnp.eye(d, dtype=complex), (self.dims, self.dims))
 
         return accumulated
@@ -703,11 +652,11 @@ class DensityMatrixSimulator(ProgramSimulator):
         self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
 
         # See :class:`PureStateVectorSimulator`: for parameter-free programs the
-        # superoperator stack is constant, so build it eagerly to keep the traced
-        # graph to just the scan over a concrete array.
+        # superoperator stack is constant, so it can be built once and reused to keep
+        # the traced graph to just the scan over a concrete array. It is materialised
+        # lazily on the first :meth:`compute` call rather than eagerly here, so
+        # constructing the simulator stays cheap.
         self._const_op_stack: Array | None = None
-        if not self._has_params and self.op_index:
-            self._const_op_stack = self._stack_superops(self.resolve(jnp.zeros(0))).block_until_ready()
 
     def _stack_superops(self, resolved: list[ResolvedOp]) -> Array:
         """Compress, promote each op to a SuperOp, and stack."""
@@ -728,22 +677,17 @@ class DensityMatrixSimulator(ProgramSimulator):
         :param params: Flat parameter vector from :meth:`linearize`.
         :return: The final density matrix.
         """
-        if self._const_op_stack is not None:
+        if not self._has_params and self.op_index:
+            # Parameter-free program: build the constant superop stack once, then reuse.
+            if self._const_op_stack is None:
+                self._const_op_stack = self._stack_superops(self.resolve(jnp.zeros(0)))
             op_stack = self._const_op_stack
         else:
             resolved = self.resolve(params)
             if not resolved:
                 return self._rho0
             op_stack = self._stack_superops(resolved)
-        branches = self._branches
-
-        def body(rho: qx.DensityMatrix, xs: tuple[Array, Array]) -> tuple[qx.DensityMatrix, None]:
-            op_mat, sidx = xs
-            rho = jax.lax.switch(sidx, branches, op_mat, rho)
-            return rho, None
-
-        rho, _ = jax.lax.scan(body, self._rho0, (op_stack, self._idx_arr))
-        return rho
+        return self._evolve(self._rho0, op_stack)
 
     def __call__(self, params: Array) -> qx.DensityMatrix:
         return self.compute(params)
@@ -895,7 +839,7 @@ def _op_to_kraus_matrix(
     """
     match op:
         case qx.Unitary():
-            return op.matrix[jnp.newaxis, :, :], 1, False
+            return qx.to_kraus(op).matrix, 1, False
         case qx.KrausMap():
             return op.matrix, 1, False
         case qx.QuantumInstrument():
@@ -1042,7 +986,7 @@ def _run_batched_trajectories(
     n_devices = len(mesh.devices.flat) if mesh is not None else 1
 
     key = jax.random.key(random_seed)
-    all_psis: list[qx.StateVector] = [] if keep_states else []
+    all_psis: list[qx.StateVector] = []
     all_outcomes: list[Array] = []
 
     remaining = num_trajectories
