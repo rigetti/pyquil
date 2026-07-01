@@ -908,6 +908,14 @@ def _apply_trajectory_operations(
     measure_positions: list[int] = []
     branch_index: list[int] = []
     for i, (op, subsystem) in enumerate(operations):
+        # Promote each operator to the state's dimension on its subsystem (identity on the
+        # higher levels). Without this, an op authored at a lower dimension than the register
+        # (e.g. a qubit-dimension channel on a register promoted to qutrits by a leakage model)
+        # would be zero-padded to ``d_max`` instead — silently wrong on the high levels, and a
+        # reshape error when ``d_max`` is below the branch's dimension.
+        target_dims = tuple(psi.dims[q] for q in subsystem)
+        if op.dims[0] != target_dims:
+            op = qx.promote(op, target_dims)
         mat, divisor, is_measure = _op_to_kraus_matrix(op)
         kraus_mats.append(mat)
         divisors.append(divisor)
@@ -1041,3 +1049,163 @@ def _run_batched_trajectories(
         remaining -= this_batch
 
     return (all_psis if keep_states else None), all_outcomes
+
+
+# ══════════════════════════════════════════════════════════
+# Dynamic-shape trajectory simulator
+# ══════════════════════════════════════════════════════════
+
+
+def _dyn_apply(
+    op: qx.Unitary | qx.KrausMap | qx.QuantumInstrument,
+    psi: qx.StateVector,
+    subsystem: tuple[int, ...],
+    key: Array,
+    squeeze_tol: float,
+) -> tuple[qx.StateVector, Array | None]:
+    """Apply one trajectory operator with dynamic per-subsystem dimensions.
+
+    The reconciliation is *grow state → apply → squeeze state*:
+
+    1. The state is grown via :func:`quax.promote` only where the operator exceeds it.
+       Operators are applied at their authored dimension — they are never squeezed, since
+       squeezing an operator is ill-defined: it acts non-trivially on levels the state may
+       never populate (see :mod:`quax._squeeze`).
+    2. The matching ``quax`` kernel is applied; it promotes the operator up to the state's
+       dimensions, never shrinking it.
+    3. The *state* is squeezed (a well-defined operation) to reclaim any leakage level the
+       operator left empty.  So an ideal gate authored on a qutrit register transiently
+       grows the state and then squeezes straight back, while a genuine leakage op leaves
+       population behind that survives the squeeze.  The squeeze is skipped while every qudit
+       is already at the qubit floor, so a purely no-leakage trajectory pays nothing for it.
+
+    :param squeeze_tol: Tolerance for squeezing emptied leakage levels out of the state.
+    :return: ``(state, outcome)`` where ``outcome`` is the sampled measurement
+        result for an instrument, else ``None``.
+    """
+    current = tuple(psi.dims[q] for q in subsystem)
+    target = tuple(max(c, e) for c, e in zip(current, op.dims[0], strict=True))
+    if target != current:
+        grown = list(psi.dims)
+        for q, t in zip(subsystem, target, strict=True):
+            grown[q] = t
+        psi = qx.promote(psi, tuple(grown))
+
+    if isinstance(op, qx.Unitary):
+        psi, outcome = qx.targeted_apply_unitary(op, psi, subsystem), None
+    elif isinstance(op, qx.KrausMap):
+        psi, _ = _sample_kraus_map_trajectory(op, psi, key, subsystem)
+        outcome = None
+    elif isinstance(op, qx.QuantumInstrument):
+        psi, outcome = qx.targeted_apply_instrument_to_state_vector(op, psi, key, subsystem)
+    else:
+        raise TypeError(f"DynamicTrajectorySimulator cannot apply operator of type {type(op).__name__}.")
+
+    # Reclaim any leakage level the operator left empty by squeezing the *state*.  No qudit
+    # can shrink below the qubit floor, so skip the work entirely while none has leaked.
+    if any(d > 2 for d in psi.dims):
+        psi = cast(qx.StateVector, qx.squeeze(psi, squeeze_tol))
+    return psi, outcome
+
+
+class DynamicTrajectorySimulator(ProgramSimulator):
+    """Single-trajectory simulator with dynamically-sized qudit dimensions.
+
+    Targets the **largest** leakage-aware registers.  Where the other simulators
+    fix a global Hilbert-space shape, this one keeps a per-subsystem dimension
+    vector that drifts at runtime: a qudit is grown to dimension 3 only when an
+    operator can populate its leakage level, and squeezed back to 2 once that
+    level empties (via :func:`quax.squeeze`).  In the realistic low-leakage
+    regime only a handful of qudits occupy ``|2>`` at once, so the stored state
+    stays far below the full ``3**n``.
+
+    The simulation is **eager** — it applies one operator at a time and cannot be
+    ``jax.jit``/``jax.grad``-compiled (the shapes are data-dependent) — and runs a
+    single trajectory per :meth:`compute` call (scalar PRNG key, no ensemble).
+    Squeeze is tolerance-based, so results carry a bounded truncation error set by
+    ``squeeze_tol``.
+
+    ``max_subsystem_size`` defaults to 1: chains of single-qudit gates on one line
+    are still fused (no extra qudits pinned), but multi-qudit gates are left
+    un-merged so that a leakage channel never pins its neighbours to dimension 3.
+
+    Example::
+
+        sim = DynamicTrajectorySimulator(program, noise_model=leakage_model)
+        params = sim.linearize(memory_map)
+        psi, outcomes = sim.compute(params, jax.random.key(0))
+        shots = sim.sample(params, num_trajectories=1000)
+    """
+
+    __slots__ = ("_kraus_truncation_threshold", "_squeeze_tol")
+
+    def __init__(
+        self,
+        program: Program,
+        qubits: list[int] | None = None,
+        *,
+        noise_model: NoiseModelLike | None = None,
+        max_subsystem_size: int = 1,
+        kraus_truncation_threshold: float = 1e-6,
+        squeeze_tol: float = 1e-9,
+    ) -> None:
+        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
+        self._kraus_truncation_threshold = kraus_truncation_threshold
+        self._squeeze_tol = squeeze_tol
+
+    def _validate(self, program: Program) -> None:
+        """Measurements, resets, and noise are all supported (like TrajectorySimulator)."""
+
+    def compute(  # type: ignore[override]
+        self,
+        params: Array,
+        key: Array,
+    ) -> tuple[qx.StateVector, Array]:
+        """Run a single dynamic-shape trajectory.
+
+        :param params: Flat parameter vector from :meth:`linearize`.
+        :param key: Scalar JAX PRNG key for this trajectory.
+        :return: ``(state_vector, measurement_outcomes)``.  The state's per-qudit
+            dimensions reflect whatever leakage survived squeezing; outcomes has
+            shape ``(n_measurements,)`` in program order.
+        """
+        operations = adapt_for_trajectory(self.compress(self.resolve(params)), self._kraus_truncation_threshold)
+
+        psi = qx.zero_state_vector(dims=(2,) * self.n_qubits)
+        outcomes: list[Array] = []
+        # The state's shape changes as qudits grow and squeeze, so quax's jitted apply kernels
+        # compile once per distinct (shape, subsystem) they see. In the low-leakage regime that
+        # set is small and bounded — the deterministic no-leak shape sequence plus a few
+        # one-qubit-leaked shapes — so the compilation is a fixed upfront cost that amortizes
+        # over the many trajectories a sampling run takes. We therefore keep jit enabled.
+        for idx, (op, subsystem) in enumerate(operations):
+            psi, outcome = _dyn_apply(op, psi, tuple(subsystem), jax.random.fold_in(key, idx), self._squeeze_tol)
+            if outcome is not None:
+                outcomes.append(outcome)
+
+        if outcomes:
+            return psi, jnp.stack(outcomes, axis=-1).astype(jnp.int32)
+        return psi, jnp.empty((0,), dtype=jnp.int32)
+
+    def __call__(self, params: Array, key: Array) -> tuple[qx.StateVector, Array]:
+        return self.compute(params, key)
+
+    def sample(
+        self,
+        params: Array,
+        num_trajectories: int = 1000,
+        random_seed: int = 0,
+    ) -> Array:
+        """Run trajectories sequentially, returning only measurement outcomes.
+
+        Dynamic per-trajectory shapes preclude ``vmap`` batching, so trajectories
+        run one at a time.
+
+        :param params: Flat parameter vector from :meth:`linearize`.
+        :param num_trajectories: Number of trajectories to simulate.
+        :param random_seed: Seed for the JAX PRNG.
+        :return: Measurement outcomes with shape ``(num_trajectories, n_measurements)``.
+        """
+        key = jax.random.key(random_seed)
+        outcomes = [self.compute(params, jax.random.fold_in(key, t))[1] for t in range(num_trajectories)]
+        return jnp.stack(outcomes, axis=0)

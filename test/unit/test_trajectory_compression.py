@@ -177,7 +177,7 @@ def _sampler_total_channel(program, qubits, *, noise_model=None, max_subsystem_s
     fed into the Monte-Carlo sampling loop), promoted to a superoperator, and
     embedded into the full register before being composed.
 
-    Building the channel from ``_op_to_kraus_matrix`` (rather than from the
+    Building the channel from ``pyquil.simulation._simulator._op_to_kraus_matrix`` (rather than from the
     high-level operator objects) means this exercises the padding, outcome/Kraus
     axis flattening, and dimension handling that only the trajectory path uses.
     The result is deterministic and independent of any sampling, so it is a
