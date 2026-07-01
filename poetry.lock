@@ -3275,14 +3275,14 @@ httpx = ">=0.21.0"
 
 [[package]]
 name = "rigetti-quax"
-version = "0.6.5"
+version = "0.6.6"
 description = "A high-performance library for quantum information science built on top of JAX"
 optional = false
 python-versions = "<4.0,>=3.11"
 groups = ["main"]
 files = [
-    {file = "rigetti_quax-0.6.5-py3-none-any.whl", hash = "sha256:a6fa3e046e715afed42dd13f1c252214e56708a7c5c6c1888f2d5f491dd9b8be"},
-    {file = "rigetti_quax-0.6.5.tar.gz", hash = "sha256:63c2120eb295ab407f7e2d9d79ea3ce271ba3780a26bce3bb2f7cd71db4cdcc3"},
+    {file = "rigetti_quax-0.6.6-py3-none-any.whl", hash = "sha256:9ea85ba2f5703c39010332ceec70fde4421ff601eb371b4403921dda3460e6fb"},
+    {file = "rigetti_quax-0.6.6.tar.gz", hash = "sha256:bba5a9a2e7f567e1abfcd4507413a98155410cf7792eae98f7a5c88ef3b19b21"},
 ]
 
 [package.dependencies]
@@ -4120,4 +4120,4 @@ latex = ["ipython"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11, <3.13"
-content-hash = "bdb98b172f015c293126930752e9c7648e92da5034633cee480c32940a0aa14d"
+content-hash = "2b96409c96f43f18016b7fe078e8dff2b5f2851903018e4f359f01c1f158d582"
