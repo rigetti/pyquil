@@ -787,16 +787,9 @@ def compressor_from_dag(
                 heapq.heappush(heap, (new_union_size, u_node, neighbour))
 
     # --- Build merge plan ---
-    # Use a *lexicographical* topological sort keyed by node index (= program
-    # order).  Any topological order is physically valid, but breaking ties by
-    # program index guarantees that barrier nodes — measurements in particular,
-    # which are never merged and therefore each form a singleton group — are
-    # emitted in program order.  Because a measurement's predecessors all have
-    # smaller indices, this sort can never emit a later measurement before an
-    # earlier one, so the order in which ``QuantumInstrument`` ops appear in the
-    # compressed list (and hence the order of measurement-outcome columns in
-    # :func:`_apply_trajectory_operations`) matches the order of ``MEASURE``
-    # instructions in the program, independent of how gates are merged.
+    # Order the *members within each group* by a lexicographical topological
+    # sort of the original DAG (= program order), so ``_merge_ops`` composes
+    # them in the order they appear in the program.
     topo_order = list(nx.lexicographical_topological_sort(dag))
 
     root_to_nodes: dict[int, list[int]] = {}
@@ -808,15 +801,34 @@ def compressor_from_dag(
     for root, qubits in group_qubits.items():
         root_to_subsystem[root] = tuple(sorted(qubits))
 
-    emit_order: list[tuple[int, list[int], tuple[int, ...]]] = []
-    emitted_roots: set[int] = set()
-    for nk in topo_order:
+    # Emit the *groups* in a topological order of the **quotient** graph rather
+    # than the original DAG.  A merged group can legitimately contain an op that
+    # precedes a barrier (e.g. a measurement) in program order *together* with
+    # an op that depends on that barrier — the merge is valid because the
+    # pre-barrier op commutes with the barrier, so it may be applied after it.
+    # But emitting the group at its earliest member's position (as an earlier
+    # version did, by walking the original DAG) would place the *whole* group —
+    # including the post-barrier op — before the barrier, silently applying
+    # post-measurement gates before the measurement and corrupting its outcome.
+    # A quotient topological sort respects every inter-group dependency, so a
+    # group is emitted only after all groups it depends on.  The lexicographic
+    # key — each group's minimum original node index — keeps barrier singletons
+    # (measurements are never merged) emitted in program order, so the order of
+    # ``QuantumInstrument`` ops in the compressed list (and hence the
+    # measurement-outcome columns in :func:`_apply_trajectory_operations`)
+    # matches the order of ``MEASURE`` instructions in the program: any ancestor
+    # group of a measurement has a member preceding it in program order and thus
+    # a strictly smaller minimum index, so a later measurement can never be
+    # emitted before an earlier one.
+    group_min_index: dict[int, int] = {}
+    for nk in dag.nodes:
         root = uf.find(nk)
-        if root not in emitted_roots:
-            emitted_roots.add(root)
-            nodes = root_to_nodes[root]
-            subsystem = root_to_subsystem[root]
-            emit_order.append((root, nodes, subsystem))
+        if root not in group_min_index or nk < group_min_index[root]:
+            group_min_index[root] = nk
+
+    emit_order: list[tuple[int, list[int], tuple[int, ...]]] = []
+    for root in nx.lexicographical_topological_sort(quotient, key=lambda r: group_min_index[r]):
+        emit_order.append((root, root_to_nodes[root], root_to_subsystem[root]))
 
     # --- Log the compression statistics ---
     n_groups = len(emit_order)

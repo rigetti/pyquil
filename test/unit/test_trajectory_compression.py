@@ -824,3 +824,59 @@ def test_compression_does_not_merge_gates_across_mid_circuit_measurement():
     assert _total_variation(_joint(0), _joint(2)) < 0.02
 
 
+def test_compression_does_not_move_pre_measurement_gate_across_a_measurement():
+    """A pre-measurement gate must not be pulled *after* a measurement it precedes.
+
+    This is the subtler sibling of the convexity bug above.  A gate that sits
+    *before* a mid-circuit ``MEASURE`` but acts on a *disjoint* qubit can be
+    validly fused with a gate that sits *after* the measurement (they share a
+    qubit and the pre-measurement gate commutes with the barrier).  The merge
+    itself is legal, but the merged group must be *emitted after* the barrier —
+    otherwise the post-measurement gate is applied before the measurement,
+    corrupting its outcome.
+
+    An earlier emit order walked the *original* DAG and emitted each group at
+    its earliest member, which placed such a group before the barrier.  The
+    correct emit order is a topological sort of the *quotient* (contracted)
+    graph.  Here ``X`` on the data qubit precedes the ancilla ``MEASURE`` and is
+    fused with the ``CNOT`` that follows it; the circuit is fully deterministic,
+    so every measurement column must equal the uncompressed result at every
+    ``max_subsystem_size``.
+    """
+    ancilla, data = QUBITS_2  # [5, 2]; measure the ancilla mid-circuit
+    qubits = QUBITS_2
+
+    program = Program()
+    program += X(data)                                       # data -> |1>
+    program += Measurement(qubit=Qubit(ancilla), classical_reg=None)  # ancilla |0> -> 0
+    program += CNOT(data, ancilla)                           # control |1> flips ancilla -> |1>
+    program += Measurement(qubit=Qubit(ancilla), classical_reg=None)  # -> 1
+    program += Measurement(qubit=Qubit(data), classical_reg=None)     # -> 1
+
+    _assert_real_compression(program, qubits)
+
+    # X(data) and CNOT(data, ancilla) share the data qubit and fuse into one
+    # group; that group must still be emitted *after* the first ancilla
+    # measurement, so a gate op appears after the first QuantumInstrument.
+    sim = TrajectorySimulator(program, qubits=qubits, max_subsystem_size=MAX_SUBSYSTEM_SIZE)
+    op_types = [type(op).__name__ for op, _ in sim.compress(sim.resolve(sim.linearize({})))]
+    first_measure = op_types.index("QuantumInstrument")
+    assert any(name != "QuantumInstrument" for name in op_types[first_measure + 1 :]), (
+        f"a gate group must follow the first mid-circuit measurement, got {op_types}"
+    )
+
+    # Fully deterministic: columns are [ancilla(round 1), ancilla(round 2), data].
+    expected = np.array([0, 1, 1])
+    dims = (2, 2)
+    reference = None
+    for size in (0, 1, 2):
+        _, outcomes = _trajectory_density(program, qubits, dims, 4, seed=0, max_subsystem_size=size)
+        assert np.all(outcomes == expected), (
+            f"size {size}: deterministic outcome {outcomes[0].tolist()} != {expected.tolist()}"
+        )
+        if reference is None:
+            reference = outcomes
+        else:
+            assert np.array_equal(outcomes, reference)
+
+
