@@ -75,48 +75,6 @@ def _pad_matrix(mat: Array, *target: int) -> Array:
     return jnp.pad(mat, pad)
 
 
-def _make_unitary_branch(
-    base: tuple[int, ...],
-    base_dims: tuple[int, ...],
-    db: int,
-) -> Callable[[Array, qx.StateVector], qx.StateVector]:
-    """Build a ``jax.lax.switch`` branch that applies a unitary on *base*."""
-
-    def branch(op_mat: Array, psi: qx.StateVector) -> qx.StateVector:
-        unitary = qx.Unitary.from_matrix(op_mat[:db, :db], (base_dims, base_dims))
-        return qx.targeted_apply_unitary(unitary, psi, base)
-
-    return branch
-
-
-def _make_superop_branch(
-    base: tuple[int, ...],
-    base_dims: tuple[int, ...],
-    db2: int,
-) -> Callable[[Array, qx.DensityMatrix], qx.DensityMatrix]:
-    """Build a ``jax.lax.switch`` branch that applies a superoperator on *base*."""
-
-    def branch(op_mat: Array, rho: qx.DensityMatrix) -> qx.DensityMatrix:
-        superop = qx.SuperOp.from_matrix(op_mat[:db2, :db2], (base_dims, base_dims))
-        return qx.targeted_apply_superop(superop, rho, base)
-
-    return branch
-
-
-def _make_kraus_trajectory_branch(
-    base: tuple[int, ...],
-    base_dims: tuple[int, ...],
-    db: int,
-) -> Callable[[Array, qx.StateVector, Array], tuple[qx.StateVector, Array]]:
-    """Build a ``jax.lax.switch`` branch that samples a Kraus trajectory on *base*."""
-
-    def branch(op_mat: Array, psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
-        kraus_map = qx.KrausMap.from_matrix(op_mat[:, :db, :db], (base_dims, base_dims))
-        return cast(tuple[qx.StateVector, Array], _sample_kraus_map_trajectory(kraus_map, psi, key, base))
-
-    return branch
-
-
 # ══════════════════════════════════════════════════════════
 # Base class
 # ══════════════════════════════════════════════════════════
@@ -130,25 +88,8 @@ class ProgramSimulator:
 
     Subclasses override :meth:`_validate` and :meth:`compute`.
 
-    Instances are immutable after construction.
+    Instances are treated as immutable after construction.
     """
-
-    __slots__ = (
-        "n_qubits",
-        "qubits",
-        "dims",
-        "_linearize_fn",
-        "_resolve_fn",
-        "_compress_fn",
-        "bases",
-        "op_index",
-        "base_dims",
-        "base_total_dim",
-        "d_max",
-        "_has_params",
-        "_expanded_ops",
-        "_raw_subsystems",
-    )
 
     def __init__(
         self,
@@ -237,6 +178,15 @@ class ProgramSimulator:
         """Convert a memory map to a flat JAX parameter vector."""
         return self._linearize_fn(memory_map)
 
+    def _default_params(self, params: Array | None) -> Array:
+        """Return *params*, or the empty-memory-map vector when ``None``.
+
+        Lets callers omit ``params`` for parameter-free programs (where the
+        vector is empty).  For a parametric program the empty memory map raises
+        on the missing register, which is clearer than silently using zeros.
+        """
+        return self.linearize({}) if params is None else params
+
     def resolve(self, params: Array) -> list[ResolvedOp]:
         """Resolve parameters into one operator per DAG node."""
         return self._resolve_fn(params)
@@ -245,11 +195,11 @@ class ProgramSimulator:
         """Merge operators via greedy edge contraction."""
         return self._compress_fn(resolved)
 
-    def compute(self, params: Array, **kwargs: Any) -> Any:
+    def compute(self, params: Array | None = None, **kwargs: Any) -> Any:
         """Compute the simulation result.  Subclasses must override."""
         raise NotImplementedError
 
-    def _evolve(self, state: Any, op_stack: Array) -> Any:
+    def apply(self, state: Any, op_stack: Array) -> Any:
         """Apply a stack of operator matrices to *state* via a scan + switch.
 
         Each operator is dispatched to the switch branch for its base subsystem
@@ -273,95 +223,22 @@ class ProgramSimulator:
 # ══════════════════════════════════════════════════════════
 
 
-def _embed_constant_matrix(
-    mat: Array, op_subsystem: tuple[int, ...], group_subsystem: tuple[int, ...], dims: tuple[int, ...], d_max: int
+def _embed_unitary_to_group(
+    op: qx.Unitary,
+    target_dims: tuple[int, ...],
+    positions: tuple[int, ...],
+    d_max: int,
 ) -> Array:
-    """Embed a constant gate matrix into its merge group, padded to ``d_max``.
+    """Embed *op* into a merge group and pad to the uniform stack width ``d_max``.
 
-    Computes the ``d_max × d_max`` matrix that applies ``mat`` on ``op_subsystem``
-    within the Hilbert space of ``group_subsystem`` via :func:`quax.embed`.  This
-    runs eagerly (once per parameter-free gate, outside any ``jit``); the result
-    is closed over as a compile-time constant.  The final pad to ``d_max`` — the
-    uniform stack width across all groups — is plain array padding, not a
-    tensor-product embedding, so it has no quax equivalent.
+    :func:`quax.embed` places ``op`` (whose qudits map to ``positions`` within the
+    group) into the group Hilbert space ``target_dims``; the trailing pad to
+    ``d_max`` — the stack width shared by every group — is plain array padding with
+    no quax equivalent.  This is traceable, so it serves both the eager
+    constant-gate path and the vmapped parametric path.
     """
-    op_dims = tuple(dims[q] for q in op_subsystem)
-    target_dims = tuple(dims[q] for q in group_subsystem)
-    positions = tuple(group_subsystem.index(q) for q in op_subsystem)
-    op = qx.Unitary.from_matrix(jnp.asarray(mat), (op_dims, op_dims))
     embedded = qx.embed(op, target_dims=target_dims, positions=positions).matrix
     return jnp.pad(embedded, [(0, d_max - s) for s in embedded.shape])
-
-
-def _make_embed_fn(
-    op_subsystem: tuple[int, ...],
-    group_subsystem: tuple[int, ...],
-    dims: tuple[int, ...],
-    d_max: int,
-) -> Callable[[Array], Array]:
-    """Return a JIT-friendly function that embeds a gate matrix into a group subsystem.
-
-    Uses simple Kronecker products rather than the full qx.embed machinery
-    to minimize the traced graph size.
-    """
-    if op_subsystem == group_subsystem:
-        D = math.prod(dims[q] for q in op_subsystem)
-        pad_w = ((0, d_max - D),) * 2
-
-        def _identity_embed(mat: Array) -> Array:
-            return jnp.pad(mat, pad_w)
-
-        return _identity_embed
-
-    # General case: embed a tensor-format operator by placing its output/input
-    # axes at the requested positions and identity tensors on untouched axes.
-    target_dims = tuple(dims[q] for q in group_subsystem)
-    op_dims = tuple(dims[q] for q in op_subsystem)
-    positions = tuple(group_subsystem.index(q) for q in op_subsystem)
-    n_group = len(group_subsystem)
-    D = math.prod(target_dims)
-    pad_w = ((0, d_max - D),) * 2
-    n_op = len(op_subsystem)
-
-    # For the common case: 1-qubit gate in a 2-qubit group
-    if n_op == 1 and n_group == 2 and all(d == 2 for d in target_dims):
-        pos = positions[0]
-        I2 = jnp.eye(2, dtype=complex)
-        if pos == 0:
-
-            def _embed(mat: Array) -> Array:
-                return jnp.pad(jnp.kron(mat, I2), pad_w)
-
-            return _embed
-        else:
-
-            def _embed(mat: Array) -> Array:
-                return jnp.pad(jnp.kron(I2, mat), pad_w)
-
-            return _embed
-
-    non_op_positions = [i for i in range(n_group) if i not in positions]
-    identity_factors = [jnp.eye(target_dims[i], dtype=complex) for i in non_op_positions]
-
-    # Example for op positions (0, 2) in a 3-qudit group:
-    # op tensor axes are out0,out2,in0,in2; identity axes are out1,in1;
-    # output order must be out0,out1,out2,in0,in1,in2.
-    labels = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    if 2 * n_group > len(labels):
-        raise ValueError(f"Cannot build an einsum embedding for {n_group} subsystems.")
-    out_labels = labels[:n_group]
-    in_labels = labels[n_group : 2 * n_group]
-    op_subscript = "".join(out_labels[p] for p in positions) + "".join(in_labels[p] for p in positions)
-    identity_subscripts = [out_labels[p] + in_labels[p] for p in non_op_positions]
-    embedded_subscript = out_labels + in_labels
-    einsum_spec = ",".join([op_subscript, *identity_subscripts]) + f"->{embedded_subscript}"
-
-    def _embed_general(mat: Array) -> Array:
-        op_tensor = mat.reshape(op_dims + op_dims)
-        embedded = jnp.einsum(einsum_spec, op_tensor, *identity_factors)
-        return jnp.pad(embedded.reshape(D, D), pad_w)
-
-    return _embed_general
 
 
 @dataclass
@@ -378,8 +255,12 @@ class _GateBatch:
     n_args: int
     #: ``(slot, value)`` for each compile-time-constant argument.
     concrete_args: tuple[tuple[int, float], ...]
-    #: Embeds a raw gate matrix into its merge group, padded to ``d_max``.
-    embed_fn: Callable[[Array], Array]
+    #: Per-qudit dimensions of the merge group each member embeds into.
+    target_dims: tuple[int, ...]
+    #: Positions within the group occupied by the gate's qudits.
+    group_positions: tuple[int, ...]
+    #: Uniform stack width every embedded matrix is padded to.
+    d_max: int
     #: Sorted-array positions this batch fills, one per member.
     positions: list[int] = field(default_factory=list)
     #: Parameter-vector index for each free argument, one list per member.
@@ -389,7 +270,8 @@ class _GateBatch:
         """Return ``params -> (n_members, d_max, d_max)`` embedded gate matrices."""
         concrete = {slot for slot, _ in self.concrete_args}
         free_slots = [j for j in range(self.n_args) if j not in concrete]
-        gate_fn, embed_fn, n_args, concrete_args = self.gate_fn, self.embed_fn, self.n_args, self.concrete_args
+        gate_fn, n_args, concrete_args = self.gate_fn, self.n_args, self.concrete_args
+        target_dims, group_positions, d_max = self.target_dims, self.group_positions, self.d_max
         param_indices = jnp.asarray(self.param_indices)  # (n_members, n_free)
 
         def single(free_values: Array) -> Array:
@@ -398,7 +280,7 @@ class _GateBatch:
                 args[slot] = val
             for k, slot in enumerate(free_slots):
                 args[slot] = free_values[k]
-            return embed_fn(gate_fn(*args).matrix)
+            return _embed_unitary_to_group(gate_fn(*args), target_dims, group_positions, d_max)
 
         batched = jax.vmap(single)
         return lambda params: batched(params[param_indices])
@@ -473,14 +355,13 @@ def _build_vectorized_unitary_constructor(
         op = expanded_ops[raw_idx]
         op_sub = raw_subsystems[raw_idx]
         grp_sub = group_subsystems[pos]
+        # Where the op's qudits sit within the merge group, and the group's dims.
+        target_dims = tuple(dims[q] for q in grp_sub)
+        group_positions = tuple(grp_sub.index(q) for q in op_sub)
         if isinstance(op, ParametricGate):
-            # Key by embedding *type* (dims + positions within the group), not
+            # Key by embedding *type* (op dims + group dims + positions), not
             # physical qubits: embeddings that trace to the same graph share a vmap.
-            embed_key = (
-                tuple(dims[q] for q in op_sub),
-                tuple(dims[q] for q in grp_sub),
-                tuple(grp_sub.index(q) for q in op_sub),
-            )
+            embed_key = (tuple(dims[q] for q in op_sub), target_dims, group_positions)
             concrete_args = tuple((j, op.concrete_values[j]) for j, pi in enumerate(op.param_indices) if pi < 0)
             key = (id(op.gate_fn), concrete_args, embed_key)
             batch = batches.get(key)
@@ -489,14 +370,16 @@ def _build_vectorized_unitary_constructor(
                     gate_fn=op.gate_fn,
                     n_args=len(op.param_indices),
                     concrete_args=concrete_args,
-                    embed_fn=_make_embed_fn(op_sub, grp_sub, dims, d_max),
+                    target_dims=target_dims,
+                    group_positions=group_positions,
+                    d_max=d_max,
                 )
                 batches[key] = batch
             batch.positions.append(pos)
             batch.param_indices.append([pi for pi in op.param_indices if pi >= 0])
         else:
             const_positions.append(pos)
-            const_mats.append(_embed_constant_matrix(op.matrix, op_sub, grp_sub, dims, d_max))
+            const_mats.append(_embed_unitary_to_group(op, target_dims, group_positions, d_max))
 
     builders = [(np.asarray(b.positions), b.builder()) for b in batches.values()]
     const_pos_arr = np.asarray(const_positions) if const_positions else None
@@ -531,8 +414,6 @@ class PureStateVectorSimulator(ProgramSimulator):
         U = jax.jit(sim.unitary)(params)
     """
 
-    __slots__ = ("_psi0", "_branches", "_idx_arr", "_vmapped_build_fn")
-
     def __init__(
         self,
         program: Program,
@@ -556,8 +437,19 @@ class PureStateVectorSimulator(ProgramSimulator):
             self.d_max,
         )
 
+        # One switch branch per distinct base subsystem: it rebuilds a Unitary
+        # from the padded matrix slice for its base and applies it to the state.
+        def unitary_branch(
+            base: tuple[int, ...], base_dims: tuple[int, ...], db: int
+        ) -> Callable[[Array, qx.StateVector], qx.StateVector]:
+            def branch(op_mat: Array, psi: qx.StateVector) -> qx.StateVector:
+                unitary = qx.Unitary.from_matrix(op_mat[:db, :db], (base_dims, base_dims))
+                return qx.targeted_apply_unitary(unitary, psi, base)
+
+            return branch
+
         self._branches = [
-            _make_unitary_branch(base, base_dims, db)
+            unitary_branch(base, base_dims, db)
             for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
         ]
         self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
@@ -569,7 +461,7 @@ class PureStateVectorSimulator(ProgramSimulator):
             if isinstance(inst, (Reset, ResetQubit)):
                 raise ValueError(f"PureStateVectorSimulator does not support resets.  Found: {inst}")
 
-    def compute(self, params: Array) -> qx.StateVector:  # type: ignore[override]
+    def compute(self, params: Array | None = None) -> qx.StateVector:  # type: ignore[override]
         """Compute the final state vector.
 
         Operators are stacked into a single array and applied with a
@@ -579,7 +471,8 @@ class PureStateVectorSimulator(ProgramSimulator):
         the number of operations, dramatically reducing JIT compilation time
         for large programs.
 
-        :param params: Flat parameter vector from :meth:`linearize`.
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
         :return: The final state vector.
         """
         # No operations (e.g. empty program) → the initial state is the result.
@@ -588,19 +481,20 @@ class PureStateVectorSimulator(ProgramSimulator):
 
         # Vectorized construction: build embedded matrices via vmap, then
         # compose within each merge group via a parallel fold.
-        op_stack = self._vmapped_build_fn(params)
-        return self._evolve(self._psi0, op_stack)
+        op_stack = self._vmapped_build_fn(self._default_params(params))
+        return self.apply(self._psi0, op_stack)
 
-    def __call__(self, params: Array) -> qx.StateVector:
+    def __call__(self, params: Array | None = None) -> qx.StateVector:
         return self.compute(params)
 
-    def unitary(self, params: Array) -> qx.Unitary:
+    def unitary(self, params: Array | None = None) -> qx.Unitary:
         """Compute the full program unitary.
 
-        :param params: Flat parameter vector from :meth:`linearize`.
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
         :return: The full unitary matrix.
         """
-        resolved = self.resolve(params)
+        resolved = self.resolve(self._default_params(params))
         compressed = self.compress(resolved)
 
         accumulated: qx.Unitary | None = None
@@ -633,8 +527,6 @@ class DensityMatrixSimulator(ProgramSimulator):
         rho = jax.jit(sim.compute)(params)
     """
 
-    __slots__ = ("_rho0", "_branches", "_idx_arr", "_const_op_stack")
-
     def __init__(
         self,
         program: Program,
@@ -645,8 +537,20 @@ class DensityMatrixSimulator(ProgramSimulator):
     ) -> None:
         super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
         self._rho0 = qx.zero_state_matrix(dims=self.dims)
+
+        # One switch branch per distinct base subsystem: it rebuilds a SuperOp
+        # from the padded matrix slice for its base and applies it to the state.
+        def superop_branch(
+            base: tuple[int, ...], base_dims: tuple[int, ...], db2: int
+        ) -> Callable[[Array, qx.DensityMatrix], qx.DensityMatrix]:
+            def branch(op_mat: Array, rho: qx.DensityMatrix) -> qx.DensityMatrix:
+                superop = qx.SuperOp.from_matrix(op_mat[:db2, :db2], (base_dims, base_dims))
+                return qx.targeted_apply_superop(superop, rho, base)
+
+            return branch
+
         self._branches = [
-            _make_superop_branch(base, base_dims, db * db)
+            superop_branch(base, base_dims, db * db)
             for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
         ]
         self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
@@ -666,7 +570,7 @@ class DensityMatrixSimulator(ProgramSimulator):
         mats = [_pad_matrix(superop.matrix, d_max2, d_max2) for superop, _ in superops]
         return jnp.stack(mats, axis=0)
 
-    def compute(self, params: Array) -> qx.DensityMatrix:  # type: ignore[override]
+    def compute(self, params: Array | None = None) -> qx.DensityMatrix:  # type: ignore[override]
         """Compute the final density matrix.
 
         Superoperators are stacked and applied with a :func:`jax.lax.scan`
@@ -674,7 +578,8 @@ class DensityMatrixSimulator(ProgramSimulator):
         :func:`jax.lax.switch`, keeping the compiled graph size proportional to
         the number of distinct base subsystems.
 
-        :param params: Flat parameter vector from :meth:`linearize`.
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
         :return: The final density matrix.
         """
         if not self._has_params and self.op_index:
@@ -683,13 +588,13 @@ class DensityMatrixSimulator(ProgramSimulator):
                 self._const_op_stack = self._stack_superops(self.resolve(jnp.zeros(0)))
             op_stack = self._const_op_stack
         else:
-            resolved = self.resolve(params)
+            resolved = self.resolve(self._default_params(params))
             if not resolved:
                 return self._rho0
             op_stack = self._stack_superops(resolved)
-        return self._evolve(self._rho0, op_stack)
+        return self.apply(self._rho0, op_stack)
 
-    def __call__(self, params: Array) -> qx.DensityMatrix:
+    def __call__(self, params: Array | None = None) -> qx.DensityMatrix:
         return self.compute(params)
 
 
@@ -722,8 +627,6 @@ class TrajectorySimulator(ProgramSimulator):
     outcomes.
     """
 
-    __slots__ = ("_kraus_truncation_threshold", "_devices")
-
     def __init__(
         self,
         program: Program,
@@ -745,19 +648,20 @@ class TrajectorySimulator(ProgramSimulator):
 
     def compute(  # type: ignore[override]
         self,
-        params: Array,
-        key: Array,
+        params: Array | None = None,
+        key: Array | None = None,
     ) -> tuple[qx.StateVector, Array]:
         """Run trajectory simulation.
 
-        :param params: Flat parameter vector from :meth:`linearize`.
-        :param key: JAX PRNG key.  Scalar key → single trajectory.
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
+        :param key: JAX PRNG key (required).  Scalar key → single trajectory.
             Batch of keys (from ``jax.random.split``) → batched trajectories.
         :return: Tuple of ``(state_vector, measurement_outcomes)``.
         """
-        resolved = self.resolve(params)
-        compressed = self.compress(resolved)
-        operations = self.adapt(compressed)
+        if key is None:
+            raise ValueError("TrajectorySimulator.compute requires a JAX PRNG key.")
+        operations = self.adapt(self.compress(self.resolve(self._default_params(params))))
 
         if key.ndim == 0:
             psi = qx.zero_state_vector(dims=self.dims)
@@ -765,14 +669,14 @@ class TrajectorySimulator(ProgramSimulator):
             n_traj = key.shape[0]
             psi = qx.zero_state_vector(dims=self.dims, ensemble_size=(n_traj,))
 
-        return _apply_trajectory_operations(operations, psi, key)
+        return _build_trajectory_kernel(operations, self.dims)(psi, key)
 
-    def __call__(self, params: Array, key: Array) -> tuple[qx.StateVector, Array]:
+    def __call__(self, params: Array | None = None, key: Array | None = None) -> tuple[qx.StateVector, Array]:
         return self.compute(params, key)
 
     def sample(
         self,
-        params: Array,
+        params: Array | None = None,
         num_trajectories: int = 1000,
         batch_size: int = 250,
         random_seed: int = 0,
@@ -784,16 +688,15 @@ class TrajectorySimulator(ProgramSimulator):
         available, each batch is sharded across them so that every device
         processes ``batch_size // n_devices`` trajectories concurrently.
 
-        :param params: Flat parameter vector from :meth:`linearize`.
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
         :param num_trajectories: Total number of trajectories to simulate.
         :param batch_size: Maximum number of trajectories per batch
             (total across all devices).
         :param random_seed: Seed for the JAX PRNG.
         :return: Measurement outcomes with shape ``(num_trajectories, n_measurements)``.
         """
-        resolved = self.resolve(params)
-        compressed = self.compress(resolved)
-        operations = self.adapt(compressed)
+        operations = self.adapt(self.compress(self.resolve(self._default_params(params))))
 
         _, all_outcomes = _run_batched_trajectories(
             operations,
@@ -851,41 +754,48 @@ def _op_to_kraus_matrix(
             raise TypeError(f"Unsupported operator type: {type(op)}")
 
 
-def _apply_trajectory_operations(
-    operations: list[TrajectoryOp],
-    psi: qx.StateVector,
-    key: Array,
-) -> tuple[qx.StateVector, Array]:
-    """Apply trajectory operations to a (batched) state vector via a JAX loop.
+TrajectoryRun = Callable[[qx.StateVector, Array], tuple[qx.StateVector, Array]]
 
-    Every operator is converted to a (zero-padded) Kraus map and stacked into a
-    single array.  A :func:`jax.lax.fori_loop` then iterates over the stack,
-    dispatching each operator to the correct base subsystem with a
-    :func:`jax.lax.switch`.  Because only one loop body and one switch branch
-    per distinct subsystem are traced, the compiled graph size scales with the
-    number of distinct subsystems rather than the number of operations.
 
-    Measurements are handled uniformly: a quantum instrument is flattened so
-    that sampling a Kraus index also selects an outcome (``index // divisor``).
-    Zero-padded Kraus operators have zero Born probability and are therefore
-    never sampled.
+def _build_trajectory_kernel(operations: list[TrajectoryOp], dims: tuple[int, ...]) -> TrajectoryRun:
+    """Build a reusable, jitted trajectory kernel from *operations*.
 
-    Key generation is sharding-friendly: per-operation keys are derived lazily
-    via ``jax.random.fold_in`` so the key array is never materialised in full.
+    All batch-invariant work happens once, here: enumerating distinct subsystems,
+    building the per-subsystem switch branches, and converting every operator to a
+    padded Kraus stack.  The returned ``run(psi, key)`` wraps the scan over that
+    stack in :func:`jax.jit`, so repeated calls with matching ``psi``/``key``
+    shapes (e.g. one per sampling batch) reuse a single compilation instead of
+    re-tracing — this is what turns the previously spiky, recompile-per-batch GPU
+    usage into a single upfront compile.
+
+    Every operator is expressed as a (zero-padded) Kraus map and stacked into one
+    array indexed by the scan; measurements are handled uniformly by flattening a
+    quantum instrument so that sampling a Kraus index also selects an outcome
+    (``index // divisor``).  Zero-padded Kraus operators have zero Born
+    probability and are therefore never sampled.  Per-operation keys are derived
+    lazily via ``jax.random.fold_in`` so the key array is never materialised in
+    full (sharding-friendly).
 
     :param operations: Ordered list of ``(operator, subsystem)`` pairs.
-    :param psi: Initial state vector, optionally batched via ensemble dimension.
-    :param key: JAX PRNG key (scalar) or per-trajectory key vector.
-    :return: Tuple of ``(final_state_vector, measurement_outcomes)`` where
-        measurement_outcomes has shape ``(*ensemble, n_measurements)`` with
-        dtype int32.
+    :param dims: Per-qudit register dimensions (must match the ``psi`` passed to
+        ``run``).
+    :return: ``run(psi, key) -> (final_state_vector, measurement_outcomes)`` where
+        ``measurement_outcomes`` has shape ``(*ensemble, n_measurements)``,
+        dtype int32.  ``key`` is a scalar PRNG key or a per-trajectory key vector.
     """
-    ensemble_size = psi.ensemble_size
-
     if not operations:
-        return psi, jnp.empty((*ensemble_size, 0), dtype=jnp.int32)
 
-    # 1. Enumerate distinct subsystems → one switch branch each.
+        def run_empty(psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
+            return psi, jnp.empty((*psi.ensemble_size, 0), dtype=jnp.int32)
+
+        return run_empty
+
+    # 1. Enumerate distinct subsystems → one switch branch each.  A branch is
+    #    handed a padded matrix (not a KrausMap) because the scan must index a
+    #    single homogeneous op stack: operators live on different subsystems with
+    #    different Kraus counts and so cannot be stacked as one KrausMap, whose
+    #    dims are static per-branch metadata.  Each branch rebuilds its KrausMap
+    #    from the slice, using the base dims it closes over.
     distinct_subsystems: list[tuple[int, ...]] = []
     sub_to_branch: dict[tuple[int, ...], int] = {}
     for _, subsystem in operations:
@@ -893,14 +803,17 @@ def _apply_trajectory_operations(
             sub_to_branch[subsystem] = len(distinct_subsystems)
             distinct_subsystems.append(subsystem)
 
-    branches = [
-        _make_kraus_trajectory_branch(
-            subsystem,
-            tuple(psi.dims[q] for q in subsystem),
-            math.prod(psi.dims[q] for q in subsystem),
-        )
-        for subsystem in distinct_subsystems
-    ]
+    def make_branch(base: tuple[int, ...]) -> Callable[[Array, qx.StateVector, Array], tuple[qx.StateVector, Array]]:
+        base_dims = tuple(dims[q] for q in base)
+        db = math.prod(base_dims)
+
+        def branch(op_mat: Array, psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
+            kraus_map = qx.KrausMap.from_matrix(op_mat[:, :db, :db], (base_dims, base_dims))
+            return cast(tuple[qx.StateVector, Array], _sample_kraus_map_trajectory(kraus_map, psi, key, base))
+
+        return branch
+
+    branches = [make_branch(subsystem) for subsystem in distinct_subsystems]
 
     # 2. Convert every operator to a padded Kraus matrix and stack.
     kraus_mats: list[Array] = []
@@ -908,12 +821,12 @@ def _apply_trajectory_operations(
     measure_positions: list[int] = []
     branch_index: list[int] = []
     for i, (op, subsystem) in enumerate(operations):
-        # Promote each operator to the state's dimension on its subsystem (identity on the
+        # Promote each operator to the register dimension on its subsystem (identity on the
         # higher levels). Without this, an op authored at a lower dimension than the register
         # (e.g. a qubit-dimension channel on a register promoted to qutrits by a leakage model)
         # would be zero-padded to ``d_max`` instead — silently wrong on the high levels, and a
         # reshape error when ``d_max`` is below the branch's dimension.
-        target_dims = tuple(psi.dims[q] for q in subsystem)
+        target_dims = tuple(dims[q] for q in subsystem)
         if op.dims[0] != target_dims:
             op = qx.promote(op, target_dims)
         mat, divisor, is_measure = _op_to_kraus_matrix(op)
@@ -927,33 +840,48 @@ def _apply_trajectory_operations(
     d_max = max(mat.shape[-1] for mat in kraus_mats)
     op_stack = jnp.stack([_pad_matrix(mat, max_k, d_max, d_max) for mat in kraus_mats], axis=0)
     branch_arr = jnp.asarray(branch_index, dtype=jnp.int32)
+    op_indices = jnp.arange(len(operations), dtype=jnp.int32)
 
-    # 3. Per-trajectory base keys.
-    if ensemble_size:
-        per_traj_keys = key if key.ndim > 0 else jax.random.split(key, ensemble_size[0])
-    else:
-        per_traj_keys = None
-
-    n_ops = len(operations)
-    sampled_init = jnp.zeros((n_ops, *ensemble_size), dtype=jnp.int32)
-
-    def body(i: Array, carry: tuple[qx.StateVector, Array]) -> tuple[qx.StateVector, Array]:
-        psi_c, sampled = carry
-        if per_traj_keys is not None:
-            op_key = jax.vmap(lambda k: jax.random.fold_in(k, i))(per_traj_keys)
+    @jax.jit
+    def run(psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
+        ensemble_size = psi.ensemble_size
+        if ensemble_size:
+            per_traj_keys = key if key.ndim > 0 else jax.random.split(key, ensemble_size[0])
         else:
-            op_key = jax.random.fold_in(key, i)
-        psi_c, sampled_idx = jax.lax.switch(branch_arr[i], branches, op_stack[i], psi_c, op_key)
-        return psi_c, sampled.at[i].set(sampled_idx.astype(jnp.int32))
+            per_traj_keys = None
 
-    psi, sampled = jax.lax.fori_loop(0, n_ops, body, (psi, sampled_init))
+        def body(psi_c: qx.StateVector, xs: tuple[Array, Array, Array]) -> tuple[qx.StateVector, Array]:
+            op_mat, bidx, i = xs
+            if per_traj_keys is not None:
+                op_key = jax.vmap(lambda k: jax.random.fold_in(k, i))(per_traj_keys)
+            else:
+                op_key = jax.random.fold_in(key, i)
+            psi_c, sampled_idx = jax.lax.switch(bidx, branches, op_mat, psi_c, op_key)
+            return psi_c, sampled_idx.astype(jnp.int32)
 
-    if measure_positions:
-        outcomes = jnp.stack([sampled[p] // divisors[p] for p in measure_positions], axis=-1)
-    else:
-        outcomes = jnp.empty((*ensemble_size, 0), dtype=jnp.int32)
+        psi_out, sampled = jax.lax.scan(body, psi, (op_stack, branch_arr, op_indices))
 
-    return psi, outcomes
+        if measure_positions:
+            outcomes = jnp.stack([sampled[p] // divisors[p] for p in measure_positions], axis=-1)
+        else:
+            outcomes = jnp.empty((*ensemble_size, 0), dtype=jnp.int32)
+        return psi_out, outcomes
+
+    return run
+
+
+def _apply_trajectory_operations(
+    operations: list[TrajectoryOp],
+    psi: qx.StateVector,
+    key: Array,
+) -> tuple[qx.StateVector, Array]:
+    """Build a one-off trajectory kernel for *operations* and apply it to *psi*.
+
+    Convenience wrapper around :func:`_build_trajectory_kernel` for callers that
+    run a single (batch of) trajectories; batched sampling reuses one kernel
+    across batches instead — see :func:`_run_batched_trajectories`.
+    """
+    return _build_trajectory_kernel(operations, psi.dims)(psi, key)
 
 
 def _make_mesh(devices: list[jax.Device] | None) -> Mesh | None:
@@ -986,12 +914,26 @@ def _run_batched_trajectories(
     is constructed and both the initial state vector and PRNG keys are sharded
     along the trajectory (ensemble) axis.  XLA's SPMD partitioner then
     distributes the work so that each device processes its own slice.
+
+    Every batch runs at the same width (:func:`_build_trajectory_kernel` compiled
+    once, reused across batches) so the GPU sees one upfront compile rather than a
+    recompile spike per batch; the final short batch is padded up to that width
+    and its extra rows are sliced off.
     """
     if dims is None:
         dims = (2,) * n_qubits
 
     mesh = _make_mesh(devices)
     n_devices = len(mesh.devices.flat) if mesh is not None else 1
+    sharding = NamedSharding(mesh, PartitionSpec("traj")) if mesh is not None else None  # type: ignore[no-untyped-call]
+
+    # Build the jitted trajectory kernel once; reuse it for every batch.
+    run = _build_trajectory_kernel(operations, dims)
+
+    # Uniform per-batch width: full batches and the padded tail all share it, so
+    # the kernel compiles exactly once.  Capped at the total so single-batch runs
+    # don't pad past what's asked for; rounded to n_devices for even sharding.
+    batch_width = _round_up_to(min(num_trajectories, batch_size), n_devices)
 
     key = jax.random.key(random_seed)
     all_psis: list[qx.StateVector] = []
@@ -1000,47 +942,30 @@ def _run_batched_trajectories(
     remaining = num_trajectories
     while remaining > 0:
         this_batch = min(remaining, batch_size)
-
-        # Pad to a multiple of n_devices so the shard split is even.
-        padded_batch = _round_up_to(this_batch, n_devices) if n_devices > 1 else this_batch
-        n_pad = padded_batch - this_batch
-
         key, batch_key = jax.random.split(key)
 
-        if padded_batch == 1:
+        if batch_width == 1:
             psi = qx.zero_state_vector(dims=dims)
+            batch_keys = batch_key
         else:
-            psi = qx.zero_state_vector(dims=dims, ensemble_size=(padded_batch,))
-
-        # Shard state and key across devices when a mesh is available.
-        if mesh is not None:
-            sharding = NamedSharding(mesh, PartitionSpec("traj"))  # type: ignore[no-untyped-call]
-            psi = qx.StateVector.from_matrix(
-                jax.device_put(psi.matrix, sharding),
-                psi.dims,
-            )
-            # Split a per-trajectory key vector and shard it.
-            batch_keys = jax.random.split(batch_key, padded_batch)
-            batch_keys = jax.device_put(batch_keys, sharding)
-        else:
+            psi = qx.zero_state_vector(dims=dims, ensemble_size=(batch_width,))
             batch_keys = batch_key
 
-        psi_out, outcomes = _apply_trajectory_operations(operations, psi, batch_keys)
+        # Shard state and key across devices when a mesh is available.
+        if sharding is not None:
+            psi = qx.StateVector.from_matrix(jax.device_put(psi.matrix, sharding), psi.dims)
+            batch_keys = jax.device_put(jax.random.split(batch_key, batch_width), sharding)
+
+        psi_out, outcomes = run(psi, batch_keys)
         psi_out.matrix.block_until_ready()
 
-        # Strip padding rows.
-        if n_pad > 0:
-            psi_out = qx.StateVector.from_matrix(
-                psi_out.matrix[:this_batch],
-                psi_out.dims,
-            )
+        # Strip padding rows down to this batch's real trajectory count.
+        if batch_width > 1 and this_batch < batch_width:
+            psi_out = qx.StateVector.from_matrix(psi_out.matrix[:this_batch], psi_out.dims)
             outcomes = outcomes[:this_batch]
 
-        if this_batch == 1 and padded_batch == 1:
-            psi_out = qx.StateVector.from_matrix(
-                psi_out.matrix[jnp.newaxis],
-                psi_out.dims,
-            )
+        if this_batch == 1 and batch_width == 1:
+            psi_out = qx.StateVector.from_matrix(psi_out.matrix[jnp.newaxis], psi_out.dims)
             outcomes = outcomes[jnp.newaxis]
 
         if keep_states:
@@ -1137,8 +1062,6 @@ class DynamicTrajectorySimulator(ProgramSimulator):
         shots = sim.sample(params, num_trajectories=1000)
     """
 
-    __slots__ = ("_kraus_truncation_threshold", "_squeeze_tol")
-
     def __init__(
         self,
         program: Program,
@@ -1158,18 +1081,23 @@ class DynamicTrajectorySimulator(ProgramSimulator):
 
     def compute(  # type: ignore[override]
         self,
-        params: Array,
-        key: Array,
+        params: Array | None = None,
+        key: Array | None = None,
     ) -> tuple[qx.StateVector, Array]:
         """Run a single dynamic-shape trajectory.
 
-        :param params: Flat parameter vector from :meth:`linearize`.
-        :param key: Scalar JAX PRNG key for this trajectory.
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
+        :param key: Scalar JAX PRNG key for this trajectory (required).
         :return: ``(state_vector, measurement_outcomes)``.  The state's per-qudit
             dimensions reflect whatever leakage survived squeezing; outcomes has
             shape ``(n_measurements,)`` in program order.
         """
-        operations = adapt_for_trajectory(self.compress(self.resolve(params)), self._kraus_truncation_threshold)
+        if key is None:
+            raise ValueError("DynamicTrajectorySimulator.compute requires a JAX PRNG key.")
+        operations = adapt_for_trajectory(
+            self.compress(self.resolve(self._default_params(params))), self._kraus_truncation_threshold
+        )
 
         psi = qx.zero_state_vector(dims=(2,) * self.n_qubits)
         outcomes: list[Array] = []
@@ -1187,12 +1115,12 @@ class DynamicTrajectorySimulator(ProgramSimulator):
             return psi, jnp.stack(outcomes, axis=-1).astype(jnp.int32)
         return psi, jnp.empty((0,), dtype=jnp.int32)
 
-    def __call__(self, params: Array, key: Array) -> tuple[qx.StateVector, Array]:
+    def __call__(self, params: Array | None = None, key: Array | None = None) -> tuple[qx.StateVector, Array]:
         return self.compute(params, key)
 
     def sample(
         self,
-        params: Array,
+        params: Array | None = None,
         num_trajectories: int = 1000,
         random_seed: int = 0,
     ) -> Array:

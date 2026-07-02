@@ -1023,21 +1023,25 @@ class MeasurementChannel:
     ) -> MeasurementChannel:
         """Create a MeasurementChannel for a binary discriminator.
 
-        Models a measurement that confuses each state at or above ``threshold`` with
-        the state one level below it. This is useful for measurements calibrated as
-        binary discriminators between groups of energy levels.
+        Models a measurement that reports a single classical *bit* for a
+        ``dim``-level system by thresholding: levels ``[0, threshold)`` yield
+        outcome ``0`` and levels ``[threshold, dim)`` yield outcome ``1``.  The
+        resulting instrument therefore always has exactly two outcomes, so leaked
+        levels are lumped in with whichever side of the threshold they fall on
+        (the usual case being a "dark" ground state vs. everything "bright").
 
-        For example, ``threshold=2, dim=3`` always confuses state 2 for state 1
-        (discriminates ``{0, 1}`` vs ``{2}``). ``threshold=1, dim=3`` confuses
-        state 1 for state 0 and state 2 for state 1 (discriminates ``{0}`` vs ``{1, 2}``).
+        For example, ``threshold=1, dim=2`` is an ordinary qubit readout
+        (``{0}`` -> 0, ``{1}`` -> 1); ``threshold=1, dim=3`` discriminates
+        ``{0}`` vs ``{1, 2}`` (ground vs. excited-or-leaked); ``threshold=2,
+        dim=3`` discriminates ``{0, 1}`` vs ``{2}`` (i.e. flags leakage only).
 
         An optional ``fidelity`` parameter degrades the ideal discriminator with
         uniform classification noise.
 
         :param inst: The measurement instruction.
         :param dim: The dimension of the measured system.
-        :param threshold: States at or above this level are confused with the level below.
-            Must satisfy ``1 <= threshold < dim``.
+        :param threshold: The split point: levels below it report 0, levels at or
+            above it report 1.  Must satisfy ``1 <= threshold < dim``.
         :param fidelity: Additional classification fidelity applied on top of the
             discrimination (1.0 = perfect discriminator).
         :return: A MeasurementChannel instance.
@@ -1045,19 +1049,17 @@ class MeasurementChannel:
         if not (1 <= threshold < dim):
             raise ValueError(f"threshold must satisfy 1 <= threshold < dim, got threshold={threshold}, dim={dim}")
 
-        # Build the ideal binary discriminator confusion matrix:
-        # states below threshold are classified correctly,
-        # states at or above threshold are classified as the state one below.
-        confusion = jnp.zeros((dim, dim))
+        # Ideal two-outcome confusion matrix of shape (num_outcomes=2, dim):
+        # column j (prepared level j) puts all its weight on outcome 0 if
+        # j < threshold, else on outcome 1.  Two rows so the instrument has
+        # exactly two outcomes (never a phantom, zero-probability outcome).
+        confusion = jnp.zeros((2, dim))
         for j in range(dim):
-            if j < threshold:
-                confusion = confusion.at[j, j].set(1.0)
-            else:
-                confusion = confusion.at[j - 1, j].set(1.0)
+            confusion = confusion.at[int(j >= threshold), j].set(1.0)
 
-        # Optionally degrade with uniform noise
+        # Optionally degrade with uniform noise across the two outcomes.
         if fidelity < 1.0:
-            confusion = fidelity * confusion + (1 - fidelity) * jnp.ones((dim, dim)) / dim
+            confusion = fidelity * confusion + (1 - fidelity) * jnp.ones((2, dim)) / 2
 
         transition = jnp.eye(dim)
         instrument = qx.instrument_from_confusion_and_transition(
@@ -1467,6 +1469,40 @@ class CycleChannel:
 
     channels: tuple[Channel | MeasurementChannel, ...]
     """Constituent channels (one per operation in the cycle) on disjoint qubits."""
+
+    def __post_init__(self) -> None:
+        """Validate that every instruction in the cycle body has a corresponding channel.
+
+        Downstream consumers (the resolver, the stim converter) use only ``channels`` and
+        ignore ``defcircuit``; a missing channel would silently drop that operation's noise.
+        Operations are matched by identity (name, params, concrete qubits), independent of
+        the DefCircuit's formal-argument naming.
+        """
+        qarg_to_qubit = dict(zip(self.defcircuit.qubit_variables, self.inst.get_qubit_indices(), strict=False))
+
+        def _resolve(qubit: object) -> int:
+            if qubit in qarg_to_qubit:
+                return qarg_to_qubit[qubit]  # type: ignore[index]
+            return qubit.index if hasattr(qubit, "index") else int(qubit)  # type: ignore[union-attr,arg-type]
+
+        def _body_key(inst: Gate | Measurement) -> tuple[str, tuple, tuple[int, ...]]:
+            if isinstance(inst, Measurement):
+                return ("MEASURE", (), (_resolve(inst.qubit),))
+            return (inst.name, tuple(inst.params), tuple(_resolve(q) for q in inst.qubits))
+
+        def _channel_key(channel: Channel | MeasurementChannel) -> tuple[str, tuple, tuple[int, ...]]:
+            if isinstance(channel, MeasurementChannel):
+                return ("MEASURE", (), tuple(channel.qubits))
+            return (channel.inst.name, tuple(channel.inst.params), tuple(channel.inst.get_qubit_indices()))
+
+        expected = sorted(repr(_body_key(inst)) for inst in self.defcircuit.instructions)
+        provided = sorted(repr(_channel_key(ch)) for ch in self.channels)
+        if expected != provided:
+            raise ValueError(
+                "CycleChannel is incomplete: every instruction in the cycle's DefCircuit "
+                "body must have a corresponding channel. "
+                f"DefCircuit body: {expected}; channels: {provided}."
+            )
 
     # ──────────────────────────────────────────────
     # Derived properties

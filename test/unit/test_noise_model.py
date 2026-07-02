@@ -20,12 +20,19 @@ import pytest
 import quax as qx
 
 from pyquil.external.rpcq import CompilerISA
-from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, X
-from pyquil.noise._channels import Channel, MeasurementChannel, ResetChannel, get_instruction_unitary
+from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, RZ, X
+from pyquil.noise._channels import (
+    Channel,
+    CycleChannel,
+    MeasurementChannel,
+    ResetChannel,
+    _build_cycle_channel,
+    get_instruction_unitary,
+)
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import Qubit
-from pyquil.quilbase import Gate, Measurement, ResetQubit
+from pyquil.quilatom import FormalArgument, Qubit
+from pyquil.quilbase import DefCircuit, Gate, Measurement, ResetQubit
 from pyquil.simulation._simulator import DensityMatrixSimulator
 
 _EMPTY_PARAMS = jnp.array([], dtype=float)
@@ -241,6 +248,48 @@ class TestMeasurementChannel:
         ch = MeasurementChannel.from_confusion_and_transition(meas_inst, confusion, jnp.eye(2))
         with pytest.raises(ValueError, match="not embeddable|not a valid"):
             _ = ch**0.5
+
+    def test_from_binary_discriminator_qubit_is_faithful_readout(self):
+        """Regression: dim=2/threshold=1 is a real qubit readout, not an always-0 collapse.
+
+        The previous implementation mapped both |0> and |1> to outcome 0 for a qubit,
+        silently erasing all measurement information.
+        """
+        prog = Program(MEASURE(0, None))
+        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
+        ch = MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=2, threshold=1)
+        cm = np.asarray(ch.confusion_matrix)
+        assert cm.shape == (2, 2)  # two reachable outcomes
+        assert np.allclose(cm, np.eye(2))  # |0> -> 0, |1> -> 1
+
+    def test_from_binary_discriminator_qutrit_split(self):
+        """dim=3 splits into exactly two outcomes at the threshold."""
+        prog = Program(MEASURE(0, None))
+        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
+        # threshold=2: {0,1} -> 0, {2} -> 1 (flag leakage only)
+        cm2 = np.asarray(MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=3, threshold=2).confusion_matrix)
+        assert np.allclose(cm2, [[1, 1, 0], [0, 0, 1]])
+        # threshold=1: {0} -> 0, {1,2} -> 1 (ground vs excited-or-leaked)
+        cm1 = np.asarray(MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=3, threshold=1).confusion_matrix)
+        assert np.allclose(cm1, [[1, 0, 0], [0, 1, 1]])
+
+    def test_from_binary_discriminator_fidelity_degrades(self):
+        """Sub-unit fidelity stays column-stochastic and keeps both outcomes reachable."""
+        prog = Program(MEASURE(0, None))
+        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
+        cm = np.asarray(
+            MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=2, threshold=1, fidelity=0.9).confusion_matrix
+        )
+        assert cm.shape == (2, 2)
+        assert np.allclose(cm.sum(axis=0), 1.0)
+        assert cm[1, 1] > cm[0, 1]  # |1> still most likely reads as outcome 1
+
+    def test_from_binary_discriminator_rejects_bad_threshold(self):
+        """threshold must satisfy 1 <= threshold < dim."""
+        prog = Program(MEASURE(0, None))
+        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
+        with pytest.raises(ValueError, match="threshold"):
+            MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=2, threshold=2)
 
     def test_json_roundtrip_preserves_qutrit_dims(self):
         """MeasurementChannel JSON includes explicit dims for non-qubit instruments."""
@@ -635,3 +684,24 @@ class TestFromIsa:
         nm = NoiseModel.from_isa(self._isa())
         channel = nm.get_channel(Measurement(qubit=Qubit(0), classical_reg=None))
         assert isinstance(channel, MeasurementChannel)
+
+
+class TestCycleChannel:
+    def test_complete_cycle_constructs(self):
+        """A CycleChannel whose channels cover every DefCircuit body instruction is valid."""
+        channels = tuple(
+            Channel.from_depolarizing_constant(inst, depolarizing_constant=0.99) for inst in (RX(0.1, 0), RZ(0.2, 1))
+        )
+        cycle = _build_cycle_channel(list(channels))
+        assert cycle.channels == channels
+
+    def test_incomplete_cycle_rejected(self):
+        """A body instruction with no corresponding channel is a footgun and must raise."""
+        q0, q1 = FormalArgument("q0"), FormalArgument("q1")
+        # DefCircuit body has two gates, but only one channel is supplied for q0.
+        defcircuit = DefCircuit("CYCLE", [], [q0, q1], [RX(0.1, q0), RZ(0.2, q1)])
+        cycle_inst = Gate("CYCLE", [], [Qubit(0), Qubit(1)])
+        channels = (Channel.from_depolarizing_constant(RX(0.1, 0), depolarizing_constant=0.99),)
+
+        with pytest.raises(ValueError, match="incomplete"):
+            _ = CycleChannel(inst=cycle_inst, defcircuit=defcircuit, channels=channels)
