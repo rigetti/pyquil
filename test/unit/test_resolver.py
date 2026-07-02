@@ -91,6 +91,28 @@ class TestExpandProgram:
         for op in ops:
             assert isinstance(op, qx.SuperOp)
 
+    def test_cycle_channel_applies_process_faithfully(self):
+        """A ``CycleChannel`` constituent is simulated as its ``process`` verbatim.
+
+        ``Channel.process`` is the source of truth for a cycle constituent: it must
+        carry the gate (composed with any noise).  This pins that contract — a
+        noiseless gate channel's ``process`` is emitted unchanged and equals the gate
+        superoperator — so a noise model that puts an identity in ``process`` for a
+        real gate (which silently drops it) is a *noise-model* error, caught at the
+        point of construction, not something the resolver second-guesses.
+        """
+        q0 = FormalArgument("q")
+        dc = DefCircuit("VCYC", [], [q0], [X(q0)])
+        cycle_inst = Gate("VCYC", [], [Qubit(0)])
+        # Noiseless X channel: the gate lives in the process (target_unitary == process action).
+        gate_channel = Channel(X(0), qx.to_superop(qx.gates.X), target_unitary=qx.gates.X)
+        nm = NoiseModel.from_channels([CycleChannel(inst=cycle_inst, defcircuit=dc, channels=(gate_channel,))])
+        p = Program(dc, cycle_inst)
+        ops, _, _ = expand_program(p, nm)
+        assert len(ops) == 1
+        # Emitted verbatim: the process (an X superoperator) is what gets applied.
+        assert jnp.allclose(qx.to_superop(ops[0]).matrix, qx.to_superop(qx.gates.X).matrix, atol=1e-6)
+
     def test_parameterized_gate_produces_callable(self):
         p = Program(Declare("theta", "REAL", 1), RZ(MemoryReference("theta", 0), 0))
         ops, _, _ = expand_program(p)

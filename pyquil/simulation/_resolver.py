@@ -35,7 +35,7 @@ import heapq
 import logging
 from collections.abc import Callable, Iterator, Mapping
 from copy import deepcopy
-from typing import Any, NamedTuple, TypeAlias, cast
+from typing import Any, Literal, NamedTuple, TypeAlias, cast
 
 import jax.numpy as jnp
 import networkx as nx
@@ -66,6 +66,13 @@ logger = logging.getLogger(__name__)
 
 # A fixed (non-parameterized) operator — the most specific native quax type.
 FixedOp: TypeAlias = qx.Unitary | qx.SuperOp | qx.KrausMap | qx.QuantumInstrument
+
+# How ``MEASURE`` is represented during expansion.  The grad-able simulators
+# (state-vector, density-matrix) treat a measurement as a plain dephasing
+# ``SuperOp`` (``"superop"``); the trajectory simulators keep it as a sampled
+# ``QuantumInstrument`` (``"instrument"``).  See :func:`resolve_for_gradable` and
+# :func:`resolve_for_trajectory`.
+MeasurementMode: TypeAlias = Literal["superop", "instrument"]
 
 
 class ParametricGate:
@@ -214,6 +221,7 @@ def expand_program(
     qubit_dimensions: Mapping[int, int] | None = None,
     *,
     context: _ExpansionContext | None = None,
+    measurement: MeasurementMode = "instrument",
 ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
     """Expand a program into operators and physical qubit tuples.
 
@@ -240,6 +248,11 @@ def expand_program(
     :param context: Optional precomputed :class:`_ExpansionContext`. When omitted
         it is derived from the program; pass it to avoid recomputing the
         dimension-independent derivations across multiple expansion passes.
+    :param measurement: How to represent ``MEASURE`` instructions.  ``"instrument"``
+        (default) keeps a sampled ``QuantumInstrument``; ``"superop"`` emits the
+        measurement's dephasing total channel as a ``SuperOp`` so no instrument
+        (and hence no compressor barrier) is produced — used by the grad-able
+        simulators.
     :return: Tuple of ``(ops, qubit_tuples, param_refs)`` where each op is
         either a concrete quax operator or a ``Callable[[Array], Unitary]``
         for parameterized gates, each qubit tuple contains physical qubit
@@ -307,12 +320,23 @@ def expand_program(
         return qubit_dimensions.get(qubit, 2) if qubit_dimensions is not None else 2
 
     def _resolve_measurement(inst: Measurement) -> tuple[FixedOp, tuple[int, ...]]:
-        """Resolve a measurement instruction."""
+        """Resolve a measurement instruction.
+
+        Under ``measurement="instrument"`` the result is a ``QuantumInstrument``
+        (sampled by the trajectory simulators).  Under ``measurement="superop"``
+        the instrument's dephasing total channel is returned as a ``SuperOp`` so
+        the grad-able pipeline never has to carry — or merge — an instrument.
+        """
         qubits = tuple(inst.get_qubit_indices())
         channel = noise_model.get_channel(inst) if noise_model is not None else None
-        if isinstance(channel, MeasurementChannel):
-            return channel.process, qubits
-        return qx.gates.MEASURE(dim=_dimension_for(qubits[0])), qubits
+        instrument = (
+            channel.process
+            if isinstance(channel, MeasurementChannel)
+            else qx.gates.MEASURE(dim=_dimension_for(qubits[0]))
+        )
+        if measurement == "superop":
+            return instrument.total_channel(), qubits
+        return instrument, qubits
 
     def _resolve_reset_qubit(inst: ResetQubit) -> tuple[FixedOp, tuple[int, ...]]:
         """Resolve a targeted reset instruction."""
@@ -457,6 +481,8 @@ def resolve_program(
     noise_model: NoiseModelLike | None = None,
     qubits: list[int] | None = None,
     dims: tuple[int, ...] | None = None,
+    *,
+    measurement: MeasurementMode = "instrument",
 ) -> Resolution:
     """Expand a program and build its parameter-resolving closure.
 
@@ -479,6 +505,9 @@ def resolve_program(
         program. Use this when the simulator knows about qubits that don't
         appear in the program.
     :param dims: Optional pre-determined per-qudit dimensions.
+    :param measurement: Measurement representation — see :func:`expand_program`.
+        Prefer the :func:`resolve_for_gradable` / :func:`resolve_for_trajectory`
+        entry points, which pin the correct mode for each simulator family.
     :return: A :class:`Resolution`.
     """
     if qubits is None:
@@ -492,7 +521,7 @@ def resolve_program(
         qubit_dimensions: Mapping[int, int] | None,
     ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
         ops, phys_qubits, param_refs = expand_program(
-            program, noise_model, qubit_dimensions=qubit_dimensions, context=context
+            program, noise_model, qubit_dimensions=qubit_dimensions, context=context, measurement=measurement
         )
         return ops, remap_qubits(phys_qubits, qubit_indices), param_refs
 
@@ -504,6 +533,67 @@ def resolve_program(
     qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
     ops, subsystems, param_refs = expand(qubit_dimensions)
     return Resolution(dims, ops, subsystems, param_refs, _freeze_resolver(ops, subsystems))
+
+
+def resolve_for_gradable(
+    program: Program,
+    noise_model: NoiseModelLike | None = None,
+    qubits: list[int] | None = None,
+    dims: tuple[int, ...] | None = None,
+) -> Resolution:
+    """Resolve a program for the grad-able (state-vector / density-matrix) simulators.
+
+    Measurements become dephasing ``SuperOp`` operators, so the resolved program
+    contains only ``Unitary``/``SuperOp`` operators and no compressor barriers are
+    needed.  Thin wrapper over :func:`resolve_program` with ``measurement="superop"``.
+    """
+    return resolve_program(program, noise_model, qubits, dims, measurement="superop")
+
+
+def resolve_for_trajectory(
+    program: Program,
+    noise_model: NoiseModelLike | None = None,
+    qubits: list[int] | None = None,
+    dims: tuple[int, ...] | None = None,
+) -> Resolution:
+    """Resolve a program for the trajectory simulators.
+
+    Measurements remain sampled ``QuantumInstrument`` operators (kept out of merges
+    by compressor barriers).  Thin wrapper over :func:`resolve_program` with
+    ``measurement="instrument"``.
+    """
+    return resolve_program(program, noise_model, qubits, dims, measurement="instrument")
+
+
+def enumerate_bases(
+    emit_order: list[tuple[int, list[int], tuple[int, ...]]],
+) -> tuple[list[tuple[int, ...]], tuple[int, ...]]:
+    """Enumerate the distinct base subsystems produced by a compressor.
+
+    The compressor's ``emit_order`` (see :func:`compressor_from_dag`) lists one
+    ``(root, nodes, subsystem)`` entry per emitted group, in application order.  The
+    merge structure depends only on the DAG, not on parameter values, so the base
+    subsystems can be read straight off ``emit_order`` — no ``resolve``/``compress``
+    probe is required.
+
+    The grad-able simulators dispatch each compressed operation through a
+    ``jax.lax.switch`` keyed by its base, so the number of *distinct* bases (rather
+    than the number of operations) sets the size of the compiled graph.
+
+    :param emit_order: The ``emit_order`` attribute of a compressor closure.
+    :return: ``(bases, op_index)`` where ``bases`` is the distinct subsystems in
+        first-seen order and ``op_index[k]`` is the base index of the ``k``-th
+        emitted operation.
+    """
+    bases: list[tuple[int, ...]] = []
+    sub_to_branch: dict[tuple[int, ...], int] = {}
+    op_index: list[int] = []
+    for _, _, subsystem in emit_order:
+        if subsystem not in sub_to_branch:
+            sub_to_branch[subsystem] = len(bases)
+            bases.append(subsystem)
+        op_index.append(sub_to_branch[subsystem])
+    return bases, tuple(op_index)
 
 
 # ══════════════════════════════════════════════════════════

@@ -13,21 +13,28 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Unified program simulators backed by quax.
+"""Program simulators backed by quax.
 
-Three simulators share a common preprocessing pipeline:
+All simulators share the preprocessing in :class:`ProgramSimulator` (expansion,
+dimension inference, ``linearize``/``resolve``/``compress``) and then split into
+two families with different execution models:
 
-* :class:`PureStateVectorSimulator` — gate-only programs (no noise,
-  measurements, or resets).  Jit- and grad-friendly.
-* :class:`DensityMatrixSimulator` — any program, optionally with noise.
-  Jit- and grad-friendly.
-* :class:`TrajectorySimulator` — Monte Carlo trajectory simulation for
-  programs with measurements and resets, optionally with noise.
+* **Grad-able** (:class:`_GradableSimulator`) — jit/grad-friendly evolution of a
+  compressed ``Unitary``/``SuperOp`` stack; measurements are dephasing SuperOps and
+  there are no compressor barriers:
 
-Each simulator is constructed from a :class:`~pyquil.quil.Program` and
-exposes ``linearize``, ``resolve``, ``compress``, and ``compute`` methods.
-The ``compute`` method is the main entry point and can be passed directly
-to ``jax.jit`` or ``jax.grad``.
+  * :class:`PureStateVectorSimulator` — gate-only programs (no noise, measurements,
+    or resets).
+  * :class:`DensityMatrixSimulator` — any program, optionally with noise.
+
+* **Trajectory** (:class:`_TrajectorySimulator`) — Monte Carlo sampling of programs
+  with measurements and resets; measurements stay as sampled QuantumInstruments:
+
+  * :class:`TrajectorySimulator` — fixed-dimension, vectorized/batched trajectories.
+  * :class:`DynamicTrajectorySimulator` — eager, per-trajectory dynamic qudit dims.
+
+The ``compute`` method is the main entry point; for the grad-able family it can be
+passed directly to ``jax.jit`` or ``jax.grad``.
 """
 
 from __future__ import annotations
@@ -50,6 +57,7 @@ from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
 from pyquil.simulation._resolver import (
+    MeasurementMode,
     ParametricGate,
     ResolvedOp,
     TrajectoryOp,
@@ -57,7 +65,9 @@ from pyquil.simulation._resolver import (
     adapt_for_trajectory,
     build_dag,
     compressor_from_dag,
-    resolve_program,
+    enumerate_bases,
+    resolve_for_gradable,
+    resolve_for_trajectory,
 )
 
 
@@ -81,10 +91,13 @@ def _pad_matrix(mat: Array, *target: int) -> Array:
 
 
 class ProgramSimulator:
-    """Base class for program simulators.
+    """Shared preprocessing base for program simulators.
 
-    Handles all shared preprocessing: circuit expansion, qubit ordering,
-    building the linearizer, resolver, and compressor closures.
+    Handles the pipeline common to every backend: circuit expansion, qubit
+    ordering, dimension inference, and building the ``linearize``/``resolve``/
+    ``compress`` closures.  Two family bases specialise it — :class:`_GradableSimulator`
+    (state-vector, density-matrix) and :class:`_TrajectorySimulator` (trajectory,
+    dynamic trajectory) — supplying only the execution machinery each needs.
 
     Subclasses override :meth:`_validate` and :meth:`compute`.
 
@@ -99,6 +112,7 @@ class ProgramSimulator:
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 2,
         dims: tuple[int, ...] | None = None,
+        measurement: MeasurementMode = "instrument",
     ) -> None:
         self._validate(program)
 
@@ -107,13 +121,19 @@ class ProgramSimulator:
         self.qubits = qubits
         self.n_qubits = len(qubits)
 
-        # Expand the program into operators, inferring register dimensions when
-        # not supplied.  See :func:`resolve_program`.
-        res = resolve_program(program, noise_model, qubits, dims=dims)
+        # Expand the program into operators, inferring register dimensions when not
+        # supplied.  The measurement mode selects the resolver family: the grad-able
+        # simulators resolve measurements to dephasing SuperOps, the trajectory
+        # simulators keep them as sampled QuantumInstruments.
+        if measurement == "superop":
+            res = resolve_for_gradable(program, noise_model, qubits, dims)
+        else:
+            res = resolve_for_trajectory(program, noise_model, qubits, dims)
         self.dims = res.dims
         self._resolve_fn = res.resolve
         self._expanded_ops = tuple(res.ops)
         self._raw_subsystems = tuple(res.subsystems)
+        self._n_params = len(res.param_refs)
         param_refs = res.param_refs
 
         # Build linearizer from parameter references discovered during expansion.
@@ -127,15 +147,9 @@ class ProgramSimulator:
 
         dag = build_dag(res.subsystems)
 
-        # Whether any gate matrix depends on a runtime parameter.  When it does
-        # not, the compressed operator stack is a compile-time constant and can
-        # be materialised eagerly (outside the traced graph), which avoids XLA
-        # constant-folding/autotuning a large ``compose_operator`` subgraph — the
-        # dominant JIT cost on accelerators for deep, literal-angle programs.
-        self._has_params = bool(param_refs)
-
-        # Derive barrier nodes: measurements (QuantumInstrument) should not
-        # be merged by the compressor.
+        # Measurements (QuantumInstrument) must not be merged by the compressor.
+        # Under the grad-able ("superop") mode no instruments are produced, so this
+        # is naturally empty and the compressor is free to merge every operation.
         barrier_nodes = {i for i, op in enumerate(res.ops) if isinstance(op, qx.QuantumInstrument)}
 
         self._compress_fn = compressor_from_dag(
@@ -144,28 +158,6 @@ class ProgramSimulator:
             dims=self.dims,
             barrier_nodes=barrier_nodes,
         )
-
-        # Enumerate the *base subsystems* produced by the compressor.  The merge
-        # structure depends only on the DAG (not on parameter values), so a
-        # structural probe with zero parameters yields exactly the subsystem
-        # sequence that ``compress`` will produce for any parameters.  The
-        # lax-loop ``compute`` methods dispatch each compressed operation through
-        # a ``jax.lax.switch`` keyed by its base, so the number of distinct bases
-        # (rather than the number of operations) determines the size of the
-        # traced/compiled graph.
-        probe = self._compress_fn(self._resolve_fn(jnp.zeros(len(param_refs))))
-        self.bases: list[tuple[int, ...]] = []
-        sub_to_branch: dict[tuple[int, ...], int] = {}
-        op_index: list[int] = []
-        for _, subsystem in probe:
-            if subsystem not in sub_to_branch:
-                sub_to_branch[subsystem] = len(self.bases)
-                self.bases.append(subsystem)
-            op_index.append(sub_to_branch[subsystem])
-        self.op_index = tuple(op_index)
-        self.base_dims = [tuple(self.dims[q] for q in base) for base in self.bases]
-        self.base_total_dim = [math.prod(d) for d in self.base_dims]
-        self.d_max = max(self.base_total_dim) if self.base_total_dim else 1
 
     # -- hook for subclass validation ---------------------
 
@@ -199,14 +191,68 @@ class ProgramSimulator:
         """Compute the simulation result.  Subclasses must override."""
         raise NotImplementedError
 
+
+# ══════════════════════════════════════════════════════════
+# Grad-able family base (state-vector / density-matrix)
+# ══════════════════════════════════════════════════════════
+
+
+class _GradableSimulator(ProgramSimulator):
+    """Base for the jit/grad-friendly state-vector and density-matrix simulators.
+
+    Adds the compressed-stack evolution machinery.  It enumerates the distinct
+    *base subsystems* the compressor emits (:func:`enumerate_bases`) and applies the
+    operator stack with a :func:`jax.lax.scan` whose body dispatches each operator to
+    the :func:`jax.lax.switch` branch for its base (``self._branches``, keyed by
+    ``self._idx_arr``), so the compiled graph size scales with the number of distinct
+    base subsystems rather than the number of operations.
+
+    Measurements are dephasing SuperOps (``measurement="superop"``) and the compressor
+    runs with no barriers, so former-measurement operators merge freely.
+    """
+
+    def __init__(
+        self,
+        program: Program,
+        qubits: list[int] | None = None,
+        *,
+        noise_model: NoiseModelLike | None = None,
+        max_subsystem_size: int = 2,
+        dims: tuple[int, ...] | None = None,
+    ) -> None:
+        super().__init__(
+            program,
+            qubits,
+            noise_model=noise_model,
+            max_subsystem_size=max_subsystem_size,
+            dims=dims,
+            measurement="superop",
+        )
+
+        # The merge structure depends only on the DAG (not on parameter values), so
+        # the base subsystems can be read straight off the compressor's emit order —
+        # no ``resolve``/``compress`` probe is required.
+        self.bases, self.op_index = enumerate_bases(self._compress_fn.emit_order)  # type: ignore[attr-defined]
+        self.base_dims = [tuple(self.dims[q] for q in base) for base in self.bases]
+        self.base_total_dim = [math.prod(d) for d in self.base_dims]
+        self.d_max = max(self.base_total_dim) if self.base_total_dim else 1
+        self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
+
+        # Whether any gate matrix depends on a runtime parameter.  When it does not,
+        # the compressed operator stack is a compile-time constant and can be
+        # materialised eagerly (outside the traced graph), which avoids XLA
+        # constant-folding/autotuning a large ``compose_operator`` subgraph — the
+        # dominant JIT cost on accelerators for deep, literal-angle programs.
+        self._has_params = self._n_params > 0
+
     def apply(self, state: Any, op_stack: Array) -> Any:
         """Apply a stack of operator matrices to *state* via a scan + switch.
 
         Each operator is dispatched to the switch branch for its base subsystem
-        (``self._branches``, keyed by ``self._idx_arr``), so the compiled graph
-        size scales with the number of distinct base subsystems rather than the
-        number of operations.  Used by the state-vector and density-matrix
-        simulators, which differ only in their branch and state types.
+        (``self._branches``, keyed by ``self._idx_arr``), so the compiled graph size
+        scales with the number of distinct base subsystems rather than the number of
+        operations.  The state-vector and density-matrix simulators differ only in
+        their branch and state types.
         """
         branches = self._branches  # type: ignore[attr-defined]
 
@@ -214,7 +260,7 @@ class ProgramSimulator:
             op_mat, sidx = xs
             return jax.lax.switch(sidx, branches, op_mat, state), None
 
-        state, _ = jax.lax.scan(body, state, (op_stack, self._idx_arr))  # type: ignore[attr-defined]
+        state, _ = jax.lax.scan(body, state, (op_stack, self._idx_arr))
         return state
 
 
@@ -403,7 +449,7 @@ def _build_vectorized_unitary_constructor(
 # ══════════════════════════════════════════════════════════
 
 
-class PureStateVectorSimulator(ProgramSimulator):
+class PureStateVectorSimulator(_GradableSimulator):
     """Simulator for gate-only programs (no noise, measurements, or resets).
 
     All methods are jit- and grad-friendly::
@@ -452,7 +498,6 @@ class PureStateVectorSimulator(ProgramSimulator):
             unitary_branch(base, base_dims, db)
             for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
         ]
-        self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
 
     def _validate(self, program: Program) -> None:
         for inst in program.instructions:
@@ -517,7 +562,7 @@ class PureStateVectorSimulator(ProgramSimulator):
 # ══════════════════════════════════════════════════════════
 
 
-class DensityMatrixSimulator(ProgramSimulator):
+class DensityMatrixSimulator(_GradableSimulator):
     """Density-matrix simulator for any program, optionally with noise.
 
     All methods are jit- and grad-friendly::
@@ -553,7 +598,6 @@ class DensityMatrixSimulator(ProgramSimulator):
             superop_branch(base, base_dims, db * db)
             for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
         ]
-        self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
 
         # See :class:`PureStateVectorSimulator`: for parameter-free programs the
         # superoperator stack is constant, so it can be built once and reused to keep
@@ -599,11 +643,52 @@ class DensityMatrixSimulator(ProgramSimulator):
 
 
 # ══════════════════════════════════════════════════════════
+# Trajectory family base
+# ══════════════════════════════════════════════════════════
+
+
+class _TrajectorySimulator(ProgramSimulator):
+    """Base for the Monte-Carlo trajectory simulators.
+
+    Resolves measurements as sampled ``QuantumInstrument`` operators
+    (``measurement="instrument"``), keeps them out of merges via compressor
+    barriers, and adapts the compressed operators to the trajectory-native
+    ``Unitary``/``KrausMap``/``QuantumInstrument`` types.  Unlike the grad-able
+    family it builds no base-subsystem switch table — each concrete simulator
+    builds its own trajectory kernel.
+    """
+
+    def __init__(
+        self,
+        program: Program,
+        qubits: list[int] | None = None,
+        *,
+        noise_model: NoiseModelLike | None = None,
+        max_subsystem_size: int = 2,
+        kraus_truncation_threshold: float = 1e-6,
+        dims: tuple[int, ...] | None = None,
+    ) -> None:
+        super().__init__(
+            program,
+            qubits,
+            noise_model=noise_model,
+            max_subsystem_size=max_subsystem_size,
+            dims=dims,
+            measurement="instrument",
+        )
+        self._kraus_truncation_threshold = kraus_truncation_threshold
+
+    def adapt(self, compressed: list[ResolvedOp]) -> list[TrajectoryOp]:
+        """Convert compressed ops to trajectory-compatible types."""
+        return adapt_for_trajectory(compressed, self._kraus_truncation_threshold)
+
+
+# ══════════════════════════════════════════════════════════
 # Trajectory simulator
 # ══════════════════════════════════════════════════════════
 
 
-class TrajectorySimulator(ProgramSimulator):
+class TrajectorySimulator(_TrajectorySimulator):
     """Monte Carlo trajectory simulator for programs with measurements and resets.
 
     The ``compute`` method requires a JAX PRNG key.  The number of
@@ -638,13 +723,15 @@ class TrajectorySimulator(ProgramSimulator):
         devices: list[jax.Device] | None = None,
         dims: tuple[int, ...] | None = None,
     ) -> None:
-        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size, dims=dims)
-        self._kraus_truncation_threshold = kraus_truncation_threshold
+        super().__init__(
+            program,
+            qubits,
+            noise_model=noise_model,
+            max_subsystem_size=max_subsystem_size,
+            kraus_truncation_threshold=kraus_truncation_threshold,
+            dims=dims,
+        )
         self._devices = devices if devices is not None else jax.devices()
-
-    def adapt(self, compressed: list[ResolvedOp]) -> list[TrajectoryOp]:
-        """Convert compressed ops to trajectory-compatible types."""
-        return adapt_for_trajectory(compressed, self._kraus_truncation_threshold)
 
     def compute(  # type: ignore[override]
         self,
@@ -700,7 +787,6 @@ class TrajectorySimulator(ProgramSimulator):
 
         _, all_outcomes = _run_batched_trajectories(
             operations,
-            self.n_qubits,
             num_trajectories,
             batch_size,
             random_seed,
@@ -756,46 +842,51 @@ def _op_to_kraus_matrix(
 
 TrajectoryRun = Callable[[qx.StateVector, Array], tuple[qx.StateVector, Array]]
 
+#: A ``run(op_mat, psi, key) -> (psi, sampled_index)`` switch branch for one subsystem.
+KrausBranch = Callable[[Array, qx.StateVector, Array], tuple[qx.StateVector, Array]]
 
-def _build_trajectory_kernel(operations: list[TrajectoryOp], dims: tuple[int, ...]) -> TrajectoryRun:
-    """Build a reusable, jitted trajectory kernel from *operations*.
 
-    All batch-invariant work happens once, here: enumerating distinct subsystems,
-    building the per-subsystem switch branches, and converting every operator to a
-    padded Kraus stack.  The returned ``run(psi, key)`` wraps the scan over that
-    stack in :func:`jax.jit`, so repeated calls with matching ``psi``/``key``
-    shapes (e.g. one per sampling batch) reuse a single compilation instead of
-    re-tracing — this is what turns the previously spiky, recompile-per-batch GPU
-    usage into a single upfront compile.
+@dataclass
+class _KrausOpStack:
+    """The batch-invariant, scan-ready form of a trajectory operation sequence.
 
-    Every operator is expressed as a (zero-padded) Kraus map and stacked into one
-    array indexed by the scan; measurements are handled uniformly by flattening a
-    quantum instrument so that sampling a Kraus index also selects an outcome
-    (``index // divisor``).  Zero-padded Kraus operators have zero Born
-    probability and are therefore never sampled.  Per-operation keys are derived
-    lazily via ``jax.random.fold_in`` so the key array is never materialised in
-    full (sharding-friendly).
+    Every operation is expressed as a zero-padded Kraus matrix so the scan can index
+    a single homogeneous stack (quax has no ragged/heterogeneous KrausMap stacking;
+    operators live on different subsystems with different Kraus counts).  The padding
+    to a uniform ``(max_k, d_max, d_max)`` is inherent to that single-``lax.scan``
+    design — zero-padded Kraus operators carry zero Born probability and are simply
+    never sampled — and each :data:`KrausBranch` re-slices ``[:, :db, :db]`` back to
+    its subsystem before rebuilding a ``KrausMap``.
+    """
+
+    #: ``(n_ops, max_k, d_max, d_max)`` padded Kraus matrices, in application order.
+    op_stack: Array
+    #: ``(n_ops,)`` int32 — the :attr:`branches` index for each operation.
+    branch_arr: Array
+    #: One switch branch per distinct subsystem (Kraus trajectory sampling).
+    branches: list[KrausBranch]
+    #: Per-operation Kraus-count divisor; measurement outcome = ``sampled_index // divisor``.
+    divisors: list[int]
+    #: Indices (into the op sequence) of the measurement operations, in program order.
+    measure_positions: list[int]
+
+    @property
+    def n_ops(self) -> int:
+        return len(self.divisors)
+
+
+def _build_kraus_op_stack(operations: list[TrajectoryOp], dims: tuple[int, ...]) -> _KrausOpStack:
+    """Convert a trajectory operation sequence into a scan-ready :class:`_KrausOpStack`.
+
+    This is all the batch-invariant work: enumerating distinct subsystems (one switch
+    branch each), promoting each operator to its register dimension, converting it to a
+    Kraus matrix (:func:`_op_to_kraus_matrix`), and padding everything to one uniform
+    stack.  Separated from :func:`_build_trajectory_kernel` so the kernel itself only
+    holds the scan / key-folding / outcome-decoding logic.
 
     :param operations: Ordered list of ``(operator, subsystem)`` pairs.
-    :param dims: Per-qudit register dimensions (must match the ``psi`` passed to
-        ``run``).
-    :return: ``run(psi, key) -> (final_state_vector, measurement_outcomes)`` where
-        ``measurement_outcomes`` has shape ``(*ensemble, n_measurements)``,
-        dtype int32.  ``key`` is a scalar PRNG key or a per-trajectory key vector.
+    :param dims: Per-qudit register dimensions (must match the ``psi`` passed to the kernel).
     """
-    if not operations:
-
-        def run_empty(psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
-            return psi, jnp.empty((*psi.ensemble_size, 0), dtype=jnp.int32)
-
-        return run_empty
-
-    # 1. Enumerate distinct subsystems → one switch branch each.  A branch is
-    #    handed a padded matrix (not a KrausMap) because the scan must index a
-    #    single homogeneous op stack: operators live on different subsystems with
-    #    different Kraus counts and so cannot be stacked as one KrausMap, whose
-    #    dims are static per-branch metadata.  Each branch rebuilds its KrausMap
-    #    from the slice, using the base dims it closes over.
     distinct_subsystems: list[tuple[int, ...]] = []
     sub_to_branch: dict[tuple[int, ...], int] = {}
     for _, subsystem in operations:
@@ -803,7 +894,7 @@ def _build_trajectory_kernel(operations: list[TrajectoryOp], dims: tuple[int, ..
             sub_to_branch[subsystem] = len(distinct_subsystems)
             distinct_subsystems.append(subsystem)
 
-    def make_branch(base: tuple[int, ...]) -> Callable[[Array, qx.StateVector, Array], tuple[qx.StateVector, Array]]:
+    def make_branch(base: tuple[int, ...]) -> KrausBranch:
         base_dims = tuple(dims[q] for q in base)
         db = math.prod(base_dims)
 
@@ -815,7 +906,6 @@ def _build_trajectory_kernel(operations: list[TrajectoryOp], dims: tuple[int, ..
 
     branches = [make_branch(subsystem) for subsystem in distinct_subsystems]
 
-    # 2. Convert every operator to a padded Kraus matrix and stack.
     kraus_mats: list[Array] = []
     divisors: list[int] = []
     measure_positions: list[int] = []
@@ -839,8 +929,51 @@ def _build_trajectory_kernel(operations: list[TrajectoryOp], dims: tuple[int, ..
     max_k = max(mat.shape[0] for mat in kraus_mats)
     d_max = max(mat.shape[-1] for mat in kraus_mats)
     op_stack = jnp.stack([_pad_matrix(mat, max_k, d_max, d_max) for mat in kraus_mats], axis=0)
-    branch_arr = jnp.asarray(branch_index, dtype=jnp.int32)
-    op_indices = jnp.arange(len(operations), dtype=jnp.int32)
+    return _KrausOpStack(
+        op_stack=op_stack,
+        branch_arr=jnp.asarray(branch_index, dtype=jnp.int32),
+        branches=branches,
+        divisors=divisors,
+        measure_positions=measure_positions,
+    )
+
+
+def _build_trajectory_kernel(operations: list[TrajectoryOp], dims: tuple[int, ...]) -> TrajectoryRun:
+    """Build a reusable, jitted trajectory kernel from *operations*.
+
+    All batch-invariant work happens once in :func:`_build_kraus_op_stack`.  The
+    returned ``run(psi, key)`` wraps the scan over that padded Kraus stack in
+    :func:`jax.jit`, so repeated calls with matching ``psi``/``key`` shapes (e.g. one
+    per sampling batch) reuse a single compilation instead of re-tracing — this is
+    what turns the previously spiky, recompile-per-batch GPU usage into a single
+    upfront compile.
+
+    Measurements are handled uniformly by flattening a quantum instrument so that
+    sampling a Kraus index also selects an outcome (``index // divisor``).
+    Per-operation keys are derived lazily via ``jax.random.fold_in`` so the key array
+    is never materialised in full (sharding-friendly).
+
+    :param operations: Ordered list of ``(operator, subsystem)`` pairs.
+    :param dims: Per-qudit register dimensions (must match the ``psi`` passed to
+        ``run``).
+    :return: ``run(psi, key) -> (final_state_vector, measurement_outcomes)`` where
+        ``measurement_outcomes`` has shape ``(*ensemble, n_measurements)``,
+        dtype int32.  ``key`` is a scalar PRNG key or a per-trajectory key vector.
+    """
+    if not operations:
+
+        def run_empty(psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
+            return psi, jnp.empty((*psi.ensemble_size, 0), dtype=jnp.int32)
+
+        return run_empty
+
+    stack = _build_kraus_op_stack(operations, dims)
+    branches = stack.branches
+    op_stack = stack.op_stack
+    branch_arr = stack.branch_arr
+    divisors = stack.divisors
+    measure_positions = stack.measure_positions
+    op_indices = jnp.arange(stack.n_ops, dtype=jnp.int32)
 
     @jax.jit
     def run(psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
@@ -900,12 +1033,12 @@ def _round_up_to(n: int, divisor: int) -> int:
 
 def _run_batched_trajectories(
     operations: list[TrajectoryOp],
-    n_qubits: int,
     num_trajectories: int,
     batch_size: int,
     random_seed: int,
     keep_states: bool = True,
-    dims: tuple[int, ...] | None = None,
+    *,
+    dims: tuple[int, ...],
     devices: list[jax.Device] | None = None,
 ) -> tuple[list[qx.StateVector] | None, list[Array]]:
     """Run trajectory simulation in batches, optionally sharded across devices.
@@ -919,10 +1052,9 @@ def _run_batched_trajectories(
     once, reused across batches) so the GPU sees one upfront compile rather than a
     recompile spike per batch; the final short batch is padded up to that width
     and its extra rows are sliced off.
-    """
-    if dims is None:
-        dims = (2,) * n_qubits
 
+    :param dims: Per-qudit register dimensions of the simulated system.
+    """
     mesh = _make_mesh(devices)
     n_devices = len(mesh.devices.flat) if mesh is not None else 1
     sharding = NamedSharding(mesh, PartitionSpec("traj")) if mesh is not None else None  # type: ignore[no-untyped-call]
@@ -1033,7 +1165,7 @@ def _dyn_apply(
     return psi, outcome
 
 
-class DynamicTrajectorySimulator(ProgramSimulator):
+class DynamicTrajectorySimulator(_TrajectorySimulator):
     """Single-trajectory simulator with dynamically-sized qudit dimensions.
 
     Targets the **largest** leakage-aware registers.  Where the other simulators
@@ -1072,8 +1204,13 @@ class DynamicTrajectorySimulator(ProgramSimulator):
         kraus_truncation_threshold: float = 1e-6,
         squeeze_tol: float = 1e-9,
     ) -> None:
-        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
-        self._kraus_truncation_threshold = kraus_truncation_threshold
+        super().__init__(
+            program,
+            qubits,
+            noise_model=noise_model,
+            max_subsystem_size=max_subsystem_size,
+            kraus_truncation_threshold=kraus_truncation_threshold,
+        )
         self._squeeze_tol = squeeze_tol
 
     def _validate(self, program: Program) -> None:
@@ -1095,9 +1232,7 @@ class DynamicTrajectorySimulator(ProgramSimulator):
         """
         if key is None:
             raise ValueError("DynamicTrajectorySimulator.compute requires a JAX PRNG key.")
-        operations = adapt_for_trajectory(
-            self.compress(self.resolve(self._default_params(params))), self._kraus_truncation_threshold
-        )
+        operations = self.adapt(self.compress(self.resolve(self._default_params(params))))
 
         psi = qx.zero_state_vector(dims=(2,) * self.n_qubits)
         outcomes: list[Array] = []

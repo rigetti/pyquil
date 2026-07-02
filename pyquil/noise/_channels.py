@@ -1478,35 +1478,42 @@ class CycleChannel:
         Operations are matched by identity (name, params, concrete qubits), independent of
         the DefCircuit's formal-argument naming.
         """
-        qarg_to_qubit = dict(zip(self.defcircuit.qubit_variables, self.inst.get_qubit_indices(), strict=False))
-
-        def _resolve(qubit: object) -> int:
-            if qubit in qarg_to_qubit:
-                return qarg_to_qubit[qubit]  # type: ignore[index]
-            return qubit.index if hasattr(qubit, "index") else int(qubit)  # type: ignore[union-attr,arg-type]
-
-        def _body_key(inst: Gate | Measurement) -> tuple[str, tuple, tuple[int, ...]]:
-            if isinstance(inst, Measurement):
-                return ("MEASURE", (), (_resolve(inst.qubit),))
-            return (inst.name, tuple(inst.params), tuple(_resolve(q) for q in inst.qubits))
-
-        def _channel_key(channel: Channel | MeasurementChannel) -> tuple[str, tuple, tuple[int, ...]]:
-            if isinstance(channel, MeasurementChannel):
-                return ("MEASURE", (), tuple(channel.qubits))
-            return (channel.inst.name, tuple(channel.inst.params), tuple(channel.inst.get_qubit_indices()))
-
-        expected = sorted(repr(_body_key(inst)) for inst in self.defcircuit.instructions)
-        provided = sorted(repr(_channel_key(ch)) for ch in self.channels)
-        if expected != provided:
+        if len(self.expanded_instructions) != len(self.channels):
             raise ValueError(
                 "CycleChannel is incomplete: every instruction in the cycle's DefCircuit "
                 "body must have a corresponding channel. "
-                f"DefCircuit body: {expected}; channels: {provided}."
+                f"\nDefCircuit body: {self.expanded_instructions}"
+                f"\nChannels:        {self.channels}"
             )
+        for instruction, channel in zip(self.expanded_instructions, self.channels):
+            if str(instruction) != str(channel.inst):
+                raise ValueError(
+                    "CycleChannel is incomplete: every instruction in the cycle's DefCircuit "
+                    "body must have a corresponding channel. "
+                    f"\nDefCircuit body: {instruction}"
+                    f"\nChannels:        {channel.inst}"
+                )
 
     # ──────────────────────────────────────────────
     # Derived properties
     # ──────────────────────────────────────────────
+
+    @cached_property
+    def expanded_instructions(self) -> list[Gate | Measurement | ResetQubit]:
+        """Return the expanded instructions of the defcircuit."""
+        qarg_to_qubit = dict(zip(self.defcircuit.qubit_variables, self.inst.get_qubit_indices(), strict=False))
+        instructions = []
+        for inst in self.defcircuit.instructions:
+            match inst:
+                case Measurement():
+                    instructions.append(Measurement(qubit=qarg_to_qubit[inst.qubit], classical_reg=inst.classical_reg)) # type: ignore[arg-type]
+                case ResetQubit():
+                    instructions.append(ResetQubit(qarg_to_qubit[inst.qubit])) # type: ignore[arg-type]
+                case Gate():
+                    instructions.append(Gate(inst.name, inst.params, [qarg_to_qubit[q] for q in inst.qubits])) # type: ignore[arg-type]
+                case _:
+                    raise TypeError(f"Unsupported instruction type in defcircuit: {type(inst).__name__}")
+        return instructions
 
     @cached_property
     def operator(self) -> tuple[qx.SuperOp | qx.QuantumInstrument, ...]:

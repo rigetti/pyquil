@@ -55,7 +55,6 @@ def _simulate_trajectories(program, noise_model=None, qubits=None, num_trajector
     operations = sim.adapt(compressed)
     all_psis, all_outcomes = _run_batched_trajectories(
         operations,
-        sim.n_qubits,
         num_trajectories,
         batch_size,
         random_seed,
@@ -317,6 +316,31 @@ class TestTrajectoryNoisy:
         avg_prob_11 = float(jnp.mean(probs[:, 3]))
         expected_prob_11 = (1 - p_error) ** 2
         assert abs(avg_prob_11 - expected_prob_11) < 0.05
+
+
+class TestCycleChannelGateApplication:
+    """A ``CycleChannel`` gate constituent is applied as its ``process``.
+
+    ``Channel.process`` carries the gate (composed with any noise); the resolver
+    expands a cycle by applying each constituent's ``process`` verbatim.  This
+    guards, end to end, that a cycle gate whose unitary lives in its ``process``
+    actually acts on the state — the surface-code kraus/stim mismatch was caused by
+    a noise model that put an identity in ``process`` for a real gate, dropping it,
+    which is a noise-model error rather than a simulator one.
+    """
+
+    def test_trajectory_applies_cycle_gate(self):
+        """The cycle's ``X`` (carried in the channel's process) flips the qubit."""
+        q = FormalArgument("q")
+        dc = DefCircuit("CX", [], [q], [X(q)])
+        cyc = QuilGate("CX", [], [Qubit(0)])
+        program = Program(dc, cyc, Declare("ro", "BIT", 1), QuilMeasurement(Qubit(0), MemoryReference("ro", 0)))
+        gate_channel = Channel(X(0), qx.to_superop(qx.gates.X), target_unitary=qx.gates.X)
+        nm = NoiseModel.from_channels([CycleChannel(inst=cyc, defcircuit=dc, channels=(gate_channel,))])
+        sim = TrajectorySimulator(program, noise_model=nm, qubits=[0])
+        outcomes = np.asarray(sim.sample(sim.linearize({}), num_trajectories=16, batch_size=16, random_seed=0))
+        assert outcomes.shape == (16, 1)
+        assert np.all(outcomes == 1)
 
 
 class TestTrajectoryMeasurement:
@@ -1146,7 +1170,6 @@ class TestMultiDeviceTrajectory:
 
         _, outcomes = _run_batched_trajectories(
             operations,
-            sim.n_qubits,
             num_trajectories=20,
             batch_size=8,
             random_seed=42,
