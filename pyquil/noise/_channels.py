@@ -1485,7 +1485,7 @@ class CycleChannel:
                 f"\nDefCircuit body: {self.expanded_instructions}"
                 f"\nChannels:        {self.channels}"
             )
-        for instruction, channel in zip(self.expanded_instructions, self.channels):
+        for instruction, channel in zip(self.expanded_instructions, self.channels, strict=True):
             if str(instruction) != str(channel.inst):
                 raise ValueError(
                     "CycleChannel is incomplete: every instruction in the cycle's DefCircuit "
@@ -1502,15 +1502,15 @@ class CycleChannel:
     def expanded_instructions(self) -> list[Gate | Measurement | ResetQubit]:
         """Return the expanded instructions of the defcircuit."""
         qarg_to_qubit = dict(zip(self.defcircuit.qubit_variables, self.inst.get_qubit_indices(), strict=False))
-        instructions = []
+        instructions: list[Gate | Measurement | ResetQubit] = []
         for inst in self.defcircuit.instructions:
             match inst:
                 case Measurement():
-                    instructions.append(Measurement(qubit=qarg_to_qubit[inst.qubit], classical_reg=inst.classical_reg)) # type: ignore[arg-type]
+                    instructions.append(Measurement(qubit=qarg_to_qubit[inst.qubit], classical_reg=inst.classical_reg))  # type: ignore[index]
                 case ResetQubit():
-                    instructions.append(ResetQubit(qarg_to_qubit[inst.qubit])) # type: ignore[arg-type]
+                    instructions.append(ResetQubit(qarg_to_qubit[inst.qubit]))  # type: ignore[index]
                 case Gate():
-                    instructions.append(Gate(inst.name, inst.params, [qarg_to_qubit[q] for q in inst.qubits])) # type: ignore[arg-type]
+                    instructions.append(Gate(inst.name, inst.params, [qarg_to_qubit[q] for q in inst.qubits]))  # type: ignore[index]
                 case _:
                     raise TypeError(f"Unsupported instruction type in defcircuit: {type(inst).__name__}")
         return instructions
