@@ -413,8 +413,11 @@ selects the outcome.
 
 ``sample`` runs trajectories in fixed-size batches, discarding state vectors
 between batches so the total number of shots is unbounded by memory. When
-multiple JAX devices are available, each batch is sharded across them along the
-trajectory axis.
+multiple JAX devices are available, each batch is run data-parallel via
+:func:`jax.pmap` — one independent kernel replica per device, with no
+cross-device communication. In that case ``batch_size`` is interpreted **per
+device**, so ``n`` devices run ``n * batch_size`` trajectories per batch and
+each device's memory footprint matches a single-device run.
 
 
 Choosing a simulator

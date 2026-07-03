@@ -49,7 +49,6 @@ import jax.numpy as jnp
 import numpy as np
 import quax as qx
 from jax import Array
-from jax.sharding import Mesh, NamedSharding, PartitionSpec
 from quax._apply import _sample_kraus_map_trajectory
 
 from pyquil.api import MemoryMap
@@ -772,14 +771,16 @@ class TrajectorySimulator(_TrajectorySimulator):
 
         State vectors are discarded after each batch, making this scalable
         to arbitrarily many trajectories.  When multiple devices are
-        available, each batch is sharded across them so that every device
-        processes ``batch_size // n_devices`` trajectories concurrently.
+        available the batch is run **data-parallel** via :func:`jax.pmap`: each
+        device runs an independent replica of the trajectory kernel on its own
+        slice of trajectories, with no cross-device communication.
 
         :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
             pass ``None``) for a parameter-free program.
         :param num_trajectories: Total number of trajectories to simulate.
-        :param batch_size: Maximum number of trajectories per batch
-            (total across all devices).
+        :param batch_size: Trajectories per device per batch.  With ``n`` devices
+            each batch runs ``n * batch_size`` trajectories concurrently; on a
+            single device this is simply the batch size.
         :param random_seed: Seed for the JAX PRNG.
         :return: Measurement outcomes with shape ``(num_trajectories, n_measurements)``.
         """
@@ -1017,20 +1018,6 @@ def _apply_trajectory_operations(
     return _build_trajectory_kernel(operations, psi.dims)(psi, key)
 
 
-def _make_mesh(devices: list[jax.Device] | None) -> Mesh | None:
-    """Build a 1-D ``Mesh`` over *devices*, or ``None`` for single-device."""
-    if devices is None:
-        devices = jax.devices()
-    if len(devices) <= 1:
-        return None
-    return Mesh(np.array(devices), axis_names=("traj",))
-
-
-def _round_up_to(n: int, divisor: int) -> int:
-    """Round *n* up to the nearest multiple of *divisor*."""
-    return ((n + divisor - 1) // divisor) * divisor
-
-
 def _run_batched_trajectories(
     operations: list[TrajectoryOp],
     num_trajectories: int,
@@ -1041,31 +1028,44 @@ def _run_batched_trajectories(
     dims: tuple[int, ...],
     devices: list[jax.Device] | None = None,
 ) -> tuple[list[qx.StateVector] | None, list[Array]]:
-    """Run trajectory simulation in batches, optionally sharded across devices.
+    """Run trajectory simulation in batches, data-parallel across devices.
 
-    When *devices* contains more than one device a :class:`jax.sharding.Mesh`
-    is constructed and both the initial state vector and PRNG keys are sharded
-    along the trajectory (ensemble) axis.  XLA's SPMD partitioner then
-    distributes the work so that each device processes its own slice.
+    When *devices* contains more than one device the batch is run **data-parallel**
+    via :func:`jax.pmap`: each device runs an independent replica of the trajectory
+    kernel on its own slice of trajectories.  Trajectories are statistically
+    independent, so no cross-device communication is required — per-device memory
+    equals a single-device run and the broken-collectives / all-gather failure modes
+    of SPMD sharding are avoided entirely.
 
-    Every batch runs at the same width (:func:`_build_trajectory_kernel` compiled
-    once, reused across batches) so the GPU sees one upfront compile rather than a
-    recompile spike per batch; the final short batch is padded up to that width
-    and its extra rows are sliced off.
+    ``batch_size`` is interpreted **per device**: with ``n`` devices each call runs
+    ``n * batch_size`` trajectories.  Every call runs at the same width
+    (:func:`_build_trajectory_kernel` compiled once, wrapped in a single ``pmap``,
+    reused across calls) so the GPU sees one upfront compile rather than a recompile
+    spike per batch; the final short call is padded up to that width and its extra
+    rows are sliced off.
+
+    Each device's zero state is built *inside* the mapped function so the full
+    ``(n_devices, per_device, hilbert)`` array is never allocated on one device.
+    When ``keep_states`` is false only the measurement outcomes are returned from the
+    mapped function, so the large final state vectors are freeable intermediates and
+    are never gathered back to the host.
 
     :param dims: Per-qudit register dimensions of the simulated system.
     """
-    mesh = _make_mesh(devices)
-    n_devices = len(mesh.devices.flat) if mesh is not None else 1
-    sharding = NamedSharding(mesh, PartitionSpec("traj")) if mesh is not None else None  # type: ignore[no-untyped-call]
+    devices = devices if devices is not None else jax.devices()
+    n_devices = len(devices)
+    per_device = batch_size
+    per_call = n_devices * per_device
 
-    # Build the jitted trajectory kernel once; reuse it for every batch.
-    run = _build_trajectory_kernel(operations, dims)
+    kernel = _build_trajectory_kernel(operations, dims)
 
-    # Uniform per-batch width: full batches and the padded tail all share it, so
-    # the kernel compiles exactly once.  Capped at the total so single-batch runs
-    # don't pad past what's asked for; rounded to n_devices for even sharding.
-    batch_width = _round_up_to(min(num_trajectories, batch_size), n_devices)
+    def run_replica(device_keys: Array) -> Any:
+        # Build only this device's slice; keeps per-device memory at a single-device run.
+        psi = qx.zero_state_vector(dims=dims, ensemble_size=(per_device,))
+        psi_out, outcomes = kernel(psi, device_keys)
+        return (psi_out, outcomes) if keep_states else outcomes
+
+    pkernel = jax.pmap(run_replica, devices=devices)
 
     key = jax.random.key(random_seed)
     all_psis: list[qx.StateVector] = []
@@ -1073,37 +1073,23 @@ def _run_batched_trajectories(
 
     remaining = num_trajectories
     while remaining > 0:
-        this_batch = min(remaining, batch_size)
+        this_call = min(remaining, per_call)
         key, batch_key = jax.random.split(key)
+        # Fixed width every call (tail padded, extra rows sliced) → compile once.
+        batch_keys = jax.random.split(batch_key, per_call).reshape(n_devices, per_device)
 
-        if batch_width == 1:
-            psi = qx.zero_state_vector(dims=dims)
-            batch_keys = batch_key
-        else:
-            psi = qx.zero_state_vector(dims=dims, ensemble_size=(batch_width,))
-            batch_keys = batch_key
-
-        # Shard state and key across devices when a mesh is available.
-        if sharding is not None:
-            psi = qx.StateVector.from_matrix(jax.device_put(psi.matrix, sharding), psi.dims)
-            batch_keys = jax.device_put(jax.random.split(batch_key, batch_width), sharding)
-
-        psi_out, outcomes = run(psi, batch_keys)
-        psi_out.matrix.block_until_ready()
-
-        # Strip padding rows down to this batch's real trajectory count.
-        if batch_width > 1 and this_batch < batch_width:
-            psi_out = qx.StateVector.from_matrix(psi_out.matrix[:this_batch], psi_out.dims)
-            outcomes = outcomes[:this_batch]
-
-        if this_batch == 1 and batch_width == 1:
-            psi_out = qx.StateVector.from_matrix(psi_out.matrix[jnp.newaxis], psi_out.dims)
-            outcomes = outcomes[jnp.newaxis]
+        result = pkernel(batch_keys)
+        outcomes = result[1] if keep_states else result
+        # pmap re-adds the leading device axis: (n_devices, per_device, n_meas).
+        # Flatten it back to a 1-D ensemble to preserve the return contract.
+        outcomes = outcomes.reshape(per_call, -1)[:this_call]
+        all_outcomes.append(outcomes)
 
         if keep_states:
-            all_psis.append(psi_out)
-        all_outcomes.append(outcomes)
-        remaining -= this_batch
+            mat = result[0].matrix.reshape(per_call, -1)[:this_call]
+            all_psis.append(qx.StateVector.from_matrix(mat, dims))
+
+        remaining -= this_call
 
     return (all_psis if keep_states else None), all_outcomes
 

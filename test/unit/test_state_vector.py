@@ -27,8 +27,6 @@ from pyquil.simulation._simulator import (
     PureStateVectorSimulator,
     TrajectorySimulator,
     _run_batched_trajectories,
-    _make_mesh,
-    _round_up_to,
 )
 from pyquil.simulation._simulator import (
     _apply_trajectory_operations as apply_trajectory_operations,
@@ -1103,33 +1101,12 @@ class TestCompressorOpCounts:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-class TestMultiDeviceHelpers:
-    def test_round_up_to(self):
-        assert _round_up_to(7, 4) == 8
-        assert _round_up_to(8, 4) == 8
-        assert _round_up_to(1, 3) == 3
-        assert _round_up_to(0, 5) == 0
-
-    def test_make_mesh_single_device_returns_none(self):
-        """A single device should return None (no mesh needed)."""
-        devices = jax.devices()[:1]
-        assert _make_mesh(devices) is None
-
-    def test_make_mesh_none_uses_default(self):
-        """Passing None should query jax.devices()."""
-        mesh = _make_mesh(None)
-        if len(jax.devices()) <= 1:
-            assert mesh is None
-        else:
-            assert mesh is not None
-
-
 class TestMultiDeviceTrajectory:
     """Tests that exercise the multi-device code paths.
 
     On a single-CPU host these still validate the padding/unpadding logic
-    and the ``devices`` parameter plumbing.  On a multi-GPU host they
-    exercise real cross-device sharding.
+    and the ``devices`` parameter plumbing.  On a multi-device host they
+    exercise real data-parallel ``jax.pmap`` execution (one replica per device).
     """
 
     def test_devices_parameter_accepted(self):
