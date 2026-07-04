@@ -21,6 +21,7 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import numpy as np
+from deprecated import deprecated
 
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX, I
@@ -40,6 +41,9 @@ _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops
 
 class KrausModel(_KrausModel):
     """Encapsulate a single gate's noise model.
+
+    .. deprecated::
+        Use :class:`pyquil.noise.Channel` for quax-based noise modeling.
 
     :ivar str gate: The name of the gate.
     :ivar Sequence[float] params: Optional parameters for the gate.
@@ -117,6 +121,11 @@ class KrausModel(_KrausModel):
 _NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
 
 
+@deprecated(
+    version="4.17.0",
+    reason="Use the quax-based noise model in pyquil.noise._noise_model instead. "
+    "This class will be removed in the next major version of pyquil.",
+)
 class NoiseModel(_NoiseModel):
     """Encapsulate the QPU noise model containing information about the noisy gates.
 
