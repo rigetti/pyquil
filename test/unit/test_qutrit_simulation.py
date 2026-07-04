@@ -7,12 +7,15 @@ import pytest
 import quax as qx
 
 from pyquil.gates import H, X
+from pyquil.noise._channels import Channel, MeasurementChannel, ResetChannel
+from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare, DefGate, Gate
+from pyquil.quilatom import MemoryReference, Qubit
+from pyquil.quilbase import Declare, DefGate, Gate, Measurement
 from pyquil.simulation._simulator import (
     DensityMatrixSimulator,
     PureStateVectorSimulator,
+    TrajectorySimulator,
 )
 
 _EMPTY_PARAMS = jnp.array([], dtype=float)
@@ -28,6 +31,14 @@ def _dm(program, qubits=None, noise_model=None):
     """Compute density matrix."""
     sim = DensityMatrixSimulator(program, qubits=qubits, noise_model=noise_model)
     return sim.compute(_EMPTY_PARAMS)
+
+
+def _sample(program, qubits=None, noise_model=None, num_trajectories=1000,
+            batch_size=250, random_seed=0):
+    """Run trajectory sampling, returning outcomes."""
+    sim = TrajectorySimulator(program, qubits=qubits, noise_model=noise_model)
+    return sim.sample(_EMPTY_PARAMS, num_trajectories=num_trajectories,
+                      batch_size=batch_size, random_seed=random_seed)
 
 
 # ══════════════════════════════════════════════════════════
@@ -376,6 +387,118 @@ class TestMixedQubitQutrit:
 
 
 # ══════════════════════════════════════════════════════════
+# Test: Qutrit measurements
+# ══════════════════════════════════════════════════════════
+
+
+class TestQutritMeasurements:
+    """Test that qutrit measurements produce correct outcome distributions."""
+
+    def test_qutrit_measure_ground_state(self):
+        """Measuring a qutrit in |0> always yields outcome 0."""
+        # Use the identity-like approach: TRX01(0) is identity but establishes dim=3
+        p_ground = Program()
+        p_ground += Gate("TRX01", [0.0], [0])  # identity rotation
+        p_ground += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        outcomes = _sample(
+            p_ground, qubits=[0], num_trajectories=100, random_seed=42
+        )
+        # All outcomes should be 0 (ground state)
+        assert jnp.all(outcomes == 0)
+
+    def test_qutrit_measure_excited_state(self):
+        """Measuring a qutrit in |2> (via TX) always yields outcome 2."""
+        p = Program()
+        p += Gate("TX", [], [0])
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        outcomes = _sample(
+            p, qubits=[0], num_trajectories=100, random_seed=42
+        )
+        assert jnp.all(outcomes == 2)
+
+    def test_qutrit_measure_second_excited(self):
+        """Measuring a qutrit in |1> (via TX^2) always yields outcome 1."""
+        p = Program()
+        p += Gate("TX", [], [0])
+        p += Gate("TX", [], [0])
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        outcomes = _sample(
+            p, qubits=[0], num_trajectories=100, random_seed=42
+        )
+        assert jnp.all(outcomes == 1)
+
+    def test_qutrit_ideal_reset(self):
+        """An ideal qutrit reset returns any qutrit level to |0>."""
+        from pyquil.quilbase import ResetQubit
+
+        p = Program()
+        p += Gate("TX", [], [0])
+        p += ResetQubit(Qubit(0))
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        outcomes = _sample(
+            p, qubits=[0], num_trajectories=100, random_seed=42
+        )
+        assert jnp.all(outcomes == 0)
+
+    def test_qutrit_measure_superposition_statistics(self):
+        """TH|0> = (|0>+|1>+|2>)/sqrt(3) gives uniform measurement distribution."""
+        p = Program()
+        p += Gate("TH", [], [0])
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        n_traj = 3000
+        outcomes = _sample(
+            p, qubits=[0], num_trajectories=n_traj, random_seed=123
+        )
+        # Each outcome should appear ~1/3 of the time
+        counts = jnp.bincount(outcomes.flatten(), length=3)
+        freqs = counts / n_traj
+        np.testing.assert_allclose(freqs, [1 / 3, 1 / 3, 1 / 3], atol=0.05)
+
+    def test_qutrit_noisy_measurement_channel(self):
+        """Noisy qutrit measurement with confusion matrix."""
+        meas_inst = Measurement(qubit=Qubit(0), classical_reg=None)
+        meas_ch = MeasurementChannel.from_readout_fidelity(
+            inst=meas_inst, fidelity=0.9, dim=3
+        )
+        noise_model = NoiseModel.from_channels([meas_ch])
+
+        # Prepare |2> (TX|0>=|2>) and measure with noise
+        p = Program()
+        p += Gate("TX", [], [0])
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        n_traj = 2000
+        outcomes = _sample(
+            p, noise_model=noise_model, qubits=[0],
+            num_trajectories=n_traj, random_seed=42,
+        )
+        counts = jnp.bincount(outcomes.flatten(), length=3)
+        # Should be mostly outcome 2 (the prepared state), with some errors
+        assert counts[2] / n_traj > 0.7  # majority correct
+
+    def test_mixed_qubit_qutrit_measurement(self):
+        """Measure both a qubit and qutrit in the same program."""
+        p = Program()
+        p += X(0)  # qubit |0> -> |1>
+        p += Gate("TX", [], [1])  # qutrit |0> -> |2>
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+        p += Measurement(qubit=Qubit(1), classical_reg=None)
+
+        outcomes = _sample(
+            p, qubits=[0, 1], num_trajectories=50, random_seed=0
+        )
+        # qubit measurement should give 1, qutrit measurement should give 2
+        assert outcomes.shape == (50, 2)
+        assert jnp.all(outcomes[:, 0] == 1)
+        assert jnp.all(outcomes[:, 1] == 2)
+
+
+# ══════════════════════════════════════════════════════════
 # Test: Dimension inference
 # ══════════════════════════════════════════════════════════
 
@@ -467,3 +590,127 @@ class TestDimensionInference:
         mat = np.eye(6, dtype=complex)
         with pytest.raises(ValueError, match="perfect power"):
             DefGate("BAD_GATE", mat)
+
+
+# ══════════════════════════════════════════════════════════
+# Test: Qutrit noise channels
+# ══════════════════════════════════════════════════════════
+
+
+class TestQutritNoiseChannels:
+    """Test noisy qutrit simulation via NoiseModel."""
+
+    def test_qutrit_depolarizing_channel(self):
+        """A depolarizing channel on a qutrit gate mixes the state."""
+        inst = Gate("TX", [], [0])
+        channel = Channel.from_gate_fidelity(inst=inst, fidelity=0.8)
+        noise_model = NoiseModel.from_channels([channel])
+
+        # Density matrix should show mixed state
+        p = Program(Gate("TX", [], [0]))
+        rho = _dm(p, noise_model=noise_model, qubits=[0])
+        assert rho.dims == (3,)
+        # Purity < 1 indicates noise
+        purity = float(jnp.real(jnp.trace(rho.matrix @ rho.matrix)))
+        assert purity < 0.99
+
+    def test_qutrit_depolarizing_trajectory(self):
+        """Trajectory simulation with qutrit depolarizing noise."""
+        inst = Gate("TX", [], [0])
+        channel = Channel.from_gate_fidelity(inst=inst, fidelity=0.9)
+        noise_model = NoiseModel.from_channels([channel])
+
+        p = Program()
+        p += Gate("TX", [], [0])
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        n_traj = 2000
+        outcomes = _sample(
+            p, noise_model=noise_model, qubits=[0],
+            num_trajectories=n_traj, random_seed=7,
+        )
+        counts = jnp.bincount(outcomes.flatten(), length=3)
+        # Most should be outcome 2 (ideal TX|0>=|2>), with some noise
+        assert counts[2] / n_traj > 0.7
+
+    def test_qutrit_reset_channel(self):
+        """Noisy qutrit reset via ResetChannel."""
+        from pyquil.quilbase import ResetQubit
+
+        reset_inst = ResetQubit(Qubit(0))
+        reset_ch = ResetChannel.from_reset_fidelity(inst=reset_inst, fidelity=0.9, dim=3)
+        noise_model = NoiseModel.from_channels([reset_ch])
+
+        # Prepare |1> (TX^2|0>=|1>), then reset — should mostly go to |0>
+        p = Program()
+        p += Gate("TX", [], [0])
+        p += Gate("TX", [], [0])  # |0> -> |1>
+        p += ResetQubit(Qubit(0))
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        n_traj = 1000
+        outcomes = _sample(
+            p, noise_model=noise_model, qubits=[0],
+            num_trajectories=n_traj, random_seed=55,
+        )
+        counts = jnp.bincount(outcomes.flatten(), length=3)
+        # Majority should be reset to |0>
+        assert counts[0] / n_traj > 0.7
+
+    def test_mixed_noise_qubit_and_qutrit(self):
+        """Noise model with channels for both qubit and qutrit gates."""
+        # Noisy qubit X gate
+        ch_qubit = Channel.from_gate_fidelity(
+            inst=Gate("X", [], [0]), fidelity=0.95
+        )
+        # Noisy qutrit TX gate
+        ch_qutrit = Channel.from_gate_fidelity(
+            inst=Gate("TX", [], [1]), fidelity=0.95
+        )
+        noise_model = NoiseModel.from_channels([ch_qubit, ch_qutrit])
+
+        p = Program()
+        p += X(0)
+        p += Gate("TX", [], [1])
+        rho = _dm(p, noise_model=noise_model, qubits=[0, 1])
+        assert rho.dims == (2, 3)
+        # Both registers should have purity < 1 due to noise
+        purity = float(jnp.real(jnp.trace(rho.matrix @ rho.matrix)))
+        assert purity < 0.99
+
+
+# ══════════════════════════════════════════════════════════
+# Test: Qutrit state vector trajectories (batched)
+# ══════════════════════════════════════════════════════════
+
+
+class TestQutritTrajectoryBatching:
+    """Test that batched trajectory simulation works for qutrits."""
+
+    def test_noiseless_qutrit_batch(self):
+        """Batched noiseless qutrit simulation produces identical trajectories."""
+        p = Program(Gate("TX", [], [0]))
+        sim = TrajectorySimulator(p, qubits=[0])
+        keys = jax.random.split(jax.random.key(0), 10)
+        psi, _ = sim.compute(_EMPTY_PARAMS, keys)
+        # All 10 trajectories should be identical (noiseless)
+        assert psi.ensemble_size == (10,)
+        assert psi.dims == (3,)
+        expected = jnp.array([0, 0, 1], dtype=complex)  # TX|0> = |2>
+        for i in range(10):
+            fid = float(jnp.abs(jnp.vdot(psi.matrix[i], expected)) ** 2)
+            assert fid > 0.9999
+
+    def test_qutrit_trajectory_outcomes_shape(self):
+        """Trajectory outcomes have correct shape for qutrit programs."""
+        p = Program()
+        p += Gate("TH", [], [0])
+        p += Measurement(qubit=Qubit(0), classical_reg=None)
+
+        outcomes = _sample(
+            p, qubits=[0], num_trajectories=500, batch_size=100, random_seed=0
+        )
+        assert outcomes.shape == (500, 1)
+        # Outcomes should be in {0, 1, 2}
+        assert jnp.all(outcomes >= 0)
+        assert jnp.all(outcomes <= 2)
