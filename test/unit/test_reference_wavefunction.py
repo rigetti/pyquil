@@ -1,3 +1,7 @@
+# TODO(pyquil-5.0): Remove this file. These tests exercise ReferenceWavefunctionSimulator/PyQVM,
+# which are superseded by PureStateVectorSimulator and TrajectorySimulator.
+# Equivalent coverage lives in test_state_vector.py.
+
 import functools
 import inspect
 import random

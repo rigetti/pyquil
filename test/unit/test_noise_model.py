@@ -42,6 +42,16 @@ from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import FormalArgument, Qubit
 from pyquil.quilbase import DefCircuit, Gate, Measurement, ResetQubit
+from pyquil.simulation._simulator import DensityMatrixSimulator
+
+_EMPTY_PARAMS = jnp.array([], dtype=float)
+
+
+def _dm(program, noise_model=None, qubits=None):
+    """Compute density matrix."""
+    sim = DensityMatrixSimulator(program, qubits=qubits, noise_model=noise_model)
+    return sim.compute(_EMPTY_PARAMS)
+
 
 # ──────────────────────────────────────────────────────────
 # Channel tests
@@ -579,6 +589,59 @@ class TestSuperopResetChannel:
         inst = RESET(3)
         ch = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=0.99)
         assert ch.qubits == [3]
+
+    def test_ideal_reset_maps_excited_to_ground(self):
+        """An ideal reset on an excited qubit should produce |0><0|."""
+        inst = RESET(0)
+        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
+        noise_model = NoiseModel.from_channels([ch])
+        # Prepare |1> then reset
+        program = Program(X(0), RESET(0))
+        rho = _dm(program, noise_model=noise_model)
+        target_rho = qx.zero_state_matrix(1)
+        assert qx.fidelity(rho, target_rho) > 0.9999
+
+    def test_ideal_reset_maps_superposition_to_ground(self):
+        """An ideal reset on a superposition state should produce |0><0|."""
+        inst = RESET(0)
+        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
+        noise_model = NoiseModel.from_channels([ch])
+        # Prepare |+> then reset
+        program = Program(RX(np.pi / 2, 0), RESET(0))
+        rho = _dm(program, noise_model=noise_model)
+        target_rho = qx.zero_state_matrix(1)
+        assert qx.fidelity(rho, target_rho) > 0.9999
+
+    def test_noisy_reset_reduces_fidelity(self):
+        """A noisy reset should produce a state with fidelity < 1 relative to |0><0|."""
+        inst = RESET(0)
+        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=0.90)
+        noise_model = NoiseModel.from_channels([ch])
+        program = Program(X(0), RESET(0))
+        rho = _dm(program, noise_model=noise_model)
+        target_rho = qx.zero_state_matrix(1)
+        fid = float(qx.fidelity(rho, target_rho))
+        # Should be less than perfect but still high
+        assert 0.85 < fid < 1.0
+
+    def test_reset_in_multi_qubit_circuit(self):
+        """Reset on one qubit should not affect the other qubit."""
+        inst = RESET(0)
+        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
+        noise_model = NoiseModel.from_channels([ch])
+        # Prepare |11> then reset qubit 0
+        program = Program(X(0), X(1), RESET(0))
+        rho = _dm(program, noise_model=noise_model)
+        # Expected state: |0> on qubit 0, |1> on qubit 1 → |01>
+        target_rho = (qx.gates.I | qx.gates.X) @ qx.zero_state_matrix(2)
+        assert qx.fidelity(rho, target_rho) > 0.9999
+
+    def test_global_reset(self):
+        """A global RESET (no qubit specified) resets all qubits to |0>."""
+        program = Program(X(0), X(1), RESET())
+        rho = _dm(program)
+        target_rho = qx.zero_state_matrix(2)
+        assert qx.fidelity(rho, target_rho) > 0.9999
 
     def test_global_reset_channel_rejected(self):
         """SuperopResetChannel is intentionally scoped to targeted resets."""
