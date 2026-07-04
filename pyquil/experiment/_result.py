@@ -21,7 +21,7 @@ expectation value of some observable.
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 
@@ -40,28 +40,28 @@ class ExperimentResult:
     """
 
     setting: ExperimentSetting
-    expectation: Union[float, complex]
+    expectation: float | complex
     total_counts: int
-    std_err: Optional[Union[float, complex]] = None
-    raw_expectation: Optional[Union[float, complex]] = None
-    raw_std_err: Optional[float] = None
-    calibration_expectation: Optional[Union[float, complex]] = None
-    calibration_std_err: Optional[Union[float, complex]] = None
-    calibration_counts: Optional[int] = None
-    additional_results: Optional[list["ExperimentResult"]] = None
+    std_err: float | complex | None = None
+    raw_expectation: float | complex | None = None
+    raw_std_err: float | None = None
+    calibration_expectation: float | complex | None = None
+    calibration_std_err: float | complex | None = None
+    calibration_counts: int | None = None
+    additional_results: list["ExperimentResult"] | None = None
 
     def __init__(
         self,
         setting: ExperimentSetting,
-        expectation: Union[float, complex],
+        expectation: float | complex,
         total_counts: int,
-        std_err: Optional[Union[float, complex]] = None,
-        raw_expectation: Optional[Union[float, complex]] = None,
-        raw_std_err: Optional[Union[float, complex]] = None,
-        calibration_expectation: Optional[Union[float, complex]] = None,
-        calibration_std_err: Optional[Union[float, complex]] = None,
-        calibration_counts: Optional[int] = None,
-        additional_results: Optional[list["ExperimentResult"]] = None,
+        std_err: float | complex | None = None,
+        raw_expectation: float | complex | None = None,
+        raw_std_err: float | complex | None = None,
+        calibration_expectation: float | complex | None = None,
+        calibration_std_err: float | complex | None = None,
+        calibration_counts: int | None = None,
+        additional_results: list["ExperimentResult"] | None = None,
     ):
         object.__setattr__(self, "setting", setting)
         object.__setattr__(self, "expectation", expectation)
@@ -95,9 +95,7 @@ class ExperimentResult:
         }
 
 
-def bitstrings_to_expectations(
-    bitstrings: np.ndarray, joint_expectations: Optional[list[list[int]]] = None
-) -> np.ndarray:
+def bitstrings_to_expectations(bitstrings: np.ndarray, joint_expectations: list[list[int]] | None = None) -> np.ndarray:
     """Given an array of bitstrings, map them to expectation values and return the desired joint expectation values.
 
     If no joint expectations are desired, then just the 1 -> -1, 0 -> 1 mapping is performed.
@@ -157,7 +155,8 @@ def correct_experiment_result(
             len_calibration = len(calibration.additional_results)
             raise ValueError(f"Length of results ({len_result}) should match calibration ({len_calibration}).")
         additional_results = [
-            correct_experiment_result(r, c) for r, c in zip(result.additional_results, calibration.additional_results)
+            correct_experiment_result(r, c)
+            for r, c in zip(result.additional_results, calibration.additional_results, strict=False)
         ]
 
     return ExperimentResult(
@@ -175,11 +174,11 @@ def correct_experiment_result(
 
 
 def ratio_variance(
-    a: Union[float, complex, np.number, np.ndarray],
-    var_a: Union[float, complex, np.number, np.ndarray],
-    b: Union[float, complex, np.number, np.ndarray],
-    var_b: Union[float, complex, np.number, np.ndarray],
-) -> Union[float, complex, np.number, np.ndarray]:
+    a: float | complex | np.number | np.ndarray,
+    var_a: float | complex | np.number | np.ndarray,
+    b: float | complex | np.number | np.ndarray,
+    var_b: float | complex | np.number | np.ndarray,
+) -> float | complex | np.number | np.ndarray:
     r"""Compute the variance on the ratio Y = A/B.
 
     Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the

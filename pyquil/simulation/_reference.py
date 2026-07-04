@@ -15,7 +15,7 @@
 ##############################################################################
 import warnings
 from collections.abc import Sequence
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -70,7 +70,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
 
 
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
-    def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
+    def __init__(self, n_qubits: int, rs: RandomState | None = None):
         """Initialize a wavefunction simulator that prioritizes readability over performance.
 
         Please consider using
@@ -160,7 +160,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
             self.wf = unitary.dot(self.wf)
             return 1
 
-    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> float:
+    def expectation(self, operator: PauliTerm | PauliSum) -> float:
         """Compute the expectation of an operator.
 
         :param operator: The operator
@@ -210,7 +210,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
     """
 
-    def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
+    def __init__(self, n_qubits: int, rs: RandomState | None = None):
         self.n_qubits = n_qubits
         self.rs = rs
         self.density: np.ndarray
@@ -241,7 +241,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             self.initial_density = state_matrix
         else:
             raise ValueError(
-                "The state matrix is not valid. It must be Hermitian, trace one, " "and have non-negative eigenvalues."
+                "The state matrix is not valid. It must be Hermitian, trace one, and have non-negative eigenvalues."
             )
         return self
 
@@ -320,7 +320,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             self.density = unitary.dot(self.density).dot(np.conj(unitary.T))
             return 1
 
-    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> complex:
+    def expectation(self, operator: PauliTerm | PauliSum) -> complex:
         raise NotImplementedError("To implement")
 
     def reset(self) -> "AbstractQuantumSimulator":

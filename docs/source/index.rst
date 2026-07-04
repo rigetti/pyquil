@@ -32,6 +32,8 @@ If you’re new to pyQuil, head to the `getting started <getting_started>`_ guid
    wavefunction_simulator
    compiler
    noise
+   simulation_architecture
+   dynamic_simulator_benchmark
    advanced_usage
    troubleshooting
    introducing_v4

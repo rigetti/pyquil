@@ -17,7 +17,7 @@ import functools
 import itertools
 from collections.abc import Iterable, Sequence
 from operator import mul
-from typing import Union, cast
+from typing import cast
 
 import networkx as nx
 from networkx.algorithms.approximation.clique import clique_removal
@@ -91,9 +91,7 @@ def merge_disjoint_experiments(experiments: list[Experiment], group_merged_setti
     used_qubits: set[int] = set()
     for expt in experiments:
         if expt.program.get_qubits().intersection(used_qubits):
-            raise ValueError(
-                "Experiment programs act on some shared set of qubits and cannot be " "merged unambiguously."
-            )
+            raise ValueError("Experiment programs act on some shared set of qubits and cannot be merged unambiguously.")
         used_qubits = used_qubits.union(cast(set[int], expt.program.get_qubits()))
 
     # get a flat list of all settings, to be regrouped later
@@ -115,7 +113,7 @@ def merge_disjoint_experiments(experiments: list[Experiment], group_merged_setti
 
 def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
     """Construct a graph where an edge signifies two experiments are diagonal in a TPB."""
-    g = nx.Graph()
+    g: nx.Graph = nx.Graph()
     for expt in experiments:
         if len(expt) != 1:
             raise ValueError("There must be a single set of ExperimentSettings for each Experiment.")
@@ -169,7 +167,7 @@ def group_settings_clique_removal(experiments: Experiment) -> Experiment:
     )
 
 
-def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
+def _max_weight_operator(ops: Iterable[PauliTerm]) -> None | PauliTerm:
     """Construct a PauliTerm operator by taking the non-identity single-qubit operator at each qubit position.
 
     This function will return ``None`` if the input operators do not share a natural tensor product basis.
@@ -191,7 +189,7 @@ def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
     return op
 
 
-def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, TensorProductState]:
+def _max_weight_state(states: Iterable[TensorProductState]) -> None | TensorProductState:
     """Construct a TensorProductState by taking the single-qubit state at each qubit position.
 
     This function will return ``None`` if the input states are not compatible

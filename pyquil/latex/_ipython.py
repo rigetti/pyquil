@@ -18,7 +18,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import Any, Optional
+from typing import Any
 
 from IPython.display import Image
 
@@ -27,7 +27,7 @@ from pyquil.latex._main import to_latex
 from pyquil.quil import Program
 
 
-def display(circuit: Program, settings: Optional[DiagramSettings] = None, **image_options: Any) -> Image:
+def display(circuit: Program, settings: DiagramSettings | None = None, **image_options: Any) -> Image:
     """Display a PyQuil circuit as an IPython image object.
 
     .. note::

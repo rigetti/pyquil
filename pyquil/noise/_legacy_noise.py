@@ -18,9 +18,10 @@
 import sys
 from collections import namedtuple
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import numpy as np
+from deprecated import deprecated
 
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX, I
@@ -41,6 +42,9 @@ _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops
 class KrausModel(_KrausModel):
     """Encapsulate a single gate's noise model.
 
+    .. deprecated::
+        Use :class:`pyquil.noise.Channel` for quax-based noise modeling.
+
     :ivar str gate: The name of the gate.
     :ivar Sequence[float] params: Optional parameters for the gate.
     :ivar Sequence[int] targets: The target qubit ids.
@@ -50,7 +54,7 @@ class KrausModel(_KrausModel):
     """
 
     @staticmethod
-    def unpack_kraus_matrix(m: Union[list[Any], np.ndarray]) -> np.ndarray:
+    def unpack_kraus_matrix(m: list[Any] | np.ndarray) -> np.ndarray:
         """Unpack a JSON compatible representation of a complex Kraus matrix.
 
         :param m: The representation of a Kraus operator. Either a complex
@@ -117,6 +121,11 @@ class KrausModel(_KrausModel):
 _NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
 
 
+@deprecated(
+    version="4.17.0",
+    reason="Use the quax-based noise model in pyquil.noise._noise_model instead. "
+    "This class will be removed in the next major version of pyquil.",
+)
 class NoiseModel(_NoiseModel):
     """Encapsulate the QPU noise model containing information about the noisy gates.
 
@@ -208,9 +217,7 @@ def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Se
     return pragmas
 
 
-def append_kraus_to_gate(
-    kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray
-) -> list[Union[np.number, np.ndarray]]:
+def append_kraus_to_gate(kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray) -> list[np.number | np.ndarray]:
     """Follow a gate ``gate_matrix`` by a Kraus map described by ``kraus_ops``.
 
     :param kraus_ops: The Kraus operators.
@@ -256,7 +263,7 @@ def pauli_kraus_map(probabilities: Sequence[float]) -> list[np.ndarray]:
     else:
         operators = np.kron(paulis, paulis)  # type: ignore
 
-    return [coeff * op for coeff, op in zip(np.sqrt(probabilities), operators)]
+    return [coeff * op for coeff, op in zip(np.sqrt(probabilities), operators, strict=False)]
 
 
 def damping_kraus_map(p: float = 0.10) -> list[np.ndarray]:
@@ -374,7 +381,7 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> tup
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
 
     raise NoisyGateUndefined(
-        f"Undefined gate and params: {gate_name}{params}\n" "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
+        f"Undefined gate and params: {gate_name}{params}\nPlease restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
     )
 
 
@@ -389,11 +396,11 @@ def _get_program_gates(prog: "Program") -> list[Gate]:
 
 def _decoherence_noise_model(
     gates: Sequence[Gate],
-    T1: Union[dict[int, float], float] = 30e-6,
-    T2: Union[dict[int, float], float] = 30e-6,
+    T1: dict[int, float] | float = 30e-6,
+    T2: dict[int, float] | float = 30e-6,
     gate_time_1q: float = 50e-9,
     gate_time_2q: float = 150e-09,
-    ro_fidelity: Union[dict[int, float], float] = 0.95,
+    ro_fidelity: dict[int, float] | float = 0.95,
 ) -> NoiseModel:
     """Return default noise model.
 
@@ -557,11 +564,11 @@ def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
 
 def add_decoherence_noise(
     prog: "Program",
-    T1: Union[dict[int, float], float] = 30e-6,
-    T2: Union[dict[int, float], float] = 30e-6,
+    T1: dict[int, float] | float = 30e-6,
+    T2: dict[int, float] | float = 30e-6,
     gate_time_1q: float = 50e-9,
     gate_time_2q: float = 150e-09,
-    ro_fidelity: Union[dict[int, float], float] = 0.95,
+    ro_fidelity: dict[int, float] | float = 0.95,
 ) -> "Program":
     """Add generic damping and dephasing noise to a program.
 

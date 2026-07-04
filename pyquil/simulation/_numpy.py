@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from collections.abc import Sequence
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -75,7 +75,7 @@ def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: list[int])
     used_data_indices = tuple(data_indices[q] for q in wf_target_inds)
     input_indices = work_indices + used_data_indices
     output_indices = list(data_indices)
-    for w, t in zip(work_indices, wf_target_inds):
+    for w, t in zip(work_indices, wf_target_inds, strict=False):
         output_indices[t] = w
 
     # TODO: `out` does not work if input matrices share memory with outputs, as is usually
@@ -122,7 +122,7 @@ def targeted_tensordot(gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequenc
     where_td_put_them = where_td_put_them[sorty]
     sorted_targets = np.asarray(wf_target_inds)[sorty]
     # now that everything is sorted, we can do the insertion.
-    for target_ind, from_ind in zip(sorted_targets, where_td_put_them):
+    for target_ind, from_ind in zip(sorted_targets, where_td_put_them, strict=False):
         axes_ordering.insert(target_ind, from_ind)
 
     # A quick call to transpose gives us the right thing.
@@ -177,7 +177,7 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
 
 
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
-    def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
+    def __init__(self, n_qubits: int, rs: RandomState | None = None):
         """Initialize a wavefunction simulator that uses numpy's tensordot or einsum to update a state vector.
 
         Please consider using
@@ -276,7 +276,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf = targeted_tensordot(gate=tensor, wf=self.wf, wf_target_inds=qubits)
         return self
 
-    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> float:
+    def expectation(self, operator: PauliTerm | PauliSum) -> float:
         """Compute the expectation of an operator.
 
         :param operator: The operator
