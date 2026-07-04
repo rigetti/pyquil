@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "4.17.1-rc.0"
+version = "4.20.0"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = ["Rigetti Computing <softapps@rigetti.com>"]
 readme = "README.md"
@@ -10,8 +10,6 @@ license = "Apache-2.0"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "License :: OSI Approved :: Apache Software License",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Operating System :: OS Independent",
@@ -22,7 +20,7 @@ exclude = ["pyquil/conftest.py"]
 
 [tool.poetry.dependencies]
 # TODO(#1816): Loosen this bound once we've resolved support for Python 3.13+.
-python = "^3.9,<3.13"
+python = ">=3.11, <3.13"
 numpy = ">=1.26,<3"
 scipy = "^1.11"
 rpcq = "^3.11.0"
@@ -45,26 +43,27 @@ pandoc = {version = "2.4b0", optional = true}
 matplotlib = {version = "^3.9.0", optional = true}
 matplotlib-inline = {version = "^0.1.7", optional = true}
 seaborn = {version = "^0.13.2", optional = true}
+toml = {version = "^0.10.2", optional = true}
+rigetti-quax = ">=0.6.6"
 
 [tool.poetry.extras]
 latex = ["ipython"]
-docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "myst-parser", "pandoc", "matplotlib", "matlotlib-inline", "seaborn", "toml"]
+docs = ["Sphinx", "sphinx-rtd-theme", "nbsphinx", "myst-parser", "pandoc", "matplotlib", "matplotlib-inline", "seaborn", "toml"]
 
 [tool.poetry.group.dev.dependencies]
 typing-extensions = "^4.12.0"
 setuptools = {version = "^78.0.0", python = ">=3.12"}
 ruff = "^0.4.6"
-pytest = "^8.2.0"
+pytest = ">=8.2.0,<10"
 pytest-cov = "^5.0.0"
 mypy = "^1.10.0"
-toml = "^0.10.2"
 pytest-xdist = "^3.6.1"
 pytest-rerunfailures = "^14.0.0"
 pytest-timeout = "^2.3.1"
 pytest-mock = "^3.14.0"
 pytest-benchmark = "4.0.0"
 respx = "^0.21.1"
-syrupy = "^4.6.1"
+syrupy = "^5.3.3"
 jinja2 = {version = ">=3.1.6", optional = true} # see: https://osv.dev/vulnerability/GHSA-gmj6-6f8f-6699 and https://osv.dev/vulnerability/GHSA-q2x7-8rv6-6q7h and https://osv.dev/GHSA-cpwx-vrp4-4pq7
 h11 = {version = ">=0.16.0", optional = true} # see: https://osv.dev/vulnerability/GHSA-vqfr-h8mv-ghfj
 
@@ -100,7 +99,7 @@ exclude = [
 ]
 line-length = 120
 indent-width = 4
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["D", "E4", "E7", "E9", "F", "I", "B", "S", "UP", "W", "NPY201"]
@@ -108,6 +107,8 @@ ignore = [
   "D105",  # Allow missing documentation in dunder method.
   "D203",  # This conflicts with D211.
   "D213",  # This conflicts with D212.
+  "UP007", # Optional[X] → X | None is not applied in files with from __future__ import annotations.
+  "UP038", # Deprecated: isinstance(x, (A, B)) → isinstance(x, A | B) has a runtime cost.
 ]
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

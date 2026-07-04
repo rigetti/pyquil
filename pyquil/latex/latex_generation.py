@@ -18,8 +18,6 @@
 Note: this is a deprecated module: Import from pyquil.latex instead.
 """
 
-from typing import Optional
-
 from deprecated.classic import deprecated
 
 from pyquil.latex._diagram import DiagramSettings
@@ -30,7 +28,7 @@ from pyquil.quil import Program
     version="4.0",
     reason="This module has been moved -- please import it as 'from pyquil.latex import to_latex' going forward",
 )
-def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
+def to_latex(circuit: Program, settings: DiagramSettings | None = None) -> str:
     """Produce a circuit diagram in LaTeX for a given pyQuil Program."""
     from pyquil.latex._main import to_latex
 
