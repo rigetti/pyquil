@@ -17,7 +17,7 @@
 
 import itertools
 from collections.abc import Iterator, Sequence
-from typing import Optional, cast
+from typing import cast
 
 import numpy as np
 
@@ -48,7 +48,7 @@ class Wavefunction:
         self.amplitudes: np.ndarray = np.asarray(amplitude_vector)
         sumprob = np.sum(self.probabilities())
         if not np.isclose(sumprob, 1.0):
-            raise ValueError("The wavefunction is not normalized. " f"The probabilities sum to {sumprob} instead of 1")
+            raise ValueError(f"The wavefunction is not normalized. The probabilities sum to {sumprob} instead of 1")
 
     @staticmethod
     def zeros(qubit_num: int) -> "Wavefunction":
@@ -143,7 +143,7 @@ class Wavefunction:
             pp_string = pp_string[:-3]  # remove the dangling + if it is there
         return pp_string
 
-    def plot(self, qubit_subset: Optional[Sequence[int]] = None) -> None:
+    def plot(self, qubit_subset: Sequence[int] | None = None) -> None:
         """Plot a bar chart with bitstring on the x-axis and probability on the y-axis.
 
         :param qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.

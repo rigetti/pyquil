@@ -16,15 +16,14 @@
 """Classes that represent the atomic building blocks of Quil expressions."""
 
 import inspect
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from fractions import Fraction
 from numbers import Number
 from typing import (
     Any,
-    Callable,
     ClassVar,
     NoReturn,
-    Optional,
+    Self,
     Union,
     cast,
 )
@@ -33,7 +32,6 @@ import numpy as np
 import quil.expression as quil_rs_expr
 import quil.instructions as quil_rs
 from deprecated.sphinx import deprecated
-from typing_extensions import Self
 
 
 class QuilAtom:
@@ -127,7 +125,7 @@ class QubitPlaceholder(QuilAtom):
     Qubit placeholders must be resolved to actual qubits before they can be used in a program.
     """
 
-    def __init__(self, placeholder: Optional[quil_rs.QubitPlaceholder] = None):
+    def __init__(self, placeholder: quil_rs.QubitPlaceholder | None = None):
         """Initialize a qubit placeholder, or get a new handle for an existing placeholder."""
         if placeholder is not None:
             self._placeholder = placeholder
@@ -191,7 +189,7 @@ class QubitPlaceholder(QuilAtom):
 QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
 
-def _convert_to_rs_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, QubitPlaceholder]) -> quil_rs.Qubit:
+def _convert_to_rs_qubit(qubit: QubitDesignator | quil_rs.Qubit | QubitPlaceholder) -> quil_rs.Qubit:
     if isinstance(qubit, quil_rs.Qubit):
         return qubit
     if isinstance(qubit, Qubit):
@@ -209,7 +207,7 @@ def _convert_to_rs_qubits(qubits: Iterable[QubitDesignator]) -> list[quil_rs.Qub
     return [_convert_to_rs_qubit(qubit) for qubit in qubits]
 
 
-def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, quil_rs.QubitPlaceholder]) -> QubitDesignator:
+def _convert_to_py_qubit(qubit: QubitDesignator | quil_rs.Qubit | quil_rs.QubitPlaceholder) -> QubitDesignator:
     if isinstance(qubit, quil_rs.Qubit):
         if qubit.is_fixed():
             return Qubit(qubit.to_fixed())
@@ -222,11 +220,11 @@ def _convert_to_py_qubit(qubit: Union[QubitDesignator, quil_rs.Qubit, quil_rs.Qu
     raise ValueError(f"{type(qubit)} is not a valid QubitDesignator")
 
 
-def _convert_to_py_qubits(qubits: Iterable[Union[QubitDesignator, quil_rs.Qubit]]) -> list[QubitDesignator]:
+def _convert_to_py_qubits(qubits: Iterable[QubitDesignator | quil_rs.Qubit]) -> list[QubitDesignator]:
     return [_convert_to_py_qubit(qubit) for qubit in qubits]
 
 
-def unpack_qubit(qubit: Union[QubitDesignator, FormalArgument]) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
+def unpack_qubit(qubit: QubitDesignator | FormalArgument) -> Qubit | QubitPlaceholder | FormalArgument:
     """Get a qubit from an object.
 
     :param qubit: the qubit designator to unpack.
@@ -339,7 +337,7 @@ class LabelPlaceholder(QuilAtom):
     All placeholders must be resolved to actual labels before they can be used in a program.
     """
 
-    def __init__(self, prefix: str = "L", *, placeholder: Optional[quil_rs.TargetPlaceholder] = None):
+    def __init__(self, prefix: str = "L", *, placeholder: quil_rs.TargetPlaceholder | None = None):
         """Initialize a new label placeholder."""
         if placeholder:
             self.target = quil_rs.Target.from_placeholder(placeholder)
@@ -378,7 +376,7 @@ ParameterDesignator = Union["Expression", "MemoryReference", int, float, complex
 
 
 def _convert_to_rs_expression(
-    parameter: Union[ParameterDesignator, quil_rs_expr.Expression],
+    parameter: ParameterDesignator | quil_rs_expr.Expression,
 ) -> quil_rs_expr.Expression:
     if isinstance(parameter, quil_rs_expr.Expression):
         return parameter
@@ -390,7 +388,7 @@ def _convert_to_rs_expression(
 
 
 def _convert_to_rs_expressions(
-    parameters: Sequence[Union[ParameterDesignator, quil_rs_expr.Expression]],
+    parameters: Sequence[ParameterDesignator | quil_rs_expr.Expression],
 ) -> list[quil_rs_expr.Expression]:
     return [_convert_to_rs_expression(parameter) for parameter in parameters]
 
@@ -448,13 +446,11 @@ ExpressionDesignator = Union["Expression", ExpressionValueDesignator]
 
 
 def _convert_to_py_expression(
-    expression: Union[
-        ParameterDesignator,
-        ExpressionDesignator,
-        ExpressionValueDesignator,
-        quil_rs_expr.Expression,
-        quil_rs.MemoryReference,
-    ],
+    expression: ParameterDesignator
+    | ExpressionDesignator
+    | ExpressionValueDesignator
+    | quil_rs_expr.Expression
+    | quil_rs.MemoryReference,
 ) -> ExpressionDesignator:
     if isinstance(expression, (Expression, Number)):
         return expression
@@ -494,7 +490,7 @@ def _convert_to_py_expression(
 
 def _convert_to_py_expressions(
     expressions: Sequence[
-        Union[ParameterDesignator, ExpressionDesignator, quil_rs_expr.Expression, quil_rs.MemoryReference]
+        ParameterDesignator | ExpressionDesignator | quil_rs_expr.Expression | quil_rs.MemoryReference
     ],
 ) -> Sequence[ExpressionDesignator]:
     return [_convert_to_py_expression(expression) for expression in expressions]
@@ -582,7 +578,7 @@ class Expression:
             raise ValueError(f"Cannot convert complex value with non-zero imaginary value to float: {value}")
         return float(value.real)
 
-    def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+    def __array__(self, dtype: np.dtype | None = None) -> np.ndarray:
         """Implement the numpy array protocol for this expression.
 
         If the dtype is not object, then there will be an attempt to simplify the expression to a
@@ -621,7 +617,7 @@ def substitute(expr: ExpressionDesignator, d: ParameterSubstitutionsMapDesignato
     return expr
 
 
-def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParameterSubstitutionsMapDesignator) -> np.ndarray:
+def substitute_array(a: Sequence[Expression] | np.ndarray, d: ParameterSubstitutionsMapDesignator) -> np.ndarray:
     """Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
     :param a: The array of expressions whose parameters or memory references are to be substituted.
@@ -955,7 +951,7 @@ class MemoryReference(QuilAtom, Expression):
         the declared variable is of length >1 or 1, resp.
     """
 
-    def __init__(self, name: str, offset: int = 0, declared_size: Optional[int] = None):
+    def __init__(self, name: str, offset: int = 0, declared_size: int | None = None):
         """Initialize a new memory reference."""
         if not isinstance(offset, int) or offset < 0:
             raise TypeError("MemoryReference offset must be a non-negative int")
@@ -1069,7 +1065,7 @@ class Frame(quil_rs.FrameIdentifier):
 class WaveformInvocation(quil_rs.WaveformInvocation, QuilAtom):
     """A waveform invocation."""
 
-    def __new__(cls, name: str, parameters: Optional[dict[str, ParameterDesignator]] = None) -> Self:
+    def __new__(cls, name: str, parameters: dict[str, ParameterDesignator] | None = None) -> Self:
         """Initialize a new waveform invocation."""
         if parameters is None:
             parameters = {}
@@ -1108,7 +1104,7 @@ class WaveformReference(WaveformInvocation):
 
 
 def _template_waveform_property(
-    name: str, *, dtype: Optional[Union[type[int], type[float]]] = None, doc: Optional[str] = None
+    name: str, *, dtype: type[int] | type[float] | None = None, doc: str | None = None
 ) -> property:
     """Initialize a getters, setters, and deleter for a parameter on a ``TemplateWaveform``.
 
@@ -1121,7 +1117,7 @@ def _template_waveform_property(
     :param doc: Docstring for the property.
     """
 
-    def fget(self: "TemplateWaveform") -> Optional[ParameterDesignator]:
+    def fget(self: "TemplateWaveform") -> ParameterDesignator | None:
         parameter = self.get_parameter(name)
         if parameter is None or dtype is None:
             return parameter
@@ -1161,7 +1157,7 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         name: str,
         *,
         duration: float,
-        **kwargs: Union[Optional[ParameterDesignator], Optional[ExpressionDesignator]],
+        **kwargs: ParameterDesignator | None | ExpressionDesignator | None,
     ) -> Self:
         """Initialize a new TemplateWaveform."""
         rs_parameters = {key: _convert_to_rs_expression(value) for key, value in kwargs.items() if value is not None}
@@ -1172,14 +1168,14 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
         """Return the waveform as a valid Quil string."""
         return str(self)
 
-    def get_parameter(self, name: str) -> Optional[ParameterDesignator]:
+    def get_parameter(self, name: str) -> ParameterDesignator | None:
         """Get a parameter in the waveform by name."""
         parameter = super().parameters.get(name, None)
         if parameter is None:
             return None
         return _convert_to_py_expression(parameter)
 
-    def set_parameter(self, name: str, value: Optional[ParameterDesignator]) -> None:
+    def set_parameter(self, name: str, value: ParameterDesignator | None) -> None:
         """Set a parameter with a value."""
         parameters = super().parameters
         if value is None:
@@ -1265,9 +1261,9 @@ class TemplateWaveform(quil_rs.WaveformInvocation, QuilAtom):
 def _update_envelope(
     iqs: np.ndarray,
     rate: float,
-    scale: Optional[float],
-    phase: Optional[float],
-    detuning: Optional[float],
+    scale: float | None,
+    phase: float | None,
+    detuning: float | None,
 ) -> np.ndarray:
     """Update a pulse envelope by optional shape parameters.
 
@@ -1278,7 +1274,7 @@ def _update_envelope(
     :return: The updated pulse envelope.
     """
 
-    def default(obj: Optional[float], val: float) -> float:
+    def default(obj: float | None, val: float) -> float:
         return obj if obj is not None else val
 
     scale = default(scale, 1.0)
