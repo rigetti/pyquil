@@ -15,13 +15,11 @@
 ##############################################################################
 """The main entry point to the LaTeX generation functionality in pyQuil."""
 
-from typing import Optional
-
 from pyquil.latex._diagram import DiagramBuilder, DiagramSettings
 from pyquil.quil import Program
 
 
-def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
+def to_latex(circuit: Program, settings: DiagramSettings | None = None) -> str:
     """Translate a given pyQuil Program to a TikZ picture in a LaTeX document.
 
     Here are some high points of the generation procedure (see ``pyquil/latex/_diagram.py``):

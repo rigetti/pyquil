@@ -19,11 +19,10 @@ import functools
 import types
 import warnings
 from collections import defaultdict
-from collections.abc import Generator, Iterable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from copy import deepcopy
 from typing import (
     Any,
-    Callable,
     Optional,
     TypeVar,
     Union,
@@ -139,7 +138,7 @@ class Program:
         # default number of shots to loop through
         self.num_shots = 1
 
-        self.native_quil_metadata: Optional[NativeQuilMetadata] = None
+        self.native_quil_metadata: NativeQuilMetadata | None = None
 
     # The following properties are cached on the first call and won't be re-built unless cleared.
     # Any method that mutates the state program should use the `@_invalidates_cached_properties`
@@ -224,7 +223,7 @@ class Program:
         self._program = new_program._program
 
     @_invalidates_cached_properties
-    def inst(self, *instructions: Union[InstructionDesignator, RSProgram]) -> "Program":
+    def inst(self, *instructions: InstructionDesignator | RSProgram) -> "Program":
         """Mutates the Program object by appending new instructions.
 
         This function accepts a number of different valid forms, e.g.
@@ -314,8 +313,8 @@ class Program:
         self,
         num_iterations: int,
         iteration_count_reference: MemoryReference,
-        start_label: Union[Label, LabelPlaceholder],
-        end_label: Union[Label, LabelPlaceholder],
+        start_label: Label | LabelPlaceholder,
+        end_label: Label | LabelPlaceholder,
     ) -> "Program":
         r"""Return a copy of the ``Program`` wrapped in a Quil loop that will execute ``num_iterations`` times.
 
@@ -364,8 +363,8 @@ class Program:
     def resolve_placeholders_with_custom_resolvers(
         self,
         *,
-        label_resolver: Optional[Callable[[LabelPlaceholder], Optional[str]]] = None,
-        qubit_resolver: Optional[Callable[[QubitPlaceholder], Optional[int]]] = None,
+        label_resolver: Callable[[LabelPlaceholder], str | None] | None = None,
+        qubit_resolver: Callable[[QubitPlaceholder], int | None] | None = None,
     ) -> None:
         r"""Resolve ``LabelPlaceholder``\\s and ``QubitPlaceholder``\\s within the program using a function.
 
@@ -380,13 +379,13 @@ class Program:
         rs_qubit_resolver = None
         if qubit_resolver is not None:
 
-            def rs_qubit_resolver(placeholder: quil_rs.QubitPlaceholder) -> Optional[int]:
+            def rs_qubit_resolver(placeholder: quil_rs.QubitPlaceholder) -> int | None:
                 return qubit_resolver(QubitPlaceholder(placeholder=placeholder))
 
         rs_label_resolver = None
         if label_resolver is not None:
 
-            def rs_label_resolver(placeholder: quil_rs.TargetPlaceholder) -> Optional[str]:
+            def rs_label_resolver(placeholder: quil_rs.TargetPlaceholder) -> str | None:
                 return label_resolver(LabelPlaceholder(placeholder=placeholder))
 
         self._program.resolve_placeholders_with_custom_resolvers(
@@ -402,7 +401,7 @@ class Program:
     def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: dict[QubitPlaceholder, int]) -> None:
         r"""Resolve all qubit placeholders using a mapping of ``QubitPlaceholder``\\s to the index they resolve to."""
 
-        def qubit_resolver(placeholder: quil_rs.QubitPlaceholder) -> Optional[int]:
+        def qubit_resolver(placeholder: quil_rs.QubitPlaceholder) -> int | None:
             return qubit_mapping.get(QubitPlaceholder(placeholder), None)
 
         def label_resolver(_: quil_rs.TargetPlaceholder) -> None:
@@ -502,7 +501,7 @@ class Program:
         self,
         name: str,
         params: Sequence[ParameterDesignator],
-        qubits: Sequence[Union[Qubit, QubitPlaceholder]],
+        qubits: Sequence[Qubit | QubitPlaceholder],
     ) -> "Program":
         """Add a gate to the program.
 
@@ -523,8 +522,8 @@ class Program:
     def defgate(
         self,
         name: str,
-        matrix: Union[list[list[Any]], np.ndarray, np.matrix],
-        parameters: Optional[list[Parameter]] = None,
+        matrix: list[list[Any]] | np.ndarray | np.matrix,
+        parameters: list[Parameter] | None = None,
     ) -> "Program":
         """Define a new static gate.
 
@@ -563,7 +562,7 @@ class Program:
         _check_kraus_ops(len(qubit_indices), kraus_ops)
         return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
 
-    def define_noisy_readout(self, qubit: Union[int], p00: float, p11: float) -> "Program":
+    def define_noisy_readout(self, qubit: int, p00: float, p11: float) -> "Program":
         """For this program define a classical bit flip readout error channel parametrized by ``p00`` and ``p11``.
 
         This models the effect of thermal noise that corrupts the readout signal **after** it has interrogated the
@@ -598,7 +597,7 @@ class Program:
         """
         return self.inst(Pragma("NO-NOISE"))
 
-    def measure(self, qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> "Program":
+    def measure(self, qubit: QubitDesignator, classical_reg: MemoryReferenceDesignator | None) -> "Program":
         """Measures a qubit at qubit_index and puts the result in classical_reg.
 
         :param qubit: The qubit to measure.
@@ -608,7 +607,7 @@ class Program:
         """
         return self.inst(MEASURE(qubit, classical_reg))
 
-    def reset(self, qubit_index: Optional[int] = None) -> "Program":
+    def reset(self, qubit_index: int | None = None) -> "Program":
         """Reset all qubits or just a specific qubit at qubit_index.
 
         :param qubit_index: The address of the qubit to reset.
@@ -618,7 +617,7 @@ class Program:
         """
         return self.inst(RESET(qubit_index))
 
-    def measure_all(self, *qubit_reg_pairs: tuple[QubitDesignator, Optional[MemoryReferenceDesignator]]) -> "Program":
+    def measure_all(self, *qubit_reg_pairs: tuple[QubitDesignator, MemoryReferenceDesignator | None]) -> "Program":
         """Measures many qubits into their specified classical bits, in the order they were entered.
 
         If no qubit/register pairs are provided, measure all qubits present in the program into classical addresses of
@@ -738,8 +737,8 @@ class Program:
         name: str,
         memory_type: str = "BIT",
         memory_size: int = 1,
-        shared_region: Optional[str] = None,
-        offsets: Optional[Sequence[tuple[int, str]]] = None,
+        shared_region: str | None = None,
+        offsets: Sequence[tuple[int, str]] | None = None,
     ) -> MemoryReference:
         """DECLARE a quil variable.
 
@@ -789,7 +788,7 @@ class Program:
         self.num_shots = shots
         return self
 
-    def out(self, *, calibrations: Optional[bool] = True) -> str:
+    def out(self, *, calibrations: bool | None = True) -> str:
         """Serialize the Quil program to a string suitable for submitting to the QVM or QPU."""
         if calibrations:
             return self._program.to_quil()
@@ -802,7 +801,7 @@ class Program:
         version="4.0",
         reason="The indices flag will be removed. Use get_qubit_indices() instead.",
     )
-    def get_qubits(self, indices: bool = True) -> Union[set[QubitDesignator], set[int]]:
+    def get_qubits(self, indices: bool = True) -> set[QubitDesignator] | set[int]:
         """Return all of the qubit indices used in this program, including gate applications and allocated qubits.
 
         For example:
@@ -834,7 +833,7 @@ class Program:
         """
         return {q.to_fixed() for q in self._program.get_used_qubits()}
 
-    def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
+    def match_calibrations(self, instr: AbstractInstruction) -> CalibrationMatch | None:
         """Attempt to match a calibration to the provided instruction.
 
         Note: preference is given to later calibrations, i.e. in a program with
@@ -866,7 +865,7 @@ class Program:
 
         return None
 
-    def get_calibration(self, instr: AbstractInstruction) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
+    def get_calibration(self, instr: AbstractInstruction) -> DefCalibration | DefMeasureCalibration | None:
         """Get the calibration corresponding to the provided instruction.
 
         :param instr: An instruction.
@@ -881,7 +880,7 @@ class Program:
     def calibrate(
         self,
         instruction: AbstractInstruction,
-        previously_calibrated_instructions: Optional[set[AbstractInstruction]] = None,
+        previously_calibrated_instructions: set[AbstractInstruction] | None = None,
     ) -> list[AbstractInstruction]:
         """Expand an instruction into its calibrated definition.
 
@@ -948,7 +947,7 @@ class Program:
         self.inst(other)
         return self
 
-    def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
+    def __getitem__(self, index: slice | int) -> Union[AbstractInstruction, "Program"]:
         """Get the instruction at the given index, or a Program from a slice."""
         return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
 
@@ -1046,7 +1045,7 @@ def get_classical_addresses_from_program(program: Program) -> dict[str, list[int
     return flattened_addresses
 
 
-def address_qubits(program: Program, qubit_mapping: Optional[dict[QubitPlaceholder, int]] = None) -> Program:
+def address_qubits(program: Program, qubit_mapping: dict[QubitPlaceholder, int] | None = None) -> Program:
     """Take a program which contains placeholders and assigns the all defined values.
 
     Either all qubits must be defined or all undefined. If qubits are

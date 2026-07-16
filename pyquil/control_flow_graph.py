@@ -1,9 +1,9 @@
 """Classes that represent the control flow graph of a Quil program."""
 
-from typing import Optional
+from typing import Self
 
 from quil import program as quil_rs
-from typing_extensions import Self, override
+from typing_extensions import override
 
 from pyquil.quilbase import (
     AbstractInstruction,
@@ -30,7 +30,7 @@ class BasicBlock(quil_rs.BasicBlock):
         return _convert_to_py_instructions(super().instructions())
 
     @override
-    def terminator(self) -> Optional[AbstractInstruction]:  # type: ignore[override]
+    def terminator(self) -> AbstractInstruction | None:  # type: ignore[override]
         inst = super().terminator()
         if inst is None:
             return None
