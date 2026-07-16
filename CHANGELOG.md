@@ -1,5 +1,15 @@
 # Changelog
 
+## 4.18.0-rc.0 (2026-07-16)
+
+### Features
+
+#### drop Python 3.9 support, add rigetti-quax (1/5) (#1858)
+
+### Fixes
+
+#### format complex params with nonzero real and unit imaginary part (#1850)
+
 ## 4.17.1-rc.0 (2026-06-17)
 
 ### Fixes
