@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2026 Rigetti Computing
+# Copyright 2026 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -23,8 +23,6 @@ This module defines:
   collects per-instruction noise channels.
 - ``DepolarizingNoiseModel``: A convenience implementation that returns a
   depolarizing channel for any gate.
-- ``CompositeNoiseModel``: Chains multiple noise models, returning the first
-  non-None channel.
 - Program-level fidelity estimation utilities.
 """
 
@@ -32,7 +30,7 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import reduce
 from operator import mul
@@ -377,39 +375,6 @@ class DepolarizingNoiseModel:
         """Return a depolarizing channel for gates; ``None`` for measurements/resets."""
         if isinstance(inst, Gate):
             return Channel.from_depolarizing_constant(inst, self.depolarizing_constant)
-        return None
-
-
-@dataclass(frozen=True)
-class CompositeNoiseModel:
-    """A noise model that chains multiple models, returning the first non-None channel.
-
-    Models are queried in order. The first model that returns a non-None channel
-    for a given instruction wins.
-
-    :param models: Sequence of noise models to query in priority order.
-    """
-
-    models: tuple[NoiseModelLike, ...]
-
-    def __init__(self, models: Sequence[NoiseModelLike]) -> None:
-        object.__setattr__(self, "models", tuple(models))
-
-    @overload
-    def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...
-
-    @overload
-    def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
-
-    @overload
-    def get_channel(self, inst: ResetQubit) -> ResetChannel | None: ...
-
-    def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
-        """Query each model in order, returning the first non-None result."""
-        for model in self.models:
-            channel = model.get_channel(inst)
-            if channel is not None:
-                return channel
         return None
 
 

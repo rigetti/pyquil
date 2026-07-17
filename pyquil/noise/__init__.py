@@ -12,8 +12,9 @@ This package provides:
 
 - **New noise model** (``_noise_model``): The quax-based ``NoiseModel``
   container and program-level fidelity estimation utilities.  These are
-  private and not re-exported; they will become the public API in the next
-  major version.
+  still private and not re-exported; they will become the public API in the
+  next major version, at which point the legacy Kraus-based model above is
+  removed.
 """
 
 # ── Noise model (Kraus-map based) ───────────────────────────────────────

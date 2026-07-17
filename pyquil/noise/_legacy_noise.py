@@ -123,8 +123,8 @@ _NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
 
 @deprecated(
     version="4.17.0",
-    reason="Use the quax-based noise model in pyquil.noise._noise_model instead. "
-    "This class will be removed in the next major version of pyquil.",
+    reason="Use the quax-based noise model, which will become the public API in the next major "
+    "version of pyquil. This class will be removed at that time.",
 )
 class NoiseModel(_NoiseModel):
     """Encapsulate the QPU noise model containing information about the noisy gates.

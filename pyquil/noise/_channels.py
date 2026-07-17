@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2026 Rigetti Computing
+# Copyright 2026 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -30,20 +30,20 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from functools import cached_property, reduce
 from itertools import product
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, SupportsFloat, cast, runtime_checkable
 
 import jax.numpy as jnp
 import numpy as np
 import quax as qx
 from jax import Array
+from jax.scipy.linalg import expm as jax_expm
 from quil.expression import Expression as QuilExpression
-from quil.program import Program as RSProgram
+from quil.instructions import Instruction as RSInstruction
 from scipy.linalg import expm as scipy_expm
-from scipy.linalg import fractional_matrix_power
 from scipy.linalg import logm as scipy_logm
 
-from pyquil.quilatom import Expression, FormalArgument, Parameter, substitute
-from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset, ResetQubit
+from pyquil.quilatom import Expression, FormalArgument, MemoryReference, Parameter, substitute
+from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset, ResetQubit, _integer_base_and_exponent
 
 if TYPE_CHECKING:
     from plotly.graph_objs import Figure
@@ -56,12 +56,24 @@ logger = logging.getLogger(__name__)
 CustomGateMap = dict[str, qx.Unitary | Callable[..., qx.Unitary]]
 
 
+@runtime_checkable
+class SupportsReal(Protocol):
+    """A value exposing a ``real`` attribute convertible to ``float`` (e.g. ``complex``)."""
+
+    @property
+    def real(self) -> SupportsFloat: ...
+
+
+# A gate parameter that :func:`_resolve_params` can reduce to a concrete float.
+ResolvableParam = Parameter | Expression | QuilExpression | SupportsReal
+
+
 def _parse_quil_instruction(quil_str: str) -> Gate | Measurement | Reset:
     """Parse a single Quil instruction string into a pyquil instruction object.
 
     Uses the ``quil`` Rust parser directly, avoiding a dependency on ``pyquil.Program``.
     """
-    rs_inst = RSProgram.parse(quil_str).body_instructions[0]
+    rs_inst = RSInstruction.parse(quil_str)
     if rs_inst.is_gate():
         return Gate._from_rs_gate(rs_inst.to_gate())
     elif rs_inst.is_measurement():
@@ -86,7 +98,7 @@ def _pack_complex_array(array: Array | np.ndarray) -> dict[str, Any]:
 def _unpack_complex_array(data: dict[str, Any]) -> Array:
     """Unpack a complex array from :func:`_pack_complex_array` data."""
     shape = tuple(data["shape"])
-    return jnp.array([complex(pair[0], pair[1]) for pair in data["_complex_array"]], dtype=complex).reshape(shape)
+    return jnp.array([complex(*pair) for pair in data["_complex_array"]], dtype=complex).reshape(shape)
 
 
 def _pack_dims(dims: tuple[tuple[int, ...], tuple[int, ...]]) -> list[list[int]]:
@@ -103,8 +115,8 @@ def _unpack_dims(data: list[list[int]]) -> tuple[tuple[int, ...], tuple[int, ...
 
 def _infer_legacy_qubit_dims(shape: tuple[int, ...], *, superoperator: bool) -> tuple[tuple[int, ...], tuple[int, ...]]:
     """Infer qubit-only dims for data serialized before dims were stored."""
-    hilbert_dim = int(round(np.sqrt(shape[0]))) if superoperator else int(shape[0])
-    num_qubits = int(round(np.log2(hilbert_dim)))
+    hilbert_dim = round(float(np.sqrt(shape[0]))) if superoperator else int(shape[0])
+    num_qubits = round(float(np.log2(hilbert_dim)))
     if 2**num_qubits != hilbert_dim:
         raise ValueError(
             "Serialized operator data does not include dims and its shape is not compatible with qubit-only dims."
@@ -128,12 +140,35 @@ def _unpack_operator_dims(
     return _infer_legacy_qubit_dims(shape, superoperator=superoperator)
 
 
-def _resolve_params(params: list) -> list[float]:
+def _real_part(value: SupportsFloat | complex, source: object) -> float:
+    """Return the real part of ``value``, warning if a non-negligible imaginary part is dropped.
+
+    Gate parameters are expected to be real; a non-real value is most likely a mistake
+    (and is not differentiable), so the imaginary part is discarded with a warning rather
+    than silently or fatally.
+    """
+    as_complex = complex(value)
+    if abs(as_complex.imag) > 1e-12:
+        logger.warning(
+            "Gate parameter %r has a non-zero imaginary part %g; discarding it and using the real part %g.",
+            source,
+            as_complex.imag,
+            as_complex.real,
+        )
+    return as_complex.real
+
+
+def _resolve_params(params: list[ResolvableParam]) -> list[float]:
     """Resolve gate parameters to concrete float values.
+
+    Gate parameters are expected to be real. If a parameter evaluates to a complex
+    number with a non-negligible imaginary part, the imaginary part is discarded with
+    a warning (see :func:`_real_part`).
 
     :param params: The gate parameters (may include symbolic Parameters or Expressions).
     :return: A list of concrete float values.
     :raises ValueError: If any parameter is symbolic and cannot be evaluated to a number.
+    :raises quil.EvaluationError: If a ``quil`` expression cannot be evaluated to a single number.
     """
     fixed_params = []
     for p in params:
@@ -143,13 +178,28 @@ def _resolve_params(params: list) -> list[float]:
                 raise ValueError(
                     f"Cannot resolve symbolic parameter {p}. Provide a gate with concrete numeric parameters."
                 )
-            fixed_params.append(float(evaluated))
+            fixed_params.append(_real_part(evaluated, p))
         elif isinstance(p, QuilExpression):
+            # QuilExpression.evaluate returns a plain complex when fully resolved.
             result = p.evaluate({}, {})
-            fixed_params.append(float(result.to_number()) if hasattr(result, "to_number") else float(result))  # type: ignore[arg-type]
+            fixed_params.append(_real_part(result, p))
         else:
-            fixed_params.append(float(p.real))
+            # Remaining values are concrete numbers (float/int/complex/numpy scalars).
+            fixed_params.append(_real_part(cast("SupportsFloat | complex", p), p))
     return fixed_params
+
+
+def _qudit_dims(dimension: int) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Infer square operator dims ``((d,)*k, (d,)*k)`` from a matrix dimension ``d**k``.
+
+    Supports qudits: the base ``d`` is the qudit dimension (2 for qubits, 3 for qutrits, ...)
+    and ``k`` the number of qudits. Raises if ``dimension`` is not a prime power.
+    """
+    decomposition = _integer_base_and_exponent(dimension)
+    if decomposition is None:
+        raise ValueError(f"Matrix dimension {dimension} is not a prime power; cannot infer qudit dims.")
+    base, exponent = decomposition
+    return ((base,) * exponent, (base,) * exponent)
 
 
 def get_custom_gates_from_program(program: Program) -> CustomGateMap:
@@ -167,19 +217,19 @@ def get_custom_gates_from_program(program: Program) -> CustomGateMap:
         if defgate.parameters:
 
             def parametric_gate(*args: float, defgate: DefGate = defgate) -> qx.Unitary:
-                parameter_map = {Parameter(p.name): arg for p, arg in zip(defgate.parameters, args, strict=False)}
+                parameter_map: dict[Parameter | MemoryReference, float] = {
+                    Parameter(p.name): arg for p, arg in zip(defgate.parameters, args, strict=False)
+                }
                 matrix = jnp.asarray(
-                    [[substitute(element, parameter_map) for element in row] for row in defgate.matrix],  # type: ignore[arg-type]
+                    [[substitute(element, parameter_map) for element in row] for row in defgate.matrix],
                     dtype=complex,
                 )
-                num_qubits = int(jnp.round(jnp.log2(matrix.shape[0])))
-                return qx.Unitary.from_matrix(matrix, ((2,) * num_qubits, (2,) * num_qubits))
+                return qx.Unitary.from_matrix(matrix, _qudit_dims(matrix.shape[0]))
 
             custom_gates[defgate.name] = parametric_gate
         else:
             matrix = jnp.asarray(defgate.matrix, dtype=complex)
-            num_qubits = int(jnp.round(jnp.log2(matrix.shape[0])))
-            custom_gates[defgate.name] = qx.Unitary.from_matrix(matrix, ((2,) * num_qubits, (2,) * num_qubits))
+            custom_gates[defgate.name] = qx.Unitary.from_matrix(matrix, _qudit_dims(matrix.shape[0]))
     return custom_gates
 
 
@@ -281,10 +331,10 @@ class Channel:
 
         The resulting channel is the composition of the ideal gate unitary with a
         depolarizing channel calibrated to the specified fidelity:
-        :math:`\\mathcal{E} = \\mathcal{D}_p \\circ \\mathcal{U}`
+        :math:`\mathcal{E} = \mathcal{D}_p \circ \mathcal{U}`
 
         :param inst: The gate to which the channel applies.
-        :param fidelity: The average gate fidelity, :math:`F_{\\mathrm{avg}} \\in [0, 1]`.
+        :param fidelity: The average gate fidelity, :math:`F_{\mathrm{avg}} \in [0, 1]`.
         :param custom_gates: Optional dictionary of custom gate definitions.
         :return: A Channel instance.
         """
@@ -302,10 +352,10 @@ class Channel:
         r"""Create a depolarizing noise channel from a process (Pauli) fidelity.
 
         The process fidelity :math:`F_e` is related to the average gate fidelity by
-        :math:`F_{\\mathrm{avg}} = (d \\cdot F_e + 1) / (d + 1)`.
+        :math:`F_{\mathrm{avg}} = (d \cdot F_e + 1) / (d + 1)`.
 
         :param inst: The gate to which the channel applies.
-        :param pauli_fidelity: The process fidelity (entanglement fidelity), :math:`F_e \\in [0, 1]`.
+        :param pauli_fidelity: The process fidelity (entanglement fidelity), :math:`F_e \in [0, 1]`.
         :param custom_gates: Optional dictionary of custom gate definitions.
         :return: A Channel instance.
         """
@@ -323,7 +373,7 @@ class Channel:
         r"""Create a depolarizing noise channel from a depolarization constant.
 
         The depolarizing constant :math:`p` parameterizes the channel as
-        :math:`\\mathcal{D}_p(\\rho) = p \\, \\rho + (1-p) \\, I/d`.
+        :math:`\mathcal{D}_p(\rho) = p \, \rho + (1-p) \, I/d`.
 
         :param inst: The gate to which the channel applies.
         :param depolarizing_constant: The depolarization constant, e.g. 0.98 for 2% depolarization.
@@ -331,7 +381,16 @@ class Channel:
         :return: A Channel instance.
         """
         unitary = get_instruction_unitary(inst, custom_gates)
-        depolarizing_superop = qx.depolarizing_channel_superoperator(1 - depolarizing_constant, unitary.dims[0])
+        dims = unitary.dims[0]
+        d = int(np.prod(dims))
+        # Build the depolarizing channel via the quax depolarizing Lindbladian evolved for
+        # unit time. Its generator shrinks every traceless operator uniformly, so choosing
+        # the rate ``gamma`` with ``exp(-gamma * (d**2 - 1) / d**2) == depolarizing_constant``
+        # reproduces ``D_p(rho) = p * rho + (1 - p) * I/d`` exactly. Full depolarization
+        # (``depolarizing_constant -> 0``) is the infinite-time limit, so clamp away from zero.
+        shrink = float(np.clip(depolarizing_constant, np.finfo(float).tiny, 1.0))
+        gamma = -np.log(shrink) * (d**2 - 1) / d**2
+        depolarizing_superop = qx.channels.depolarizing(gamma, dims, 1.0)
         combined_superop = depolarizing_superop @ unitary
         return cls(inst=inst, process=qx.to_superop(combined_superop), target_unitary=unitary)
 
@@ -412,7 +471,7 @@ class Channel:
         then composed with the ideal gate.
 
         :param inst: The gate to which the channel applies.
-        :param process_fidelity: The process fidelity of the coherent error, :math:`F_e \\in [0, 1]`.
+        :param process_fidelity: The process fidelity of the coherent error, :math:`F_e \in [0, 1]`.
         :param rng: NumPy random number generator for reproducibility.
         :param custom_gates: Optional dictionary of custom gate definitions.
         :return: A Channel instance.
@@ -438,8 +497,6 @@ class Channel:
         for paulis, coefficient in zip(pauli_products, coeffs, strict=False):
             pauli_sum = pauli_sum + reduce(jnp.kron, paulis) * coefficient
 
-        from jax.scipy.linalg import expm as jax_expm
-
         error_unitary = jax_expm(-1j * jnp.pi * pauli_sum)
         # Fix global phase
         phase = jnp.exp(-1j * jnp.angle(error_unitary[0, 0]))
@@ -459,7 +516,7 @@ class Channel:
     ) -> Channel:
         r"""Create a mixture channel from a set of unitary errors with given probabilities.
 
-        The channel is :math:`\\mathcal{E}(\\rho) = (1-\\sum p_i) U\\rho U^\\dagger + \\sum p_i V_i U \\rho U^\\dagger V_i^\\dagger`
+        The channel is :math:`\mathcal{E}(\rho) = (1-\sum p_i) U\rho U^\dagger + \sum p_i V_i U \rho U^\dagger V_i^\dagger`
         where :math:`U` is the ideal gate and :math:`V_i` are the error unitaries.
 
         :param inst: The gate to which the channel applies.
@@ -517,8 +574,13 @@ class Channel:
         t1_array = jnp.asarray(t1s)
         tphi_array = 1 / (1 / jnp.asarray(t2s) - 1 / t1_array)
 
-        choi = qx.thermal_relaxation_choi(t1s=t1_array, tphis=tphi_array, duration=gate_duration)
-        process = qx.to_superop(choi @ unitary)
+        # One thermal-relaxation channel per subsystem, tensored into a joint superoperator.
+        per_qubit = [
+            qx.channels.thermal_relaxation(t1, tphi, t=gate_duration)
+            for t1, tphi in zip(t1_array, tphi_array, strict=True)
+        ]
+        relaxation = reduce(qx.tensor_superop, per_qubit)
+        process = qx.to_superop(relaxation @ unitary)
         return cls(
             inst=inst,
             process=process,
@@ -558,8 +620,8 @@ class Channel:
     def noise_process(self) -> qx.SuperOp:
         r"""The noise-only channel with the ideal gate unitary factored out.
 
-        If the full channel is :math:`\\mathcal{E} = \\Lambda \\circ \\mathcal{U}`, this
-        returns :math:`\\Lambda`.
+        If the full channel is :math:`\mathcal{E} = \Lambda \circ \mathcal{U}`, this
+        returns :math:`\Lambda`.
         """
         return qx.to_superop(self.process @ self.unitary.h)
 
@@ -569,12 +631,12 @@ class Channel:
 
     @cached_property
     def fidelity(self) -> float:
-        r"""Average gate fidelity :math:`F_{\\mathrm{avg}}` of the channel relative to the ideal gate."""
+        r"""Average gate fidelity :math:`F_{\mathrm{avg}}` of the channel relative to the ideal gate."""
         return float(qx.process_fidelity_to_average_fidelity(self.pauli_fidelity, dims=self.unitary.dims[0]))
 
     @cached_property
     def infidelity(self) -> float:
-        r"""Average gate infidelity :math:`1 - F_{\\mathrm{avg}}`."""
+        r"""Average gate infidelity :math:`1 - F_{\mathrm{avg}}`."""
         return 1.0 - self.fidelity
 
     @cached_property
@@ -665,9 +727,9 @@ class Channel:
         r"""Isolate the stochastic (incoherent) component of the noise.
 
         The full channel decomposes as
-        :math:`\\mathcal{E} = \\mathcal{S} \\circ \\mathcal{U}_{\\mathrm{err}} \\circ \\mathcal{U}_{\\mathrm{gate}}`.
+        :math:`\mathcal{E} = \mathcal{S} \circ \mathcal{U}_{\mathrm{err}} \circ \mathcal{U}_{\mathrm{gate}}`.
         This method factors out the coherent unitary error and returns
-        :math:`\\mathcal{S} \\circ \\mathcal{U}_{\\mathrm{gate}}`.
+        :math:`\mathcal{S} \circ \mathcal{U}_{\mathrm{gate}}`.
         """
         u_error = self._unitary_error_component
         # Get the noise-only superoperator and compose with U_err†
@@ -833,7 +895,7 @@ class Channel:
         out one copy of the gate unitary so the result represents the sequential
         application of the two noisy processes:
 
-        :math:`\\mathcal{E}_B \\circ \\mathcal{U}^\\dagger \\circ \\mathcal{E}_A`
+        :math:`\mathcal{E}_B \circ \mathcal{U}^\dagger \circ \mathcal{E}_A`
 
         This is the natural composition: if ``channel_A`` already includes the
         gate, applying ``channel_B`` after it should not double-count the gate.
@@ -846,22 +908,6 @@ class Channel:
         u_dag_superop = qx.to_superop(self.unitary.h)
         composed_superop = qx.to_superop(self.process @ u_dag_superop @ other.process)
         return replace(self, process=composed_superop)
-
-    def __pow__(self, power: float) -> Channel:
-        r"""Raise the channel's noise to a fractional ``power``, preserving the gate.
-
-        With the channel written :math:`\\mathcal{E} = \\Lambda \\circ \\mathcal{U}`, this returns
-        :math:`\\Lambda^{power} \\circ \\mathcal{U}`: only the noise :math:`\\Lambda` is raised to the
-        fractional matrix power, while the ideal gate is kept. So ``power = 0`` yields the noiseless
-        gate, ``1`` leaves the channel unchanged, and ``> 1`` strengthens the noise. This is the knob
-        used to sweep noise strength.
-        """
-        if not isinstance(power, (int, float)):
-            return NotImplemented
-        powered_noise_matrix = fractional_matrix_power(np.asarray(self.noise_process.matrix), power)
-        powered_noise = qx.SuperOp.from_matrix(jnp.asarray(powered_noise_matrix), self.noise_process.dims)
-        process = qx.to_superop(powered_noise @ qx.to_superop(self.unitary))
-        return replace(self, process=process)
 
     def __or__(self, other: Channel | MeasurementChannel) -> CycleChannel:
         """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
@@ -929,7 +975,11 @@ class MeasurementChannel:
             Positive biases toward upward confusion P(j+1|j), negative toward downward P(j|j+1).
         :param dim: The dimension of the measured system (2 for qubits, 3 for qutrits, etc.).
         :return: A MeasurementChannel instance.
+        :raises ValueError: If ``dim < 2``.
         """
+        if dim < 2:
+            raise ValueError(f"Measured system dimension must be at least 2, got dim={dim}.")
+
         # Compute per-pair error factor so that the average diagonal equals fidelity.
         # Each adjacent pair (j, j+1) contributes error_factor*(1+a) + error_factor*(1-a)
         # = 2*error_factor to total off-diagonal sum. With (dim-1) pairs, the average
@@ -1235,7 +1285,7 @@ class MeasurementChannel:
         ``fractional_matrix_power`` of a stochastic matrix can produce.
 
         So ``power = 0`` is an ideal (noiseless) measurement, ``1`` leaves it unchanged, and
-        ``> 1`` degrades it.  Mirrors :meth:`Channel.__pow__` for sweeping readout-noise strength.
+        ``> 1`` degrades it, sweeping readout-noise strength.
 
         :raises ValueError: If the matrix is not embeddable (no real generator) so that the
             powered matrix is not a valid stochastic matrix.
@@ -1315,11 +1365,11 @@ class ResetChannel:
     ) -> ResetChannel:
         r"""Create a ResetChannel with depolarizing noise scaled to the given process fidelity.
 
-        The ideal reset channel maps every state to :math:`|0\\rangle\\langle 0|`.  Noise is
+        The ideal reset channel maps every state to :math:`|0\rangle\langle 0|`.  Noise is
         modelled as a depolarising channel applied after the ideal reset.
 
         :param inst: The reset instruction.
-        :param fidelity: Process fidelity of the reset channel, :math:`F \\in [0, 1]`.
+        :param fidelity: Process fidelity of the reset channel, :math:`F \in [0, 1]`.
             1.0 yields an ideal reset; values below 1 introduce depolarising noise.
         :param dim: Hilbert-space dimension (2 for qubits).
         :return: A ResetChannel instance.
@@ -1365,9 +1415,9 @@ class ResetChannel:
     def fidelity(self) -> float:
         r"""Process fidelity of the reset channel relative to the ideal reset.
 
-        Defined as :math:`F = \\mathrm{Tr}[\\Lambda_{\\mathrm{ideal}}^\\dagger \\Lambda] / d^2`
-        where :math:`\\Lambda` is the Choi matrix of the noisy channel and
-        :math:`\\Lambda_{\\mathrm{ideal}}` is the ideal-reset Choi.
+        Defined as :math:`F = \mathrm{Tr}[\Lambda_{\mathrm{ideal}}^\dagger \Lambda] / d^2`
+        where :math:`\Lambda` is the Choi matrix of the noisy channel and
+        :math:`\Lambda_{\mathrm{ideal}}` is the ideal-reset Choi.
         """
         dim = self.process.dims[0][0]
         ideal_choi = qx.to_choi(qx.gates.RESET(dim=dim))

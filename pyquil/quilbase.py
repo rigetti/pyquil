@@ -62,6 +62,34 @@ import quil.expression as quil_rs_expr
 import quil.instructions as quil_rs
 
 
+def _integer_base_and_exponent(n: int) -> tuple[int, int] | None:
+    """Decompose n as ``base ** exponent`` for a prime ``base``.
+
+    Returns the smallest prime factor ``d`` and the exponent ``k`` such that
+    ``n == d ** k``, or ``None`` if ``n`` is not a prime power. This is the
+    natural qudit decomposition: a matrix dimension ``d ** k`` describes ``k``
+    qudits of dimension ``d``. Composite non-prime-power dimensions like
+    ``6 = 2 * 3`` are ambiguous and rejected (``None``).
+    """
+    if n < 2:
+        return None
+    # Find the smallest prime factor; it is the qudit dimension (base).
+    base = n
+    for p in range(2, int(math.isqrt(n)) + 1):
+        if n % p == 0:
+            base = p
+            break
+    # Check that n is a power of this base and count the exponent.
+    exponent = 0
+    val = 1
+    while val < n:
+        val *= base
+        exponent += 1
+    if val != n:
+        return None
+    return base, exponent
+
+
 def _is_perfect_power(n: int) -> bool:
     """Check if n is a prime power (p^k for prime p, k >= 1).
 
@@ -69,22 +97,7 @@ def _is_perfect_power(n: int) -> bool:
     dimension p.  Composite non-prime-power dimensions like 6 = 2*3 are
     ambiguous and rejected.
     """
-    if n < 2:
-        return False
-    # Find the smallest prime factor.
-    factor = 0
-    for p in range(2, int(math.isqrt(n)) + 1):
-        if n % p == 0:
-            factor = p
-            break
-    if factor == 0:
-        # n is prime → n = n^1, valid single-qudit dimension.
-        return True
-    # Check that n is a power of this smallest prime factor.
-    val = factor
-    while val < n:
-        val *= factor
-    return val == n
+    return _integer_base_and_exponent(n) is not None
 
 
 class _InstructionMeta(abc.ABCMeta):
@@ -766,14 +779,10 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         For a matrix of dimension d^k, returns k where d is the smallest
         integer base >= 2 such that rows = d^k.
         """
-        rows = len(self.matrix)
-        if rows < 2:
+        decomposition = _integer_base_and_exponent(len(self.matrix))
+        if decomposition is None:
             return 0
-        for base in range(2, rows + 1):
-            k = int(round(math.log(rows, base)))
-            if base**k == rows:
-                return k
-        return 1
+        return decomposition[1]
 
     @property
     def matrix(self) -> np.ndarray:

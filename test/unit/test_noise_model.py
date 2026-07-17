@@ -27,6 +27,8 @@ from pyquil.noise._channels import (
     MeasurementChannel,
     ResetChannel,
     _build_cycle_channel,
+    _resolve_params,
+    get_custom_gates_from_program,
     get_instruction_unitary,
 )
 from pyquil.noise._noise_model import NoiseModel
@@ -148,16 +150,6 @@ class TestChannel:
         for term, rate in pauli_noise.items():
             assert rates[term] == pytest.approx(rate, abs=1e-3)
         assert rates["II"] == pytest.approx(1.0 - sum(pauli_noise.values()), abs=1e-3)
-
-    def test_pow_scales_noise(self):
-        """Channel ** power scales the noise while preserving the gate."""
-        ch = Channel.from_depolarizing_constant(inst=RX(np.pi / 2, 0), depolarizing_constant=0.99)
-        assert (ch**0.0).pauli_infidelity == pytest.approx(0.0, abs=1e-3)
-        assert (ch**1.0).pauli_infidelity == pytest.approx(ch.pauli_infidelity, abs=1e-3)
-        assert (ch**2.0).pauli_infidelity > ch.pauli_infidelity
-        # The ideal gate is preserved.
-        assert (ch**2.0).qubits == ch.qubits
-        assert jnp.allclose((ch**2.0).target_unitary.matrix, ch.target_unitary.matrix)
 
     def test_json_roundtrip_preserves_qutrit_dims(self):
         """Channel JSON includes explicit dims for non-qubit operators."""
@@ -463,6 +455,30 @@ class TestGetInstructionUnitary:
         u = get_instruction_unitary(inst, custom_gates={"MY_GATE": qx.Unitary.from_matrix(custom_matrix, ((2,), (2,)))})
         assert isinstance(u, qx.Unitary)
         assert np.allclose(np.asarray(u.matrix), custom_matrix)
+
+    def test_get_custom_gates_from_program_qutrit(self):
+        """get_custom_gates_from_program infers qudit (base, exponent) dims, not just qubit dims."""
+        qutrit_x = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]], dtype=complex)
+        program = Program()
+        program.defgate("QUTRIT_X", qutrit_x)
+
+        custom_gates = get_custom_gates_from_program(program)
+        unitary = custom_gates["QUTRIT_X"]
+        assert isinstance(unitary, qx.Unitary)
+        # A single qutrit: dims are ((3,), (3,)), not the qubit-only ((2, 2), (2, 2)).
+        assert unitary.dims == ((3,), (3,))
+        assert np.allclose(np.asarray(unitary.matrix), qutrit_x)
+
+    def test_resolve_params_real(self):
+        """_resolve_params returns concrete floats for real parameters."""
+        assert _resolve_params([1.5, 2]) == [1.5, 2.0]
+
+    def test_resolve_params_warns_on_imaginary(self, caplog):
+        """A non-negligible imaginary part is dropped with a warning, keeping the real part."""
+        with caplog.at_level("WARNING"):
+            resolved = _resolve_params([1.5 + 0.3j])
+        assert resolved == [1.5]
+        assert "imaginary part" in caplog.text
 
 
 # ──────────────────────────────────────────────────────────
