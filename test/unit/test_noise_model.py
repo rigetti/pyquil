@@ -100,10 +100,10 @@ class TestChannel:
         assert ch.stochastic_fidelity + ch.stochastic_infidelity == pytest.approx(1.0)
         assert ch.coherent_fidelity + ch.coherent_infidelity == pytest.approx(1.0)
 
-    def test_noise_process(self):
-        """noise_process factors out the ideal gate unitary."""
+    def test_as_post_gate_noise(self):
+        """as_post_gate_noise factors out the ideal gate unitary."""
         ch = Channel.from_depolarizing_constant(inst=RX(np.pi / 4, 0), depolarizing_constant=0.99)
-        noise = ch.noise_process
+        noise = ch.as_post_gate_noise()
         assert isinstance(noise, qx.SuperOp)
 
     def test_is_pauli(self):
@@ -125,7 +125,7 @@ class TestChannel:
     def test_pauli_vector_sums_to_one(self):
         """Pauli error probability vector should sum to 1."""
         ch = Channel.from_depolarizing_constant(inst=X(0), depolarizing_constant=0.97)
-        pv = ch.pauli_vector
+        pv = ch.to_pauli_vector()
         assert float(jnp.sum(pv)) == pytest.approx(1.0, abs=1e-8)
 
     def test_perfect_channel(self):
@@ -152,9 +152,9 @@ class TestChannel:
         """
         pauli_generators = {"IX": 0.01, "XI": 0.005, "ZZ": 0.02}
         ch = Channel.from_pauli_generators(inst=CNOT(0, 1), pauli_generators=pauli_generators)
-        pv = np.asarray(ch.pauli_vector)
+        pv = np.asarray(ch.to_pauli_vector())
         assert pv.size == 16
-        assert float(jnp.sum(ch.pauli_vector)) == pytest.approx(1.0, abs=1e-3)
+        assert float(jnp.sum(ch.to_pauli_vector())) == pytest.approx(1.0, abs=1e-3)
         terms = [a + b for a in "IXYZ" for b in "IXYZ"]
         rates = dict(zip(terms, pv, strict=True))
         # Identity keeps the dominant weight; each specified error term is populated.
@@ -169,7 +169,7 @@ class TestChannel:
         pauli_noise = {"IX": 0.01, "XI": 0.005, "ZZ": 0.02}
         ch = SuperopChannel.from_pauli_noise(inst=CNOT(0, 1), pauli_noise=pauli_noise)
         assert isinstance(ch, SuperopChannel)
-        pv = np.asarray(ch.pauli_vector)
+        pv = np.asarray(ch.to_pauli_vector())
         assert pv.size == 16
         assert float(jnp.sum(pv)) == pytest.approx(1.0, abs=1e-6)
         terms = [a + b for a in "IXYZ" for b in "IXYZ"]
@@ -195,14 +195,14 @@ class TestChannel:
         )
         target_unitary = qx.Unitary.from_matrix(qutrit_x, ((3,), (3,)))
         channel = SuperopChannel(
-            inst=Gate("TX", [], [0]), process=qx.to_superop(target_unitary), target_unitary=target_unitary
+            inst=Gate("TX", [], [0]), process=qx.to_superop(target_unitary), unitary=target_unitary
         )
 
         restored = SuperopChannel.from_json(channel.to_json())
 
         assert restored.inst == channel.inst
         assert restored.process.dims == ((3,), (3,))
-        assert restored.target_unitary.dims == ((3,), (3,))
+        assert restored.unitary.dims == ((3,), (3,))
         assert jnp.allclose(restored.process.matrix, channel.process.matrix)
 
 
@@ -688,7 +688,7 @@ class TestChannelGeneratorOps:
         assert (ch**1.0).pauli_infidelity == pytest.approx(ch.pauli_infidelity, abs=1e-6)
         assert (ch**2.0).pauli_infidelity == pytest.approx(2 * ch.pauli_infidelity, rel=1e-2)
         assert isinstance(ch**2.0, Channel)
-        assert jnp.allclose((ch**2.0).target_unitary.matrix, ch.target_unitary.matrix)
+        assert jnp.allclose((ch**2.0).unitary.matrix, ch.unitary.matrix)
 
     def test_add_combines_noise_on_same_gate(self):
         """Adding two channels on the same gate keeps the gate and combines the noise."""
@@ -697,7 +697,7 @@ class TestChannelGeneratorOps:
         combined = a + b
         assert isinstance(combined, Channel)
         assert combined.pauli_infidelity > a.pauli_infidelity
-        assert jnp.allclose(combined.target_unitary.matrix, a.target_unitary.matrix)
+        assert jnp.allclose(combined.unitary.matrix, a.unitary.matrix)
 
     def test_add_rejects_different_gates(self):
         a = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)

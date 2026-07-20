@@ -62,30 +62,73 @@ import quil.expression as quil_rs_expr
 import quil.instructions as quil_rs
 
 
+# Primes used to peel perfect powers apart in :func:`_integer_base_and_exponent`. An exponent
+# whose prime factors all lie in this list is fully reducible; matrix dimensions never approach
+# ``2 ** 61``, so this covers every realistic qudit decomposition.
+_SMALL_PRIMES = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61)
+
+
+def _int_n_root(x: int, n: int) -> int:
+    """Return the integer ``n``-th root of ``x`` (the largest ``m`` with ``m ** n <= x``).
+
+    Uses integer binary search, so it is exact for arbitrarily large ``x`` without the
+    numerical instability of a floating-point ``x ** (1 / n)``. Runs in ``O(log x)``.
+    """
+    low, high = 1, x
+    while low <= high:
+        mid = (low + high) // 2
+        mid_pow_n = mid**n
+        if mid_pow_n == x:
+            return mid
+        elif mid_pow_n < x:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return low - 1
+
+
+def _is_prime(n: int) -> bool:
+    """Return whether ``n`` is prime, via trial division seeded by :data:`_SMALL_PRIMES`."""
+    if n < 2:
+        return False
+    for p in _SMALL_PRIMES:
+        if n == p:
+            return True
+        if n % p == 0:
+            return False
+    for d in range(_SMALL_PRIMES[-1] + 2, math.isqrt(n) + 1, 2):
+        if n % d == 0:
+            return False
+    return True
+
+
 def _integer_base_and_exponent(n: int) -> tuple[int, int] | None:
     """Decompose n as ``base ** exponent`` for a prime ``base``.
 
-    Returns the smallest prime factor ``d`` and the exponent ``k`` such that
-    ``n == d ** k``, or ``None`` if ``n`` is not a prime power. This is the
-    natural qudit decomposition: a matrix dimension ``d ** k`` describes ``k``
-    qudits of dimension ``d``. Composite non-prime-power dimensions like
-    ``6 = 2 * 3`` are ambiguous and rejected (``None``).
+    Returns the prime ``d`` and the exponent ``k`` such that ``n == d ** k``, or ``None`` if
+    ``n`` is not a prime power. This is the natural qudit decomposition: a matrix dimension
+    ``d ** k`` describes ``k`` qudits of dimension ``d``. Composite non-prime-power dimensions
+    like ``6 = 2 * 3`` are ambiguous and rejected (``None``).
+
+    Runs in ``O(log^2 n)`` by repeatedly extracting exact integer prime-th roots (see
+    :func:`_int_n_root`), rather than trial-dividing up to ``sqrt(n)``.
     """
     if n < 2:
         return None
-    # Find the smallest prime factor; it is the qudit dimension (base).
-    base = n
-    for p in range(2, int(math.isqrt(n)) + 1):
-        if n % p == 0:
-            base = p
+
+    # Peel off prime-th roots: whenever the current base is a perfect p-th power, replace it
+    # with its p-th root and fold p into the exponent. What remains is the primitive base b
+    # (with maximal exponent k) such that n == b ** k. Once b < 2 ** p no larger prime can
+    # reduce it further, so we stop.
+    base, exponent = n, 1
+    for p in _SMALL_PRIMES:
+        while (root := _int_n_root(base, p)) >= 2 and root**p == base:
+            base, exponent = root, exponent * p
+        if root < 2:
             break
-    # Check that n is a power of this base and count the exponent.
-    exponent = 0
-    val = 1
-    while val < n:
-        val *= base
-        exponent += 1
-    if val != n:
+
+    # n is a prime power exactly when its primitive base is prime.
+    if not _is_prime(base):
         return None
     return base, exponent
 
@@ -776,12 +819,15 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     def num_args(self) -> int:
         """Get the number of qudit arguments the gate takes.
 
-        For a matrix of dimension d^k, returns k where d is the smallest
-        integer base >= 2 such that rows = d^k.
+        For a matrix of dimension d^k with d a prime qudit dimension, returns k.
+
+        :raises ValueError: If the matrix dimension is not a prime power (see
+            :func:`_integer_base_and_exponent`).
         """
-        decomposition = _integer_base_and_exponent(len(self.matrix))
+        rows = len(self.matrix)
+        decomposition = _integer_base_and_exponent(rows)
         if decomposition is None:
-            return 0
+            raise ValueError(f"Matrix dimension must be a prime power (e.g. 2, 3, 4, 8, 9, ...), got {rows}.")
         return decomposition[1]
 
     @property
