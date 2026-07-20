@@ -15,7 +15,7 @@
 ##############################################################################
 """Noise channel classes and gate-resolution utilities.
 
-This module defines ``Channel``, ``MeasurementChannel``, ``ResetChannel``, and
+This module defines ``SuperopChannel``, ``MeasurementChannel``, ``SuperopResetChannel``, and
 ``CycleChannel`` dataclasses for representing noise in quantum circuits, along
 with helper functions for resolving gate unitaries and extracting custom gate
 definitions from Quil programs.
@@ -30,7 +30,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from functools import cached_property, reduce
 from itertools import product
-from typing import TYPE_CHECKING, Any, Protocol, SupportsFloat, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, SupportsFloat, runtime_checkable
 
 import jax.numpy as jnp
 import numpy as np
@@ -39,7 +39,6 @@ from jax import Array
 from jax.scipy.linalg import expm as jax_expm
 from quil.expression import Expression as QuilExpression
 from quil.instructions import Instruction as RSInstruction
-from scipy.linalg import expm as scipy_expm
 from scipy.linalg import logm as scipy_logm
 
 from pyquil.quilatom import Expression, FormalArgument, MemoryReference, Parameter, substitute
@@ -52,7 +51,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Type alias for the custom-gate lookup map used throughout the Channel constructors.
+# Type alias for the custom-gate lookup map used throughout the SuperopChannel constructors.
 CustomGateMap = dict[str, qx.Unitary | Callable[..., qx.Unitary]]
 
 
@@ -113,18 +112,7 @@ def _unpack_dims(data: list[list[int]]) -> tuple[tuple[int, ...], tuple[int, ...
     return (tuple(int(dim) for dim in data[0]), tuple(int(dim) for dim in data[1]))
 
 
-def _infer_legacy_qubit_dims(shape: tuple[int, ...], *, superoperator: bool) -> tuple[tuple[int, ...], tuple[int, ...]]:
-    """Infer qubit-only dims for data serialized before dims were stored."""
-    hilbert_dim = round(float(np.sqrt(shape[0]))) if superoperator else int(shape[0])
-    num_qubits = round(float(np.log2(hilbert_dim)))
-    if 2**num_qubits != hilbert_dim:
-        raise ValueError(
-            "Serialized operator data does not include dims and its shape is not compatible with qubit-only dims."
-        )
-    return ((2,) * num_qubits, (2,) * num_qubits)
-
-
-def _pack_operator(operator: qx.SuperOp | qx.Unitary | qx.Choi) -> dict[str, Any]:
+def _pack_operator(operator: qx.SuperOp | qx.Unitary | qx.Choi | qx.Observable | qx.Operator) -> dict[str, Any]:
     """Pack a quax operator matrix with explicit dimension metadata."""
     data = _pack_complex_array(operator.matrix)
     data["dims"] = _pack_dims(operator.dims)
@@ -134,36 +122,16 @@ def _pack_operator(operator: qx.SuperOp | qx.Unitary | qx.Choi) -> dict[str, Any
 def _unpack_operator_dims(
     data: dict[str, Any], shape: tuple[int, ...], *, superoperator: bool
 ) -> tuple[tuple[int, ...], tuple[int, ...]]:
-    """Read explicit dims, falling back to the legacy qubit-only inference."""
-    if "dims" in data:
-        return _unpack_dims(data["dims"])
-    return _infer_legacy_qubit_dims(shape, superoperator=superoperator)
-
-
-def _real_part(value: SupportsFloat | complex, source: object) -> float:
-    """Return the real part of ``value``, warning if a non-negligible imaginary part is dropped.
-
-    Gate parameters are expected to be real; a non-real value is most likely a mistake
-    (and is not differentiable), so the imaginary part is discarded with a warning rather
-    than silently or fatally.
-    """
-    as_complex = complex(value)
-    if abs(as_complex.imag) > 1e-12:
-        logger.warning(
-            "Gate parameter %r has a non-zero imaginary part %g; discarding it and using the real part %g.",
-            source,
-            as_complex.imag,
-            as_complex.real,
-        )
-    return as_complex.real
+    """Read the explicit operator dims stored by :func:`_pack_operator`."""
+    return _unpack_dims(data["dims"])
 
 
 def _resolve_params(params: list[ResolvableParam]) -> list[float]:
     """Resolve gate parameters to concrete float values.
 
-    Gate parameters are expected to be real. If a parameter evaluates to a complex
-    number with a non-negligible imaginary part, the imaginary part is discarded with
-    a warning (see :func:`_real_part`).
+    Gate parameters are expected to be real. If a parameter evaluates to a complex number with a
+    non-negligible imaginary part (detected via :func:`numpy.real_if_close`), the imaginary part is
+    discarded with a warning.
 
     :param params: The gate parameters (may include symbolic Parameters or Expressions).
     :return: A list of concrete float values.
@@ -173,19 +141,21 @@ def _resolve_params(params: list[ResolvableParam]) -> list[float]:
     fixed_params = []
     for p in params:
         if isinstance(p, (Parameter, Expression)):
-            evaluated = p._evaluate()
-            if isinstance(evaluated, (Parameter, Expression)):
+            value: Any = p._evaluate()
+            if isinstance(value, (Parameter, Expression)):
                 raise ValueError(
                     f"Cannot resolve symbolic parameter {p}. Provide a gate with concrete numeric parameters."
                 )
-            fixed_params.append(_real_part(evaluated, p))
         elif isinstance(p, QuilExpression):
             # QuilExpression.evaluate returns a plain complex when fully resolved.
-            result = p.evaluate({}, {})
-            fixed_params.append(_real_part(result, p))
+            value = p.evaluate({}, {})
         else:
-            # Remaining values are concrete numbers (float/int/complex/numpy scalars).
-            fixed_params.append(_real_part(cast("SupportsFloat | complex", p), p))
+            value = p
+
+        resolved = np.real_if_close(value)
+        if np.iscomplexobj(resolved):
+            logger.warning("Gate parameter %r has a non-negligible imaginary part; using its real part.", p)
+        fixed_params.append(float(np.real(resolved)))
     return fixed_params
 
 
@@ -277,29 +247,28 @@ def get_instruction_unitary(
     return result
 
 
-@dataclass(frozen=True)
-class Channel:
-    """A noise channel attaches a superoperator to a specific gate.
+@runtime_checkable
+class ChannelProtocol(Protocol):
+    """Shared behavior for gate noise channels backed by a superoperator ``process``.
 
-    The superoperator *includes* the gate unitary, so the channel replaces the gate
-    rather than being applied after it.
+    A gate channel attaches a CPTP ``process`` (a ``qx.SuperOp`` that *includes* the ideal
+    gate) to a :class:`~pyquil.quilbase.Gate`, with fidelity metrics measured against the
+    ideal ``target_unitary``. Concrete subclasses supply the three attributes below; the
+    ``process`` may be a stored field (:class:`SuperopChannel`) or derived from a generator
+    (:class:`Channel`). Every method here depends only on those three attributes,
+    so it works identically regardless of how ``process`` is produced.
 
-    The ``process`` field is a ``qx.SuperOp`` which can be converted to alternative
-    representations (Choi, Kraus, Pauli-Liouville) via ``quax``.
-
-    Fidelity metrics are computed relative to the ideal gate unitary stored in
-    ``target_unitary``. For standard gates use the class methods (e.g.
-    :meth:`from_gate_fidelity`) which resolve the unitary automatically.
+    Operations that leave the superoperator/Lindbladian structure — composition (``@``),
+    :meth:`pauli_twirl`, :meth:`to_coherent_channel`, :meth:`to_stochastic_channel` — return
+    a plain :class:`SuperopChannel`, since their result is a generic superoperator and not
+    necessarily a Lindbladian generator.
     """
 
-    inst: Gate
-    """Quil gate to which the channel applies."""
-
-    process: qx.SuperOp
-    """The noisy process (superoperator) for the gate, including the gate unitary."""
-
-    target_unitary: qx.Unitary
-    """The noiseless unitary of the gate."""
+    # Provided by concrete subclasses (as dataclass fields or cached properties).
+    if TYPE_CHECKING:
+        inst: Gate
+        process: qx.SuperOp
+        target_unitary: qx.Unitary
 
     @cached_property
     def unitary(self) -> qx.Unitary:
@@ -315,302 +284,6 @@ class Channel:
     def num_qubits(self) -> int:
         """The number of qubits the channel acts on."""
         return len(self.qubits)
-
-    # ──────────────────────────────────────────────
-    # Constructors
-    # ──────────────────────────────────────────────
-
-    @classmethod
-    def from_gate_fidelity(
-        cls: type[Channel],
-        inst: Gate,
-        fidelity: float,
-        custom_gates: CustomGateMap | None = None,
-    ) -> Channel:
-        r"""Create a depolarizing noise channel from an average gate fidelity.
-
-        The resulting channel is the composition of the ideal gate unitary with a
-        depolarizing channel calibrated to the specified fidelity:
-        :math:`\mathcal{E} = \mathcal{D}_p \circ \mathcal{U}`
-
-        :param inst: The gate to which the channel applies.
-        :param fidelity: The average gate fidelity, :math:`F_{\mathrm{avg}} \in [0, 1]`.
-        :param custom_gates: Optional dictionary of custom gate definitions.
-        :return: A Channel instance.
-        """
-        unitary = get_instruction_unitary(inst, custom_gates)
-        p = qx.average_fidelity_to_depolarizing_constant(fidelity, unitary.dims[0])
-        return cls.from_depolarizing_constant(inst, p, custom_gates)
-
-    @classmethod
-    def from_pauli_fidelity(
-        cls: type[Channel],
-        inst: Gate,
-        pauli_fidelity: float,
-        custom_gates: CustomGateMap | None = None,
-    ) -> Channel:
-        r"""Create a depolarizing noise channel from a process (Pauli) fidelity.
-
-        The process fidelity :math:`F_e` is related to the average gate fidelity by
-        :math:`F_{\mathrm{avg}} = (d \cdot F_e + 1) / (d + 1)`.
-
-        :param inst: The gate to which the channel applies.
-        :param pauli_fidelity: The process fidelity (entanglement fidelity), :math:`F_e \in [0, 1]`.
-        :param custom_gates: Optional dictionary of custom gate definitions.
-        :return: A Channel instance.
-        """
-        unitary = get_instruction_unitary(inst, custom_gates)
-        p = qx.process_fidelity_to_depolarizing_constant(pauli_fidelity, unitary.dims[0])
-        return cls.from_depolarizing_constant(inst, p, custom_gates)
-
-    @classmethod
-    def from_depolarizing_constant(
-        cls: type[Channel],
-        inst: Gate,
-        depolarizing_constant: float,
-        custom_gates: CustomGateMap | None = None,
-    ) -> Channel:
-        r"""Create a depolarizing noise channel from a depolarization constant.
-
-        The depolarizing constant :math:`p` parameterizes the channel as
-        :math:`\mathcal{D}_p(\rho) = p \, \rho + (1-p) \, I/d`.
-
-        :param inst: The gate to which the channel applies.
-        :param depolarizing_constant: The depolarization constant, e.g. 0.98 for 2% depolarization.
-        :param custom_gates: Optional dictionary of custom gate definitions.
-        :return: A Channel instance.
-        """
-        unitary = get_instruction_unitary(inst, custom_gates)
-        dims = unitary.dims[0]
-        d = int(np.prod(dims))
-        # Build the depolarizing channel via the quax depolarizing Lindbladian evolved for
-        # unit time. Its generator shrinks every traceless operator uniformly, so choosing
-        # the rate ``gamma`` with ``exp(-gamma * (d**2 - 1) / d**2) == depolarizing_constant``
-        # reproduces ``D_p(rho) = p * rho + (1 - p) * I/d`` exactly. Full depolarization
-        # (``depolarizing_constant -> 0``) is the infinite-time limit, so clamp away from zero.
-        shrink = float(np.clip(depolarizing_constant, np.finfo(float).tiny, 1.0))
-        gamma = -np.log(shrink) * (d**2 - 1) / d**2
-        depolarizing_superop = qx.channels.depolarizing(gamma, dims, 1.0)
-        combined_superop = depolarizing_superop @ unitary
-        return cls(inst=inst, process=qx.to_superop(combined_superop), target_unitary=unitary)
-
-    @classmethod
-    def from_pauli_noise(
-        cls: type[Channel],
-        inst: Gate,
-        pauli_noise: dict[str, float],
-        custom_gates: CustomGateMap | None = None,
-    ) -> Channel:
-        """Create a stochastic Pauli noise channel from Pauli error rates.
-
-        The noise is specified as a dictionary mapping Pauli strings to error probabilities,
-        e.g. ``{"XX": 0.03, "ZI": 0.001}``. The probabilities must sum to at most 1.0;
-        any remainder is assigned to the identity (no-error) term.
-
-        :param inst: The gate to which the channel applies.
-        :param pauli_noise: Pauli error rates, e.g. ``{"IX": 0.01, "ZZ": 0.02}``.
-        :param custom_gates: Optional dictionary of custom gate definitions.
-        :return: A Channel instance.
-        """
-        unitary = get_instruction_unitary(inst, custom_gates)
-        num_qubits = len(unitary.dims[0])
-
-        total_error_rate = 0.0
-        for pauli, error_rate in pauli_noise.items():
-            if error_rate < 0.0:
-                raise ValueError(f"Pauli term '{pauli}' has negative error rate {error_rate}.")
-            total_error_rate += error_rate
-        if total_error_rate > 1.0:
-            raise ValueError(f"Pauli error rates must sum to at most 1.0, got {total_error_rate}.")
-
-        for pauli in pauli_noise:
-            if len(pauli) != num_qubits:
-                raise ValueError(f"Pauli term '{pauli}' has length {len(pauli)}, expected {num_qubits}.")
-
-        all_pauli_terms = tuple("".join(term) for term in product("IXYZ", repeat=num_qubits))
-
-        pauli_error_rates: list[float] = []
-        for term in reversed(all_pauli_terms):
-            if term in pauli_noise:
-                error_rate = pauli_noise[term]
-            elif all(p == "I" for p in term):
-                error_rate = 1 - sum(pauli_error_rates)
-            else:
-                error_rate = 0
-            pauli_error_rates.append(error_rate)
-        if not jnp.isclose(1.0, sum(pauli_error_rates)):
-            raise ValueError("Pauli error rates plus the implicit identity rate must sum to 1.0.")
-        pauli_error_rates = list(reversed(pauli_error_rates))
-
-        # Build the 4**num_qubits Pauli operators as tensor (Kronecker) products of the
-        # single-qubit Paulis, in lexicographic (I, X, Y, Z) order matching pauli_error_rates.
-        single_pauli_matrices = qx.ensembles.PAULIS.matrix  # (4, 2, 2): I, X, Y, Z
-        pauli_op_matrices = jnp.stack(
-            [reduce(jnp.kron, paulis) for paulis in product(single_pauli_matrices, repeat=num_qubits)]
-        )  # (4**num_qubits, 2**num_qubits, 2**num_qubits)
-
-        # Scale each Pauli by sqrt(probability) to form Kraus operators
-        coeffs = jnp.sqrt(jnp.array(pauli_error_rates, dtype=float))
-        kraus_matrices = coeffs[:, None, None] * pauli_op_matrices
-        kraus_map = qx.KrausMap.from_matrix(kraus_matrices, unitary.dims)
-
-        process_superop = qx.to_superop(kraus_map @ unitary)
-        return cls(inst=inst, process=process_superop, target_unitary=unitary)
-
-    @classmethod
-    def from_random_coherent_error(
-        cls: type[Channel],
-        inst: Gate,
-        process_fidelity: float,
-        rng: np.random.Generator | None = None,
-        custom_gates: CustomGateMap | None = None,
-    ) -> Channel:
-        r"""Create a channel with a random coherent (unitary) error at the specified process fidelity.
-
-        A random unitary close to identity is generated with the given process fidelity,
-        then composed with the ideal gate.
-
-        :param inst: The gate to which the channel applies.
-        :param process_fidelity: The process fidelity of the coherent error, :math:`F_e \in [0, 1]`.
-        :param rng: NumPy random number generator for reproducibility.
-        :param custom_gates: Optional dictionary of custom gate definitions.
-        :return: A Channel instance.
-        """
-        if rng is None:
-            rng = np.random.default_rng()
-
-        ideal = get_instruction_unitary(inst, custom_gates)
-        num_qubits = len(ideal.dims[0])
-        d = 2**num_qubits
-
-        # Generate a random unitary error with the specified process fidelity
-        # using Pauli generator decomposition
-        angle = jnp.arccos(2 * process_fidelity - 1) / (2 * jnp.pi)
-        id_coeff = 1 - float(angle)
-        coeffs = rng.random(4**num_qubits - 1)
-        coeffs = (1 - id_coeff) / np.sqrt(np.sum(np.square(coeffs))) * coeffs
-
-        # Build Pauli generator sum using quax Pauli matrices
-        pauli_matrices = qx.ensembles.PAULIS.matrix  # shape (4, 2, 2)
-        pauli_sum = jnp.eye(d, dtype=complex) * id_coeff
-        pauli_products = list(itertools.product(pauli_matrices, repeat=num_qubits))[1:]
-        for paulis, coefficient in zip(pauli_products, coeffs, strict=False):
-            pauli_sum = pauli_sum + reduce(jnp.kron, paulis) * coefficient
-
-        error_unitary = jax_expm(-1j * jnp.pi * pauli_sum)
-        # Fix global phase
-        phase = jnp.exp(-1j * jnp.angle(error_unitary[0, 0]))
-        error_unitary = error_unitary * phase
-
-        error_u = qx.Unitary.from_matrix(error_unitary, ideal.dims)
-        noisy_superop = qx.to_superop(error_u @ ideal)
-        return cls(inst=inst, process=noisy_superop, target_unitary=ideal)
-
-    @classmethod
-    def from_mixture(
-        cls: type[Channel],
-        inst: Gate,
-        constituents: list[qx.Unitary],
-        probabilities: list[float],
-        custom_gates: CustomGateMap | None = None,
-    ) -> Channel:
-        r"""Create a mixture channel from a set of unitary errors with given probabilities.
-
-        The channel is :math:`\mathcal{E}(\rho) = (1-\sum p_i) U\rho U^\dagger + \sum p_i V_i U \rho U^\dagger V_i^\dagger`
-        where :math:`U` is the ideal gate and :math:`V_i` are the error unitaries.
-
-        :param inst: The gate to which the channel applies.
-        :param constituents: Unitary error operators to mix.
-        :param probabilities: Probability of each unitary error. Must sum to at most 1.0.
-        :param custom_gates: Optional dictionary of custom gate definitions.
-        :return: A Channel instance.
-        """
-        ideal = get_instruction_unitary(inst, custom_gates)
-
-        if len(constituents) != len(probabilities):
-            raise ValueError("The number of constituents and probabilities must match.")
-        error_prob = sum(probabilities)
-        if error_prob > 1.0:
-            raise ValueError(f"The sum of probabilities ({error_prob}) must be at most 1.0.")
-
-        # Build the mixture superop: (1-p_total) S(U) + sum p_i S(V_i @ U)
-        p0 = 1.0 - error_prob
-        noisy_superop_matrix = p0 * qx.to_superop(ideal).matrix
-        for p, v in zip(probabilities, constituents, strict=False):
-            composed = v @ ideal
-            noisy_superop_matrix = noisy_superop_matrix + p * qx.to_superop(composed).matrix
-        noisy_superop = qx.SuperOp.from_matrix(noisy_superop_matrix, ideal.dims)
-        return cls(inst=inst, process=noisy_superop, target_unitary=ideal)
-
-    @classmethod
-    def from_coherence_times(
-        cls: type[Channel],
-        inst: Gate,
-        gate_duration: float,
-        t1s: list[float],
-        t2s: list[float] | None = None,
-        custom_gates: CustomGateMap | None = None,
-    ) -> Channel:
-        """Create a decoherence Channel based on the coherence times.
-
-        In this construction, decoherence is applied _after_ the ideal gate unitary.
-
-        :param inst: The target instruction.
-        :param gate_duration: The duration of the gate.
-        :param t1s: The t1 time(s) of the qubits
-        :param t2s: The t2 time(s) of the qubits. Default to 2*t1.
-        """
-        unitary = get_instruction_unitary(inst, custom_gates)
-        qubits = inst.get_qubit_indices()
-        num_sys = len(qubits)
-        if num_sys != len(t1s):
-            raise ValueError(f"Expected {num_sys} T1 values for {inst.out()}, got {len(t1s)}.")
-        if t2s is None:
-            t2s = [2 * t1 for t1 in t1s]
-        else:
-            if num_sys != len(t2s):
-                raise ValueError(f"Expected {num_sys} T2 values for {inst.out()}, got {len(t2s)}.")
-
-        t1_array = jnp.asarray(t1s)
-        tphi_array = 1 / (1 / jnp.asarray(t2s) - 1 / t1_array)
-
-        # One thermal-relaxation channel per subsystem, tensored into a joint superoperator.
-        per_qubit = [
-            qx.channels.thermal_relaxation(t1, tphi, t=gate_duration)
-            for t1, tphi in zip(t1_array, tphi_array, strict=True)
-        ]
-        relaxation = reduce(qx.tensor_superop, per_qubit)
-        process = qx.to_superop(relaxation @ unitary)
-        return cls(
-            inst=inst,
-            process=process,
-            target_unitary=unitary,
-        )
-
-    @classmethod
-    def from_superoperator(
-        cls: type[Channel],
-        inst: Gate,
-        process: qx.SuperOp,
-        target_unitary: qx.Unitary | None = None,
-        custom_gates: CustomGateMap | None = None,
-    ) -> Channel:
-        """Create a Channel from a pre-built superoperator.
-
-        If ``target_unitary`` is not provided it is inferred from the gate
-        instruction using the standard gate set (and ``custom_gates`` if given).
-
-        :param inst: The gate to which the channel applies.
-        :param process: The noisy process superoperator (includes the gate unitary).
-        :param target_unitary: The ideal gate unitary.  Resolved automatically
-            when omitted.
-        :param custom_gates: Optional dictionary of custom gate definitions,
-            used only when ``target_unitary`` is ``None``.
-        :return: A Channel instance.
-        """
-        if target_unitary is None:
-            target_unitary = get_instruction_unitary(inst, custom_gates)
-        return cls(inst=inst, process=process, target_unitary=target_unitary)
 
     # ──────────────────────────────────────────────
     # Cached representation conversions
@@ -676,10 +349,14 @@ class Channel:
         return float(qx.unitarity(self.noise_process))
 
     # ──────────────────────────────────────────────
-    # Channel analysis methods
+    # SuperopChannel analysis methods
     # ──────────────────────────────────────────────
 
-    def pauli_twirl(self) -> Channel:
+    def _as_channel(self, process: qx.SuperOp) -> SuperopChannel:
+        """Wrap a derived superoperator as a plain :class:`SuperopChannel` for this gate."""
+        return SuperopChannel(inst=self.inst, process=process, target_unitary=self.target_unitary)
+
+    def pauli_twirl(self) -> SuperopChannel:
         """Return a Pauli-twirled version of this channel.
 
         Pauli twirling projects the channel onto the Pauli diagonal, eliminating
@@ -691,7 +368,7 @@ class Channel:
         # Keep only the diagonal of the PTM
         twirled_ptm_matrix = jnp.diag(jnp.diag(ptm.matrix))
         twirled_superop = qx.to_superop(qx.PauliLiouville.from_matrix(twirled_ptm_matrix, self.process.dims))
-        return replace(self, process=twirled_superop)
+        return self._as_channel(twirled_superop)
 
     @cached_property
     def _unitary_error_component(self) -> Array:
@@ -711,7 +388,7 @@ class Channel:
         u, _, vh = jnp.linalg.svd(dominant_eigenvector.reshape(d, d).T)
         return u @ vh
 
-    def to_coherent_channel(self) -> Channel:
+    def to_coherent_channel(self) -> SuperopChannel:
         """Isolate the coherent (unitary) component of the noise.
 
         Extracts the dominant unitary from the noise Choi matrix via polar
@@ -721,9 +398,9 @@ class Channel:
         u_error = self._unitary_error_component
         u_error_qx = qx.Unitary.from_matrix(u_error, self.process.dims)
         coherent_superop = qx.to_superop(u_error_qx @ self.unitary)
-        return replace(self, process=coherent_superop)
+        return self._as_channel(coherent_superop)
 
-    def to_stochastic_channel(self) -> Channel:
+    def to_stochastic_channel(self) -> SuperopChannel:
         r"""Isolate the stochastic (incoherent) component of the noise.
 
         The full channel decomposes as
@@ -739,7 +416,7 @@ class Channel:
         # Recompose with the ideal gate
         ideal_superop = jnp.kron(self.unitary.matrix, self.unitary.matrix.conj())
         stochastic_superop = stochastic_noise_superop @ ideal_superop
-        return replace(self, process=qx.SuperOp.from_matrix(stochastic_superop, self.process.dims))
+        return self._as_channel(qx.SuperOp.from_matrix(stochastic_superop, self.process.dims))
 
     def is_pauli(self) -> bool:
         """Check if the noise channel is a Pauli (stochastic Pauli) channel.
@@ -799,10 +476,10 @@ class Channel:
                 ptm = qx.to_pauli_liouville(channel)
                 log_ptm = scipy_logm(np.asarray(ptm.matrix))
                 channel = qx.PauliLiouville.from_matrix(jnp.array(log_ptm), channel.dims)
-            title_prefix = "Noise Channel"
+            title_prefix = "Noise SuperopChannel"
         else:
             channel = self.process
-            title_prefix = "Full Channel"
+            title_prefix = "Full SuperopChannel"
 
         fig = qx.plot(channel)
         fig.update_layout(
@@ -816,11 +493,170 @@ class Channel:
         return fig
 
     # ──────────────────────────────────────────────
+    # Dunder methods
+    # ──────────────────────────────────────────────
+
+    def __str__(self) -> str:
+        """Return a simplified string representation showing the gate and process fidelity."""
+        return f"<{self.inst.out()} ~ ({100 * self.pauli_fidelity:.2f}%)>"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality by concrete type, instruction, and exact process/ideal-gate matrices.
+
+        Equality is exact (no fidelity tolerance): two channels are equal only if they are the
+        same concrete class, share the same instruction, and have bit-for-bit identical process
+        and target-unitary matrices. Making tolerance decisions on the user's behalf is
+        deliberately avoided.
+        """
+        if type(self) is not type(other):
+            return False
+        if self.inst != other.inst:  # type: ignore[attr-defined]
+            return False
+        return bool(
+            jnp.array_equal(self.process.matrix, other.process.matrix)  # type: ignore[attr-defined]
+            and jnp.array_equal(self.target_unitary.matrix, other.target_unitary.matrix)  # type: ignore[attr-defined]
+        )
+
+    __hash__ = None  # type: ignore[assignment]
+
+    def __matmul__(self, other: ChannelProtocol) -> SuperopChannel:
+        r"""Compose two channels: ``channel_B @ channel_A``.
+
+        Both channels share the same gate instruction. The composition factors
+        out one copy of the gate unitary so the result represents the sequential
+        application of the two noisy processes:
+
+        :math:`\mathcal{E}_B \circ \mathcal{U}^\dagger \circ \mathcal{E}_A`
+
+        This is the natural composition: if ``channel_A`` already includes the
+        gate, applying ``channel_B`` after it should not double-count the gate.
+        The result is a plain :class:`SuperopChannel` (a superoperator composition).
+        """
+        if not isinstance(other, ChannelProtocol):
+            return NotImplemented
+        if self.inst != other.inst:
+            raise ValueError(f"Cannot compose channels for different gates: {self.inst.out()} vs {other.inst.out()}")
+        # E_B @ U† @ E_A  (factor out one gate unitary between the two channels)
+        u_dag_superop = qx.to_superop(self.unitary.h)
+        composed_superop = qx.to_superop(self.process @ u_dag_superop @ other.process)
+        return self._as_channel(composed_superop)
+
+    def __or__(self, other: ChannelProtocol | MeasurementChannel) -> CycleChannel:
+        """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
+
+        The result represents a cycle containing both operations acting in parallel
+        on disjoint qubits. The DefCircuit encodes the parallel operations as
+        formal instructions.
+
+        :param other: Another gate channel or MeasurementChannel on disjoint qubits.
+        :return: A CycleChannel representing the tensor product.
+        """
+        if not isinstance(other, (ChannelProtocol, MeasurementChannel)):
+            return NotImplemented
+
+        # Validate disjoint qubits
+        self_qubits = set(self.qubits)
+        other_qubits = set(other.qubits)
+        if self_qubits & other_qubits:
+            raise ValueError(f"Cannot tensor channels with overlapping qubits: {self_qubits & other_qubits}")
+
+        return _build_cycle_channel([self, other])
+
+
+@dataclass(frozen=True, eq=False)
+class SuperopChannel(ChannelProtocol):
+    """A noise channel that stores a superoperator directly, for a specific gate.
+
+    This is the special case of :class:`ChannelProtocol` whose ``process`` is a stored
+    ``qx.SuperOp`` (rather than derived from a Lindbladian generator, as :class:`Channel`). It is
+    what the manifold-leaving operations (composition ``@``, :meth:`pauli_twirl`,
+    :meth:`to_coherent_channel`, :meth:`to_stochastic_channel`) return, and is useful when only a
+    raw superoperator is available. Prefer :class:`Channel` and its ``from_*`` constructors when a
+    generator description is available.
+
+    The superoperator *includes* the gate unitary, so the channel replaces the gate rather than
+    being applied after it, and can be converted to alternative representations (Choi, Kraus,
+    Pauli-Liouville) via ``quax``. Fidelity metrics are computed relative to ``target_unitary``.
+    """
+
+    inst: Gate
+    """Quil gate to which the channel applies."""
+
+    process: qx.SuperOp
+    """The noisy process (superoperator) for the gate, including the gate unitary."""
+
+    target_unitary: qx.Unitary
+    """The noiseless unitary of the gate."""
+
+    # ──────────────────────────────────────────────
+    # Constructors
+    # ──────────────────────────────────────────────
+
+    @classmethod
+    def from_pauli_noise(
+        cls: type[SuperopChannel],
+        inst: Gate,
+        pauli_noise: dict[str, float],
+        custom_gates: CustomGateMap | None = None,
+    ) -> SuperopChannel:
+        r"""Create a traditional post-gate stochastic Pauli error channel from error probabilities.
+
+        This is the one-shot mixed-Pauli model applied *after* the ideal gate:
+        :math:`\mathcal{E}(\rho) = \sum_i p_i\, P_i U \rho U^\dagger P_i^\dagger`, where the
+        probabilities ``p_i`` (plus the implicit identity term) sum to 1. Unlike
+        :meth:`Channel.from_pauli_generators`, the resulting channel reproduces the given error
+        probabilities exactly (no exponentiation).
+
+        :param inst: The gate to which the channel applies.
+        :param pauli_noise: Pauli error probabilities, e.g. ``{"IX": 0.01, "ZZ": 0.02}``. Must sum
+            to at most 1.0; the remainder is assigned to the identity (no-error) term.
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A SuperopChannel instance.
+        """
+        unitary = get_instruction_unitary(inst, custom_gates)
+        num_qubits = len(unitary.dims[0])
+
+        total_error_rate = 0.0
+        for pauli, error_rate in pauli_noise.items():
+            if error_rate < 0.0:
+                raise ValueError(f"Pauli term '{pauli}' has negative error rate {error_rate}.")
+            if len(pauli) != num_qubits:
+                raise ValueError(f"Pauli term '{pauli}' has length {len(pauli)}, expected {num_qubits}.")
+            total_error_rate += error_rate
+        if total_error_rate > 1.0:
+            raise ValueError(f"Pauli error rates must sum to at most 1.0, got {total_error_rate}.")
+
+        all_pauli_terms = tuple("".join(term) for term in product("IXYZ", repeat=num_qubits))
+        pauli_error_rates: list[float] = []
+        for term in reversed(all_pauli_terms):
+            if term in pauli_noise:
+                error_rate = pauli_noise[term]
+            elif all(p == "I" for p in term):
+                error_rate = 1 - sum(pauli_error_rates)
+            else:
+                error_rate = 0
+            pauli_error_rates.append(error_rate)
+        pauli_error_rates = list(reversed(pauli_error_rates))
+
+        # Kraus operators are the Pauli tensor products scaled by sqrt(probability), in
+        # lexicographic (I, X, Y, Z) order matching pauli_error_rates, applied after the gate.
+        single_pauli_matrices = qx.ensembles.PAULIS.matrix  # (4, 2, 2): I, X, Y, Z
+        pauli_op_matrices = jnp.stack(
+            [reduce(jnp.kron, paulis) for paulis in product(single_pauli_matrices, repeat=num_qubits)]
+        )
+        coeffs = jnp.sqrt(jnp.array(pauli_error_rates, dtype=float))
+        kraus_matrices = coeffs[:, None, None] * pauli_op_matrices
+        kraus_map = qx.KrausMap.from_matrix(kraus_matrices, unitary.dims)
+
+        process_superop = qx.to_superop(kraus_map @ unitary)
+        return cls(inst=inst, process=process_superop, target_unitary=unitary)
+
+    # ──────────────────────────────────────────────
     # Serialization
     # ──────────────────────────────────────────────
 
     def to_json(self) -> str:
-        """Serialize Channel to a JSON string.
+        """Serialize SuperopChannel to a JSON string.
 
         :return: JSON string representation.
         """
@@ -834,16 +670,16 @@ class Channel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: type[Channel], json_str: str) -> Channel:
-        """Deserialize a Channel from a JSON string.
+    def from_json(cls: type[SuperopChannel], json_str: str) -> SuperopChannel:
+        """Deserialize a SuperopChannel from a JSON string.
 
         :param json_str: JSON string as produced by :meth:`to_json`.
-        :return: Channel instance.
+        :return: SuperopChannel instance.
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
         if not isinstance(inst, Gate):
-            raise TypeError(f"Channel JSON must contain a gate instruction, got {type(inst).__name__}.")
+            raise TypeError(f"SuperopChannel JSON must contain a gate instruction, got {type(inst).__name__}.")
 
         superop_data = data["superop"]
         shape = tuple(superop_data["shape"])
@@ -862,73 +698,406 @@ class Channel:
 
         return cls(inst=inst, process=superop, target_unitary=target_unitary)
 
+
+@runtime_checkable
+class _LindbladianBacked(Protocol):
+    """Mixin for channels whose ``process`` is generated by a ``qx.Lindbladian``.
+
+    Provides the ``process`` superoperator (``evolve(lindbladian, gate_time)``) and a helper for
+    the CPTP-safe power operation. Concrete subclasses supply ``lindbladian`` and ``gate_time``.
+    """
+
+    if TYPE_CHECKING:
+        lindbladian: qx.Lindbladian
+        gate_time: float
+
+    @cached_property
+    def process(self) -> qx.SuperOp:
+        """The channel superoperator, obtained by evolving the generator for ``gate_time``."""
+        return qx.evolve(self.lindbladian, self.gate_time)
+
+    def _scaled_noise_generator(self, power: float, *, gate_hamiltonian: qx.Observable | None) -> qx.Lindbladian:
+        r"""Scale the dissipative + coherent-noise part of the generator by ``power``, keeping the gate.
+
+        Physically powers the noise: each jump rate :math:`\gamma_k \to \text{power} \cdot \gamma_k`
+        (so :math:`L_k \to \sqrt{\text{power}}\,L_k`) and the coherent-noise Hamiltonian
+        :math:`H_{\text{noise}} \to \text{power} \cdot H_{\text{noise}}`, while the coherent gate
+        generator ``gate_hamiltonian`` (``None`` for a purely dissipative reset) is preserved. The
+        result is CPTP for ``power >= 0``.
+        """
+        if power < 0:
+            raise ValueError(f"Lindbladian channel power must be non-negative, got {power}.")
+        hamiltonian = self.lindbladian.hamiltonian
+        if gate_hamiltonian is not None and hamiltonian is not None:
+            noise_hamiltonian: qx.Observable | None = hamiltonian - gate_hamiltonian
+        else:
+            noise_hamiltonian = hamiltonian
+        scaled_hamiltonian = noise_hamiltonian * float(power) if noise_hamiltonian is not None else None
+        if gate_hamiltonian is not None:
+            scaled_hamiltonian = (
+                gate_hamiltonian if scaled_hamiltonian is None else scaled_hamiltonian + gate_hamiltonian
+            )
+        scaled_jumps = self.lindbladian.jump_operators * float(np.sqrt(power))
+        return qx.Lindbladian(hamiltonian=scaled_hamiltonian, jump_operators=scaled_jumps)
+
+
+@dataclass(frozen=True, eq=False)
+class Channel(_LindbladianBacked, ChannelProtocol):
+    r"""A noise channel that attaches a Lindbladian generator to a specific gate.
+
+    The Lindbladian *includes* the gate Hamiltonian, so the channel *replaces* the gate rather
+    than being applied after it. The ``process`` superoperator is obtained on demand via
+    ``qx.evolve(lindbladian, gate_time)``.
+
+    Compared with :class:`SuperopChannel` (a stored superoperator), a Lindbladian-backed channel makes
+    two operations natural and CPTP-safe:
+
+    - :meth:`__pow__` scales the *noise* (jump rates and coherent-noise Hamiltonian) while keeping
+      the ideal gate, sweeping noise strength in a physically meaningful way.
+    - :meth:`__add__` combines the *noise* of two channels on the same gate, keeping the gate.
+
+    ``gate_time`` defaults to ``1.0`` (dimensionless). It may instead be a physical duration (e.g.
+    ``~40e-9`` s), in which case the Hamiltonian and jump operators are in physical units; the gate
+    Hamiltonian is scaled so that evolving for ``gate_time`` reproduces the ideal ``target_unitary``.
+    """
+
+    inst: Gate
+    """Quil gate to which the channel applies."""
+
+    lindbladian: qx.Lindbladian
+    """The GKSL generator for the gate, including the (scaled) gate Hamiltonian."""
+
+    target_unitary: qx.Unitary
+    """The noiseless unitary of the gate."""
+
+    gate_time: float = 1.0
+    """Evolution time for ``evolve(lindbladian, gate_time)``. Default 1.0 (dimensionless)."""
+
+    @cached_property
+    def _gate_hamiltonian(self) -> qx.Observable:
+        """Coherent generator whose evolution over ``gate_time`` yields ``target_unitary``."""
+        return qx.unitary_to_hamiltonian(self.target_unitary) * (1.0 / self.gate_time)
+
+    @cached_property
+    def _noise_lindbladian(self) -> qx.Lindbladian:
+        """The generator with the coherent gate Hamiltonian factored out (dissipation + coherent noise)."""
+        hamiltonian = self.lindbladian.hamiltonian
+        noise_hamiltonian = hamiltonian - self._gate_hamiltonian if hamiltonian is not None else None
+        return qx.Lindbladian(hamiltonian=noise_hamiltonian, jump_operators=self.lindbladian.jump_operators)
+
     # ──────────────────────────────────────────────
-    # Dunder methods
+    # Constructors
     # ──────────────────────────────────────────────
 
-    def __str__(self) -> str:
-        """Return a simplified string representation showing the gate and process fidelity."""
-        return f"<{self.inst.out()} ~ ({100 * self.pauli_fidelity:.2f}%)>"
+    @classmethod
+    def from_lindbladian(
+        cls: type[Channel],
+        inst: Gate,
+        noise_lindbladian: qx.Lindbladian,
+        gate_time: float = 1.0,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        """Create a channel from a noise-only Lindbladian, folding in the gate.
 
-    def __eq__(self, other: object) -> bool:
-        """Check equality by instruction and exact process and ideal-gate matrices.
+        :param inst: The gate to which the channel applies.
+        :param noise_lindbladian: The noise generator (e.g. from ``qx.lindbladians``), *without*
+            the gate Hamiltonian. Its rates are interpreted per unit time and evolved for ``gate_time``.
+        :param gate_time: Evolution time (default 1.0).
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        target_unitary = get_instruction_unitary(inst, custom_gates)
+        gate_hamiltonian = qx.unitary_to_hamiltonian(target_unitary) * (1.0 / gate_time)
+        noise_hamiltonian = noise_lindbladian.hamiltonian
+        total_hamiltonian = gate_hamiltonian if noise_hamiltonian is None else noise_hamiltonian + gate_hamiltonian
+        lindbladian = qx.Lindbladian(hamiltonian=total_hamiltonian, jump_operators=noise_lindbladian.jump_operators)
+        return cls(inst=inst, lindbladian=lindbladian, target_unitary=target_unitary, gate_time=gate_time)
 
-        Equality is exact (no fidelity tolerance): two channels are equal only if they
-        share the same instruction and bit-for-bit identical process and target-unitary
-        matrices. Making tolerance decisions on the user's behalf is deliberately avoided.
+    @classmethod
+    def from_gate_fidelity(
+        cls: type[Channel],
+        inst: Gate,
+        fidelity: float,
+        gate_time: float = 1.0,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        """Create a depolarizing Lindbladian channel from an average gate fidelity."""
+        unitary = get_instruction_unitary(inst, custom_gates)
+        p = qx.average_fidelity_to_depolarizing_constant(fidelity, unitary.dims[0])
+        return cls.from_depolarizing_constant(inst, p, gate_time, custom_gates)
+
+    @classmethod
+    def from_pauli_fidelity(
+        cls: type[Channel],
+        inst: Gate,
+        pauli_fidelity: float,
+        gate_time: float = 1.0,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        """Create a depolarizing Lindbladian channel from a process (Pauli) fidelity."""
+        unitary = get_instruction_unitary(inst, custom_gates)
+        p = qx.process_fidelity_to_depolarizing_constant(pauli_fidelity, unitary.dims[0])
+        return cls.from_depolarizing_constant(inst, p, gate_time, custom_gates)
+
+    @classmethod
+    def from_depolarizing_constant(
+        cls: type[Channel],
+        inst: Gate,
+        depolarizing_constant: float,
+        gate_time: float = 1.0,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        r"""Create a depolarizing Lindbladian channel from a depolarization constant.
+
+        Matches :meth:`SuperopChannel.from_depolarizing_constant`: the depolarizing constant :math:`p`
+        parameterizes :math:`\mathcal{D}_p(\rho) = p\,\rho + (1-p)\,I/d`. The rate is chosen so that
+        evolving for ``gate_time`` shrinks every traceless operator by exactly ``p``.
+        """
+        unitary = get_instruction_unitary(inst, custom_gates)
+        dims = unitary.dims[0]
+        d = int(np.prod(dims))
+        shrink = float(np.clip(depolarizing_constant, np.finfo(float).tiny, 1.0))
+        gamma_unit_time = -np.log(shrink) * (d**2 - 1) / d**2
+        noise = qx.lindbladians.depolarizing(gamma_unit_time / gate_time, dims)
+        return cls.from_lindbladian(inst, noise, gate_time, custom_gates)
+
+    @classmethod
+    def from_coherence_times(
+        cls: type[Channel],
+        inst: Gate,
+        gate_duration: float,
+        t1s: list[float],
+        t2s: list[float] | None = None,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        """Create a decoherence channel from T1/T2 coherence times, evolved over ``gate_duration``.
+
+        The gate and thermal relaxation happen together over ``gate_duration`` (``gate_time`` is set
+        to ``gate_duration``). Physical rates come from ``qx.lindbladians.thermal_relaxation``.
+
+        :param inst: The target instruction.
+        :param gate_duration: The duration of the gate (used as ``gate_time``).
+        :param t1s: The T1 time(s) of the qudits.
+        :param t2s: The T2 time(s) of the qudits. Default to ``2 * t1``.
+        """
+        qubits = inst.get_qubit_indices()
+        num_sys = len(qubits)
+        if num_sys != len(t1s):
+            raise ValueError(f"Expected {num_sys} T1 values for {inst.out()}, got {len(t1s)}.")
+        if t2s is None:
+            t2s = [2 * t1 for t1 in t1s]
+        elif num_sys != len(t2s):
+            raise ValueError(f"Expected {num_sys} T2 values for {inst.out()}, got {len(t2s)}.")
+
+        t1_array = jnp.asarray(t1s)
+        tphi_array = 1 / (1 / jnp.asarray(t2s) - 1 / t1_array)
+        per_qubit = [
+            qx.lindbladians.thermal_relaxation(t1, tphi) for t1, tphi in zip(t1_array, tphi_array, strict=True)
+        ]
+        noise = reduce(lambda a, b: a | b, per_qubit)
+        return cls.from_lindbladian(inst, noise, gate_duration, custom_gates)
+
+    @classmethod
+    def from_pauli_generators(
+        cls: type[Channel],
+        inst: Gate,
+        pauli_generators: dict[str, float],
+        gate_time: float = 1.0,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        """Create a Pauli-dissipation channel from Pauli generator rates.
+
+        Each Pauli term ``P`` with rate ``r`` contributes a jump operator ``sqrt(r) * P`` to the
+        Lindbladian generator, so the rates are per-unit-time *generator* rates (not one-shot
+        probabilities); over ``gate_time`` the channel is the corresponding continuously-generated
+        Pauli channel. For a traditional post-gate stochastic Pauli error model with exact
+        probabilities, use :meth:`SuperopChannel.from_pauli_noise`.
+
+        :param inst: The gate to which the channel applies.
+        :param pauli_generators: Pauli generator rates, e.g. ``{"IX": 0.01, "ZZ": 0.02}``.
+        :param gate_time: Evolution time (default 1.0).
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        unitary = get_instruction_unitary(inst, custom_gates)
+        num_qubits = len(unitary.dims[0])
+        single_pauli_matrices = qx.ensembles.PAULIS.matrix  # (4, 2, 2): I, X, Y, Z
+        pauli_index = {"I": 0, "X": 1, "Y": 2, "Z": 3}
+
+        jump_matrices = []
+        for pauli, rate in pauli_generators.items():
+            if rate < 0.0:
+                raise ValueError(f"Pauli term '{pauli}' has negative rate {rate}.")
+            if len(pauli) != num_qubits:
+                raise ValueError(f"Pauli term '{pauli}' has length {len(pauli)}, expected {num_qubits}.")
+            op = reduce(jnp.kron, [single_pauli_matrices[pauli_index[p]] for p in pauli])
+            jump_matrices.append(jnp.sqrt(rate) * op)
+
+        d = 2**num_qubits
+        stacked = jnp.stack(jump_matrices) if jump_matrices else jnp.zeros((1, d, d), dtype=complex)
+        jump_operators = qx.Operator.from_matrix(stacked, unitary.dims)
+        noise = qx.Lindbladian(hamiltonian=None, jump_operators=jump_operators)
+        return cls.from_lindbladian(inst, noise, gate_time, custom_gates)
+
+    @classmethod
+    def from_mixture(
+        cls: type[Channel],
+        inst: Gate,
+        constituents: list[qx.Unitary],
+        probabilities: list[float],
+        gate_time: float = 1.0,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        r"""Create a mixture channel from a set of unitary errors with given probabilities.
+
+        Each error unitary ``V_i`` with probability ``p_i`` contributes a jump operator
+        ``sqrt(p_i) * V_i`` to the generator; over ``gate_time`` this is the exponentiated
+        mixture channel composed with the ideal gate.
+
+        :param inst: The gate to which the channel applies.
+        :param constituents: Unitary error operators to mix.
+        :param probabilities: Probability of each unitary error.
+        :param gate_time: Evolution time (default 1.0).
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        ideal = get_instruction_unitary(inst, custom_gates)
+        if len(constituents) != len(probabilities):
+            raise ValueError("The number of constituents and probabilities must match.")
+        if any(p < 0.0 for p in probabilities):
+            raise ValueError("Mixture probabilities must be non-negative.")
+
+        d = int(np.prod(ideal.dims[0]))
+        jump_matrices = [jnp.sqrt(p) * v.matrix for p, v in zip(probabilities, constituents, strict=True)]
+        stacked = jnp.stack(jump_matrices) if jump_matrices else jnp.zeros((1, d, d), dtype=complex)
+        jump_operators = qx.Operator.from_matrix(stacked, ideal.dims)
+        noise = qx.Lindbladian(hamiltonian=None, jump_operators=jump_operators)
+        return cls.from_lindbladian(inst, noise, gate_time, custom_gates)
+
+    @classmethod
+    def from_random_coherent_error(
+        cls: type[Channel],
+        inst: Gate,
+        process_fidelity: float,
+        rng: np.random.Generator | None = None,
+        gate_time: float = 1.0,
+        custom_gates: CustomGateMap | None = None,
+    ) -> Channel:
+        r"""Create a channel with a random coherent (unitary) error at the specified process fidelity.
+
+        A random unitary close to identity is generated with the given process fidelity and composed
+        with the ideal gate; the result is a purely coherent :class:`Channel` (Hamiltonian only,
+        no jump operators).
+
+        :param inst: The gate to which the channel applies.
+        :param process_fidelity: The process fidelity of the coherent error, :math:`F_e \in [0, 1]`.
+        :param rng: NumPy random number generator for reproducibility.
+        :param gate_time: Evolution time (default 1.0).
+        :param custom_gates: Optional dictionary of custom gate definitions.
+        :return: A Channel instance.
+        """
+        if rng is None:
+            rng = np.random.default_rng()
+
+        ideal = get_instruction_unitary(inst, custom_gates)
+        num_qubits = len(ideal.dims[0])
+        d = 2**num_qubits
+
+        angle = jnp.arccos(2 * process_fidelity - 1) / (2 * jnp.pi)
+        id_coeff = 1 - float(angle)
+        coeffs = rng.random(4**num_qubits - 1)
+        coeffs = (1 - id_coeff) / np.sqrt(np.sum(np.square(coeffs))) * coeffs
+
+        pauli_matrices = qx.ensembles.PAULIS.matrix  # shape (4, 2, 2)
+        pauli_sum = jnp.eye(d, dtype=complex) * id_coeff
+        pauli_products = list(itertools.product(pauli_matrices, repeat=num_qubits))[1:]
+        for paulis, coefficient in zip(pauli_products, coeffs, strict=False):
+            pauli_sum = pauli_sum + reduce(jnp.kron, paulis) * coefficient
+
+        error_unitary = jax_expm(-1j * jnp.pi * pauli_sum)
+        phase = jnp.exp(-1j * jnp.angle(error_unitary[0, 0]))
+        error_unitary = error_unitary * phase
+
+        noisy_unitary = qx.Unitary.from_matrix(error_unitary @ ideal.matrix, ideal.dims)
+        hamiltonian = qx.unitary_to_hamiltonian(noisy_unitary) * (1.0 / gate_time)
+        zero_jumps = qx.Operator.from_matrix(jnp.zeros((1, d, d), dtype=complex), ideal.dims)
+        lindbladian = qx.Lindbladian(hamiltonian=hamiltonian, jump_operators=zero_jumps)
+        return cls(inst=inst, lindbladian=lindbladian, target_unitary=ideal, gate_time=gate_time)
+
+    # ──────────────────────────────────────────────
+    # Lindbladian-native operations
+    # ──────────────────────────────────────────────
+
+    def __pow__(self, power: float) -> Channel:
+        """Scale the noise to a (non-negative) ``power`` while preserving the gate.
+
+        ``power = 0`` yields the ideal gate, ``1`` leaves the channel unchanged, and ``> 1``
+        strengthens the noise. Unlike a fractional matrix power of a superoperator, this is always
+        CPTP because it acts on the generator's jump operators and coherent-noise Hamiltonian.
+        """
+        if not isinstance(power, (int, float)):
+            return NotImplemented
+        scaled = self._scaled_noise_generator(power, gate_hamiltonian=self._gate_hamiltonian)
+        return replace(self, lindbladian=scaled)
+
+    def __add__(self, other: Channel) -> Channel:
+        """Combine the *noise* of two channels on the same gate, keeping the gate.
+
+        The gate Hamiltonian is factored out of each operand, the noise generators are summed
+        (jump operators concatenated, coherent-noise Hamiltonians added), and the gate is folded
+        back in. Adding two ``RX(pi/2)`` channels therefore yields an ``RX(pi/2)`` channel whose
+        noise is the union of the two.
         """
         if not isinstance(other, Channel):
-            return False
+            return NotImplemented
         if self.inst != other.inst:
-            return False
-        return bool(
-            jnp.array_equal(self.process.matrix, other.process.matrix)
-            and jnp.array_equal(self.target_unitary.matrix, other.target_unitary.matrix)
+            raise ValueError(f"Cannot add channels for different gates: {self.inst.out()} vs {other.inst.out()}")
+        combined_noise = self._noise_lindbladian + other._noise_lindbladian
+        gate_hamiltonian = self._gate_hamiltonian
+        combined_hamiltonian = (
+            gate_hamiltonian if combined_noise.hamiltonian is None else combined_noise.hamiltonian + gate_hamiltonian
         )
+        combined = qx.Lindbladian(hamiltonian=combined_hamiltonian, jump_operators=combined_noise.jump_operators)
+        return replace(self, lindbladian=combined)
 
-    __hash__ = None  # type: ignore[assignment]
+    # ──────────────────────────────────────────────
+    # Serialization
+    # ──────────────────────────────────────────────
 
-    def __matmul__(self, other: Channel) -> Channel:
-        r"""Compose two channels: ``channel_B @ channel_A``.
+    def to_json(self) -> str:
+        """Serialize Channel to a JSON string."""
+        hamiltonian = self.lindbladian.hamiltonian
+        data = {
+            "schema_version": 1,
+            "inst": self.inst.out(),
+            "gate_time": self.gate_time,
+            "target_unitary": _pack_operator(self.target_unitary),
+            "hamiltonian": None if hamiltonian is None else _pack_operator(hamiltonian),
+            "jump_operators": _pack_operator(self.lindbladian.jump_operators),
+        }
+        return json.dumps(data)
 
-        Both channels share the same gate instruction. The composition factors
-        out one copy of the gate unitary so the result represents the sequential
-        application of the two noisy processes:
+    @classmethod
+    def from_json(cls: type[Channel], json_str: str) -> Channel:
+        """Deserialize a Channel from a JSON string."""
+        data = json.loads(json_str)
+        inst = _parse_quil_instruction(data["inst"])
+        if not isinstance(inst, Gate):
+            raise TypeError(f"Channel JSON must contain a gate instruction, got {type(inst).__name__}.")
 
-        :math:`\mathcal{E}_B \circ \mathcal{U}^\dagger \circ \mathcal{E}_A`
+        u_data = data["target_unitary"]
+        target_unitary = qx.Unitary.from_matrix(_unpack_complex_array(u_data), _unpack_dims(u_data["dims"]))
 
-        This is the natural composition: if ``channel_A`` already includes the
-        gate, applying ``channel_B`` after it should not double-count the gate.
-        """
-        if not isinstance(other, Channel):
-            return NotImplemented
-        if self.inst != other.inst:
-            raise ValueError(f"Cannot compose channels for different gates: {self.inst.out()} vs {other.inst.out()}")
-        # E_B @ U† @ E_A  (factor out one gate unitary between the two channels)
-        u_dag_superop = qx.to_superop(self.unitary.h)
-        composed_superop = qx.to_superop(self.process @ u_dag_superop @ other.process)
-        return replace(self, process=composed_superop)
-
-    def __or__(self, other: Channel | MeasurementChannel) -> CycleChannel:
-        """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
-
-        The result represents a cycle containing both operations acting in parallel
-        on disjoint qubits. The DefCircuit encodes the parallel operations as
-        formal instructions.
-
-        :param other: Another Channel or MeasurementChannel on disjoint qubits.
-        :return: A CycleChannel representing the tensor product.
-        """
-        if not isinstance(other, (Channel, MeasurementChannel)):
-            return NotImplemented
-
-        # Validate disjoint qubits
-        self_qubits = set(self.qubits)
-        other_qubits = set(other.qubits)
-        if self_qubits & other_qubits:
-            raise ValueError(f"Cannot tensor channels with overlapping qubits: {self_qubits & other_qubits}")
-
-        return _build_cycle_channel([self, other])
+        ham_data = data["hamiltonian"]
+        hamiltonian = (
+            None
+            if ham_data is None
+            else qx.Observable.from_matrix(_unpack_complex_array(ham_data), _unpack_dims(ham_data["dims"]))
+        )
+        jump_data = data["jump_operators"]
+        jump_operators = qx.Operator.from_matrix(_unpack_complex_array(jump_data), _unpack_dims(jump_data["dims"]))
+        lindbladian = qx.Lindbladian(hamiltonian=hamiltonian, jump_operators=jump_operators)
+        return cls(inst=inst, lindbladian=lindbladian, target_unitary=target_unitary, gate_time=data["gate_time"])
 
 
 @dataclass(frozen=True)
@@ -1275,54 +1444,13 @@ class MeasurementChannel:
         composed = self.process @ other.process
         return replace(self, process=composed)
 
-    def __pow__(self, power: float) -> MeasurementChannel:
-        r"""Raise the measurement's classification noise to a fractional ``power``.
-
-        The confusion and transition matrices are column-stochastic, so a fractional power is
-        only well-defined through their *generator*: with :math:`M = e^{G}` (where :math:`G` has
-        zero column sums), the principled power is :math:`M^{p} = e^{p G}`, which is again
-        column-stochastic.  This avoids the non-physical (e.g. negative) entries that a naive
-        ``fractional_matrix_power`` of a stochastic matrix can produce.
-
-        So ``power = 0`` is an ideal (noiseless) measurement, ``1`` leaves it unchanged, and
-        ``> 1`` degrades it, sweeping readout-noise strength.
-
-        :raises ValueError: If the matrix is not embeddable (no real generator) so that the
-            powered matrix is not a valid stochastic matrix.
-        """
-        if not isinstance(power, (int, float)):
-            return NotImplemented
-
-        def _powered_stochastic(matrix: Array) -> Array:
-            m = np.asarray(matrix, dtype=complex)
-            # Generator G = log(M); M**power = exp(power * G). Zero column sums of G are
-            # preserved under scaling, so exp(power * G) stays column-stochastic.
-            powered = scipy_expm(power * scipy_logm(m))
-            if np.max(np.abs(powered.imag)) > 1e-9:
-                raise ValueError(
-                    f"MeasurementChannel ** {power} has no real generator; the matrix is not "
-                    "embeddable, so the powered measurement is not a valid stochastic matrix."
-                )
-            powered = powered.real
-            if np.any(powered < -1e-9) or not np.allclose(powered.sum(axis=0), 1.0, atol=1e-6):
-                raise ValueError(
-                    f"MeasurementChannel ** {power} is not a valid (non-negative, column-stochastic) "
-                    "matrix; the underlying confusion/transition matrix is not embeddable for this power."
-                )
-            # Clip away sub-tolerance numerical negatives validated above.
-            return jnp.asarray(np.clip(powered, 0.0, None))
-
-        confusion = _powered_stochastic(self.confusion_matrix)
-        transition = _powered_stochastic(self.transition_matrix)
-        return MeasurementChannel.from_confusion_and_transition(self.inst, confusion, transition)
-
-    def __or__(self, other: Channel | MeasurementChannel) -> CycleChannel:
+    def __or__(self, other: SuperopChannel | MeasurementChannel) -> CycleChannel:
         """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
 
-        :param other: Another Channel or MeasurementChannel on disjoint qubits.
+        :param other: Another SuperopChannel or MeasurementChannel on disjoint qubits.
         :return: A CycleChannel representing the tensor product.
         """
-        if not isinstance(other, (Channel, MeasurementChannel)):
+        if not isinstance(other, (SuperopChannel, MeasurementChannel)):
             return NotImplemented
 
         self_qubits = set(self.qubits)
@@ -1333,75 +1461,25 @@ class MeasurementChannel:
         return _build_cycle_channel([self, other])
 
 
-@dataclass(frozen=True)
-class ResetChannel:
-    """A reset noise channel attaches a superoperator to a specific reset operation.
+@runtime_checkable
+class _ResetChannelBase(Protocol):
+    """Shared behavior for reset noise channels backed by a superoperator ``process``.
 
-    The ``process`` field is a ``qx.SuperOp`` which *includes* the ideal reset, so the channel
-    replaces the reset instruction rather than being applied after it.
+    A reset channel replaces a targeted reset with a CPTP ``process`` (a ``qx.SuperOp`` that
+    *includes* the ideal reset). Unlike gate channels there is no ``target_unitary``; fidelity is
+    measured against the ideal reset ``qx.gates.RESET``. Concrete subclasses supply ``inst`` and
+    ``process`` — a stored field for :class:`SuperopResetChannel`, or derived from a generator for
+    :class:`ResetChannel`.
     """
 
-    inst: ResetQubit
-    """The reset operation to which the channel applies."""
-
-    process: qx.SuperOp
-    """A superoperator representation of the noisy reset (including ideal reset)."""
+    if TYPE_CHECKING:
+        inst: ResetQubit
+        process: qx.SuperOp
 
     def __post_init__(self) -> None:
-        """Validate that ResetChannel is attached to a targeted reset."""
+        """Validate that the channel is attached to a targeted reset."""
         if not isinstance(self.inst, ResetQubit):
-            raise TypeError("ResetChannel only supports targeted ResetQubit instructions.")
-
-    # ──────────────────────────────────────────────
-    # Constructors
-    # ──────────────────────────────────────────────
-
-    @classmethod
-    def from_reset_fidelity(
-        cls: type[ResetChannel],
-        inst: ResetQubit,
-        fidelity: float,
-        dim: int = 2,
-    ) -> ResetChannel:
-        r"""Create a ResetChannel with depolarizing noise scaled to the given process fidelity.
-
-        The ideal reset channel maps every state to :math:`|0\rangle\langle 0|`.  Noise is
-        modelled as a depolarising channel applied after the ideal reset.
-
-        :param inst: The reset instruction.
-        :param fidelity: Process fidelity of the reset channel, :math:`F \in [0, 1]`.
-            1.0 yields an ideal reset; values below 1 introduce depolarising noise.
-        :param dim: Hilbert-space dimension (2 for qubits).
-        :return: A ResetChannel instance.
-        """
-        if not isinstance(inst, ResetQubit):
-            raise TypeError("ResetChannel only supports targeted ResetQubit instructions.")
-
-        ideal_superop = qx.gates.RESET(dim=dim)
-        p = 1.0 - fidelity
-        d2 = dim * dim
-        # Depolarising channel in superop form: (1-p)*S_ideal + p*(I/d) for all inputs
-        # The completely depolarising superop maps everything to I/d:
-        # its rows are all zero except the diagonal entries corresponding to
-        # the trace extraction (maps vec(ρ) → vec(I/d) = vec(I)/d).
-        depol_superop_matrix = jnp.zeros((d2, d2), dtype=complex)
-        # vec(I/d) has value 1/d at positions 0, d+1, 2(d+1), ... i.e. diagonal entries
-        vec_identity_over_d = jnp.zeros(d2, dtype=complex)
-        for i in range(dim):
-            vec_identity_over_d = vec_identity_over_d.at[i * dim + i].set(1.0 / dim)
-        # The trace functional extracts sum of diagonal: positions 0, d+1, ...
-        trace_row = jnp.zeros(d2, dtype=complex)
-        for i in range(dim):
-            trace_row = trace_row.at[i * dim + i].set(1.0)
-        # Depolarising superop: each row of output is vec(I/d) * Tr(ρ)
-        depol_superop_matrix = jnp.outer(vec_identity_over_d, trace_row)
-        noisy_superop_matrix = (1.0 - p) * ideal_superop.matrix + p * depol_superop_matrix
-        noisy_superop = qx.SuperOp.from_matrix(noisy_superop_matrix, ideal_superop.dims)
-        return cls(inst=inst, process=noisy_superop)
-
-    # ──────────────────────────────────────────────
-    # Properties
-    # ──────────────────────────────────────────────
+            raise TypeError(f"{type(self).__name__} only supports targeted ResetQubit instructions.")
 
     @cached_property
     def qubits(self) -> list[int]:
@@ -1435,10 +1513,6 @@ class ResetChannel:
         """
         return self.process
 
-    # ──────────────────────────────────────────────
-    # Visualization
-    # ──────────────────────────────────────────────
-
     def plot(self) -> Figure:
         """Plot the Pauli transfer matrix of the reset channel.
 
@@ -1446,15 +1520,94 @@ class ResetChannel:
         """
         fig = qx.plot(self.process)
         qubit_str = str(self.qubits[0]) if self.qubits else "?"
-        fig.update_layout(title=(f"Reset Channel RESET {qubit_str}<br><sub>F_\u03c7={self.fidelity * 100:.2f}%</sub>"))
+        fig.update_layout(
+            title=(f"Reset SuperopChannel RESET {qubit_str}<br><sub>F_χ={self.fidelity * 100:.2f}%</sub>")
+        )
         return fig
+
+    def __str__(self) -> str:
+        """Return a simplified string representation."""
+        qubit_str = str(self.qubits[0]) if self.qubits else "?"
+        return f"<RESET({self.fidelity:.2f}) {qubit_str}>"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality by concrete type, instruction, and exact process matrix (no tolerance)."""
+        if type(self) is not type(other):
+            return False
+        if self.inst != other.inst:  # type: ignore[attr-defined]
+            return False
+        return bool(jnp.array_equal(self.process.matrix, other.process.matrix))  # type: ignore[attr-defined]
+
+    __hash__ = None  # type: ignore[assignment]
+
+
+@dataclass(frozen=True, eq=False)
+class SuperopResetChannel(_ResetChannelBase):
+    """A reset noise channel attaches a superoperator to a specific reset operation.
+
+    The ``process`` field is a ``qx.SuperOp`` which *includes* the ideal reset, so the channel
+    replaces the reset instruction rather than being applied after it.
+    """
+
+    inst: ResetQubit
+    """The reset operation to which the channel applies."""
+
+    process: qx.SuperOp
+    """A superoperator representation of the noisy reset (including ideal reset)."""
+
+    # ──────────────────────────────────────────────
+    # Constructors
+    # ──────────────────────────────────────────────
+
+    @classmethod
+    def from_reset_fidelity(
+        cls: type[SuperopResetChannel],
+        inst: ResetQubit,
+        fidelity: float,
+        dim: int = 2,
+    ) -> SuperopResetChannel:
+        r"""Create a SuperopResetChannel with depolarizing noise scaled to the given process fidelity.
+
+        The ideal reset channel maps every state to :math:`|0\rangle\langle 0|`.  Noise is
+        modelled as a depolarising channel applied after the ideal reset.
+
+        :param inst: The reset instruction.
+        :param fidelity: Process fidelity of the reset channel, :math:`F \in [0, 1]`.
+            1.0 yields an ideal reset; values below 1 introduce depolarising noise.
+        :param dim: Hilbert-space dimension (2 for qubits).
+        :return: A SuperopResetChannel instance.
+        """
+        if not isinstance(inst, ResetQubit):
+            raise TypeError("SuperopResetChannel only supports targeted ResetQubit instructions.")
+
+        ideal_superop = qx.gates.RESET(dim=dim)
+        p = 1.0 - fidelity
+        d2 = dim * dim
+        # Depolarising channel in superop form: (1-p)*S_ideal + p*(I/d) for all inputs
+        # The completely depolarising superop maps everything to I/d:
+        # its rows are all zero except the diagonal entries corresponding to
+        # the trace extraction (maps vec(ρ) → vec(I/d) = vec(I)/d).
+        depol_superop_matrix = jnp.zeros((d2, d2), dtype=complex)
+        # vec(I/d) has value 1/d at positions 0, d+1, 2(d+1), ... i.e. diagonal entries
+        vec_identity_over_d = jnp.zeros(d2, dtype=complex)
+        for i in range(dim):
+            vec_identity_over_d = vec_identity_over_d.at[i * dim + i].set(1.0 / dim)
+        # The trace functional extracts sum of diagonal: positions 0, d+1, ...
+        trace_row = jnp.zeros(d2, dtype=complex)
+        for i in range(dim):
+            trace_row = trace_row.at[i * dim + i].set(1.0)
+        # Depolarising superop: each row of output is vec(I/d) * Tr(ρ)
+        depol_superop_matrix = jnp.outer(vec_identity_over_d, trace_row)
+        noisy_superop_matrix = (1.0 - p) * ideal_superop.matrix + p * depol_superop_matrix
+        noisy_superop = qx.SuperOp.from_matrix(noisy_superop_matrix, ideal_superop.dims)
+        return cls(inst=inst, process=noisy_superop)
 
     # ──────────────────────────────────────────────
     # Serialization
     # ──────────────────────────────────────────────
 
     def to_json(self) -> str:
-        """Serialize ResetChannel to a JSON string.
+        """Serialize SuperopResetChannel to a JSON string.
 
         :return: JSON string representation.
         """
@@ -1466,16 +1619,18 @@ class ResetChannel:
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls: type[ResetChannel], json_str: str) -> ResetChannel:
-        """Deserialize a ResetChannel from a JSON string.
+    def from_json(cls: type[SuperopResetChannel], json_str: str) -> SuperopResetChannel:
+        """Deserialize a SuperopResetChannel from a JSON string.
 
         :param json_str: JSON string as produced by :meth:`to_json`.
-        :return: ResetChannel instance.
+        :return: SuperopResetChannel instance.
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
         if not isinstance(inst, ResetQubit):
-            raise TypeError(f"ResetChannel JSON must contain a targeted reset instruction, got {type(inst).__name__}.")
+            raise TypeError(
+                f"SuperopResetChannel JSON must contain a targeted reset instruction, got {type(inst).__name__}."
+            )
         superop_data = data["superop"]
         shape = tuple(superop_data["shape"])
         arr = _unpack_complex_array(superop_data)
@@ -1483,24 +1638,101 @@ class ResetChannel:
         process = qx.SuperOp.from_matrix(arr, dims)
         return cls(inst=inst, process=process)
 
-    # ──────────────────────────────────────────────
-    # Dunder methods
-    # ──────────────────────────────────────────────
 
-    def __str__(self) -> str:
-        """Return a simplified string representation."""
-        qubit_str = str(self.qubits[0]) if self.qubits else "?"
-        return f"<RESET({self.fidelity:.2f}) {qubit_str}>"
+@dataclass(frozen=True, eq=False)
+class ResetChannel(_LindbladianBacked, _ResetChannelBase):
+    """A reset channel modeled as finite-time relaxation toward the ground state.
 
-    def __eq__(self, other: object) -> bool:
-        """Check equality by instruction and exact process matrix (no tolerance)."""
-        if not isinstance(other, ResetChannel):
-            return False
-        if self.inst != other.inst:
-            return False
-        return bool(jnp.array_equal(self.process.matrix, other.process.matrix))
+    The ``process`` is ``qx.evolve(lindbladian, gate_time)`` for a purely dissipative relaxation
+    generator (e.g. amplitude damping / thermal relaxation). The ideal reset is the strong-damping
+    (``gate_time -> infinity``) limit, so finite times give a physically-grounded *noisy* reset.
+    Like :class:`Channel`, :meth:`__pow__` scales the relaxation strength (there is no
+    gate Hamiltonian to preserve).
+    """
 
-    __hash__ = None  # type: ignore[assignment]
+    inst: ResetQubit
+    """The reset operation to which the channel applies."""
+
+    lindbladian: qx.Lindbladian
+    """The dissipative generator whose evolution over ``gate_time`` relaxes toward the ground state."""
+
+    gate_time: float = 1.0
+    """Evolution time for ``evolve(lindbladian, gate_time)``. Default 1.0 (dimensionless)."""
+
+    @classmethod
+    def from_lindbladian(
+        cls: type[ResetChannel],
+        inst: ResetQubit,
+        lindbladian: qx.Lindbladian,
+        gate_time: float = 1.0,
+    ) -> ResetChannel:
+        """Create a reset channel directly from a dissipative relaxation generator."""
+        return cls(inst=inst, lindbladian=lindbladian, gate_time=gate_time)
+
+    @classmethod
+    def from_amplitude_damping(
+        cls: type[ResetChannel],
+        inst: ResetQubit,
+        gamma: float,
+        gate_time: float = 1.0,
+        dim: int = 2,
+    ) -> ResetChannel:
+        """Create a reset channel from an amplitude-damping (decay-to-ground) generator.
+
+        :param gamma: Amplitude-damping rate. Larger ``gamma * gate_time`` gives a more complete reset.
+        :param dim: Hilbert-space dimension (2 for qubits).
+        """
+        return cls.from_lindbladian(inst, qx.lindbladians.amplitude_damping(gamma, (dim,)), gate_time)
+
+    @classmethod
+    def from_coherence_times(
+        cls: type[ResetChannel],
+        inst: ResetQubit,
+        duration: float,
+        t1: float,
+        t2: float | None = None,
+    ) -> ResetChannel:
+        """Create a reset channel from T1/T2 relaxation over ``duration`` (used as ``gate_time``)."""
+        t2_value = 2 * t1 if t2 is None else t2
+        tphi = 1 / (1 / t2_value - 1 / t1)
+        return cls.from_lindbladian(inst, qx.lindbladians.thermal_relaxation(t1, tphi), duration)
+
+    def __pow__(self, power: float) -> ResetChannel:
+        """Scale the relaxation to a (non-negative) ``power``; there is no gate to preserve."""
+        if not isinstance(power, (int, float)):
+            return NotImplemented
+        scaled = self._scaled_noise_generator(power, gate_hamiltonian=None)
+        return replace(self, lindbladian=scaled)
+
+    def to_json(self) -> str:
+        """Serialize ResetChannel to a JSON string."""
+        hamiltonian = self.lindbladian.hamiltonian
+        data = {
+            "schema_version": 1,
+            "inst": self.inst.out(),
+            "gate_time": self.gate_time,
+            "hamiltonian": None if hamiltonian is None else _pack_operator(hamiltonian),
+            "jump_operators": _pack_operator(self.lindbladian.jump_operators),
+        }
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls: type[ResetChannel], json_str: str) -> ResetChannel:
+        """Deserialize a ResetChannel from a JSON string."""
+        data = json.loads(json_str)
+        inst = _parse_quil_instruction(data["inst"])
+        if not isinstance(inst, ResetQubit):
+            raise TypeError(f"ResetChannel JSON must contain a targeted reset instruction, got {type(inst).__name__}.")
+        ham_data = data["hamiltonian"]
+        hamiltonian = (
+            None
+            if ham_data is None
+            else qx.Observable.from_matrix(_unpack_complex_array(ham_data), _unpack_dims(ham_data["dims"]))
+        )
+        jump_data = data["jump_operators"]
+        jump_operators = qx.Operator.from_matrix(_unpack_complex_array(jump_data), _unpack_dims(jump_data["dims"]))
+        lindbladian = qx.Lindbladian(hamiltonian=hamiltonian, jump_operators=jump_operators)
+        return cls(inst=inst, lindbladian=lindbladian, gate_time=data["gate_time"])
 
 
 @dataclass(frozen=True)
@@ -1517,7 +1749,7 @@ class CycleChannel:
     defcircuit: DefCircuit
     """The DefCircuit representing the logical cycle to which instruction represents."""
 
-    channels: tuple[Channel | MeasurementChannel, ...]
+    channels: tuple[ChannelProtocol | MeasurementChannel, ...]
     """Constituent channels (one per operation in the cycle) on disjoint qubits."""
 
     def __post_init__(self) -> None:
@@ -1585,7 +1817,7 @@ class CycleChannel:
         """
         f = 1.0
         for ch in self.channels:
-            if isinstance(ch, Channel):
+            if isinstance(ch, ChannelProtocol):
                 f *= ch.pauli_fidelity
         return f
 
@@ -1597,7 +1829,7 @@ class CycleChannel:
         """
         f = 1.0
         for ch in self.channels:
-            if isinstance(ch, Channel):
+            if isinstance(ch, ChannelProtocol):
                 f *= ch.fidelity
         return f
 
@@ -1639,11 +1871,12 @@ class CycleChannel:
         :return: CycleChannel instance.
         """
         data = json.loads(json_str)
-        _type_map: dict[str, type[Channel | MeasurementChannel]] = {
+        _type_map: dict[str, type[ChannelProtocol | MeasurementChannel]] = {
+            "SuperopChannel": SuperopChannel,
             "Channel": Channel,
             "MeasurementChannel": MeasurementChannel,
         }
-        constituent_channels: list[Channel | MeasurementChannel] = [
+        constituent_channels: list[ChannelProtocol | MeasurementChannel] = [
             _type_map[ch_data["type"]].from_json(ch_data["data"]) for ch_data in data["channels"]
         ]
         return _build_cycle_channel(constituent_channels)
@@ -1667,9 +1900,9 @@ class CycleChannel:
     __hash__ = None  # type: ignore[assignment]
 
 
-def _channel_to_formal_inst(channel: Channel | MeasurementChannel) -> Gate | Measurement:
+def _channel_to_formal_inst(channel: ChannelProtocol | MeasurementChannel) -> Gate | Measurement:
     """Convert a channel's instruction to use formal arguments for DefCircuit."""
-    if isinstance(channel, Channel):
+    if isinstance(channel, ChannelProtocol):
         inst = channel.inst
         return Gate(
             name=inst.name,
@@ -1687,9 +1920,9 @@ def _channel_to_formal_inst(channel: Channel | MeasurementChannel) -> Gate | Mea
 
 
 def _build_cycle_channel(
-    channels: list[Channel | MeasurementChannel],
+    channels: list[ChannelProtocol | MeasurementChannel],
 ) -> CycleChannel:
-    """Build a CycleChannel from a list of Channel/MeasurementChannel on disjoint qubits."""
+    """Build a CycleChannel from a list of SuperopChannel/MeasurementChannel on disjoint qubits."""
     all_qubits = sorted(q for ch in channels for q in ch.qubits)
     cycle_name = "CYCLE"
     formal_insts = [_channel_to_formal_inst(ch) for ch in channels]

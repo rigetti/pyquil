@@ -43,7 +43,14 @@ from typing import (
 )
 
 from pyquil.external.rpcq import CompilerISA
-from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, ResetChannel
+from pyquil.noise._channels import (
+    Channel,
+    CycleChannel,
+    MeasurementChannel,
+    ResetChannel,
+    SuperopChannel,
+    SuperopResetChannel,
+)
 from pyquil.quilbase import Gate, Measurement, ResetQubit
 
 if TYPE_CHECKING:
@@ -57,7 +64,7 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────
 
 # Channel union type returned by get_channel
-ChannelType = Channel | MeasurementChannel | ResetChannel | CycleChannel
+ChannelType = SuperopChannel | Channel | MeasurementChannel | SuperopResetChannel | ResetChannel | CycleChannel
 NoiseInstruction = Gate | Measurement | ResetQubit
 
 
@@ -74,13 +81,13 @@ class NoiseModelLike(Protocol):
     """
 
     @overload
-    def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...
+    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | None: ...
 
     @overload
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
 
     @overload
-    def get_channel(self, inst: ResetQubit) -> ResetChannel | None: ...
+    def get_channel(self, inst: ResetQubit) -> SuperopResetChannel | ResetChannel | None: ...
 
     def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
         """Retrieve the noise channel for a specific instruction.
@@ -132,17 +139,15 @@ class NoiseModel:
         object.__setattr__(self, "channels", MappingProxyType(dict(state["channels"])))
 
     @overload
-    def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...
+    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | None: ...
 
     @overload
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
 
     @overload
-    def get_channel(self, inst: ResetQubit) -> ResetChannel | None: ...
+    def get_channel(self, inst: ResetQubit) -> SuperopResetChannel | ResetChannel | None: ...
 
-    def get_channel(
-        self, inst: Gate | Measurement | ResetQubit
-    ) -> Channel | MeasurementChannel | ResetChannel | CycleChannel | None:
+    def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
         """Retrieve the noise channel associated with a specific instruction.
 
         :param inst: The instruction (gate, measurement, or reset) for which to retrieve the noise channel.
@@ -263,7 +268,10 @@ class NoiseModel:
         """
         channel_data = []
         for ch in self.channels.values():
-            if isinstance(ch, (Channel, MeasurementChannel, ResetChannel, CycleChannel)):
+            if isinstance(
+                ch,
+                (SuperopChannel, Channel, MeasurementChannel, SuperopResetChannel, ResetChannel, CycleChannel),
+            ):
                 channel_data.append({"type": type(ch).__name__, "data": ch.to_json()})
             else:
                 logger.warning(f"Skipping serialization of {type(ch).__name__} (not yet supported).")
@@ -278,12 +286,14 @@ class NoiseModel:
         """
         data = json.loads(json_str)
         _type_map = {
+            "SuperopChannel": SuperopChannel,
             "Channel": Channel,
             "MeasurementChannel": MeasurementChannel,
+            "SuperopResetChannel": SuperopResetChannel,
             "ResetChannel": ResetChannel,
             "CycleChannel": CycleChannel,
         }
-        channels: list[Channel | MeasurementChannel | ResetChannel | CycleChannel] = []
+        channels: list[ChannelType] = []
         for ch_data in data["channels"]:
             ch_cls = _type_map.get(ch_data["type"])
             if ch_cls is None:
@@ -352,7 +362,7 @@ class NoiseModel:
 class DepolarizingNoiseModel:
     r"""A noise model that applies uniform depolarizing noise to every gate.
 
-    For any ``Gate`` instruction, returns a :class:`Channel` with the specified
+    For any ``Gate`` instruction, returns a :class:`SuperopChannel` with the specified
     depolarizing constant.  Measurements and resets are treated as ideal.
 
     :param depolarizing_constant: The depolarization constant :math:`p` where
@@ -363,13 +373,13 @@ class DepolarizingNoiseModel:
     depolarizing_constant: float
 
     @overload
-    def get_channel(self, inst: Gate) -> Channel | CycleChannel | None: ...
+    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | None: ...
 
     @overload
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
 
     @overload
-    def get_channel(self, inst: ResetQubit) -> ResetChannel | None: ...
+    def get_channel(self, inst: ResetQubit) -> SuperopResetChannel | ResetChannel | None: ...
 
     def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
         """Return a depolarizing channel for gates; ``None`` for measurements/resets."""
@@ -397,7 +407,7 @@ def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> 
     for inst in program.instructions:
         if isinstance(inst, Gate):
             channel = noise_model.get_channel(inst)
-            if isinstance(channel, (Channel, CycleChannel)):
+            if isinstance(channel, (SuperopChannel, CycleChannel)):
                 gate_fidelities.append(channel.pauli_fidelity)
 
     return reduce(mul, gate_fidelities)

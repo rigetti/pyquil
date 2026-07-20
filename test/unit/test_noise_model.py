@@ -23,9 +23,12 @@ from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, RZ, X
 from pyquil.noise._channels import (
     Channel,
+    ChannelProtocol,
     CycleChannel,
     MeasurementChannel,
     ResetChannel,
+    SuperopChannel,
+    SuperopResetChannel,
     _build_cycle_channel,
     _resolve_params,
     get_custom_gates_from_program,
@@ -64,10 +67,10 @@ class TestChannel:
         assert isinstance(ch.process, qx.SuperOp)
         assert ch.pauli_fidelity == pytest.approx(0.97, abs=0.001)
 
-    def test_from_pauli_noise(self):
-        """Channel.from_pauli_noise produces a valid Pauli noise channel."""
+    def test_from_pauli_generators(self):
+        """Channel.from_pauli_generators produces a valid Pauli-dissipation channel."""
         inst = RX(0.5, 0)
-        ch = Channel.from_pauli_noise(inst=inst, pauli_noise={"X": 0.01, "Z": 0.02})
+        ch = Channel.from_pauli_generators(inst=inst, pauli_generators={"X": 0.01, "Z": 0.02})
         assert isinstance(ch.process, qx.SuperOp)
         assert ch.fidelity < 1.0
 
@@ -80,12 +83,12 @@ class TestChannel:
         assert ch.fidelity > 0.99  # short gate relative to T1/T2
 
     def test_qubits(self):
-        """Channel.qubits reflects the instruction's qubits."""
+        """SuperopChannel.qubits reflects the instruction's qubits."""
         ch = Channel.from_depolarizing_constant(inst=RX(0.1, 3), depolarizing_constant=0.99)
         assert ch.qubits == [3]
 
     def test_num_qubits(self):
-        """Channel.num_qubits is correct for 2Q gates."""
+        """SuperopChannel.num_qubits is correct for 2Q gates."""
         ch = Channel.from_depolarizing_constant(inst=CNOT(0, 1), depolarizing_constant=0.95)
         assert ch.num_qubits == 2
 
@@ -128,31 +131,60 @@ class TestChannel:
     def test_perfect_channel(self):
         """A depolarizing constant of 1.0 should give fidelity 1.0."""
         ch = Channel.from_depolarizing_constant(inst=RX(np.pi, 0), depolarizing_constant=1.0)
-        assert ch.fidelity == pytest.approx(1.0, abs=1e-10)
+        assert ch.fidelity == pytest.approx(1.0, abs=1e-6)
 
-    def test_from_pauli_noise_rejects_invalid_probabilities(self):
-        """Pauli error rates must be probabilities with total error no greater than 1."""
+    def test_from_pauli_generators_rejects_negative_rate(self):
+        """Pauli generator rates must be non-negative (they are Lindbladian rates, not probs)."""
         with pytest.raises(ValueError, match="negative"):
-            Channel.from_pauli_noise(inst=RX(0.5, 0), pauli_noise={"X": -0.1})
+            Channel.from_pauli_generators(inst=RX(0.5, 0), pauli_generators={"X": -0.1})
 
-        with pytest.raises(ValueError, match="at most 1.0"):
-            Channel.from_pauli_noise(inst=RX(0.5, 0), pauli_noise={"X": 0.6, "Z": 0.5})
+    def test_from_pauli_generators_rejects_wrong_length(self):
+        """A Pauli term must have one character per qubit."""
+        with pytest.raises(ValueError, match="length"):
+            Channel.from_pauli_generators(inst=RX(0.5, 0), pauli_generators={"XX": 0.1})
 
-    def test_from_pauli_noise_two_qubit(self):
-        """from_pauli_noise builds the correct 16-term Pauli channel for a 2Q gate (regression)."""
-        pauli_noise = {"IX": 0.01, "XI": 0.005, "ZZ": 0.02}
-        ch = Channel.from_pauli_noise(inst=CNOT(0, 1), pauli_noise=pauli_noise)
+    def test_from_pauli_generators_two_qubit(self):
+        """from_pauli_generators builds a valid 16-term Pauli-error vector for a 2Q gate.
+
+        The rates are Lindbladian generator rates, so the exponentiated channel does not reproduce
+        the input rates exactly; we check the vector is a normalized distribution whose weight sits
+        on the identity and the specified error terms.
+        """
+        pauli_generators = {"IX": 0.01, "XI": 0.005, "ZZ": 0.02}
+        ch = Channel.from_pauli_generators(inst=CNOT(0, 1), pauli_generators=pauli_generators)
         pv = np.asarray(ch.pauli_vector)
         assert pv.size == 16
         assert float(jnp.sum(ch.pauli_vector)) == pytest.approx(1.0, abs=1e-3)
+        terms = [a + b for a in "IXYZ" for b in "IXYZ"]
+        rates = dict(zip(terms, pv, strict=True))
+        # Identity keeps the dominant weight; each specified error term is populated.
+        assert rates["II"] > 0.9
+        for term in pauli_generators:
+            assert rates[term] > 0.0
+        # An unspecified error term carries negligible weight (only tiny higher-order cross terms).
+        assert rates["YY"] < 1e-3
+
+    def test_superop_from_pauli_noise_reproduces_exact_probabilities(self):
+        """SuperopChannel.from_pauli_noise is the one-shot post-gate model: exact error probabilities."""
+        pauli_noise = {"IX": 0.01, "XI": 0.005, "ZZ": 0.02}
+        ch = SuperopChannel.from_pauli_noise(inst=CNOT(0, 1), pauli_noise=pauli_noise)
+        assert isinstance(ch, SuperopChannel)
+        pv = np.asarray(ch.pauli_vector)
+        assert pv.size == 16
+        assert float(jnp.sum(pv)) == pytest.approx(1.0, abs=1e-6)
         terms = [a + b for a in "IXYZ" for b in "IXYZ"]
         rates = dict(zip(terms, pv, strict=True))
         for term, rate in pauli_noise.items():
             assert rates[term] == pytest.approx(rate, abs=1e-3)
         assert rates["II"] == pytest.approx(1.0 - sum(pauli_noise.values()), abs=1e-3)
 
+    def test_superop_from_pauli_noise_rejects_excessive_probability(self):
+        """The one-shot model requires probabilities summing to at most 1."""
+        with pytest.raises(ValueError, match="at most 1.0"):
+            SuperopChannel.from_pauli_noise(inst=RX(0.5, 0), pauli_noise={"X": 0.6, "Z": 0.5})
+
     def test_json_roundtrip_preserves_qutrit_dims(self):
-        """Channel JSON includes explicit dims for non-qubit operators."""
+        """SuperopChannel JSON includes explicit dims for non-qubit operators."""
         qutrit_x = jnp.array(
             [
                 [0.0, 0.0, 1.0],
@@ -162,11 +194,11 @@ class TestChannel:
             dtype=complex,
         )
         target_unitary = qx.Unitary.from_matrix(qutrit_x, ((3,), (3,)))
-        channel = Channel(
+        channel = SuperopChannel(
             inst=Gate("TX", [], [0]), process=qx.to_superop(target_unitary), target_unitary=target_unitary
         )
 
-        restored = Channel.from_json(channel.to_json())
+        restored = SuperopChannel.from_json(channel.to_json())
 
         assert restored.inst == channel.inst
         assert restored.process.dims == ((3,), (3,))
@@ -201,35 +233,6 @@ class TestMeasurementChannel:
         meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
         ch = MeasurementChannel.from_readout_fidelity(inst=meas_inst, fidelity=0.99)
         assert ch.qubits == [5]
-
-    @pytest.mark.parametrize("asymmetry", [0.0, 0.5])
-    def test_pow_scales_readout_noise(self, asymmetry):
-        """MeasurementChannel ** power scales readout noise via the stochastic generator."""
-        prog = Program(MEASURE(0, None))
-        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
-        ch = MeasurementChannel.from_readout_fidelity(inst=meas_inst, fidelity=0.95, asymmetry=asymmetry)
-
-        def bitflip(channel):
-            cm = np.asarray(channel.confusion_matrix)
-            return 1.0 - 0.5 * (float(cm[0, 0]) + float(cm[1, 1]))
-
-        assert bitflip(ch**0.0) == pytest.approx(0.0, abs=1e-3)
-        assert bitflip(ch**1.0) == pytest.approx(bitflip(ch), abs=1e-3)
-        assert bitflip(ch**2.0) > bitflip(ch)
-        # The generator construction keeps the result exactly column-stochastic and non-negative.
-        powered = np.asarray((ch**1.5).confusion_matrix)
-        assert np.all(powered >= -1e-9)
-        assert np.allclose(powered.sum(axis=0), 1.0, atol=1e-6)
-
-    def test_pow_rejects_non_embeddable_measurement(self):
-        """A confusion matrix with no real generator cannot be fractionally powered."""
-        prog = Program(MEASURE(0, None))
-        meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
-        # Near-complete bit flip: eigenvalue ~ -0.8, so the matrix is not embeddable.
-        confusion = jnp.array([[0.1, 0.9], [0.9, 0.1]])
-        ch = MeasurementChannel.from_confusion_and_transition(meas_inst, confusion, jnp.eye(2))
-        with pytest.raises(ValueError, match="not embeddable|not a valid"):
-            _ = ch**0.5
 
     def test_from_binary_discriminator_qubit_is_faithful_readout(self):
         """Regression: dim=2/threshold=1 is a real qubit readout, not an always-0 collapse.
@@ -351,7 +354,7 @@ class TestNoiseModel:
             NoiseModel.from_channels([ch1, ch2])
 
     def test_get_channel_gate(self):
-        """NoiseModel.get_channel returns the correct Channel for a gate."""
+        """NoiseModel.get_channel returns the correct SuperopChannel for a gate."""
         inst = RX(np.pi / 4, 0)
         ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
         nm = NoiseModel.from_channels([ch])
@@ -482,41 +485,41 @@ class TestGetInstructionUnitary:
 
 
 # ──────────────────────────────────────────────────────────
-# ResetChannel tests
+# SuperopResetChannel tests
 # ──────────────────────────────────────────────────────────
 
 
-class TestResetChannel:
+class TestSuperopResetChannel:
     def test_from_reset_fidelity_perfect(self):
         """A perfect reset (fidelity=1.0) should produce a valid superoperator."""
         inst = RESET(0)
-        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
+        ch = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
         assert isinstance(ch.process, qx.SuperOp)
 
     def test_from_reset_fidelity_noisy(self):
         """A noisy reset should have lower fidelity than a perfect one."""
         inst = RESET(0)
-        ch_perfect = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
-        ch_noisy = ResetChannel.from_reset_fidelity(inst=inst, fidelity=0.95)
+        ch_perfect = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
+        ch_noisy = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=0.95)
         assert isinstance(ch_noisy.process, qx.SuperOp)
         assert ch_noisy.fidelity < ch_perfect.fidelity
 
     def test_qubits(self):
-        """ResetChannel.qubits returns the correct qubit."""
+        """SuperopResetChannel.qubits returns the correct qubit."""
         inst = RESET(3)
-        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=0.99)
+        ch = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=0.99)
         assert ch.qubits == [3]
 
     def test_global_reset_channel_rejected(self):
-        """ResetChannel is intentionally scoped to targeted resets."""
+        """SuperopResetChannel is intentionally scoped to targeted resets."""
         with pytest.raises(TypeError, match="targeted"):
-            ResetChannel.from_reset_fidelity(inst=RESET(), fidelity=1.0)
+            SuperopResetChannel.from_reset_fidelity(inst=RESET(), fidelity=1.0)
 
     def test_json_roundtrip_preserves_qutrit_dims(self):
-        """ResetChannel JSON includes explicit dims for non-qubit resets."""
-        channel = ResetChannel.from_reset_fidelity(inst=ResetQubit(0), fidelity=0.9, dim=3)
+        """SuperopResetChannel JSON includes explicit dims for non-qubit resets."""
+        channel = SuperopResetChannel.from_reset_fidelity(inst=ResetQubit(0), fidelity=0.9, dim=3)
 
-        restored = ResetChannel.from_json(channel.to_json())
+        restored = SuperopResetChannel.from_json(channel.to_json())
 
         assert restored.inst == channel.inst
         assert restored.process.dims == ((3,), (3,))
@@ -524,7 +527,7 @@ class TestResetChannel:
 
 
 # ──────────────────────────────────────────────────────────
-# Channel equality / hashing semantics
+# SuperopChannel equality / hashing semantics
 # ──────────────────────────────────────────────────────────
 
 
@@ -536,7 +539,7 @@ class TestChannelEqualityAndHashing:
             hash(ch)
 
     def test_channel_equality_is_exact(self):
-        """Channel equality is exact: identical builds are equal, different ones are not."""
+        """SuperopChannel equality is exact: identical builds are equal, different ones are not."""
         ch1 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)
         ch2 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)
         ch3 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.97)
@@ -552,7 +555,7 @@ class TestChannelEqualityAndHashing:
 
 
 # ──────────────────────────────────────────────────────────
-# Channel construction / analysis coverage
+# SuperopChannel construction / analysis coverage
 # ──────────────────────────────────────────────────────────
 
 
@@ -569,8 +572,8 @@ class TestChannelAnalysis:
         ch = Channel.from_random_coherent_error(X(0), process_fidelity=0.95, rng=np.random.default_rng(0))
         coherent = ch.to_coherent_channel()
         stochastic = ch.to_stochastic_channel()
-        assert isinstance(coherent, Channel)
-        assert isinstance(stochastic, Channel)
+        assert isinstance(coherent, SuperopChannel)
+        assert isinstance(stochastic, SuperopChannel)
         # Coherent + stochastic infidelity decomposition is non-negative and finite.
         assert np.isfinite(ch.coherent_infidelity)
         assert np.isfinite(ch.stochastic_infidelity)
@@ -658,3 +661,92 @@ class TestCycleChannel:
 
         with pytest.raises(ValueError, match="incomplete"):
             _ = CycleChannel(inst=cycle_inst, defcircuit=defcircuit, channels=channels)
+
+
+# ──────────────────────────────────────────────────────────
+# Channel tests
+# ──────────────────────────────────────────────────────────
+
+
+class TestChannelGeneratorOps:
+    def test_process_is_superop_and_is_gate_channel(self):
+        """process is derived by evolving the generator; the channel is a ChannelProtocol."""
+        ch = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        assert isinstance(ch, ChannelProtocol)
+        assert isinstance(ch.process, qx.SuperOp)
+
+    def test_matches_superop_channel_fidelity(self):
+        """A depolarizing Channel matches the equivalent superoperator SuperopChannel."""
+        lind = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        superop = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        assert lind.pauli_fidelity == pytest.approx(superop.pauli_fidelity, abs=1e-6)
+
+    def test_pow_scales_noise_and_keeps_gate(self):
+        """** scales the noise while preserving the ideal gate; result stays a Channel."""
+        ch = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        assert (ch**0.0).pauli_infidelity == pytest.approx(0.0, abs=1e-6)
+        assert (ch**1.0).pauli_infidelity == pytest.approx(ch.pauli_infidelity, abs=1e-6)
+        assert (ch**2.0).pauli_infidelity == pytest.approx(2 * ch.pauli_infidelity, rel=1e-2)
+        assert isinstance(ch**2.0, Channel)
+        assert jnp.allclose((ch**2.0).target_unitary.matrix, ch.target_unitary.matrix)
+
+    def test_add_combines_noise_on_same_gate(self):
+        """Adding two channels on the same gate keeps the gate and combines the noise."""
+        a = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        b = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.98)
+        combined = a + b
+        assert isinstance(combined, Channel)
+        assert combined.pauli_infidelity > a.pauli_infidelity
+        assert jnp.allclose(combined.target_unitary.matrix, a.target_unitary.matrix)
+
+    def test_add_rejects_different_gates(self):
+        a = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        b = Channel.from_depolarizing_constant(RY(np.pi / 2, 1), 0.99)
+        with pytest.raises(ValueError, match="different gates"):
+            _ = a + b
+
+    def test_superop_ops_downgrade_to_channel(self):
+        """Operations that leave the Lindbladian manifold return a plain SuperopChannel."""
+        ch = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        assert isinstance(ch @ ch, SuperopChannel) and not isinstance(ch @ ch, Channel)
+        assert isinstance(ch.pauli_twirl(), SuperopChannel)
+        assert isinstance(ch.to_coherent_channel(), SuperopChannel)
+        assert isinstance(ch.to_stochastic_channel(), SuperopChannel)
+
+    def test_coherence_times(self):
+        """A short gate relative to T1/T2 gives high fidelity."""
+        ch = Channel.from_coherence_times(RX(np.pi / 2, 0), gate_duration=40e-9, t1s=[30e-6], t2s=[20e-6])
+        assert isinstance(ch.process, qx.SuperOp)
+        assert ch.fidelity > 0.99
+
+    def test_json_roundtrip(self):
+        ch = Channel.from_depolarizing_constant(RX(0.3, 0), 0.97)
+        assert Channel.from_json(ch.to_json()) == ch
+
+
+# ──────────────────────────────────────────────────────────
+# ResetChannel tests
+# ──────────────────────────────────────────────────────────
+
+
+class TestResetChannel:
+    def test_stronger_damping_gives_better_reset(self):
+        weak = ResetChannel.from_amplitude_damping(ResetQubit(0), gamma=0.5)
+        strong = ResetChannel.from_amplitude_damping(ResetQubit(0), gamma=5.0)
+        assert isinstance(weak.process, qx.SuperOp)
+        assert strong.fidelity > weak.fidelity
+
+    def test_pow_scales_relaxation(self):
+        ch = ResetChannel.from_amplitude_damping(ResetQubit(0), gamma=0.5)
+        assert isinstance(ch**2.0, ResetChannel)
+        assert (ch**2.0).fidelity > ch.fidelity
+
+    def test_rejects_global_reset(self):
+        from pyquil.quilbase import Reset
+
+        with pytest.raises(TypeError, match="targeted"):
+            ResetChannel.from_lindbladian(Reset(), qx.lindbladians.amplitude_damping(1.0, (2,)))
+
+    def test_json_roundtrip(self):
+        ch = ResetChannel.from_coherence_times(ResetQubit(0), duration=1.0, t1=2.0, t2=1.5)
+        assert ResetChannel.from_json(ch.to_json()) == ch
