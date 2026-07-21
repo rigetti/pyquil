@@ -19,6 +19,7 @@ from dataclasses import replace
 import jax.numpy as jnp
 import numpy as np
 import pytest
+import pickle
 import quax as qx
 
 from pyquil.external.rpcq import CompilerISA
@@ -52,9 +53,8 @@ class TestChannel:
         inst = RX(np.pi / 4, 0)
         ch = Channel.from_depolarizing_constant(inst=inst, depolarizing_constant=0.98)
         assert isinstance(ch.process, qx.SuperOp)
-        # Process fidelity should be close to the depolarizing constant
-        assert ch.fidelity < 1.0
-        assert ch.fidelity > 0.95
+        expected_fidelity = qx.depolarizing_constant_to_average_fidelity(0.98, num_qubits=1)
+        np.testing.assert_allclose(ch.fidelity, expected_fidelity, rtol=1e-4)
 
     def test_from_gate_fidelity(self):
         """Channel.from_gate_fidelity produces correct fidelity."""
@@ -329,7 +329,6 @@ class TestNoiseModel:
 
         This is what lets a model be shipped to multiprocessing workers.
         """
-        import pickle
 
         gate = RX(np.pi / 4, 0)
         prog = Program(MEASURE(0, None))

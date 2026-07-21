@@ -269,7 +269,7 @@ class _ChannelBase(ABC):
         """Deserialize a channel from a JSON string produced by :meth:`to_json`."""
         ...
 
-    @cached_property
+    @property
     def qubits(self) -> list[int]:
         """The qubits which the channel applies to."""
         return self.inst.get_qubit_indices()
@@ -1141,7 +1141,7 @@ class MeasurementChannel:
     process: qx.QuantumInstrument
     """A quantum instrument representation of the noisy measurement."""
 
-    @cached_property
+    @property
     def qubits(self) -> list[int]:
         """The qubits which the measurement applies to."""
         qubit = self.inst.qubit
@@ -1516,7 +1516,7 @@ class _ResetChannelBase(ABC):
         if not isinstance(self.inst, ResetQubit):
             raise TypeError(f"{type(self).__name__} only supports targeted ResetQubit instructions.")
 
-    @cached_property
+    @property
     def qubits(self) -> list[int]:
         """The qubit(s) that the reset applies to."""
         qubit = self.inst.qubit
@@ -1849,7 +1849,7 @@ class CycleChannel:
         """Tuple of process superoperators, one per constituent channel."""
         return tuple(ch.process for ch in self.channels)
 
-    @cached_property
+    @property
     def qubits(self) -> list[int]:
         """All qubits in the cycle, derived from the instruction."""
         return self.inst.get_qubit_indices()
