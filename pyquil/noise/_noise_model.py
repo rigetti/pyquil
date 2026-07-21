@@ -50,6 +50,8 @@ from pyquil.noise._channels import (
     ResetChannel,
     SuperopChannel,
     SuperopResetChannel,
+    _ChannelBase,
+    _ResetChannelBase,
 )
 from pyquil.quilbase import Gate, Measurement, ResetQubit
 
@@ -268,10 +270,9 @@ class NoiseModel:
         """
         channel_data = []
         for ch in self.channels.values():
-            if isinstance(
-                ch,
-                (SuperopChannel, Channel, MeasurementChannel, SuperopResetChannel, ResetChannel, CycleChannel),
-            ):
+            # Match by base class so every gate channel (SuperopChannel, Channel) and reset
+            # channel (SuperopResetChannel, ResetChannel) is covered, plus measurement and cycle.
+            if isinstance(ch, (_ChannelBase, _ResetChannelBase, MeasurementChannel, CycleChannel)):
                 channel_data.append({"type": type(ch).__name__, "data": ch.to_json()})
             else:
                 logger.warning(f"Skipping serialization of {type(ch).__name__} (not yet supported).")
@@ -407,7 +408,9 @@ def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> 
     for inst in program.instructions:
         if isinstance(inst, Gate):
             channel = noise_model.get_channel(inst)
-            if isinstance(channel, (SuperopChannel, CycleChannel)):
+            # Gate channels (SuperopChannel, Channel) and cycle channels both expose a
+            # process (Pauli) fidelity; treat all gate-based channels the same.
+            if isinstance(channel, (_ChannelBase, CycleChannel)):
                 gate_fidelities.append(channel.pauli_fidelity)
 
     return reduce(mul, gate_fidelities)
