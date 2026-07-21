@@ -2366,15 +2366,14 @@ xml = ["lxml (>=5.3.0)"]
 
 [[package]]
 name = "pandoc"
-version = "2.4b0"
+version = "2.4"
 description = "Pandoc Documents for Python"
 optional = true
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"docs\""
 files = [
-    {file = "pandoc-2.4b0-py3-none-any.whl", hash = "sha256:c04dafd3d8f1ff733448a48db8329aeb15f5febb10dc33fc28ed8dad7bfd1eab"},
-    {file = "pandoc-2.4b0.tar.gz", hash = "sha256:2dfb17bc05469076c97c1db4c08a8520a3f76b086e26e32d01fe4e408af2ae87"},
+    {file = "pandoc-2.4.tar.gz", hash = "sha256:ecd1f8cbb7f4180c6b5db4a17a7c1a74df519995f5f186ef81ce72a9cbd0dd9a"},
 ]
 
 [package.dependencies]
@@ -4183,4 +4182,4 @@ latex = ["ipython"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11, <3.13"
-content-hash = "3ad31f33df8d21556309569d23f9adbbf034ec011d9ad378a891cd4284c7884b"
+content-hash = "efc2119133b96df6dde87f1450cfa32f8c12962c262c98af7f43810940e60529"
