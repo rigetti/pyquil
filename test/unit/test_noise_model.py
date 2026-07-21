@@ -14,6 +14,8 @@
 
 """Unit tests for the quax-based noise model (Channel, MeasurementChannel, ResetChannel, NoiseModel)."""
 
+from dataclasses import replace
+
 import jax.numpy as jnp
 import numpy as np
 import pytest
@@ -23,13 +25,13 @@ from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, RZ, X
 from pyquil.noise._channels import (
     Channel,
-    ChannelProtocol,
     CycleChannel,
     MeasurementChannel,
     ResetChannel,
     SuperopChannel,
     SuperopResetChannel,
     _build_cycle_channel,
+    _ChannelBase,
     _resolve_params,
     get_custom_gates_from_program,
     get_instruction_unitary,
@@ -252,10 +254,14 @@ class TestMeasurementChannel:
         prog = Program(MEASURE(0, None))
         meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
         # threshold=2: {0,1} -> 0, {2} -> 1 (flag leakage only)
-        cm2 = np.asarray(MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=3, threshold=2).confusion_matrix)
+        cm2 = np.asarray(
+            MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=3, threshold=2).confusion_matrix
+        )
         assert np.allclose(cm2, [[1, 1, 0], [0, 0, 1]])
         # threshold=1: {0} -> 0, {1,2} -> 1 (ground vs excited-or-leaked)
-        cm1 = np.asarray(MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=3, threshold=1).confusion_matrix)
+        cm1 = np.asarray(
+            MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=3, threshold=1).confusion_matrix
+        )
         assert np.allclose(cm1, [[1, 0, 0], [0, 1, 1]])
 
     def test_from_binary_discriminator_fidelity_degrades(self):
@@ -263,7 +269,9 @@ class TestMeasurementChannel:
         prog = Program(MEASURE(0, None))
         meas_inst = [i for i in prog if isinstance(i, Measurement)][0]
         cm = np.asarray(
-            MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=2, threshold=1, fidelity=0.9).confusion_matrix
+            MeasurementChannel.from_binary_discriminator(
+                inst=meas_inst, dim=2, threshold=1, fidelity=0.9
+            ).confusion_matrix
         )
         assert cm.shape == (2, 2)
         assert np.allclose(cm.sum(axis=0), 1.0)
@@ -538,14 +546,18 @@ class TestChannelEqualityAndHashing:
         with pytest.raises(TypeError):
             hash(ch)
 
-    def test_channel_equality_is_exact(self):
-        """SuperopChannel equality is exact: identical builds are equal, different ones are not."""
+    def test_channel_equality_is_elementwise_close(self):
+        """Channel equality is element-wise ``jnp.allclose`` on the process/unitary matrices.
+
+        Identical builds are equal, distinct noise is not, and a JSON round-trip stays equal.
+        """
         ch1 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)
         ch2 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.98)
         ch3 = Channel.from_depolarizing_constant(RX(0.5, 0), 0.97)
         assert ch1 == ch2
         assert ch1 != ch3
         assert ch1 != "not a channel"
+        assert ch1 == Channel.from_json(ch1.to_json())
 
     def test_channel_inequality_on_different_instruction(self):
         """Channels on different instructions are never equal."""
@@ -662,6 +674,30 @@ class TestCycleChannel:
         with pytest.raises(ValueError, match="incomplete"):
             _ = CycleChannel(inst=cycle_inst, defcircuit=defcircuit, channels=channels)
 
+    def test_cycle_can_contain_reset_channel(self):
+        """A cycle may mix a gate channel with a reset channel on disjoint qubits."""
+        gate = Channel.from_depolarizing_constant(RX(0.1, 0), depolarizing_constant=0.99)
+        reset = ResetChannel.from_amplitude_damping(ResetQubit(1), gamma=0.5)
+        cycle = gate | reset
+        assert isinstance(cycle, CycleChannel)
+        assert cycle.channels == (gate, reset)
+        assert set(cycle.qubits) == {0, 1}
+
+    def test_reset_channel_or_from_reset_side(self):
+        """`reset | other` builds a cycle from the reset channel's side too."""
+        reset = SuperopResetChannel.from_reset_fidelity(ResetQubit(0), fidelity=0.95)
+        measure = MeasurementChannel.from_readout_fidelity(MEASURE(1, None), fidelity=0.98)
+        cycle = reset | measure
+        assert isinstance(cycle, CycleChannel)
+        assert cycle.channels == (reset, measure)
+
+    def test_cycle_with_reset_json_roundtrip(self):
+        """A cycle containing a reset channel survives a JSON round-trip."""
+        gate = Channel.from_depolarizing_constant(RX(0.1, 0), depolarizing_constant=0.99)
+        reset = ResetChannel.from_amplitude_damping(ResetQubit(1), gamma=0.5)
+        cycle = gate | reset
+        assert CycleChannel.from_json(cycle.to_json()) == cycle
+
 
 # ──────────────────────────────────────────────────────────
 # Channel tests
@@ -670,9 +706,9 @@ class TestCycleChannel:
 
 class TestChannelGeneratorOps:
     def test_process_is_superop_and_is_gate_channel(self):
-        """process is derived by evolving the generator; the channel is a ChannelProtocol."""
+        """process is derived by evolving the generator; the channel is a _ChannelBase."""
         ch = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
-        assert isinstance(ch, ChannelProtocol)
+        assert isinstance(ch, _ChannelBase)
         assert isinstance(ch.process, qx.SuperOp)
 
     def test_matches_superop_channel_fidelity(self):
@@ -708,10 +744,38 @@ class TestChannelGeneratorOps:
     def test_superop_ops_downgrade_to_channel(self):
         """Operations that leave the Lindbladian manifold return a plain SuperopChannel."""
         ch = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
-        assert isinstance(ch @ ch, SuperopChannel) and not isinstance(ch @ ch, Channel)
         assert isinstance(ch.pauli_twirl(), SuperopChannel)
         assert isinstance(ch.to_coherent_channel(), SuperopChannel)
         assert isinstance(ch.to_stochastic_channel(), SuperopChannel)
+        # Composing with a non-Lindbladian channel falls back to a superoperator SuperopChannel.
+        superop = ch.pauli_twirl()
+        assert isinstance(ch @ superop, SuperopChannel) and not isinstance(ch @ superop, Channel)
+
+    def test_matmul_of_lindbladian_channels_stays_a_channel(self):
+        """Composing two Lindbladian channels combines the jump operators, staying a Channel."""
+        a = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        b = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.98)
+        composed = a @ b
+        assert isinstance(composed, Channel)
+        # Composition combines the noise (same as adding on a shared gate) and keeps the gate.
+        assert composed == a + b
+        assert composed.pauli_infidelity > a.pauli_infidelity
+        assert jnp.allclose(composed.unitary.matrix, a.unitary.matrix)
+
+    def test_matmul_rejects_different_gates(self):
+        a = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        b = Channel.from_depolarizing_constant(RY(np.pi / 2, 1), 0.99)
+        with pytest.raises(ValueError, match="different gates"):
+            _ = a @ b
+
+    def test_noise_and_target_lindbladians_decompose_the_generator(self):
+        """`lindbladian` splits into `noise_lindbladian + target_lindbladian`."""
+        ch = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
+        recombined = ch.noise_lindbladian + ch.target_lindbladian
+        assert jnp.allclose(recombined.matrix, ch.lindbladian.matrix)
+        # The target alone (zero dissipation) reproduces the ideal gate.
+        target_only = replace(ch, lindbladian=ch.target_lindbladian)
+        assert target_only.pauli_infidelity == pytest.approx(0.0, abs=1e-6)
 
     def test_coherence_times(self):
         """A short gate relative to T1/T2 gives high fidelity."""

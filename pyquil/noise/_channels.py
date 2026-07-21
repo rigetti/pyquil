@@ -26,11 +26,12 @@ from __future__ import annotations
 import itertools
 import json
 import logging
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from functools import cached_property, reduce
 from itertools import product
-from typing import TYPE_CHECKING, Any, Protocol, SupportsFloat, runtime_checkable
+from typing import TYPE_CHECKING, Any
 
 import jax.numpy as jnp
 import numpy as np
@@ -55,16 +56,9 @@ logger = logging.getLogger(__name__)
 CustomGateMap = dict[str, qx.Unitary | Callable[..., qx.Unitary]]
 
 
-@runtime_checkable
-class SupportsReal(Protocol):
-    """A value exposing a ``real`` attribute convertible to ``float`` (e.g. ``complex``)."""
-
-    @property
-    def real(self) -> SupportsFloat: ...
-
-
-# A gate parameter that :func:`_resolve_params` can reduce to a concrete float.
-ResolvableParam = Parameter | Expression | QuilExpression | SupportsReal
+# A gate parameter that :func:`_resolve_params` can reduce to a concrete float. The ``complex``
+# arm covers concrete numbers (``int``/``float``/``complex`` via the typing numeric tower).
+ResolvableParam = Parameter | Expression | QuilExpression | complex
 
 
 def _parse_quil_instruction(quil_str: str) -> Gate | Measurement | Reset:
@@ -240,9 +234,11 @@ def get_instruction_unitary(
     return result
 
 
-@runtime_checkable
-class ChannelProtocol(Protocol):
-    """Shared behavior for gate noise channels backed by a superoperator ``process``.
+class _ChannelBase(ABC):
+    """Shared behavior for noise channels backed by a superoperator ``process``.
+
+    Most noisy operations in quantum programs can be represented as superoperators,
+    including all Gates and Resets.
 
     A gate channel attaches a CPTP ``process`` (a ``qx.SuperOp`` that *includes* the ideal
     gate) to a :class:`~pyquil.quilbase.Gate`, with fidelity metrics measured against the
@@ -262,6 +258,21 @@ class ChannelProtocol(Protocol):
         inst: Gate
         process: qx.SuperOp
         unitary: qx.Unitary
+
+    # ──────────────────────────────────────────────
+    # Serialization contract (enforced on every concrete channel)
+    # ──────────────────────────────────────────────
+
+    @abstractmethod
+    def to_json(self) -> str:
+        """Serialize the channel to a JSON string."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def from_json(cls, json_str: str) -> _ChannelBase:
+        """Deserialize a channel from a JSON string produced by :meth:`to_json`."""
+        ...
 
     @cached_property
     def qubits(self) -> list[int]:
@@ -450,20 +461,20 @@ class ChannelProtocol(Protocol):
     # Visualization
     # ──────────────────────────────────────────────
 
-    def plot(self, noise_only: bool = True, show_identity: bool = False) -> Figure:
+    def plot(self, only_noise: bool = True, show_identity: bool = False) -> Figure:
         """Plot the Pauli transfer matrix of the channel.
 
-        :param noise_only: If True (default), plot the noise-only channel (the post-gate
+        :param only_noise: If True (default), plot the noise-only channel (the post-gate
             noise, with the ideal gate unitary factored out; see :meth:`as_post_gate_noise`).
             If False, plot the full channel including the gate unitary.
         :param show_identity: If True, include the identity component in the noise-only plot.
             If False (default), visualize the generator of the noise channel via the matrix
             logarithm of the PTM.  For near-identity noise this approximates PTM - I, but
             correctly captures the Lie-algebraic structure of the channel.
-            Only applies when ``noise_only=True``.
+            Only applies when ``only_noise=True``.
         :return: A Plotly Figure.
         """
-        if noise_only:
+        if only_noise:
             channel = self.as_post_gate_noise()
             if not show_identity:
                 ptm = qx.to_pauli_liouville(channel)
@@ -494,25 +505,25 @@ class ChannelProtocol(Protocol):
         return f"<{self.inst.out()} ~ ({100 * self.pauli_fidelity:.2f}%)>"
 
     def __eq__(self, other: object) -> bool:
-        """Check equality by concrete type, instruction, and exact process/ideal-gate matrices.
+        """Check equality by concrete type, instruction, and (approximate) process/unitary matrices.
 
-        Equality is exact (no fidelity tolerance): two channels are equal only if they are the
-        same concrete class, share the same instruction, and have bit-for-bit identical process
-        and target-unitary matrices. Making tolerance decisions on the user's behalf is
-        deliberately avoided.
+        Two channels are equal iff they are the same concrete class, share the same instruction,
+        and have element-wise-close ``process`` and ``unitary`` matrices (via :func:`jax.numpy.allclose`).
+        The comparison is approximate rather than bit-exact so it tolerates the small floating-point
+        differences between otherwise-equivalent constructions.
         """
         if type(self) is not type(other):
             return False
         if self.inst != other.inst:  # type: ignore[attr-defined]
             return False
         return bool(
-            jnp.array_equal(self.process.matrix, other.process.matrix)  # type: ignore[attr-defined]
-            and jnp.array_equal(self.unitary.matrix, other.unitary.matrix)  # type: ignore[attr-defined]
+            jnp.allclose(self.process.matrix, other.process.matrix)  # type: ignore[attr-defined]
+            and jnp.allclose(self.unitary.matrix, other.unitary.matrix)  # type: ignore[attr-defined]
         )
 
     __hash__ = None  # type: ignore[assignment]
 
-    def __matmul__(self, other: ChannelProtocol) -> SuperopChannel:
+    def __matmul__(self, other: _ChannelBase) -> _ChannelBase:
         r"""Compose two channels: ``channel_B @ channel_A``.
 
         Both channels share the same gate instruction. The composition factors
@@ -523,9 +534,11 @@ class ChannelProtocol(Protocol):
 
         This is the natural composition: if ``channel_A`` already includes the
         gate, applying ``channel_B`` after it should not double-count the gate.
-        The result is a plain :class:`SuperopChannel` (a superoperator composition).
+        This base implementation works purely with superoperators and returns a plain
+        :class:`SuperopChannel`; :class:`Channel` overrides it to compose at the Lindbladian
+        generator level (returning a :class:`Channel`) when both operands are Lindbladian-backed.
         """
-        if not isinstance(other, ChannelProtocol):
+        if not isinstance(other, _ChannelBase):
             return NotImplemented
         if self.inst != other.inst:
             raise ValueError(f"Cannot compose channels for different gates: {self.inst.out()} vs {other.inst.out()}")
@@ -534,17 +547,17 @@ class ChannelProtocol(Protocol):
         composed_superop = qx.to_superop(self.process @ u_dag_superop @ other.process)
         return self._as_channel(composed_superop)
 
-    def __or__(self, other: ChannelProtocol | MeasurementChannel) -> CycleChannel:
+    def __or__(self, other: _ChannelBase | _ResetChannelBase | MeasurementChannel) -> CycleChannel:
         """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
 
         The result represents a cycle containing both operations acting in parallel
         on disjoint qubits. The DefCircuit encodes the parallel operations as
         formal instructions.
 
-        :param other: Another gate channel or MeasurementChannel on disjoint qubits.
+        :param other: Another gate channel, reset channel, or MeasurementChannel on disjoint qubits.
         :return: A CycleChannel representing the tensor product.
         """
-        if not isinstance(other, (ChannelProtocol, MeasurementChannel)):
+        if not isinstance(other, (_ChannelBase, _ResetChannelBase, MeasurementChannel)):
             return NotImplemented
 
         # Validate disjoint qubits
@@ -557,10 +570,10 @@ class ChannelProtocol(Protocol):
 
 
 @dataclass(frozen=True, eq=False)
-class SuperopChannel(ChannelProtocol):
+class SuperopChannel(_ChannelBase):
     """A noise channel that stores a superoperator directly, for a specific gate.
 
-    This is the special case of :class:`ChannelProtocol` whose ``process`` is a stored
+    This is the special case of :class:`_ChannelBase` whose ``process`` is a stored
     ``qx.SuperOp`` (rather than derived from a Lindbladian generator, as :class:`Channel`). It is
     what the manifold-leaving operations (composition ``@``, :meth:`pauli_twirl`,
     :meth:`to_coherent_channel`, :meth:`to_stochastic_channel`) return, and is useful when only a
@@ -681,8 +694,7 @@ class SuperopChannel(ChannelProtocol):
         return cls(inst=inst, process=superop, unitary=unitary)
 
 
-@runtime_checkable
-class _LindbladianBacked(Protocol):
+class _LindbladianBacked(ABC):  # noqa: B024  (abstract mixin; its contract, `lindbladian`/`gate_time`, is supplied as dataclass fields, not @abstractmethods)
     """Mixin for channels whose ``process`` is generated by a ``qx.Lindbladian``.
 
     Provides the ``process`` superoperator (``evolve(lindbladian, gate_time)``) and a helper for
@@ -724,7 +736,7 @@ class _LindbladianBacked(Protocol):
 
 
 @dataclass(frozen=True, eq=False)
-class Channel(_LindbladianBacked, ChannelProtocol):
+class Channel(_LindbladianBacked, _ChannelBase):
     r"""A noisy quantum gate: the ideal gate together with the noise that accompanies it.
 
     ``Channel`` is the primary way to describe gate noise. Rather than a raw error matrix, it
@@ -771,8 +783,23 @@ class Channel(_LindbladianBacked, ChannelProtocol):
         return qx.unitary_to_hamiltonian(self.unitary) * (1.0 / self.gate_time)
 
     @cached_property
-    def _noise_lindbladian(self) -> qx.Lindbladian:
-        """The generator with the coherent gate Hamiltonian factored out (dissipation + coherent noise)."""
+    def target_lindbladian(self) -> qx.Lindbladian:
+        """The ideal gate as a purely-coherent generator (``gate_hamiltonian`` with zero dissipation).
+
+        Together with :attr:`noise_lindbladian` this decomposes the full ``lindbladian`` into its
+        target (gate) and noise parts: ``lindbladian == noise_lindbladian + target_lindbladian``.
+        """
+        d = int(np.prod(self.unitary.dims[0]))
+        zero_jumps = qx.Operator.from_matrix(jnp.zeros((1, d, d), dtype=complex), self.unitary.dims)
+        return qx.Lindbladian(hamiltonian=self.gate_hamiltonian, jump_operators=zero_jumps)
+
+    @cached_property
+    def noise_lindbladian(self) -> qx.Lindbladian:
+        """The generator with the coherent gate Hamiltonian factored out (dissipation + coherent noise).
+
+        Together with :attr:`target_lindbladian` this decomposes the full ``lindbladian`` into its
+        target (gate) and noise parts: ``lindbladian == noise_lindbladian + target_lindbladian``.
+        """
         hamiltonian = self.lindbladian.hamiltonian
         noise_hamiltonian = hamiltonian - self.gate_hamiltonian if hamiltonian is not None else None
         return qx.Lindbladian(hamiltonian=noise_hamiltonian, jump_operators=self.lindbladian.jump_operators)
@@ -1032,19 +1059,33 @@ class Channel(_LindbladianBacked, ChannelProtocol):
         scaled = self._scaled_noise_generator(power, gate_hamiltonian=self.gate_hamiltonian)
         return replace(self, lindbladian=scaled)
 
+    def __matmul__(self, other: _ChannelBase) -> _ChannelBase:
+        """Compose two channels sharing the same gate.
+
+        For two Lindbladian-backed :class:`Channel`s the composition is formed at the generator
+        level: because the jump operators can be added directly, composition coincides with
+        combining the noise on the shared gate (:meth:`__add__`), yielding a :class:`Channel` that
+        stays CPTP and Lindbladian. Composing with a non-Lindbladian channel falls back to the
+        superoperator composition of :meth:`_ChannelBase.__matmul__`, which returns a plain
+        :class:`SuperopChannel`.
+        """
+        if isinstance(other, Channel):
+            return self + other
+        return super().__matmul__(other)
+
     def __add__(self, other: Channel) -> Channel:
         """Combine the *noise* of two channels on the same gate, keeping the gate.
 
-        The gate Hamiltonian is factored out of each operand, the noise generators are summed
-        (jump operators concatenated, coherent-noise Hamiltonians added), and the gate is folded
-        back in. Adding two ``RX(pi/2)`` channels therefore yields an ``RX(pi/2)`` channel whose
-        noise is the union of the two.
+        The gate Hamiltonian is factored out of each operand (via :attr:`noise_lindbladian`), the
+        noise generators are summed (jump operators concatenated, coherent-noise Hamiltonians
+        added), and the gate is folded back in. Adding two ``RX(pi/2)`` channels therefore yields an
+        ``RX(pi/2)`` channel whose noise is the union of the two.
         """
         if not isinstance(other, Channel):
             return NotImplemented
         if self.inst != other.inst:
-            raise ValueError(f"Cannot add channels for different gates: {self.inst.out()} vs {other.inst.out()}")
-        combined_noise = self._noise_lindbladian + other._noise_lindbladian
+            raise ValueError(f"Cannot combine channels for different gates: {self.inst.out()} vs {other.inst.out()}")
+        combined_noise = self.noise_lindbladian + other.noise_lindbladian
         gate_hamiltonian = self.gate_hamiltonian
         combined_hamiltonian = (
             gate_hamiltonian if combined_noise.hamiltonian is None else combined_noise.hamiltonian + gate_hamiltonian
@@ -1409,12 +1450,12 @@ class MeasurementChannel:
         return f"<MEASURE({self.classification_fidelity:.2f}) {self.qubits[0]} ~ QND({100 * self.non_demolition_fidelity:.2f}%)>"
 
     def __eq__(self, other: object) -> bool:
-        """Check equality by instruction and exact instrument matrix (no tolerance)."""
+        """Check equality by instruction and (approximate) instrument matrix (via :func:`jax.numpy.allclose`)."""
         if not isinstance(other, MeasurementChannel):
             return False
         if self.inst != other.inst:
             return False
-        return bool(jnp.array_equal(self.process.matrix, other.process.matrix))
+        return bool(jnp.allclose(self.process.matrix, other.process.matrix))
 
     __hash__ = None  # type: ignore[assignment]
 
@@ -1433,13 +1474,13 @@ class MeasurementChannel:
         composed = self.process @ other.process
         return replace(self, process=composed)
 
-    def __or__(self, other: SuperopChannel | MeasurementChannel) -> CycleChannel:
+    def __or__(self, other: _ChannelBase | _ResetChannelBase | MeasurementChannel) -> CycleChannel:
         """Tensor product of two channels on disjoint qubits, producing a CycleChannel.
 
-        :param other: Another SuperopChannel or MeasurementChannel on disjoint qubits.
+        :param other: Another gate channel, reset channel, or MeasurementChannel on disjoint qubits.
         :return: A CycleChannel representing the tensor product.
         """
-        if not isinstance(other, (SuperopChannel, MeasurementChannel)):
+        if not isinstance(other, (_ChannelBase, _ResetChannelBase, MeasurementChannel)):
             return NotImplemented
 
         self_qubits = set(self.qubits)
@@ -1450,8 +1491,7 @@ class MeasurementChannel:
         return _build_cycle_channel([self, other])
 
 
-@runtime_checkable
-class _ResetChannelBase(Protocol):
+class _ResetChannelBase(ABC):
     """Shared behavior for reset noise channels backed by a superoperator ``process``.
 
     A reset channel replaces a targeted reset with a CPTP ``process`` (a ``qx.SuperOp`` that
@@ -1464,6 +1504,17 @@ class _ResetChannelBase(Protocol):
     if TYPE_CHECKING:
         inst: ResetQubit
         process: qx.SuperOp
+
+    @abstractmethod
+    def to_json(self) -> str:
+        """Serialize the reset channel to a JSON string."""
+        ...
+
+    @classmethod
+    @abstractmethod
+    def from_json(cls, json_str: str) -> _ResetChannelBase:
+        """Deserialize a reset channel from a JSON string produced by :meth:`to_json`."""
+        ...
 
     def __post_init__(self) -> None:
         """Validate that the channel is attached to a targeted reset."""
@@ -1504,15 +1555,15 @@ class _ResetChannelBase(Protocol):
         noise_matrix = self.process.matrix @ jnp.linalg.pinv(ideal.matrix)
         return qx.SuperOp.from_matrix(noise_matrix, self.process.dims)
 
-    def plot(self, noise_only: bool = False) -> Figure:
+    def plot(self, only_noise: bool = False) -> Figure:
         """Plot the Pauli transfer matrix of the reset channel.
 
-        :param noise_only: If True, plot the post-reset noise (see :meth:`as_post_gate_noise`)
+        :param only_noise: If True, plot the post-reset noise (see :meth:`as_post_gate_noise`)
             instead of the full process. Defaults to False (the full channel).
         :return: A Plotly Figure.
         """
-        channel = self.as_post_gate_noise() if noise_only else self.process
-        title_prefix = "Reset noise" if noise_only else "Reset channel"
+        channel = self.as_post_gate_noise() if only_noise else self.process
+        title_prefix = "Reset noise" if only_noise else "Reset channel"
         fig = qx.plot(channel)
         qubit_str = str(self.qubits[0]) if self.qubits else "?"
         fig.update_layout(title=(f"{title_prefix} RESET {qubit_str}<br><sub>F_χ={self.fidelity * 100:.2f}%</sub>"))
@@ -1524,14 +1575,36 @@ class _ResetChannelBase(Protocol):
         return f"<RESET({self.fidelity:.2f}) {qubit_str}>"
 
     def __eq__(self, other: object) -> bool:
-        """Check equality by concrete type, instruction, and exact process matrix (no tolerance)."""
+        """Check equality by concrete type, instruction, and (approximate) process matrix.
+
+        Two reset channels are equal iff they are the same concrete class, share the same
+        instruction, and have element-wise-close ``process`` matrices (via :func:`jax.numpy.allclose`).
+        The comparison is approximate rather than bit-exact so it tolerates the small floating-point
+        differences between otherwise-equivalent constructions.
+        """
         if type(self) is not type(other):
             return False
         if self.inst != other.inst:  # type: ignore[attr-defined]
             return False
-        return bool(jnp.array_equal(self.process.matrix, other.process.matrix))  # type: ignore[attr-defined]
+        return bool(jnp.allclose(self.process.matrix, other.process.matrix))  # type: ignore[attr-defined]
 
     __hash__ = None  # type: ignore[assignment]
+
+    def __or__(self, other: _ChannelBase | _ResetChannelBase | MeasurementChannel) -> CycleChannel:
+        """Tensor product with another channel on disjoint qubits, producing a CycleChannel.
+
+        :param other: Another gate channel, reset channel, or MeasurementChannel on disjoint qubits.
+        :return: A CycleChannel representing the tensor product.
+        """
+        if not isinstance(other, (_ChannelBase, _ResetChannelBase, MeasurementChannel)):
+            return NotImplemented
+
+        self_qubits = set(self.qubits)
+        other_qubits = set(other.qubits)
+        if self_qubits & other_qubits:
+            raise ValueError(f"Cannot tensor channels with overlapping qubits: {self_qubits & other_qubits}")
+
+        return _build_cycle_channel([self, other])
 
 
 @dataclass(frozen=True, eq=False)
@@ -1710,11 +1783,15 @@ class ResetChannel(_LindbladianBacked, _ResetChannelBase):
         return cls(inst=inst, lindbladian=lindbladian, gate_time=data["gate_time"])
 
 
+# A single operation within a cycle: a gate channel, a reset channel, or a measurement channel.
+CycleConstituent = _ChannelBase | _ResetChannelBase | MeasurementChannel
+
+
 @dataclass(frozen=True)
 class CycleChannel:
     """A cycle noise channel attaches superoperators to a specific cycle.
 
-    Cycles can include gates and measurements. The constituent channels are stored
+    Cycles can include gates, resets, and measurements. The constituent channels are stored
     directly, allowing fidelity metrics and serialization to be derived from them.
     """
 
@@ -1724,7 +1801,7 @@ class CycleChannel:
     defcircuit: DefCircuit
     """The DefCircuit representing the logical cycle to which instruction represents."""
 
-    channels: tuple[ChannelProtocol | MeasurementChannel, ...]
+    channels: tuple[CycleConstituent, ...]
     """Constituent channels (one per operation in the cycle) on disjoint qubits."""
 
     def __post_init__(self) -> None:
@@ -1786,13 +1863,13 @@ class CycleChannel:
     def pauli_fidelity(self) -> float:
         """Product of process (Pauli) fidelities over all gate channels in the cycle.
 
-        Measurement channels do not contribute a gate fidelity and are skipped.
+        Reset and measurement channels do not contribute a gate fidelity and are skipped.
         For near-ideal noise the product approximation is exact since constituent
         channels act on disjoint subsystems.
         """
         f = 1.0
         for ch in self.channels:
-            if isinstance(ch, ChannelProtocol):
+            if isinstance(ch, _ChannelBase):
                 f *= ch.pauli_fidelity
         return f
 
@@ -1800,11 +1877,11 @@ class CycleChannel:
     def fidelity(self) -> float:
         """Product of average gate fidelities over all gate channels in the cycle.
 
-        Measurement channels do not contribute a gate fidelity and are skipped.
+        Reset and measurement channels do not contribute a gate fidelity and are skipped.
         """
         f = 1.0
         for ch in self.channels:
-            if isinstance(ch, ChannelProtocol):
+            if isinstance(ch, _ChannelBase):
                 f *= ch.fidelity
         return f
 
@@ -1846,12 +1923,14 @@ class CycleChannel:
         :return: CycleChannel instance.
         """
         data = json.loads(json_str)
-        _type_map: dict[str, type[ChannelProtocol | MeasurementChannel]] = {
+        _type_map: dict[str, type[CycleConstituent]] = {
             "SuperopChannel": SuperopChannel,
             "Channel": Channel,
             "MeasurementChannel": MeasurementChannel,
+            "SuperopResetChannel": SuperopResetChannel,
+            "ResetChannel": ResetChannel,
         }
-        constituent_channels: list[ChannelProtocol | MeasurementChannel] = [
+        constituent_channels: list[CycleConstituent] = [
             _type_map[ch_data["type"]].from_json(ch_data["data"]) for ch_data in data["channels"]
         ]
         return _build_cycle_channel(constituent_channels)
@@ -1875,9 +1954,9 @@ class CycleChannel:
     __hash__ = None  # type: ignore[assignment]
 
 
-def _channel_to_formal_inst(channel: ChannelProtocol | MeasurementChannel) -> Gate | Measurement:
+def _channel_to_formal_inst(channel: CycleConstituent) -> Gate | Measurement | ResetQubit:
     """Convert a channel's instruction to use formal arguments for DefCircuit."""
-    if isinstance(channel, ChannelProtocol):
+    if isinstance(channel, _ChannelBase):
         inst = channel.inst
         return Gate(
             name=inst.name,
@@ -1885,6 +1964,9 @@ def _channel_to_formal_inst(channel: ChannelProtocol | MeasurementChannel) -> Ga
             qubits=[FormalArgument(f"q{q}") for q in inst.get_qubit_indices()],
             modifiers=inst.modifiers,  # type: ignore[arg-type]
         )
+    elif isinstance(channel, _ResetChannelBase):
+        qubit_idx = channel.qubits[0]
+        return ResetQubit(qubit=FormalArgument(f"q{qubit_idx}"))
     elif isinstance(channel, MeasurementChannel):
         qubit_idx = channel.qubits[0]
         return Measurement(
@@ -1895,9 +1977,9 @@ def _channel_to_formal_inst(channel: ChannelProtocol | MeasurementChannel) -> Ga
 
 
 def _build_cycle_channel(
-    channels: list[ChannelProtocol | MeasurementChannel],
+    channels: list[CycleConstituent],
 ) -> CycleChannel:
-    """Build a CycleChannel from a list of SuperopChannel/MeasurementChannel on disjoint qubits."""
+    """Build a CycleChannel from gate/reset/measurement channels on disjoint qubits."""
     all_qubits = sorted(q for ch in channels for q in ch.qubits)
     cycle_name = "CYCLE"
     formal_insts = [_channel_to_formal_inst(ch) for ch in channels]
