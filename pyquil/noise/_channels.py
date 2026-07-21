@@ -27,7 +27,7 @@ import itertools
 import json
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from functools import cached_property, reduce
 from itertools import product
@@ -42,7 +42,7 @@ from quil.expression import Expression as QuilExpression
 from quil.instructions import Instruction as RSInstruction
 from scipy.linalg import logm as scipy_logm
 
-from pyquil.quilatom import Expression, FormalArgument, MemoryReference, Parameter, substitute
+from pyquil.quilatom import Expression, FormalArgument, MemoryReference, Parameter, ParameterDesignator, substitute
 from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset, ResetQubit, _integer_base_and_exponent
 
 if TYPE_CHECKING:
@@ -54,11 +54,6 @@ logger = logging.getLogger(__name__)
 
 # Type alias for the custom-gate lookup map used throughout the SuperopChannel constructors.
 CustomGateMap = dict[str, qx.Unitary | Callable[..., qx.Unitary]]
-
-
-# A gate parameter that :func:`_resolve_params` can reduce to a concrete float. The ``complex``
-# arm covers concrete numbers (``int``/``float``/``complex`` via the typing numeric tower).
-ResolvableParam = Parameter | Expression | QuilExpression | complex
 
 
 def _parse_quil_instruction(quil_str: str) -> Gate | Measurement | Reset:
@@ -113,7 +108,7 @@ def _pack_operator(operator: qx.SuperOp | qx.Unitary | qx.Choi | qx.Observable |
     return data
 
 
-def _resolve_params(params: list[ResolvableParam]) -> list[float]:
+def _resolve_params(params: Sequence[ParameterDesignator]) -> list[float]:
     """Resolve gate parameters to concrete float values.
 
     Gate parameters are expected to be real. If a parameter evaluates to a complex number with a
@@ -218,7 +213,7 @@ def get_instruction_unitary(
         raise KeyError(f"Unknown gate '{name}'. Provide it via custom_gates (e.g. custom_gates={{'{name}': matrix}}).")
 
     if inst.params:
-        fixed_params = _resolve_params(list(inst.params))
+        fixed_params = _resolve_params(inst.params)
         if not callable(gate_def):
             raise ValueError(f"Gate '{name}' is not parametric but parameters were provided.")
         result = gate_def(*fixed_params)
@@ -289,7 +284,7 @@ class _ChannelBase(ABC):
     # ──────────────────────────────────────────────
 
     def as_post_gate_noise(self) -> qx.SuperOp:
-        r"""The noise as a superoperator applied *after* the ideal gate.
+        r"""Return the noise as a superoperator applied *after* the ideal gate.
 
         A noisy gate channel can be viewed either as noise applied after the ideal gate
         (*post-gate*) or before it (*pre-gate*):
@@ -514,11 +509,11 @@ class _ChannelBase(ABC):
         """
         if type(self) is not type(other):
             return False
-        if self.inst != other.inst:  # type: ignore[attr-defined]
+        if self.inst != other.inst:
             return False
         return bool(
-            jnp.allclose(self.process.matrix, other.process.matrix)  # type: ignore[attr-defined]
-            and jnp.allclose(self.unitary.matrix, other.unitary.matrix)  # type: ignore[attr-defined]
+            jnp.allclose(self.process.matrix, other.process.matrix)
+            and jnp.allclose(self.unitary.matrix, other.unitary.matrix)
         )
 
     __hash__ = None  # type: ignore[assignment]
@@ -1540,7 +1535,7 @@ class _ResetChannelBase(ABC):
         return float(qx.process_fidelity(self.process, self._ideal_reset))
 
     def as_post_gate_noise(self) -> qx.SuperOp:
-        r"""The noise as a superoperator applied *after* the ideal reset.
+        r"""Return the noise as a superoperator applied *after* the ideal reset.
 
         The full channel factors as :math:`\mathcal{E} = \mathcal{N} \circ \mathcal{R}`, where
         :math:`\mathcal{R}` is the ideal reset and :math:`\mathcal{N}` the post-reset noise.
@@ -1584,9 +1579,9 @@ class _ResetChannelBase(ABC):
         """
         if type(self) is not type(other):
             return False
-        if self.inst != other.inst:  # type: ignore[attr-defined]
+        if self.inst != other.inst:
             return False
-        return bool(jnp.allclose(self.process.matrix, other.process.matrix))  # type: ignore[attr-defined]
+        return bool(jnp.allclose(self.process.matrix, other.process.matrix))
 
     __hash__ = None  # type: ignore[assignment]
 

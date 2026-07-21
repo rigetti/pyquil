@@ -61,7 +61,6 @@ import math
 import quil.expression as quil_rs_expr
 import quil.instructions as quil_rs
 
-
 # Primes used to peel perfect powers apart in :func:`_integer_base_and_exponent`. An exponent
 # whose prime factors all lie in this list is fully reducible; matrix dimensions never approach
 # ``2 ** 61``, so this covers every realistic qudit decomposition.
