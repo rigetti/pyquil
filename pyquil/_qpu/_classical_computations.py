@@ -1,16 +1,9 @@
-from pyquil.quilbase import Declare
-from pyquil.quilbase import JumpTarget
-from pyquil.quilbase import JumpWhen
-from pyquil.quilbase import JumpUnless, Jump
-from pyquil.quilbase import Fence
-from typing import Sequence
-from pyquil.quilbase import Delay
-from pyquil.quilatom import Label
-from pyquil.quil import Program
+from collections.abc import Sequence
 
 from quil import instructions as inst
 
-from pyquil.quilbase import Pragma
+from pyquil.quil import Program
+from pyquil.quilbase import Declare, Delay, Fence, Jump, JumpTarget, JumpUnless, JumpWhen, Pragma
 
 
 def delay_and_fence_classical_preamble(

@@ -20,22 +20,21 @@ Note, these utilities do not build the cycle program itself nor the source unita
 program.
 """
 
-from contextlib import contextmanager
-from pyquil.gates import FENCE
 import math
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
-from typing import Optional, Union, cast
+from typing import Union, cast
 
 import numpy as np
 from numpy.typing import NDArray
 from quil import instructions as inst
 
+from pyquil.gates import FENCE
 from pyquil.quil import InstructionDesignator, Program
-from pyquil.quilatom import Qubit
 from pyquil.quilbase import (
     Call,
     ClassicalAdd,
@@ -46,7 +45,6 @@ from pyquil.quilbase import (
     Declare,
     Delay,
     Expression,
-    Fence,
     Jump,
     JumpTarget,
     JumpUnless,
@@ -149,9 +147,9 @@ class PauliPairKey:
 
 
 def _accumulate_pauli_pairs(
-    existing_pairs: dict[PauliPairKey, tuple[Optional[int], tuple["PauliLiteral", "PauliLiteral"]]],
-    new_pairs: dict[PauliPairKey, tuple[Optional[int], tuple["PauliLiteral", "PauliLiteral"]]],
-) -> dict[PauliPairKey, tuple[Optional[int], tuple["PauliLiteral", "PauliLiteral"]]]:
+    existing_pairs: dict[PauliPairKey, tuple[int | None, tuple["PauliLiteral", "PauliLiteral"]]],
+    new_pairs: dict[PauliPairKey, tuple[int | None, tuple["PauliLiteral", "PauliLiteral"]]],
+) -> dict[PauliPairKey, tuple[int | None, tuple["PauliLiteral", "PauliLiteral"]]]:
     """Accumulate new Pauli pairs into the existing accumulator.
 
     This is used to track the final Pauli pairs for each qubit and layer across multiple sequences.
@@ -188,7 +186,7 @@ class _PauliSeedAndPairCache:
     def accumulate(
         self,
         sequence_count: int,
-    ) -> "dict[PauliPairKey, tuple[Optional[int], tuple[PauliLiteral, PauliLiteral]]]":
+    ) -> "dict[PauliPairKey, tuple[int | None, tuple[PauliLiteral, PauliLiteral]]]":
         """Iterate over the requested `sequence_count` and accumulate the final Pauli pair for each qubit and layer index.
 
         "Accumulation" in this context means applying random Pauli pair successively over the sequence count. This
@@ -270,7 +268,7 @@ class _PauliSeedAndPairCache:
 
         return previous_conjugate
 
-    def __getitem__(self, key: PauliPairKey) -> "tuple[Optional[int], tuple[PauliLiteral, PauliLiteral]]":
+    def __getitem__(self, key: PauliPairKey) -> "tuple[int | None, tuple[PauliLiteral, PauliLiteral]]":
         q, layer_index = key.qubit, key.layer_index
         if layer_index == len(self.cycles):
             # there is no random Pauli to apply!
@@ -354,7 +352,7 @@ class ShotsPerRandomization:
     """
 
     shots_per_randomization: int
-    non_randomization_delay_seconds: Optional[float] = 2e-4
+    non_randomization_delay_seconds: float | None = 2e-4
     variables: ShotsPerRandomizationVariables = field(default_factory=ShotsPerRandomizationVariables)
 
     @property
@@ -524,7 +522,7 @@ def build_memory_values_for_paulis_conjugates_map(
     The result may be supplied as the memory values for the `pauli_conjugates_map` memory region on the QPU (see
     `RandomizedCompilingVariables.pauli_conjugates_map`).
     """
-    memory_values: list[Optional[int]] = [None] * _NUMBER_PAULI_PAIRS
+    memory_values: list[int | None] = [None] * _NUMBER_PAULI_PAIRS
     for previous_paulis, next_paulis in pauli_conjugates_map.items():
         previous_pauli_index = _pauli_pair_to_int(previous_paulis)
         next_pauli_index = _pauli_pair_to_int(next_paulis)
@@ -798,7 +796,7 @@ class RandomizedCompilingConfiguration:
     included in `open_classical_preamble` or `build_quil_program`.
     """
 
-    shots_per_randomization: Optional[ShotsPerRandomization] = None
+    shots_per_randomization: ShotsPerRandomization | None = None
     """Configuration for randomizing only a subset of shots."""
 
     invert_random_paulis: bool = True
@@ -879,8 +877,7 @@ class RandomizedCompilingConfiguration:
         return self._cycle_count + 1 - int(self.skip_first_layer) - int(self.skip_final_layer)
 
     def _get_unitary_memory_index(self, layer_index: int) -> int:
-        """Map an absolute layer index (`0` to `_cycle_count` inclusive) to its index within the (possibly smaller)
-        RC-managed twirled unitary memory region.
+        """Map an absolute layer index (`0` to `_cycle_count` inclusive) that is aware of skipped layers.
 
         Raises a `ValueError` if `layer_index` refers to a layer excluded from this memory by `skip_first_layer` or
         `skip_final_layer`. Those layers are still played in the program; their (untwirled) unitary must simply be
@@ -1142,7 +1139,7 @@ class RandomizedCompilingConfiguration:
         loop_index_variable: str,
         loop_index_end: int,
         loop_index_start: int = 0,
-        loop_index_increment: Optional[int] = 1,
+        loop_index_increment: int | None = 1,
     ) -> list[InstructionDesignator]:
         loop_instructions: list[InstructionDesignator] = []
         loop_instructions.append(ClassicalMove(MemoryReference(loop_index_variable, 0), loop_index_start))
@@ -1304,9 +1301,9 @@ class RandomizedCompilingConfiguration:
         self,
         qubit: int,
         layer_index: int,
-        source_unitaries: Optional[str] = None,
-        target_unitaries: Optional[str] = None,
-        unitary_offset: Optional[Union[MemoryReference, int, float]] = None,
+        source_unitaries: str | None = None,
+        target_unitaries: str | None = None,
+        unitary_offset: Union[MemoryReference, int, float] | None = None,
     ) -> Union[Call, None]:
         """Apply the twirl to the source unitary for a given qubit and layer index.
 
@@ -1457,8 +1454,8 @@ class RandomizedCompilingConfiguration:
         shot_count: int,
         pauli_conjugates_map: Mapping[tuple[PauliLiteral, PauliLiteral], tuple[PauliLiteral, PauliLiteral]],
         random_seeds: NDArray[np.int64],
-        accumulate: Optional[bool] = None,
-    ) -> dict[PauliPairKey, tuple[Optional[int], tuple[PauliLiteral, PauliLiteral]]]:
+        accumulate: bool | None = None,
+    ) -> dict[PauliPairKey, tuple[int | None, tuple[PauliLiteral, PauliLiteral]]]:
         """Get the final Pauli frames for each qubit and layer after a sequence of shots.
 
         This is useful for verifying that the final memory read off the QPU is consistent with the expected random Paulis calculated
@@ -1492,8 +1489,8 @@ class RandomizedCompilingConfiguration:
         shot_count: int,
         pauli_conjugates_map: Mapping[tuple[PauliLiteral, PauliLiteral], tuple[PauliLiteral, PauliLiteral]],
         random_seeds: NDArray[np.int64],
-        accumulate: Optional[bool] = None,
-    ) -> Generator[dict[PauliPairKey, tuple[Optional[int], tuple[PauliLiteral, PauliLiteral]]], None, None]:
+        accumulate: bool | None = None,
+    ) -> Generator[dict[PauliPairKey, tuple[int | None, tuple[PauliLiteral, PauliLiteral]]], None, None]:
         cycles = self._base_twirled_cycles * self.base_cycle_repetitions
         accumulate = accumulate if accumulate is not None else self.variables.twirled_overwrites_source_unitaries
         pauli_cache = _PauliSeedAndPairCache(
