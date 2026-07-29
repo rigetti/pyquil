@@ -98,7 +98,7 @@ jobs:
         go install github.com/google/osv-scanner/cmd/osv-scanner@latest
     - name: Run OSV scanner
       run: |
-        osv-scanner --lockfile=./poetry.lock
+        osv-scanner scan --config=.osv-scanner.toml --lockfile=./poetry.lock
 
   test-doctest:
     name: Run Doctests
@@ -153,7 +153,7 @@ jobs:
           poetry run make test
       - name: Report Coverage
         if: matrix.python-version == '3.11' && github.event_name == 'pull_request'
-        continue-on-error: true 
+        continue-on-error: true
         uses: orgoro/coverage@v3.1
         with:
           coverageFile: coverage.xml

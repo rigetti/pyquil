@@ -1,0 +1,2196 @@
+# serializer version: 1
+# name: test_randomized_compiling_configuration[configuration0][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[1]
+  DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE unitaries_q0 REAL[6]
+  DECLARE unitaries_q1 REAL[6]
+  DECLARE unitary_angle_offset INTEGER[1]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration10][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[3]
+  DECLARE pauli_seed_q1 INTEGER[3]
+  DECLARE pauli_seed_q2 INTEGER[3]
+  DECLARE pauli_seed_q3 INTEGER[3]
+  DECLARE pauli_seed_q4 INTEGER[3]
+  DECLARE pauli_seed_q5 INTEGER[3]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[153]
+  DECLARE unitaries_q1 REAL[153]
+  DECLARE unitaries_q2 REAL[153]
+  DECLARE unitaries_q3 REAL[153]
+  DECLARE unitaries_q4 REAL[153]
+  DECLARE unitaries_q5 REAL[153]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[2] pauli_seed_q0[2]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[2] pauli_seed_q1[2]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[1] pauli_seed_q2[1]
+  CALL prng_set_seed_and_step pauli_seed_q2[2] pauli_seed_q2[2]
+  CALL prng_set_seed_and_step pauli_seed_q3[0] pauli_seed_q3[0]
+  CALL prng_set_seed_and_step pauli_seed_q3[1] pauli_seed_q3[1]
+  CALL prng_set_seed_and_step pauli_seed_q3[2] pauli_seed_q3[2]
+  CALL prng_set_seed_and_step pauli_seed_q4[0] pauli_seed_q4[0]
+  CALL prng_set_seed_and_step pauli_seed_q4[1] pauli_seed_q4[1]
+  CALL prng_set_seed_and_step pauli_seed_q4[2] pauli_seed_q4[2]
+  CALL prng_set_seed_and_step pauli_seed_q5[0] pauli_seed_q5[0]
+  CALL prng_set_seed_and_step pauli_seed_q5[1] pauli_seed_q5[1]
+  CALL prng_set_seed_and_step pauli_seed_q5[2] pauli_seed_q5[2]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q2 unitaries_q2 0 pauli_seed_q2[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q3 unitaries_q3 0 pauli_seed_q3[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q4 unitaries_q4 0 pauli_seed_q4[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q5 unitaries_q5 0 pauli_seed_q5[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE current_seeds_q3[0] pauli_seed_q3[0]
+  MOVE current_seeds_q4[0] pauli_seed_q4[0]
+  MOVE current_seeds_q5[0] pauli_seed_q5[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 11
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  MOVE current_seeds_q2[1] current_seeds_q2[0]
+  MOVE current_seeds_q3[1] current_seeds_q3[0]
+  MOVE current_seeds_q4[1] current_seeds_q4[0]
+  MOVE current_seeds_q5[1] current_seeds_q5[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  LOAD current_seeds_q2[0] pauli_seed_q2 rc_seed_index[0]
+  LOAD current_seeds_q3[0] pauli_seed_q3 rc_seed_index[0]
+  LOAD current_seeds_q4[0] pauli_seed_q4 rc_seed_index[0]
+  LOAD current_seeds_q5[0] pauli_seed_q5 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 0 current_seeds_q5[1] 0
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 3
+  JUMP-UNLESS @rc_seed_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration11][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[3]
+  DECLARE pauli_seed_q1 INTEGER[3]
+  DECLARE pauli_seed_q2 INTEGER[3]
+  DECLARE pauli_seed_q3 INTEGER[3]
+  DECLARE pauli_seed_q4 INTEGER[3]
+  DECLARE pauli_seed_q5 INTEGER[3]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[165]
+  DECLARE unitaries_q1 REAL[165]
+  DECLARE unitaries_q2 REAL[165]
+  DECLARE unitaries_q3 REAL[165]
+  DECLARE unitaries_q4 REAL[165]
+  DECLARE unitaries_q5 REAL[165]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[2] pauli_seed_q0[2]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[2] pauli_seed_q1[2]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[1] pauli_seed_q2[1]
+  CALL prng_set_seed_and_step pauli_seed_q2[2] pauli_seed_q2[2]
+  CALL prng_set_seed_and_step pauli_seed_q3[0] pauli_seed_q3[0]
+  CALL prng_set_seed_and_step pauli_seed_q3[1] pauli_seed_q3[1]
+  CALL prng_set_seed_and_step pauli_seed_q3[2] pauli_seed_q3[2]
+  CALL prng_set_seed_and_step pauli_seed_q4[0] pauli_seed_q4[0]
+  CALL prng_set_seed_and_step pauli_seed_q4[1] pauli_seed_q4[1]
+  CALL prng_set_seed_and_step pauli_seed_q4[2] pauli_seed_q4[2]
+  CALL prng_set_seed_and_step pauli_seed_q5[0] pauli_seed_q5[0]
+  CALL prng_set_seed_and_step pauli_seed_q5[1] pauli_seed_q5[1]
+  CALL prng_set_seed_and_step pauli_seed_q5[2] pauli_seed_q5[2]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q2 unitaries_q2 0 pauli_seed_q2[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q3 unitaries_q3 0 pauli_seed_q3[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q4 unitaries_q4 0 pauli_seed_q4[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q5 unitaries_q5 0 pauli_seed_q5[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE current_seeds_q3[0] pauli_seed_q3[0]
+  MOVE current_seeds_q4[0] pauli_seed_q4[0]
+  MOVE current_seeds_q5[0] pauli_seed_q5[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 11
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  MOVE current_seeds_q2[1] current_seeds_q2[0]
+  MOVE current_seeds_q3[1] current_seeds_q3[0]
+  MOVE current_seeds_q4[1] current_seeds_q4[0]
+  MOVE current_seeds_q5[1] current_seeds_q5[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  LOAD current_seeds_q2[0] pauli_seed_q2 rc_seed_index[0]
+  LOAD current_seeds_q3[0] pauli_seed_q3 rc_seed_index[0]
+  LOAD current_seeds_q4[0] pauli_seed_q4 rc_seed_index[0]
+  LOAD current_seeds_q5[0] pauli_seed_q5 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 0 current_seeds_q5[1] 0
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 3
+  JUMP-UNLESS @rc_seed_loop break[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 2
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration12][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
+  DECLARE is_mod_zero BIT[1]
+  DECLARE modulo_counter INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[2]
+  DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE pauli_seed_q2 INTEGER[2]
+  DECLARE pauli_seed_q3 INTEGER[2]
+  DECLARE pauli_seed_q4 INTEGER[2]
+  DECLARE pauli_seed_q5 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[81]
+  DECLARE unitaries_q1 REAL[81]
+  DECLARE unitaries_q2 REAL[81]
+  DECLARE unitaries_q3 REAL[81]
+  DECLARE unitaries_q4 REAL[81]
+  DECLARE unitaries_q5 REAL[81]
+  DECLARE unitary_angle_offset INTEGER[1]
+  ADD modulo_counter[0] 1
+  GE is_mod_zero[0] modulo_counter[0] 50
+  CALL if_then_else_integer modulo_counter[0] is_mod_zero[0] 0 modulo_counter[0]
+  JUMP-WHEN @rc_main is_mod_zero[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  JUMP @pulse_program
+  LABEL @rc_main
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[1] pauli_seed_q2[1]
+  CALL prng_set_seed_and_step pauli_seed_q3[0] pauli_seed_q3[0]
+  CALL prng_set_seed_and_step pauli_seed_q3[1] pauli_seed_q3[1]
+  CALL prng_set_seed_and_step pauli_seed_q4[0] pauli_seed_q4[0]
+  CALL prng_set_seed_and_step pauli_seed_q4[1] pauli_seed_q4[1]
+  CALL prng_set_seed_and_step pauli_seed_q5[0] pauli_seed_q5[0]
+  CALL prng_set_seed_and_step pauli_seed_q5[1] pauli_seed_q5[1]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q2 unitaries_q2 0 pauli_seed_q2[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q3 unitaries_q3 0 pauli_seed_q3[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q4 unitaries_q4 0 pauli_seed_q4[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q5 unitaries_q5 0 pauli_seed_q5[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE current_seeds_q3[0] pauli_seed_q3[0]
+  MOVE current_seeds_q4[0] pauli_seed_q4[0]
+  MOVE current_seeds_q5[0] pauli_seed_q5[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 11
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  MOVE current_seeds_q2[1] current_seeds_q2[0]
+  MOVE current_seeds_q3[1] current_seeds_q3[0]
+  MOVE current_seeds_q4[1] current_seeds_q4[0]
+  MOVE current_seeds_q5[1] current_seeds_q5[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  LOAD current_seeds_q2[0] pauli_seed_q2 rc_seed_index[0]
+  LOAD current_seeds_q3[0] pauli_seed_q3 rc_seed_index[0]
+  LOAD current_seeds_q4[0] pauli_seed_q4 rc_seed_index[0]
+  LOAD current_seeds_q5[0] pauli_seed_q5 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 0 current_seeds_q5[1] 0
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 2
+  JUMP-UNLESS @rc_seed_loop break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
+  LABEL @pulse_program
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration13][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[2]
+  DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE pauli_seed_q2 INTEGER[2]
+  DECLARE pauli_seed_q3 INTEGER[2]
+  DECLARE pauli_seed_q4 INTEGER[2]
+  DECLARE pauli_seed_q5 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE readout_randomization_q0 REAL[3]
+  DECLARE readout_randomization_q1 REAL[3]
+  DECLARE readout_randomization_q2 REAL[3]
+  DECLARE readout_randomization_q3 REAL[3]
+  DECLARE readout_randomization_q4 REAL[3]
+  DECLARE readout_randomization_q5 REAL[3]
+  DECLARE readout_seed_q0 INTEGER[1]
+  DECLARE readout_seed_q1 INTEGER[1]
+  DECLARE readout_seed_q2 INTEGER[1]
+  DECLARE readout_seed_q3 INTEGER[1]
+  DECLARE readout_seed_q4 INTEGER[1]
+  DECLARE readout_seed_q5 INTEGER[1]
+  DECLARE readout_source_angles REAL[36]
+  DECLARE unitaries_q0 REAL[78]
+  DECLARE unitaries_q1 REAL[78]
+  DECLARE unitaries_q2 REAL[78]
+  DECLARE unitaries_q3 REAL[78]
+  DECLARE unitaries_q4 REAL[78]
+  DECLARE unitaries_q5 REAL[78]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[1] pauli_seed_q2[1]
+  CALL prng_set_seed_and_step pauli_seed_q3[0] pauli_seed_q3[0]
+  CALL prng_set_seed_and_step pauli_seed_q3[1] pauli_seed_q3[1]
+  CALL prng_set_seed_and_step pauli_seed_q4[0] pauli_seed_q4[0]
+  CALL prng_set_seed_and_step pauli_seed_q4[1] pauli_seed_q4[1]
+  CALL prng_set_seed_and_step pauli_seed_q5[0] pauli_seed_q5[0]
+  CALL prng_set_seed_and_step pauli_seed_q5[1] pauli_seed_q5[1]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q2 unitaries_q2 0 pauli_seed_q2[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q3 unitaries_q3 0 pauli_seed_q3[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q4 unitaries_q4 0 pauli_seed_q4[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q5 unitaries_q5 0 pauli_seed_q5[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE current_seeds_q3[0] pauli_seed_q3[0]
+  MOVE current_seeds_q4[0] pauli_seed_q4[0]
+  MOVE current_seeds_q5[0] pauli_seed_q5[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 11
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  MOVE current_seeds_q2[1] current_seeds_q2[0]
+  MOVE current_seeds_q3[1] current_seeds_q3[0]
+  MOVE current_seeds_q4[1] current_seeds_q4[0]
+  MOVE current_seeds_q5[1] current_seeds_q5[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  LOAD current_seeds_q2[0] pauli_seed_q2 rc_seed_index[0]
+  LOAD current_seeds_q3[0] pauli_seed_q3 rc_seed_index[0]
+  LOAD current_seeds_q4[0] pauli_seed_q4 rc_seed_index[0]
+  LOAD current_seeds_q5[0] pauli_seed_q5 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 0 current_seeds_q5[1] 0
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 2
+  JUMP-UNLESS @rc_seed_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL choose_random_real_sub_regions readout_randomization_q0 readout_source_angles 3 readout_seed_q0[0]
+  CALL choose_random_real_sub_regions readout_randomization_q1 readout_source_angles 3 readout_seed_q1[0]
+  CALL choose_random_real_sub_regions readout_randomization_q2 readout_source_angles 3 readout_seed_q2[0]
+  CALL choose_random_real_sub_regions readout_randomization_q3 readout_source_angles 3 readout_seed_q3[0]
+  CALL choose_random_real_sub_regions readout_randomization_q4 readout_source_angles 3 readout_seed_q4[0]
+  CALL choose_random_real_sub_regions readout_randomization_q5 readout_source_angles 3 readout_seed_q5[0]
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference readout_randomization_q0 readout_randomization_q0 0 0 pauli_seed_q0[1] 1
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate readout_randomization_q1 readout_randomization_q1 0 0 pauli_seed_q1[1] 1 pauli_seed_q2[1] 1 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate readout_randomization_q2 readout_randomization_q2 0 0 pauli_seed_q1[1] 1 pauli_seed_q2[1] 1 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate readout_randomization_q3 readout_randomization_q3 0 0 pauli_seed_q3[1] 1 pauli_seed_q4[1] 1 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate readout_randomization_q4 readout_randomization_q4 0 0 pauli_seed_q3[1] 1 pauli_seed_q4[1] 1 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference readout_randomization_q5 readout_randomization_q5 0 0 pauli_seed_q5[1] 1
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration14][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
+  DECLARE is_mod_zero BIT[1]
+  DECLARE modulo_counter INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[2]
+  DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE pauli_seed_q2 INTEGER[2]
+  DECLARE pauli_seed_q3 INTEGER[2]
+  DECLARE pauli_seed_q4 INTEGER[2]
+  DECLARE pauli_seed_q5 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE readout_randomization_q0 REAL[3]
+  DECLARE readout_randomization_q1 REAL[3]
+  DECLARE readout_randomization_q2 REAL[3]
+  DECLARE readout_randomization_q3 REAL[3]
+  DECLARE readout_randomization_q4 REAL[3]
+  DECLARE readout_randomization_q5 REAL[3]
+  DECLARE readout_seed_q0 INTEGER[1]
+  DECLARE readout_seed_q1 INTEGER[1]
+  DECLARE readout_seed_q2 INTEGER[1]
+  DECLARE readout_seed_q3 INTEGER[1]
+  DECLARE readout_seed_q4 INTEGER[1]
+  DECLARE readout_seed_q5 INTEGER[1]
+  DECLARE readout_source_angles REAL[36]
+  DECLARE unitaries_q0 REAL[78]
+  DECLARE unitaries_q1 REAL[78]
+  DECLARE unitaries_q2 REAL[78]
+  DECLARE unitaries_q3 REAL[78]
+  DECLARE unitaries_q4 REAL[78]
+  DECLARE unitaries_q5 REAL[78]
+  DECLARE unitary_angle_offset INTEGER[1]
+  ADD modulo_counter[0] 1
+  GE is_mod_zero[0] modulo_counter[0] 50
+  CALL if_then_else_integer modulo_counter[0] is_mod_zero[0] 0 modulo_counter[0]
+  JUMP-WHEN @rc_main is_mod_zero[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  JUMP @pulse_program
+  LABEL @rc_main
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[1] pauli_seed_q2[1]
+  CALL prng_set_seed_and_step pauli_seed_q3[0] pauli_seed_q3[0]
+  CALL prng_set_seed_and_step pauli_seed_q3[1] pauli_seed_q3[1]
+  CALL prng_set_seed_and_step pauli_seed_q4[0] pauli_seed_q4[0]
+  CALL prng_set_seed_and_step pauli_seed_q4[1] pauli_seed_q4[1]
+  CALL prng_set_seed_and_step pauli_seed_q5[0] pauli_seed_q5[0]
+  CALL prng_set_seed_and_step pauli_seed_q5[1] pauli_seed_q5[1]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q2 unitaries_q2 0 pauli_seed_q2[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q3 unitaries_q3 0 pauli_seed_q3[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q4 unitaries_q4 0 pauli_seed_q4[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q5 unitaries_q5 0 pauli_seed_q5[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE current_seeds_q3[0] pauli_seed_q3[0]
+  MOVE current_seeds_q4[0] pauli_seed_q4[0]
+  MOVE current_seeds_q5[0] pauli_seed_q5[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 11
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  MOVE current_seeds_q2[1] current_seeds_q2[0]
+  MOVE current_seeds_q3[1] current_seeds_q3[0]
+  MOVE current_seeds_q4[1] current_seeds_q4[0]
+  MOVE current_seeds_q5[1] current_seeds_q5[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  LOAD current_seeds_q2[0] pauli_seed_q2 rc_seed_index[0]
+  LOAD current_seeds_q3[0] pauli_seed_q3 rc_seed_index[0]
+  LOAD current_seeds_q4[0] pauli_seed_q4 rc_seed_index[0]
+  LOAD current_seeds_q5[0] pauli_seed_q5 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 0 current_seeds_q1[1] 0 current_seeds_q2[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 0 current_seeds_q3[1] 0 current_seeds_q4[1] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 0 current_seeds_q5[1] 0
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 2
+  JUMP-UNLESS @rc_seed_loop break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  LABEL @pulse_program
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  CALL choose_random_real_sub_regions readout_randomization_q0 readout_source_angles 3 readout_seed_q0[0]
+  CALL choose_random_real_sub_regions readout_randomization_q1 readout_source_angles 3 readout_seed_q1[0]
+  CALL choose_random_real_sub_regions readout_randomization_q2 readout_source_angles 3 readout_seed_q2[0]
+  CALL choose_random_real_sub_regions readout_randomization_q3 readout_source_angles 3 readout_seed_q3[0]
+  CALL choose_random_real_sub_regions readout_randomization_q4 readout_source_angles 3 readout_seed_q4[0]
+  CALL choose_random_real_sub_regions readout_randomization_q5 readout_source_angles 3 readout_seed_q5[0]
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference readout_randomization_q0 readout_randomization_q0 0 0 pauli_seed_q0[1] 1
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate readout_randomization_q1 readout_randomization_q1 0 0 pauli_seed_q1[1] 1 pauli_seed_q2[1] 1 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate readout_randomization_q2 readout_randomization_q2 0 0 pauli_seed_q1[1] 1 pauli_seed_q2[1] 1 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate readout_randomization_q3 readout_randomization_q3 0 0 pauli_seed_q3[1] 1 pauli_seed_q4[1] 1 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate readout_randomization_q4 readout_randomization_q4 0 0 pauli_seed_q3[1] 1 pauli_seed_q4[1] 1 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference readout_randomization_q5 readout_randomization_q5 0 0 pauli_seed_q5[1] 1
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration15][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[2]
+  DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE pauli_seed_q2 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[120]
+  DECLARE unitaries_q1 REAL[120]
+  DECLARE unitaries_q2 REAL[120]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[1] pauli_seed_q2[1]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q2 unitaries_q2 0 pauli_seed_q2[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 7
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  MOVE current_seeds_q2[1] current_seeds_q2[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  LOAD current_seeds_q2[0] pauli_seed_q2 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 0 current_seeds_q2[1] 0
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 2
+  JUMP-UNLESS @rc_seed_loop break[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 4
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] 0 current_seeds_q2[0] 0
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration16][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE current_seeds_q2 INTEGER[1]
+  DECLARE current_seeds_q3 INTEGER[1]
+  DECLARE current_seeds_q4 INTEGER[1]
+  DECLARE current_seeds_q5 INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[1]
+  DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE pauli_seed_q2 INTEGER[1]
+  DECLARE pauli_seed_q3 INTEGER[1]
+  DECLARE pauli_seed_q4 INTEGER[1]
+  DECLARE pauli_seed_q5 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE twirled_unitaries_q0 REAL[33]
+  DECLARE twirled_unitaries_q1 REAL[33]
+  DECLARE twirled_unitaries_q2 REAL[33]
+  DECLARE twirled_unitaries_q3 REAL[33]
+  DECLARE twirled_unitaries_q4 REAL[33]
+  DECLARE twirled_unitaries_q5 REAL[33]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q3[0] pauli_seed_q3[0]
+  CALL prng_set_seed_and_step pauli_seed_q4[0] pauli_seed_q4[0]
+  CALL prng_set_seed_and_step pauli_seed_q5[0] pauli_seed_q5[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal twirled_unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal twirled_unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal twirled_unitaries_q2 unitaries_q2 0 pauli_seed_q2[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal twirled_unitaries_q3 unitaries_q3 0 pauli_seed_q3[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal twirled_unitaries_q4 unitaries_q4 0 pauli_seed_q4[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal twirled_unitaries_q5 unitaries_q5 0 pauli_seed_q5[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE current_seeds_q3[0] pauli_seed_q3[0]
+  MOVE current_seeds_q4[0] pauli_seed_q4[0]
+  MOVE current_seeds_q5[0] pauli_seed_q5[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference twirled_unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference twirled_unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 4
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate twirled_unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference twirled_unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate twirled_unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate twirled_unitaries_q2 unitaries_q2 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate twirled_unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate twirled_unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference twirled_unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration17][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE current_seeds_q2 INTEGER[1]
+  DECLARE current_seeds_q3 INTEGER[1]
+  DECLARE current_seeds_q4 INTEGER[1]
+  DECLARE current_seeds_q5 INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[1]
+  DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE pauli_seed_q2 INTEGER[1]
+  DECLARE pauli_seed_q3 INTEGER[1]
+  DECLARE pauli_seed_q4 INTEGER[1]
+  DECLARE pauli_seed_q5 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[27]
+  DECLARE unitaries_q1 REAL[27]
+  DECLARE unitaries_q2 REAL[27]
+  DECLARE unitaries_q3 REAL[27]
+  DECLARE unitaries_q4 REAL[27]
+  DECLARE unitaries_q5 REAL[27]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q3[0] pauli_seed_q3[0]
+  CALL prng_set_seed_and_step pauli_seed_q4[0] pauli_seed_q4[0]
+  CALL prng_set_seed_and_step pauli_seed_q5[0] pauli_seed_q5[0]
+  MOVE unitary_angle_offset[0] 0
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE current_seeds_q3[0] pauli_seed_q3[0]
+  MOVE current_seeds_q4[0] pauli_seed_q4[0]
+  MOVE current_seeds_q5[0] pauli_seed_q5[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 4
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration1][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[1]
+  DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[9]
+  DECLARE unitaries_q1 REAL[9]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 1
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration2][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[1]
+  DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[75]
+  DECLARE unitaries_q1 REAL[75]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 23
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration3][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[2]
+  DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[78]
+  DECLARE unitaries_q1 REAL[78]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 23
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 2
+  JUMP-UNLESS @rc_seed_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration4][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[1]
+  DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[75]
+  DECLARE unitaries_q1 REAL[75]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 11
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration5][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[2]
+  DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[87]
+  DECLARE unitaries_q1 REAL[87]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 11
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 2
+  JUMP-UNLESS @rc_seed_loop break[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 1
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration6][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[1]
+  DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[63]
+  DECLARE unitaries_q1 REAL[63]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 4
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration7][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[2]
+  DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[87]
+  DECLARE unitaries_q1 REAL[87]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE rc_seed_index[0] 1
+  LABEL @rc_seed_loop
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_seed_loop_inner
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 5
+  JUMP-UNLESS @rc_seed_loop_inner break[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  GE break[0] rc_seed_index[0] 2
+  JUMP-UNLESS @rc_seed_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration8][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[2]
+  DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[147]
+  DECLARE unitaries_q1 REAL[147]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[1] pauli_seed_q1[1]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE rc_seed_index[0] 1
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  LOAD current_seeds_q0[0] pauli_seed_q0 rc_seed_index[0]
+  LOAD current_seeds_q1[0] pauli_seed_q1 rc_seed_index[0]
+  ADD rc_seed_index[0] 1
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 1
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  MOVE current_seeds_q0[1] current_seeds_q0[0]
+  MOVE current_seeds_q1[1] current_seeds_q1[0]
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 0 pauli_conjugates_map
+  FENCE
+  
+  '''
+# ---
+# name: test_randomized_compiling_configuration[configuration9][quil]
+  '''
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_conjugate "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis_left : INTEGER, previous_pauli_left_index : INTEGER, previous_paulis_right : INTEGER, previous_pauli_right_index : INTEGER, is_pauli_left : BIT, pauli_conjugates_map : INTEGER[16])"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_literal "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, conjugate_pauli : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_literal_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_pauli : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN merge_zxzxz_unitary_with_paulis_reference_reference "(destination : mut REAL[], unitary_angles : REAL[], angle_offset : INTEGER, next_paulis : INTEGER, next_pauli_index : INTEGER, previous_paulis : INTEGER, previous_pauli_index : INTEGER)"
+  PRAGMA EXTERN prng_set_seed_and_step "INTEGER (seed : INTEGER)"
+  PRAGMA EXTERN prng_step "INTEGER"
+  PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
+  PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
+  PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE current_seeds_q2 INTEGER[1]
+  DECLARE current_seeds_q3 INTEGER[1]
+  DECLARE current_seeds_q4 INTEGER[1]
+  DECLARE current_seeds_q5 INTEGER[1]
+  DECLARE pauli_conjugates_map INTEGER[16]
+  DECLARE pauli_seed_q0 INTEGER[1]
+  DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE pauli_seed_q2 INTEGER[1]
+  DECLARE pauli_seed_q3 INTEGER[1]
+  DECLARE pauli_seed_q4 INTEGER[1]
+  DECLARE pauli_seed_q5 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE unitaries_q0 REAL[33]
+  DECLARE unitaries_q1 REAL[33]
+  DECLARE unitaries_q2 REAL[33]
+  DECLARE unitaries_q3 REAL[33]
+  DECLARE unitaries_q4 REAL[33]
+  DECLARE unitaries_q5 REAL[33]
+  DECLARE unitary_angle_offset INTEGER[1]
+  CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
+  CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
+  CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
+  CALL prng_set_seed_and_step pauli_seed_q3[0] pauli_seed_q3[0]
+  CALL prng_set_seed_and_step pauli_seed_q4[0] pauli_seed_q4[0]
+  CALL prng_set_seed_and_step pauli_seed_q5[0] pauli_seed_q5[0]
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q1 unitaries_q1 0 pauli_seed_q1[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q2 unitaries_q2 0 pauli_seed_q2[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q3 unitaries_q3 0 pauli_seed_q3[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q4 unitaries_q4 0 pauli_seed_q4[0] 0 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q5 unitaries_q5 0 pauli_seed_q5[0] 0 0
+  MOVE unitary_angle_offset[0] 3
+  MOVE current_seeds_q0[0] pauli_seed_q0[0]
+  MOVE current_seeds_q1[0] pauli_seed_q1[0]
+  MOVE current_seeds_q2[0] pauli_seed_q2[0]
+  MOVE current_seeds_q3[0] pauli_seed_q3[0]
+  MOVE current_seeds_q4[0] pauli_seed_q4[0]
+  MOVE current_seeds_q5[0] pauli_seed_q5[0]
+  MOVE rc_base_cycle_loop_index[0] 0
+  LABEL @rc_base_cycle_loop
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q5[0] 0
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  ADD rc_base_cycle_loop_index[0] 1
+  GE break[0] rc_base_cycle_loop_index[0] 4
+  JUMP-UNLESS @rc_base_cycle_loop break[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] current_seeds_q3[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] current_seeds_q4[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q5 unitaries_q5 unitary_angle_offset[0] current_seeds_q5[0] 1 current_seeds_q4[0] 0 current_seeds_q5[0] 0 0 pauli_conjugates_map
+  ADD unitary_angle_offset[0] 3
+  SHR current_seeds_q0[0] 2
+  SHR current_seeds_q1[0] 2
+  SHR current_seeds_q2[0] 2
+  SHR current_seeds_q3[0] 2
+  SHR current_seeds_q4[0] 2
+  SHR current_seeds_q5[0] 2
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] 0 current_seeds_q1[0] 0 current_seeds_q2[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
+  CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
+  FENCE
+  
+  '''
+# ---

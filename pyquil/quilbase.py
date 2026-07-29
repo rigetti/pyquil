@@ -1163,6 +1163,24 @@ class ClassicalExclusiveOr(LogicalBinaryOp):
     op = quil_rs.BinaryOperator.Xor
 
 
+class ClassicalArithmeticShiftRight(LogicalBinaryOp):
+    """The arithmetic shift-right instruction."""
+
+    op = quil_rs.BinaryOperator.Ashr
+
+
+class ClassicalShiftLeft(LogicalBinaryOp):
+    """The shift-left instruction."""
+
+    op = quil_rs.BinaryOperator.Shl
+
+
+class ClassicalShiftRight(LogicalBinaryOp):
+    """The shift-right instruction."""
+
+    op = quil_rs.BinaryOperator.Shr
+
+
 @_add_reduce_method
 class ArithmeticBinaryOp(quil_rs.Arithmetic, AbstractInstruction):
     """Base class for binary arithmetic classical instructions."""
