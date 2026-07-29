@@ -15,6 +15,7 @@ from pyquil.quilatom import (
     substitute_array,
 )
 
+
 def test_format_parameter():
     test_cases = [
         (1, "1"),
