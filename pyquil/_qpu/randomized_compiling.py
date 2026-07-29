@@ -808,8 +808,22 @@ class RandomizedCompilingConfiguration:
     """
 
     skip_first_layer: bool = False
+    """
+    Whether to skip randomly compiling (twirling) the first layer (i.e. the layer preceding the first base cycle).
+
+    Note, this does *not* presume the first layer's gate is omitted from the program -- it will still have a
+    reserved index within the Pauli seeds, however, the user becomes responsible for declaring its own
+    source and, if necessary, twirled unitaries as well as apply any desired twirling to the first layer.
+    """
 
     skip_final_layer: bool = False
+    """
+    Whether to skip randomly compiling (twirling) the final layer (i.e. the layer following the last base cycle).
+
+    Note, this does *not* presume the final layer's gate is omitted from the program -- it will still have a
+    reserved index within the Pauli seeds, however, the user becomes responsible for declaring its own
+    source and, if necessary, twirled unitaries as well as apply any desired twirling to the final layer.
+    """
 
     def __post_init__(self) -> None:
         self._validate()
@@ -851,6 +865,32 @@ class RandomizedCompilingConfiguration:
     @property
     def _cycle_count(self) -> int:
         return self._base_cycle_length * self.base_cycle_repetitions
+
+    @property
+    def _managed_u2_layer_count(self) -> int:
+        """The number of layers requiring dedicated, RC-managed twirled unitary memory.
+
+        There are `_cycle_count + 1` layers in total (one preceding each base cycle, plus a final layer following the
+        last base cycle). If `skip_first_layer` and/or `skip_final_layer` are set, however, the first and/or final
+        layers are not randomly compiled (twirled) and, therefore, need no space in this managed unitary memory
+        region; this excludes them from the count. Note, those layers' gates are still played in the program -- see
+        `skip_first_layer`/`skip_final_layer` for how their (untwirled) unitary must instead be supplied.
+        """
+        return self._cycle_count + 1 - int(self.skip_first_layer) - int(self.skip_final_layer)
+
+    def _get_unitary_memory_index(self, layer_index: int) -> int:
+        """Map an absolute layer index (`0` to `_cycle_count` inclusive) to its index within the (possibly smaller)
+        RC-managed twirled unitary memory region.
+
+        Raises a `ValueError` if `layer_index` refers to a layer excluded from this memory by `skip_first_layer` or
+        `skip_final_layer`. Those layers are still played in the program; their (untwirled) unitary must simply be
+        supplied through a separate memory region managed by the caller, rather than through this one.
+        """
+        if self.skip_first_layer and layer_index == 0:
+            raise ValueError("layer 0 has no unitary memory allocated because skip_first_layer=True")
+        if self.skip_final_layer and layer_index == self._cycle_count:
+            raise ValueError(f"layer {layer_index} has no unitary memory allocated because skip_final_layer=True")
+        return layer_index - int(self.skip_first_layer)
 
     @property
     def _seed_length(self) -> int:
@@ -901,7 +941,7 @@ class RandomizedCompilingConfiguration:
                 Declare(
                     self.variables.twirled_unitaries(q),
                     "REAL",
-                    (self._cycle_count + 1) * _ANGLES_PER_UNITARY,
+                    self._managed_u2_layer_count * _ANGLES_PER_UNITARY,
                 )
             )
 
@@ -949,7 +989,7 @@ class RandomizedCompilingConfiguration:
         This does not include the source unitary angles, which must separately be supplied by the user.
         """
         memory_map: dict[str, Union[list[int], list[float]]] = {
-            self.variables.unitary_angle_offset: [_ANGLES_PER_UNITARY],
+            self.variables.unitary_angle_offset: [0 if self.skip_first_layer else _ANGLES_PER_UNITARY],
             self.variables.loop_break: [0],
         }
         if self._seed_loop_length > 0 or self._base_cycle_length >= self._paulis_per_value:
@@ -1166,7 +1206,7 @@ class RandomizedCompilingConfiguration:
         instructions.append(
             ClassicalMove(
                 MemoryReference(self.variables.unitary_angle_offset, 0),
-                _ANGLES_PER_UNITARY,
+                0 if self.skip_first_layer else _ANGLES_PER_UNITARY,
             ),
         )
         for qubit in self.qubits_sorted:
@@ -1393,7 +1433,8 @@ class RandomizedCompilingConfiguration:
                     continue
                 if layer_index == len(cycles) and self.skip_final_layer:
                     continue
-                start_angle = layer_index * _ANGLES_PER_UNITARY
+                memory_index = self._get_unitary_memory_index(layer_index)
+                start_angle = memory_index * _ANGLES_PER_UNITARY
                 end_angle = start_angle + _ANGLES_PER_UNITARY
                 found_final_unitary_angles = tuple(
                     final_memory[self.variables.twirled_unitaries(q)][start_angle:end_angle]

@@ -386,20 +386,19 @@ class ConfigurationTestCase:
     readout_randomization: Optional[ReadoutRandomization] = None
 
     def build_quil_program(self) -> Program:
-        program = Program()
-        program += self.configuration.build_quil_program()
-        if self.readout_randomization is not None:
-            program += self.readout_randomization.build_quil_program()
-            for qubit in self.readout_randomization.qubits_sorted:
-                call = self.configuration.apply_pauli_pair(
-                    qubit,
-                    self.configuration._cycle_count,
-                    source_unitaries=f"readout_randomization_q{qubit}",
-                    target_unitaries=f"readout_randomization_q{qubit}",
-                    unitary_offset=0,
-                )
-                if call is not None:
-                    program += call
+        with self.configuration.open_classical_preamble() as program:
+            if self.readout_randomization is not None:
+                program += self.readout_randomization.build_quil_program()
+                for qubit in self.readout_randomization.qubits_sorted:
+                    call = self.configuration.apply_pauli_pair(
+                        qubit,
+                        self.configuration._cycle_count,
+                        source_unitaries=f"readout_randomization_q{qubit}",
+                        target_unitaries=f"readout_randomization_q{qubit}",
+                        unitary_offset=0,
+                    )
+                    if call is not None:
+                        program += call
         return program
 
     def generate_seeds_and_memory_map(
@@ -417,7 +416,7 @@ class ConfigurationTestCase:
             memory_map.update(self.readout_randomization.build_memory_map(readout_seeds))
         else:
             readout_seeds = None
-        memory_map.update(generate_source_unitaries(self.configuration, rng))
+        memory_map.update(generate_source_unitaries(self.configuration, rng, self.readout_randomization))
         return memory_map, rc_seeds, readout_seeds
 
 
@@ -429,34 +428,56 @@ def _sx(qubit: int) -> gates.Gate:
     return gates.RX(np.pi / 2, qubit)
 
 
+def _skipped_layer_region_name(qubit: int, which: str) -> str:
+    """Name of the dedicated memory region holding the untwirled unitary for a skipped first/final layer.
+
+    `RandomizedCompilingConfiguration.skip_first_layer`/`skip_final_layer` exclude the corresponding layer from the
+    RC-managed (twirled) unitary memory, since that layer is never twirled. The layer's gate is still played,
+    however, so the surrounding gate program (here, the test harness) is responsible for separately declaring and
+    supplying memory for it -- this is that region's name.
+    """
+    return f"skipped_{which}_layer_unitary_q{qubit}"
+
+
 def _zxzxz(
     configuration: rc.RandomizedCompilingConfiguration,
     layer_index: int,
     readout_randomization: Optional[ReadoutRandomization] = None,
 ) -> Program:
+    """Build the ZXZXZ decomposition gates for a given layer.
+
+    Note, `layer_index` is the absolute layer index (i.e. `0` through `configuration._cycle_count` inclusive). The
+    gates are always built, regardless of `skip_first_layer`/`skip_final_layer` -- those flags only mean the layer
+    is not twirled, not that its gate is omitted from the program. The angles are read as follows:
+
+    * If `readout_randomization` is provided (only ever done for the final layer), the angles are read from the
+      corresponding `readout_randomization_q{qubit}` memory region.
+    * Otherwise, if this is a layer excluded from the RC-managed twirled unitary memory (i.e. layer 0 when
+      `skip_first_layer`, or the final layer when `skip_final_layer`), the angles are read from the dedicated,
+      separately-declared region named by `_skipped_layer_region_name`.
+    * Otherwise, the angles are read from the twirled unitary memory, via `configuration._get_unitary_memory_index`
+      to account for the (possibly smaller) memory layout.
+    """
     program = Program()
+    is_skipped_first_layer = layer_index == 0 and configuration.skip_first_layer
+    is_skipped_final_layer = layer_index == configuration._cycle_count and configuration.skip_final_layer
+    memory_index = None
+    if readout_randomization is None and not (is_skipped_first_layer or is_skipped_final_layer):
+        memory_index = configuration._get_unitary_memory_index(layer_index)
     for qubit in configuration.qubits_sorted:
-        if readout_randomization is None:
-            ref = configuration.variables.twirled_unitaries_ref(qubit, layer_index, 0)
-        else:
-            ref = MemoryReference(f"readout_randomization_q{qubit}", 0)
-        program += gates.RZ(2 * np.pi * ref, qubit)
-        program += _sx(qubit)
-        program += gates.FENCE(qubit)
-
-        if readout_randomization is None:
-            ref = configuration.variables.twirled_unitaries_ref(qubit, layer_index, 1)
-        else:
-            ref = MemoryReference(f"readout_randomization_q{qubit}", 1)
-        program += gates.RZ(2 * np.pi * ref, qubit)
-        program += _sx(qubit)
-        program += gates.FENCE(qubit)
-
-        if readout_randomization is None:
-            ref = configuration.variables.twirled_unitaries_ref(qubit, layer_index, 2)
-        else:
-            ref = MemoryReference(f"readout_randomization_q{qubit}", 2)
-        program += gates.RZ(2 * np.pi * ref, qubit)
+        for angle_index in range(3):
+            if readout_randomization is not None:
+                ref = MemoryReference(f"readout_randomization_q{qubit}", angle_index)
+            elif is_skipped_first_layer:
+                ref = MemoryReference(_skipped_layer_region_name(qubit, "first"), angle_index)
+            elif is_skipped_final_layer:
+                ref = MemoryReference(_skipped_layer_region_name(qubit, "final"), angle_index)
+            else:
+                ref = configuration.variables.twirled_unitaries_ref(qubit, memory_index, angle_index)
+            program += gates.RZ(2 * np.pi * ref, qubit)
+            if angle_index < 2:
+                program += _sx(qubit)
+                program += gates.FENCE(qubit)
     return program
 
 
@@ -464,11 +485,20 @@ def build_cycle_program(
     configuration: rc.RandomizedCompilingConfiguration, readout_randomization: Optional[ReadoutRandomization]
 ) -> Program:
     program = Program()
-    cycle_count = configuration.base_cycle_repetitions * len(configuration.base_cycles) + 1
+    layer_count = configuration._managed_u2_layer_count
     if not configuration.variables.twirled_overwrites_source_unitaries:
         for qubit in configuration.qubits_sorted:
             memory_region_name = configuration.variables.source_unitaries(qubit)
-            program += Declare(memory_region_name, "REAL", cycle_count * rc._ANGLES_PER_UNITARY)
+            program += Declare(memory_region_name, "REAL", layer_count * rc._ANGLES_PER_UNITARY)
+    # layers excluded from the RC-managed twirled unitary memory (because they are never twirled) still need their
+    # gate played, so we separately declare memory to hold their (untwirled) unitary.
+    if configuration.skip_first_layer:
+        for qubit in configuration.qubits_sorted:
+            program += Declare(_skipped_layer_region_name(qubit, "first"), "REAL", rc._ANGLES_PER_UNITARY)
+    if configuration.skip_final_layer and readout_randomization is None:
+        for qubit in configuration.qubits_sorted:
+            program += Declare(_skipped_layer_region_name(qubit, "final"), "REAL", rc._ANGLES_PER_UNITARY)
+
     for rep_index in range(configuration.base_cycle_repetitions):
         for base_index, cycle in enumerate(configuration._base_twirled_cycles):
             layer_index = rep_index * len(configuration.base_cycles) + base_index
@@ -647,18 +677,39 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
         ),
         base_cycle_loop_length=4,
     ),
+    # 17) 4 looped base cycles with the first and final layers skipped;
+    ConfigurationTestCase(
+        configuration=rc.RandomizedCompilingConfiguration(
+            base_cycles=_ALTERNATING_BASE_CYCLES, base_cycle_repetitions=5, skip_first_layer=True, skip_final_layer=True
+        ),
+        base_cycle_loop_length=4,
+    ),
 ]
 
 
 def generate_source_unitaries(
-    configuration: rc.RandomizedCompilingConfiguration, rng: np.random.Generator
+    configuration: rc.RandomizedCompilingConfiguration,
+    rng: np.random.Generator,
+    readout_randomization: Optional[ReadoutRandomization] = None,
 ) -> dict[str, list[float]]:
     source_unitaries = {}
-    cycle_count = configuration.base_cycle_repetitions * len(configuration.base_cycles) + 1
+    layer_count = configuration._managed_u2_layer_count
     for qubit in configuration.qubits_sorted:
         source_unitaries[configuration.variables.source_unitaries(qubit)] = rng.uniform(
-            -0.5, 0.5, size=rc._ANGLES_PER_UNITARY * cycle_count
+            -0.5, 0.5, size=rc._ANGLES_PER_UNITARY * layer_count
         ).tolist()
+    # layers excluded from the RC-managed twirled unitary memory still need values to play their (untwirled) gate;
+    # these live in the dedicated regions declared in `build_cycle_program`. See `_skipped_layer_region_name`.
+    if configuration.skip_first_layer:
+        for qubit in configuration.qubits_sorted:
+            source_unitaries[_skipped_layer_region_name(qubit, "first")] = rng.uniform(
+                -0.5, 0.5, size=rc._ANGLES_PER_UNITARY
+            ).tolist()
+    if configuration.skip_final_layer and readout_randomization is None:
+        for qubit in configuration.qubits_sorted:
+            source_unitaries[_skipped_layer_region_name(qubit, "final")] = rng.uniform(
+                -0.5, 0.5, size=rc._ANGLES_PER_UNITARY
+            ).tolist()
     return source_unitaries
 
 

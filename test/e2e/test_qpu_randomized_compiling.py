@@ -40,7 +40,7 @@ def execution_options() -> ExecutionOptionsBuilder:
 
 
 @pytest.mark.parametrize("test_case", trc.CONFIGURATION_TEST_CASES)
-def test_qpu_randomized_compiling(
+def test_randomized_compiling_configuration(
     quantum_processor_id: str,
     client_configuration: QCSClient,
     execution_options: ExecutionOptionsBuilder,
