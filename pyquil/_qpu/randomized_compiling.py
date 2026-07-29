@@ -20,6 +20,8 @@ Note, these utilities do not build the cycle program itself nor the source unita
 program.
 """
 
+from contextlib import contextmanager
+from pyquil.gates import FENCE
 import math
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Mapping, Sequence
@@ -54,7 +56,7 @@ from pyquil.quilbase import (
 )
 from pyquil.simulation import matrices
 
-from .extern_signatures import build_extern_function_signatures
+from ._classical_computations import build_extern_function_signatures, delay_and_fence_classical_preamble
 
 _BITS_PER_VALUE = 48
 _BITS_PER_PAULI = 2
@@ -352,14 +354,14 @@ class ShotsPerRandomization:
     """
 
     shots_per_randomization: int
-    secondary_delay_seconds: Optional[float] = 2e-4
+    non_randomization_delay_seconds: Optional[float] = 2e-4
     variables: ShotsPerRandomizationVariables = field(default_factory=ShotsPerRandomizationVariables)
 
     @property
     def pulse_program_label(self) -> InstructionDesignator:
         return JumpTarget(Label(self.variables.pulse_program_label))
 
-    def generate_mod_shot_count_block(self) -> tuple[InstructionDesignator, ...]:
+    def generate_mod_shot_count_block(self, qubits_sorted: Sequence[int]) -> tuple[InstructionDesignator, ...]:
         instructions: list[InstructionDesignator] = [
             ClassicalAdd(
                 MemoryReference(self.variables.modulo_counter, 0),
@@ -388,6 +390,9 @@ class ShotsPerRandomization:
                 MemoryReference(self.variables.is_mod_zero, 0),
             ),
         ]
+        if self.non_randomization_delay_seconds is not None:
+            for qubit in qubits_sorted:
+                instructions.append(Delay([], [qubit], self.non_randomization_delay_seconds))
         instructions.append(Jump(Label(self.variables.pulse_program_label)))
         instructions.append(JumpTarget(Label(self.variables.randomization_label)))
         return tuple(instructions)
@@ -787,8 +792,11 @@ class RandomizedCompilingConfiguration:
     variables: RandomizedCompilingVariables = field(default_factory=RandomizedCompilingVariables)
     """Configuration for variable naming conventions in the generated Quil program."""
 
-    leading_delay_seconds: float = 2e-4
-    """The delay to insert before starting the gate program."""
+    leading_delay_seconds: float | None = 2e-4
+    """
+    The delay to insert before starting the gate program. If None, no leading delay or final fence will be
+    included in `open_classical_preamble` or `build_quil_program`.
+    """
 
     shots_per_randomization: Optional[ShotsPerRandomization] = None
     """Configuration for randomizing only a subset of shots."""
@@ -882,7 +890,7 @@ class RandomizedCompilingConfiguration:
     def qubits_sorted(self) -> tuple[int, ...]:
         return tuple(sorted({qubit for cycle in self._base_twirled_cycles for qubit in cycle.all_qubits}))
 
-    def _generate_declarations(self) -> tuple[InstructionDesignator, ...]:
+    def _generate_declarations(self) -> tuple[Declare, ...]:
         declarations: list[Declare] = []
         declarations.append(Declare(self.variables.pauli_conjugates_map, "INTEGER", _NUMBER_PAULI_PAIRS))
 
@@ -1142,7 +1150,6 @@ class RandomizedCompilingConfiguration:
         # first cycle.
         if not self.skip_first_layer:
             for q in self.qubits_sorted:
-                call = self.apply_pauli_pair(qubit=q, layer_index=0, unitary_offset=0)
                 pauli_pair = _PauliPair(
                     previous=PauliLiteral.I,
                     next=_PauliReference(
@@ -1193,9 +1200,6 @@ class RandomizedCompilingConfiguration:
                 loop_index_increment=None,
             )
             instructions.extend(seed_loop)
-            if self._base_cycle_loop_length == 0:
-                for qubit in self.qubits_sorted:
-                    instructions.append(Delay([], [qubit], self.leading_delay_seconds))
         elif self._base_cycle_length >= self._paulis_per_value:
             instructions.append(
                 ClassicalMove(
@@ -1212,13 +1216,38 @@ class RandomizedCompilingConfiguration:
                 loop_index_end=self._base_cycle_loop_length,
             )
             instructions.extend(base_loop)
-            for qubit in self.qubits_sorted:
-                instructions.append(Delay([], [qubit], self.leading_delay_seconds))
 
         final_base_cycle = self._build_quil_instructions_for_base_cycle(is_final_base_cycle=True)
         instructions.extend(final_base_cycle)
 
         return instructions
+
+    @contextmanager
+    def open_classical_preamble(self) -> Generator[Program, None, None]:
+        """Generate a cycle program with randomized compilation according to the specified configuration.
+
+        Note, this does not include the gate program instructions.
+
+        In contrast to `build_quil_program`, this yields the program from a contextmanager before
+        wrapping the final block of the classical preamble in the necessary delays and fences.
+        """
+        program = Program()
+        program += list(build_extern_function_signatures().values())
+        program += list(self._generate_declarations())
+
+        if self.shots_per_randomization is not None:
+            program += list(self.shots_per_randomization.generate_mod_shot_count_block(self.qubits_sorted))
+
+        program += self._build_quil_instructions_for_randomized_compiling()
+
+        if self.shots_per_randomization is not None:
+            program += self.shots_per_randomization.pulse_program_label
+
+        yield program
+        if self.leading_delay_seconds is not None:
+            delay_and_fence_classical_preamble(
+                program, [Delay([], [qubit], self.leading_delay_seconds) for qubit in self.qubits_sorted], [FENCE()]
+            )
 
     def build_quil_program(
         self,
@@ -1227,27 +1256,8 @@ class RandomizedCompilingConfiguration:
 
         Note, this does not include the gate program instructions.
         """
-        program = Program()
-        program += list(build_extern_function_signatures().values())
-        program += list(self._generate_declarations())
-
-        if self.shots_per_randomization is not None:
-            program += list(self.shots_per_randomization.generate_mod_shot_count_block())
-
-        if self._seed_loop_length == 0 and self._base_cycle_loop_length == 0:
-            for qubit in self.qubits_sorted:
-                program += Delay([], [qubit], self.leading_delay_seconds)
-
-        program += self._build_quil_instructions_for_randomized_compiling()
-
-        if self.shots_per_randomization is not None:
-            program += self.shots_per_randomization.pulse_program_label
-            if self.shots_per_randomization.secondary_delay_seconds is not None:
-                for q in self.qubits_sorted:
-                    program += Delay([], [q], self.shots_per_randomization.secondary_delay_seconds)
-        else:
-            program += Fence([Qubit(q) for q in self.qubits_sorted])
-
+        with self.open_classical_preamble() as program:
+            pass
         return program
 
     def apply_pauli_pair(

@@ -19,7 +19,9 @@ def _get_bitstrings_and_final_memory(
     execution_options: ExecutionOptionsBuilder,
     qcs_client: QCSClient,
 ) -> tuple[NDArray[np.int8], dict[str, Union[list[int], list[float]]]]:
-    job_id = submit(translation_result.program, memory_map, live_quantum_processor_id, qcs_client, execution_options.build())
+    job_id = submit(
+        translation_result.program, memory_map, live_quantum_processor_id, qcs_client, execution_options.build()
+    )
     results = retrieve_results(
         job_id,
         quantum_processor_id=live_quantum_processor_id,
@@ -51,8 +53,6 @@ def test_qpu_randomized_compiling(
     rng = np.random.default_rng(trc.CONFIGURATION_TEST_SEED)
 
     program = test_case.build_quil_program()
-    with open('.scratch/program.quil', 'w') as f:
-        f.write(program.out())
     program += trc.build_cycle_program(configuration, test_case.readout_randomization)
 
     pauli_conjugates_map = rc.PAULI_CONJUGATES_MAPS["CZ"]
@@ -67,10 +67,6 @@ def test_qpu_randomized_compiling(
         qcs_client=client_configuration,
     )
 
-    with open('.scratch/final_memory.json', 'w') as f:
-        import json
-        json.dump(final_memory, f)
-
     configuration.verify_final_memory(
         final_memory,
         memory_map,
@@ -81,7 +77,9 @@ def test_qpu_randomized_compiling(
     if test_case.readout_randomization is not None:
         if readout_seeds is None:
             raise ValueError("Readout seeds should not be None when readout randomization is provided.")
-        pauli_pairs = test_case.configuration.get_final_pauli_pairs(trc.TEST_SHOT_COUNT, pauli_conjugates_map, rc_seeds, accumulate=False)
+        pauli_pairs = test_case.configuration.get_final_pauli_pairs(
+            trc.TEST_SHOT_COUNT, pauli_conjugates_map, rc_seeds, accumulate=False
+        )
         test_case.readout_randomization.verify_final_memory(
             final_memory,
             readout_seeds,

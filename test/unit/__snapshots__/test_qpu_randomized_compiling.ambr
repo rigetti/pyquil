@@ -12,15 +12,15 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[1]
   DECLARE pauli_seed_q1 INTEGER[1]
   DECLARE unitaries_q0 REAL[6]
   DECLARE unitaries_q1 REAL[6]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE current_seeds_q0 INTEGER[1]
-  DECLARE current_seeds_q1 INTEGER[1]
   DELAY 0 0.0002
   DELAY 1 0.0002
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
@@ -32,7 +32,7 @@
   MOVE current_seeds_q1[0] pauli_seed_q1[0]
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -49,6 +49,13 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[3]
   DECLARE pauli_seed_q1 INTEGER[3]
@@ -56,6 +63,8 @@
   DECLARE pauli_seed_q3 INTEGER[3]
   DECLARE pauli_seed_q4 INTEGER[3]
   DECLARE pauli_seed_q5 INTEGER[3]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[153]
   DECLARE unitaries_q1 REAL[153]
   DECLARE unitaries_q2 REAL[153]
@@ -63,15 +72,6 @@
   DECLARE unitaries_q4 REAL[153]
   DECLARE unitaries_q5 REAL[153]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
-  DECLARE current_seeds_q2 INTEGER[2]
-  DECLARE current_seeds_q3 INTEGER[2]
-  DECLARE current_seeds_q4 INTEGER[2]
-  DECLARE current_seeds_q5 INTEGER[2]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
   CALL prng_set_seed_and_step pauli_seed_q0[2] pauli_seed_q0[2]
@@ -196,7 +196,7 @@
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
-  FENCE 0 1 2 3 4 5
+  FENCE
   
   '''
 # ---
@@ -213,6 +213,13 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[3]
   DECLARE pauli_seed_q1 INTEGER[3]
@@ -220,6 +227,8 @@
   DECLARE pauli_seed_q3 INTEGER[3]
   DECLARE pauli_seed_q4 INTEGER[3]
   DECLARE pauli_seed_q5 INTEGER[3]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[165]
   DECLARE unitaries_q1 REAL[165]
   DECLARE unitaries_q2 REAL[165]
@@ -227,15 +236,6 @@
   DECLARE unitaries_q4 REAL[165]
   DECLARE unitaries_q5 REAL[165]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
-  DECLARE current_seeds_q2 INTEGER[2]
-  DECLARE current_seeds_q3 INTEGER[2]
-  DECLARE current_seeds_q4 INTEGER[2]
-  DECLARE current_seeds_q5 INTEGER[2]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
   CALL prng_set_seed_and_step pauli_seed_q0[2] pauli_seed_q0[2]
@@ -391,7 +391,7 @@
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
-  FENCE 0 1 2 3 4 5
+  FENCE
   
   '''
 # ---
@@ -408,6 +408,15 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
+  DECLARE is_mod_zero BIT[1]
+  DECLARE modulo_counter INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[2]
   DECLARE pauli_seed_q1 INTEGER[2]
@@ -415,28 +424,25 @@
   DECLARE pauli_seed_q3 INTEGER[2]
   DECLARE pauli_seed_q4 INTEGER[2]
   DECLARE pauli_seed_q5 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[81]
   DECLARE unitaries_q1 REAL[81]
   DECLARE unitaries_q2 REAL[81]
   DECLARE unitaries_q3 REAL[81]
   DECLARE unitaries_q4 REAL[81]
   DECLARE unitaries_q5 REAL[81]
-  DECLARE modulo_counter INTEGER[1]
-  DECLARE is_mod_zero BIT[1]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
-  DECLARE current_seeds_q2 INTEGER[2]
-  DECLARE current_seeds_q3 INTEGER[2]
-  DECLARE current_seeds_q4 INTEGER[2]
-  DECLARE current_seeds_q5 INTEGER[2]
   ADD modulo_counter[0] 1
   GE is_mod_zero[0] modulo_counter[0] 50
   CALL if_then_else_integer modulo_counter[0] is_mod_zero[0] 0 modulo_counter[0]
   JUMP-WHEN @rc_main is_mod_zero[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
   JUMP @pulse_program
   LABEL @rc_main
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
@@ -532,12 +538,6 @@
   ADD unitary_angle_offset[0] 3
   GE break[0] rc_seed_index[0] 2
   JUMP-UNLESS @rc_seed_loop break[0]
-  DELAY 0 0.0002
-  DELAY 1 0.0002
-  DELAY 2 0.0002
-  DELAY 3 0.0002
-  DELAY 4 0.0002
-  DELAY 5 0.0002
   CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
@@ -564,6 +564,7 @@
   DELAY 3 0.0002
   DELAY 4 0.0002
   DELAY 5 0.0002
+  FENCE
   
   '''
 # ---
@@ -580,6 +581,13 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[2]
   DECLARE pauli_seed_q1 INTEGER[2]
@@ -587,6 +595,8 @@
   DECLARE pauli_seed_q3 INTEGER[2]
   DECLARE pauli_seed_q4 INTEGER[2]
   DECLARE pauli_seed_q5 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[81]
   DECLARE unitaries_q1 REAL[81]
   DECLARE unitaries_q2 REAL[81]
@@ -594,15 +604,6 @@
   DECLARE unitaries_q4 REAL[81]
   DECLARE unitaries_q5 REAL[81]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
-  DECLARE current_seeds_q2 INTEGER[2]
-  DECLARE current_seeds_q3 INTEGER[2]
-  DECLARE current_seeds_q4 INTEGER[2]
-  DECLARE current_seeds_q5 INTEGER[2]
   DECLARE readout_source_angles REAL[36]
   DECLARE readout_seed_q0 INTEGER[1]
   DECLARE readout_randomization_q0 REAL[3]
@@ -728,7 +729,7 @@
   SHR current_seeds_q3[0] 2
   SHR current_seeds_q4[0] 2
   SHR current_seeds_q5[0] 2
-  FENCE 0 1 2 3 4 5
+  FENCE
   CALL choose_random_real_sub_regions readout_randomization_q0 readout_source_angles 3 readout_seed_q0[0]
   CALL choose_random_real_sub_regions readout_randomization_q1 readout_source_angles 3 readout_seed_q1[0]
   CALL choose_random_real_sub_regions readout_randomization_q2 readout_source_angles 3 readout_seed_q2[0]
@@ -757,6 +758,15 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
+  DECLARE current_seeds_q3 INTEGER[2]
+  DECLARE current_seeds_q4 INTEGER[2]
+  DECLARE current_seeds_q5 INTEGER[2]
+  DECLARE is_mod_zero BIT[1]
+  DECLARE modulo_counter INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[2]
   DECLARE pauli_seed_q1 INTEGER[2]
@@ -764,24 +774,15 @@
   DECLARE pauli_seed_q3 INTEGER[2]
   DECLARE pauli_seed_q4 INTEGER[2]
   DECLARE pauli_seed_q5 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[81]
   DECLARE unitaries_q1 REAL[81]
   DECLARE unitaries_q2 REAL[81]
   DECLARE unitaries_q3 REAL[81]
   DECLARE unitaries_q4 REAL[81]
   DECLARE unitaries_q5 REAL[81]
-  DECLARE modulo_counter INTEGER[1]
-  DECLARE is_mod_zero BIT[1]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
-  DECLARE current_seeds_q2 INTEGER[2]
-  DECLARE current_seeds_q3 INTEGER[2]
-  DECLARE current_seeds_q4 INTEGER[2]
-  DECLARE current_seeds_q5 INTEGER[2]
   DECLARE readout_source_angles REAL[36]
   DECLARE readout_seed_q0 INTEGER[1]
   DECLARE readout_randomization_q0 REAL[3]
@@ -799,6 +800,12 @@
   GE is_mod_zero[0] modulo_counter[0] 50
   CALL if_then_else_integer modulo_counter[0] is_mod_zero[0] 0 modulo_counter[0]
   JUMP-WHEN @rc_main is_mod_zero[0]
+  DELAY 0 0.0002
+  DELAY 1 0.0002
+  DELAY 2 0.0002
+  DELAY 3 0.0002
+  DELAY 4 0.0002
+  DELAY 5 0.0002
   JUMP @pulse_program
   LABEL @rc_main
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
@@ -894,12 +901,6 @@
   ADD unitary_angle_offset[0] 3
   GE break[0] rc_seed_index[0] 2
   JUMP-UNLESS @rc_seed_loop break[0]
-  DELAY 0 0.0002
-  DELAY 1 0.0002
-  DELAY 2 0.0002
-  DELAY 3 0.0002
-  DELAY 4 0.0002
-  DELAY 5 0.0002
   CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] current_seeds_q0[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] current_seeds_q1[0] 1 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_reference_conjugate unitaries_q2 unitaries_q2 unitary_angle_offset[0] current_seeds_q2[0] 1 current_seeds_q2[0] 0 current_seeds_q3[0] 0 1 pauli_conjugates_map
@@ -920,6 +921,7 @@
   DELAY 3 0.0002
   DELAY 4 0.0002
   DELAY 5 0.0002
+  FENCE
   CALL choose_random_real_sub_regions readout_randomization_q0 readout_source_angles 3 readout_seed_q0[0]
   CALL choose_random_real_sub_regions readout_randomization_q1 readout_source_angles 3 readout_seed_q1[0]
   CALL choose_random_real_sub_regions readout_randomization_q2 readout_source_angles 3 readout_seed_q2[0]
@@ -948,20 +950,20 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
+  DECLARE current_seeds_q2 INTEGER[2]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[2]
   DECLARE pauli_seed_q1 INTEGER[2]
   DECLARE pauli_seed_q2 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[120]
   DECLARE unitaries_q1 REAL[120]
   DECLARE unitaries_q2 REAL[120]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
-  DECLARE current_seeds_q2 INTEGER[2]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
@@ -1075,7 +1077,7 @@
   SHR current_seeds_q2[0] 2
   CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0
   CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q2 unitaries_q2 unitary_angle_offset[0] 0 current_seeds_q2[0] 0
-  FENCE 0 1 2
+  FENCE
   
   '''
 # ---
@@ -1092,6 +1094,13 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE current_seeds_q2 INTEGER[1]
+  DECLARE current_seeds_q3 INTEGER[1]
+  DECLARE current_seeds_q4 INTEGER[1]
+  DECLARE current_seeds_q5 INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[1]
   DECLARE pauli_seed_q1 INTEGER[1]
@@ -1099,6 +1108,7 @@
   DECLARE pauli_seed_q3 INTEGER[1]
   DECLARE pauli_seed_q4 INTEGER[1]
   DECLARE pauli_seed_q5 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
   DECLARE twirled_unitaries_q0 REAL[33]
   DECLARE twirled_unitaries_q1 REAL[33]
   DECLARE twirled_unitaries_q2 REAL[33]
@@ -1106,14 +1116,6 @@
   DECLARE twirled_unitaries_q4 REAL[33]
   DECLARE twirled_unitaries_q5 REAL[33]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[1]
-  DECLARE current_seeds_q1 INTEGER[1]
-  DECLARE current_seeds_q2 INTEGER[1]
-  DECLARE current_seeds_q3 INTEGER[1]
-  DECLARE current_seeds_q4 INTEGER[1]
-  DECLARE current_seeds_q5 INTEGER[1]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
   CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
@@ -1189,7 +1191,7 @@
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate twirled_unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate twirled_unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_reference twirled_unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
-  FENCE 0 1 2 3 4 5
+  FENCE
   
   '''
 # ---
@@ -1206,16 +1208,16 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[1]
   DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
   DECLARE unitaries_q0 REAL[9]
   DECLARE unitaries_q1 REAL[9]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[1]
-  DECLARE current_seeds_q1 INTEGER[1]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
   CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
@@ -1237,7 +1239,7 @@
   DELAY 1 0.0002
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -1254,16 +1256,16 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[1]
   DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
   DECLARE unitaries_q0 REAL[75]
   DECLARE unitaries_q1 REAL[75]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[1]
-  DECLARE current_seeds_q1 INTEGER[1]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
   CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
@@ -1285,7 +1287,7 @@
   DELAY 1 0.0002
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -1302,17 +1304,17 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[2]
   DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[78]
   DECLARE unitaries_q1 REAL[78]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
@@ -1348,7 +1350,7 @@
   DELAY 1 0.0002
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -1365,16 +1367,16 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[1]
   DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
   DECLARE unitaries_q0 REAL[75]
   DECLARE unitaries_q1 REAL[75]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[1]
-  DECLARE current_seeds_q1 INTEGER[1]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
   CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
@@ -1406,7 +1408,7 @@
   SHR current_seeds_q1[0] 2
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -1423,17 +1425,17 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[2]
   DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[87]
   DECLARE unitaries_q1 REAL[87]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
@@ -1499,7 +1501,7 @@
   SHR current_seeds_q1[0] 2
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -1516,16 +1518,16 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[1]
   DECLARE pauli_seed_q1 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
   DECLARE unitaries_q0 REAL[63]
   DECLARE unitaries_q1 REAL[63]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[1]
-  DECLARE current_seeds_q1 INTEGER[1]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
   CALL merge_zxzxz_unitary_with_paulis_reference_literal unitaries_q0 unitaries_q0 0 pauli_seed_q0[0] 0 0
@@ -1577,7 +1579,7 @@
   SHR current_seeds_q1[0] 2
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -1594,17 +1596,17 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[2]
   DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[87]
   DECLARE unitaries_q1 REAL[87]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
@@ -1685,7 +1687,7 @@
   SHR current_seeds_q1[0] 2
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[0] 0 current_seeds_q1[0] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -1702,17 +1704,17 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[2]
+  DECLARE current_seeds_q1 INTEGER[2]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[2]
   DECLARE pauli_seed_q1 INTEGER[2]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
+  DECLARE rc_seed_index INTEGER[1]
   DECLARE unitaries_q0 REAL[147]
   DECLARE unitaries_q1 REAL[147]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_seed_index INTEGER[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[2]
-  DECLARE current_seeds_q1 INTEGER[2]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q0[1] pauli_seed_q0[1]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
@@ -1972,7 +1974,7 @@
   MOVE current_seeds_q1[1] current_seeds_q1[0]
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q0 unitaries_q0 unitary_angle_offset[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q1 unitaries_q1 unitary_angle_offset[0] 0 current_seeds_q0[1] 0 current_seeds_q1[1] 0 0 pauli_conjugates_map
-  FENCE 0 1
+  FENCE
   
   '''
 # ---
@@ -1989,6 +1991,13 @@
   PRAGMA EXTERN if_then_else_integer "INTEGER (condition : BIT, true_value : INTEGER, false_value : INTEGER)"
   PRAGMA EXTERN if_then_else_real "REAL (condition : BIT, true_value : REAL, false_value : REAL)"
   PRAGMA EXTERN choose_random_real_sub_regions "(destination : mut REAL[], source : REAL[], sub_region_size : INTEGER, seed : mut INTEGER)"
+  DECLARE break BIT[1]
+  DECLARE current_seeds_q0 INTEGER[1]
+  DECLARE current_seeds_q1 INTEGER[1]
+  DECLARE current_seeds_q2 INTEGER[1]
+  DECLARE current_seeds_q3 INTEGER[1]
+  DECLARE current_seeds_q4 INTEGER[1]
+  DECLARE current_seeds_q5 INTEGER[1]
   DECLARE pauli_conjugates_map INTEGER[16]
   DECLARE pauli_seed_q0 INTEGER[1]
   DECLARE pauli_seed_q1 INTEGER[1]
@@ -1996,6 +2005,7 @@
   DECLARE pauli_seed_q3 INTEGER[1]
   DECLARE pauli_seed_q4 INTEGER[1]
   DECLARE pauli_seed_q5 INTEGER[1]
+  DECLARE rc_base_cycle_loop_index INTEGER[1]
   DECLARE unitaries_q0 REAL[33]
   DECLARE unitaries_q1 REAL[33]
   DECLARE unitaries_q2 REAL[33]
@@ -2003,14 +2013,6 @@
   DECLARE unitaries_q4 REAL[33]
   DECLARE unitaries_q5 REAL[33]
   DECLARE unitary_angle_offset INTEGER[1]
-  DECLARE break BIT[1]
-  DECLARE rc_base_cycle_loop_index INTEGER[1]
-  DECLARE current_seeds_q0 INTEGER[1]
-  DECLARE current_seeds_q1 INTEGER[1]
-  DECLARE current_seeds_q2 INTEGER[1]
-  DECLARE current_seeds_q3 INTEGER[1]
-  DECLARE current_seeds_q4 INTEGER[1]
-  DECLARE current_seeds_q5 INTEGER[1]
   CALL prng_set_seed_and_step pauli_seed_q0[0] pauli_seed_q0[0]
   CALL prng_set_seed_and_step pauli_seed_q1[0] pauli_seed_q1[0]
   CALL prng_set_seed_and_step pauli_seed_q2[0] pauli_seed_q2[0]
@@ -2086,7 +2088,7 @@
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q3 unitaries_q3 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 1 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_conjugate unitaries_q4 unitaries_q4 unitary_angle_offset[0] 0 current_seeds_q3[0] 0 current_seeds_q4[0] 0 0 pauli_conjugates_map
   CALL merge_zxzxz_unitary_with_paulis_literal_reference unitaries_q5 unitaries_q5 unitary_angle_offset[0] 0 current_seeds_q5[0] 0
-  FENCE 0 1 2 3 4 5
+  FENCE
   
   '''
 # ---

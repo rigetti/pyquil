@@ -1,6 +1,43 @@
+from pyquil.quilbase import Declare
+from pyquil.quilbase import JumpTarget
+from pyquil.quilbase import JumpWhen
+from pyquil.quilbase import JumpUnless, Jump
+from pyquil.quilbase import Fence
+from typing import Sequence
+from pyquil.quilbase import Delay
+from pyquil.quilatom import Label
+from pyquil.quil import Program
+
 from quil import instructions as inst
 
 from pyquil.quilbase import Pragma
+
+
+def delay_and_fence_classical_preamble(
+    classical_preamble: Program, delays: list[Delay], fences: Sequence[Fence]
+) -> None:
+    instructions = classical_preamble.instructions
+    # note that we explicitly sort declarations to ensure determinism.
+    declarations = [instruction for instruction in instructions if isinstance(instruction, Declare)]
+    declarations.sort(key=lambda declare: declare.name)
+    instructions = [instruction for instruction in instructions if not isinstance(instruction, Declare)]
+    last_label_index = next(
+        (
+            i
+            for i in range(len(instructions) - 1, -1, -1)
+            if isinstance(instructions[i], (JumpTarget, Jump, JumpUnless, JumpWhen))
+        ),
+        None,
+    )
+    if last_label_index is None:
+        instructions = declarations + delays + instructions
+    else:
+        instructions = (
+            declarations + instructions[0 : last_label_index + 1] + delays + instructions[last_label_index + 1 :]
+        )
+    instructions.extend(fences)
+    classical_preamble.instructions = instructions
+
 
 _NUMBER_PAULI_PAIRS = 16
 

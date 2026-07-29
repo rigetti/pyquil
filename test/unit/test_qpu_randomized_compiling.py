@@ -53,9 +53,9 @@ def test_lfsr_v1_next(seed: int, sequence_length: int, expected_value: int):
     """
     for _ in range(sequence_length):
         seed = rc._lfsr_v1_next(seed)
-    assert (
-        seed == expected_value
-    ), f"Expected {expected_value} but found {seed} after {sequence_length} iterations of _lfsr_v1_next starting from {seed}"
+    assert seed == expected_value, (
+        f"Expected {expected_value} but found {seed} after {sequence_length} iterations of _lfsr_v1_next starting from {seed}"
+    )
 
 
 def test_pauli_conjugates_map():
@@ -70,18 +70,18 @@ def test_pauli_conjugates_map():
             previous = np.kron(previous_paulis[0].matrix, previous_paulis[1].matrix)
             next_ = np.kron(next_paulis[0].matrix, next_paulis[1].matrix)
             result = next_ @ gate_matrix @ previous
-            assert rc._unitary_equal(
-                result, gate_matrix
-            ), f"Failed for gate {gate_name} with previous {previous_paulis} and next {next_paulis}"
+            assert rc._unitary_equal(result, gate_matrix), (
+                f"Failed for gate {gate_name} with previous {previous_paulis} and next {next_paulis}"
+            )
 
 
 def test_pauli_literal_multiplication():
     """Test that multiplying two `rc.PauliLiteral`s produces the expected coefficient and resulting `rc.PauliLiteral`."""
     for pauli_left, pauli_right in product(rc.PauliLiteral.all(), repeat=2):
         coefficient, result = pauli_left * pauli_right
-        assert np.allclose(
-            coefficient * result.matrix, pauli_left.matrix @ pauli_right.matrix
-        ), f"Failed for {pauli_left} * {pauli_right}"
+        assert np.allclose(coefficient * result.matrix, pauli_left.matrix @ pauli_right.matrix), (
+            f"Failed for {pauli_left} * {pauli_right}"
+        )
 
 
 def _get_expected_random_pauli(
@@ -105,6 +105,7 @@ def _get_expected_random_pauli(
     else:
         seed = rc._generate_lfsr_v1_sequence(seed, sequence_index + 1, 1)[0]
         return seed, rc.PauliLiteral((seed >> (2 * pauli_index)) & 0b11)
+
 
 _SIMPLE_TEST_CYCLE = ((0, 1),)
 _ALTERNATING_BASE_CYCLES = (((0, 1), (2, 3), (4, 5)), (0, (1, 2), (3, 4), 5))
@@ -138,11 +139,10 @@ _PAULI_FRAME_TRACKING_TEST_CASES = [
     rc.RandomizedCompilingConfiguration(
         base_cycles=_ALTERNATING_BASE_CYCLES,
         base_cycle_repetitions=13,
-        variables=rc.RandomizedCompilingVariables(
-            twirled_unitaries_prefix="twirled_unitaries"
-        )
+        variables=rc.RandomizedCompilingVariables(twirled_unitaries_prefix="twirled_unitaries"),
     ),
 ]
+
 
 @pytest.mark.parametrize("configuration", _PAULI_FRAME_TRACKING_TEST_CASES)
 def test_pauli_frame_tracking(configuration: rc.RandomizedCompilingConfiguration):
@@ -165,10 +165,7 @@ def test_pauli_frame_tracking(configuration: rc.RandomizedCompilingConfiguration
     assert all(
         len(pauli_pairs) == len(configuration.qubits_sorted) * (len(all_cycles) + 1) for pauli_pairs in all_pauli_pairs
     )
-    seeds = {
-        q: random_seeds[qubit_index].tolist()
-        for qubit_index, q in enumerate(configuration.qubits_sorted)
-    }
+    seeds = {q: random_seeds[qubit_index].tolist() for qubit_index, q in enumerate(configuration.qubits_sorted)}
     for sequence_index, pauli_pairs in enumerate(all_pauli_pairs):
         # Check that the randomly generated Paulis match expectations.
         for qubit in configuration.qubits_sorted:
@@ -180,14 +177,19 @@ def test_pauli_frame_tracking(configuration: rc.RandomizedCompilingConfiguration
                     expected_next_pauli = rc.PauliLiteral.I
                 else:
                     expected_seed, expected_next_pauli = _get_expected_random_pauli(
-                        seeds[qubit], layer_index, len(all_cycles) + 1, sequence_index, configuration._paulis_per_value, configuration.variables.twirled_overwrites_source_unitaries
+                        seeds[qubit],
+                        layer_index,
+                        len(all_cycles) + 1,
+                        sequence_index,
+                        configuration._paulis_per_value,
+                        configuration.variables.twirled_overwrites_source_unitaries,
                     )
-                    assert (
-                        seed == expected_seed
-                    ), f"Seed mismatch for qubit {qubit} at layer {layer_index}: expected {expected_seed}, got {seed}"
-                assert (
-                    pauli_pair[1] == expected_next_pauli
-                ), f"Pauli mismatch for qubit {qubit} at layer {layer_index}: expected {expected_next_pauli}, got {pauli_pair[1]}"
+                    assert seed == expected_seed, (
+                        f"Seed mismatch for qubit {qubit} at layer {layer_index}: expected {expected_seed}, got {seed}"
+                    )
+                assert pauli_pair[1] == expected_next_pauli, (
+                    f"Pauli mismatch for qubit {qubit} at layer {layer_index}: expected {expected_next_pauli}, got {pauli_pair[1]}"
+                )
 
         if configuration.invert_random_paulis:
             # Check that the Paulis conjugate as expected.
@@ -201,38 +203,49 @@ def test_pauli_frame_tracking(configuration: rc.RandomizedCompilingConfiguration
                     after_pauli_right = pauli_pairs[rc.PauliPairKey(qubit=edge[1], layer_index=layer_index + 1)][1][0]
                     after_paulis = np.kron(after_pauli_left.matrix, after_pauli_right.matrix)
                     result = after_paulis @ matrices.CZ @ before_paulis
-                    assert rc._unitary_equal(
-                        result, matrices.CZ
-                    ), f"Failed at sequence {sequence_index} for cycle {cycle} at layer {layer_index}: found {result}"
+                    assert rc._unitary_equal(result, matrices.CZ), (
+                        f"Failed at sequence {sequence_index} for cycle {cycle} at layer {layer_index}: found {result}"
+                    )
 
                 # Check conjugation over 1Q identity.
                 for qubit in cycle.idle_qubits:
                     before_pauli = pauli_pairs[rc.PauliPairKey(qubit=qubit, layer_index=layer_index)][1][1]
                     after_pauli = pauli_pairs[rc.PauliPairKey(qubit=qubit, layer_index=layer_index + 1)][1][0]
                     result = after_pauli.matrix @ before_pauli.matrix
-                    assert rc._unitary_equal(
-                        result, matrices.I
-                    ), f"Failed at sequence {sequence_index} for non-cycle qubit {qubit} at layer {layer_index}: found {result}"
+                    assert rc._unitary_equal(result, matrices.I), (
+                        f"Failed at sequence {sequence_index} for non-cycle qubit {qubit} at layer {layer_index}: found {result}"
+                    )
 
                 # Check that Paulis not configured in the cycle are untwirled.
                 for qubit in configuration.qubits_sorted:
                     if qubit not in cycle:
                         before_pauli = pauli_pairs[rc.PauliPairKey(qubit=qubit, layer_index=layer_index)][1][1]
-                        assert before_pauli == rc.PauliLiteral.I, f"Expected identity for previous Pauli but found {before_pauli} for qubit {qubit} at layer {layer_index}"
+                        assert before_pauli == rc.PauliLiteral.I, (
+                            f"Expected identity for previous Pauli but found {before_pauli} for qubit {qubit} at layer {layer_index}"
+                        )
                         after_pauli = pauli_pairs[rc.PauliPairKey(qubit=qubit, layer_index=layer_index + 1)][1][0]
-                        assert after_pauli == rc.PauliLiteral.I, f"Expected identity for next Pauli but found {after_pauli} for qubit {qubit} at layer {layer_index + 1}"
+                        assert after_pauli == rc.PauliLiteral.I, (
+                            f"Expected identity for next Pauli but found {after_pauli} for qubit {qubit} at layer {layer_index + 1}"
+                        )
         else:
             # If Paulis are not inverted then we can simply asssert that all previous Paulis are the identity.
             for qubit in configuration.qubits_sorted:
                 for layer_index in range(len(all_cycles) + 1):
                     key = rc.PauliPairKey(qubit=qubit, layer_index=layer_index)
                     _, pauli_pair = pauli_pairs[key]
-                    assert (
-                        pauli_pair[0] == rc.PauliLiteral.I
-                    ), f"Expected identity for previous Pauli but found {pauli_pair[0]} for qubit {qubit} at layer {layer_index}"
+                    assert pauli_pair[0] == rc.PauliLiteral.I, (
+                        f"Expected identity for previous Pauli but found {pauli_pair[0]} for qubit {qubit} at layer {layer_index}"
+                    )
 
 
-@pytest.mark.parametrize("configuration", [configuration for configuration in _PAULI_FRAME_TRACKING_TEST_CASES if configuration.variables.twirled_overwrites_source_unitaries])
+@pytest.mark.parametrize(
+    "configuration",
+    [
+        configuration
+        for configuration in _PAULI_FRAME_TRACKING_TEST_CASES
+        if configuration.variables.twirled_overwrites_source_unitaries
+    ],
+)
 def test_pauli_cache_accumulation(configuration: rc.RandomizedCompilingConfiguration):
     """Test `rc._PauliSeedAndPairCache.accumulate`.
 
@@ -251,8 +264,7 @@ def test_pauli_cache_accumulation(configuration: rc.RandomizedCompilingConfigura
 
     pauli_cache = rc._PauliSeedAndPairCache(
         original_seeds={
-            q: random_seeds[qubit_index].tolist()
-            for qubit_index, q in enumerate(configuration.qubits_sorted)
+            q: random_seeds[qubit_index].tolist() for qubit_index, q in enumerate(configuration.qubits_sorted)
         },
         pauli_conjugates_map=pauli_conjugates_map,
         cycles=configuration._base_twirled_cycles * configuration.base_cycle_repetitions,
@@ -272,28 +284,34 @@ def test_pauli_cache_accumulation(configuration: rc.RandomizedCompilingConfigura
             key = rc.PauliPairKey(qubit=qubit, layer_index=layer_index)
             seed, pauli_pair = accumulated_paulis[key]
             expected_seed, expected_pauli_pair = tracked_paulis[key]
-            assert (
-                seed == expected_seed
-            ), f"Seed mismatch for qubit {qubit} at layer {layer_index}: expected {expected_seed}, got {seed}"
-            assert (
-                pauli_pair == expected_pauli_pair
-            ), f"Pauli pair mismatch for qubit {qubit} at layer {layer_index}: expected {expected_pauli_pair}, got {pauli_pair}"
+            assert seed == expected_seed, (
+                f"Seed mismatch for qubit {qubit} at layer {layer_index}: expected {expected_seed}, got {seed}"
+            )
+            assert pauli_pair == expected_pauli_pair, (
+                f"Pauli pair mismatch for qubit {qubit} at layer {layer_index}: expected {expected_pauli_pair}, got {pauli_pair}"
+            )
 
 
 _FIXTURE_DIRECTORY = Path(__file__).parent / "__fixtures__"
 _FIXTURE_DIRECTORY.mkdir(exist_ok=True)
-_TETRAHEDRAL_ANGLES = np.array([[ 0.0,  0.5,  0.5],
-       [-1./4,  0.0, -1./4],
-       [ 0.0,  0.0,  0.5],
-       [ 1./4,  0.5, -1./4],
-       [ 0.0,  1./4, -1./4],
-       [ 0.5,  1./4, -1./4],
-       [ 0.5,  1./4,  1./4],
-       [ 0.0,  1./4,  1./4],
-       [ -1./4,  1./4,  0.0],
-       [ 1./4,  1./4,  0.5],
-       [-1./4,  1./4,  0.5],
-       [ 1./4,  1./4,  0.0]], dtype=np.float64)
+_TETRAHEDRAL_ANGLES = np.array(
+    [
+        [0.0, 0.5, 0.5],
+        [-1.0 / 4, 0.0, -1.0 / 4],
+        [0.0, 0.0, 0.5],
+        [1.0 / 4, 0.5, -1.0 / 4],
+        [0.0, 1.0 / 4, -1.0 / 4],
+        [0.5, 1.0 / 4, -1.0 / 4],
+        [0.5, 1.0 / 4, 1.0 / 4],
+        [0.0, 1.0 / 4, 1.0 / 4],
+        [-1.0 / 4, 1.0 / 4, 0.0],
+        [1.0 / 4, 1.0 / 4, 0.5],
+        [-1.0 / 4, 1.0 / 4, 0.5],
+        [1.0 / 4, 1.0 / 4, 0.0],
+    ],
+    dtype=np.float64,
+)
+
 
 @dataclass(frozen=True)
 class ReadoutRandomization:
@@ -316,12 +334,14 @@ class ReadoutRandomization:
                     inst.CallArgument.from_identifier("readout_source_angles"),
                     inst.CallArgument.from_immediate(complex(rc._ANGLES_PER_UNITARY)),
                     inst.CallArgument.from_memory_reference(inst.MemoryReference(f"readout_seed_q{qubit}", 0)),
-                ]
+                ],
             )
         return program
 
     def generate_seeds(self, rng: np.random.Generator) -> dict[int, int]:
-        return {qubit: rng.integers(0, rc._MAX_SEQUENCER_VALUE + 1, dtype=np.int64).item() for qubit in self.qubits_sorted}
+        return {
+            qubit: rng.integers(0, rc._MAX_SEQUENCER_VALUE + 1, dtype=np.int64).item() for qubit in self.qubits_sorted
+        }
 
     def build_memory_map(self, seeds: Mapping[int, int]) -> dict[str, list[float]]:
         memory_map = {}
@@ -337,24 +357,24 @@ class ReadoutRandomization:
         seeds: Mapping[int, int],
         shot_count: int,
         final_layer_index: int,
-        pauli_pairs: Mapping[rc.PauliPairKey, tuple[Optional[int], tuple[rc.PauliLiteral, rc.PauliLiteral]]]
+        pauli_pairs: Mapping[rc.PauliPairKey, tuple[Optional[int], tuple[rc.PauliLiteral, rc.PauliLiteral]]],
     ) -> None:
         for qubit in self.qubits_sorted:
             final_random_unitary_index = choose_random_real_sub_region_indices(
                 PrngSeedValue(seeds[qubit]), shot_count - 1, 1, len(self.readout_source_angles)
             )[0]
             final_random_unitary_angles = tuple(self.readout_source_angles[final_random_unitary_index].tolist())
-            final_random_unitary = rc._compute_unitary_from_zxzxz_angles(
-                final_random_unitary_angles
-            )
+            final_random_unitary = rc._compute_unitary_from_zxzxz_angles(final_random_unitary_angles)
             _, pauli_pair = pauli_pairs[rc.PauliPairKey(qubit=qubit, layer_index=final_layer_index)]
-            assert pauli_pair[1] == rc.PauliLiteral.I, f"Expected identity for final Pauli but found {pauli_pair[1]} for qubit {qubit} at layer {final_layer_index}"
+            assert pauli_pair[1] == rc.PauliLiteral.I, (
+                f"Expected identity for final Pauli but found {pauli_pair[1]} for qubit {qubit} at layer {final_layer_index}"
+            )
             expected_unitary = final_random_unitary @ pauli_pair[0].matrix
             found_unitary_angles = tuple(final_memory[f"readout_randomization_q{qubit}"])
             found_unitary = rc._compute_unitary_from_zxzxz_angles(found_unitary_angles)
-            assert rc._unitary_equal(
-                found_unitary, expected_unitary
-            ), f"Final unitary mismatch for qubit {qubit}: expected {final_random_unitary_angles} @ {pauli_pair}, found {found_unitary_angles}"
+            assert rc._unitary_equal(found_unitary, expected_unitary), (
+                f"Final unitary mismatch for qubit {qubit}: expected {final_random_unitary_angles} @ {pauli_pair}, found {found_unitary_angles}"
+            )
 
 
 @dataclass(frozen=True)
@@ -376,16 +396,22 @@ class ConfigurationTestCase:
                     self.configuration._cycle_count,
                     source_unitaries=f"readout_randomization_q{qubit}",
                     target_unitaries=f"readout_randomization_q{qubit}",
-                    unitary_offset=0
+                    unitary_offset=0,
                 )
                 if call is not None:
                     program += call
         return program
 
-    def generate_seeds_and_memory_map(self, rng: np.random.Generator) -> tuple[dict[str, Union[list[int], list[float]]], NDArray[np.int64], Optional[dict[int, int]]]:
+    def generate_seeds_and_memory_map(
+        self, rng: np.random.Generator
+    ) -> tuple[dict[str, Union[list[int], list[float]]], NDArray[np.int64], Optional[dict[int, int]]]:
         memory_map: dict[str, Union[list[int], list[float]]] = {}
         rc_seeds = self.configuration.generate_seed_values(rng)
-        memory_map.update(self.configuration.build_memory_map(rc_seeds, rc.build_memory_values_for_paulis_conjugates_map(rc.PAULI_CONJUGATES_MAPS["CZ"])))
+        memory_map.update(
+            self.configuration.build_memory_map(
+                rc_seeds, rc.build_memory_values_for_paulis_conjugates_map(rc.PAULI_CONJUGATES_MAPS["CZ"])
+            )
+        )
         if self.readout_randomization is not None:
             readout_seeds = self.readout_randomization.generate_seeds(rng)
             memory_map.update(self.readout_randomization.build_memory_map(readout_seeds))
@@ -403,7 +429,11 @@ def _sx(qubit: int) -> gates.Gate:
     return gates.RX(np.pi / 2, qubit)
 
 
-def _zxzxz(configuration: rc.RandomizedCompilingConfiguration, layer_index: int, readout_randomization: Optional[ReadoutRandomization] = None) -> Program:
+def _zxzxz(
+    configuration: rc.RandomizedCompilingConfiguration,
+    layer_index: int,
+    readout_randomization: Optional[ReadoutRandomization] = None,
+) -> Program:
     program = Program()
     for qubit in configuration.qubits_sorted:
         if readout_randomization is None:
@@ -430,7 +460,9 @@ def _zxzxz(configuration: rc.RandomizedCompilingConfiguration, layer_index: int,
     return program
 
 
-def build_cycle_program(configuration: rc.RandomizedCompilingConfiguration, readout_randomization: Optional[ReadoutRandomization]) -> Program:
+def build_cycle_program(
+    configuration: rc.RandomizedCompilingConfiguration, readout_randomization: Optional[ReadoutRandomization]
+) -> Program:
     program = Program()
     cycle_count = configuration.base_cycle_repetitions * len(configuration.base_cycles) + 1
     if not configuration.variables.twirled_overwrites_source_unitaries:
@@ -445,7 +477,9 @@ def build_cycle_program(configuration: rc.RandomizedCompilingConfiguration, read
                 program += gates.CZ(edge[0], edge[1])
                 program += gates.FENCE(edge[0], edge[1])
 
-    program += _zxzxz(configuration, configuration.base_cycle_repetitions * len(configuration.base_cycles), readout_randomization)
+    program += _zxzxz(
+        configuration, configuration.base_cycle_repetitions * len(configuration.base_cycles), readout_randomization
+    )
 
     return program
 
@@ -464,7 +498,7 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
             base_cycles=(_SIMPLE_TEST_CYCLE,),
             base_cycle_repetitions=2,
         ),
-        base_cycle_loop_length=1
+        base_cycle_loop_length=1,
     ),
     # 2) base cycle loop with maximum iterations (single base cycle)
     ConfigurationTestCase(
@@ -472,7 +506,7 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
             base_cycles=(_SIMPLE_TEST_CYCLE,),
             base_cycle_repetitions=24,
         ),
-        base_cycle_loop_length=23
+        base_cycle_loop_length=23,
     ),
     # 3) seed loop required (single base cycle)
     ConfigurationTestCase(
@@ -489,7 +523,7 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
             base_cycles=(_SIMPLE_TEST_CYCLE,) * 2,
             base_cycle_repetitions=12,
         ),
-        base_cycle_loop_length=11
+        base_cycle_loop_length=11,
     ),
     # 5) seed loop required + base cycle loop (two base cycles)
     ConfigurationTestCase(
@@ -499,7 +533,7 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
         ),
         seed_loop_length=1,
         seed_loop_inner_length=11,
-        base_cycle_loop_length=1
+        base_cycle_loop_length=1,
     ),
     # 6) base cycle loop only (four base cycles)
     ConfigurationTestCase(
@@ -507,7 +541,7 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
             base_cycles=(_SIMPLE_TEST_CYCLE,) * 4,
             base_cycle_repetitions=5,
         ),
-        base_cycle_loop_length=4
+        base_cycle_loop_length=4,
     ),
     # 7) seed loop required + base cycle loop (four base cycles)
     ConfigurationTestCase(
@@ -532,7 +566,7 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
             base_cycles=_ALTERNATING_BASE_CYCLES,
             base_cycle_repetitions=5,
         ),
-        base_cycle_loop_length=4
+        base_cycle_loop_length=4,
     ),
     # 10) 2 seed loop iterations + final base cycle.
     ConfigurationTestCase(
@@ -553,14 +587,14 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
         seed_loop_inner_length=11,
         base_cycle_loop_length=2,
     ),
-    # 12)seed loop with shots per randomization.
+    # 12) seed loop with shots per randomization.
     ConfigurationTestCase(
         configuration=rc.RandomizedCompilingConfiguration(
             base_cycles=_ALTERNATING_BASE_CYCLES,
             base_cycle_repetitions=13,
             shots_per_randomization=rc.ShotsPerRandomization(
                 shots_per_randomization=50,
-            )
+            ),
         ),
         seed_loop_length=1,
         seed_loop_inner_length=11,
@@ -576,7 +610,7 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
         seed_loop_inner_length=11,
         readout_randomization=ReadoutRandomization(
             qubits_sorted=tuple(range(6)),
-        )
+        ),
     ),
     # 14) seed loop with shots per randomization and readout randomization
     ConfigurationTestCase(
@@ -586,13 +620,13 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
             shots_per_randomization=rc.ShotsPerRandomization(
                 shots_per_randomization=50,
             ),
-            skip_final_layer=True
+            skip_final_layer=True,
         ),
         seed_loop_length=1,
         seed_loop_inner_length=11,
         readout_randomization=ReadoutRandomization(
             qubits_sorted=tuple(range(6)),
-        )
+        ),
     ),
     # 15) seed loop on cycles with untwirled qubits.
     ConfigurationTestCase(
@@ -609,27 +643,27 @@ CONFIGURATION_TEST_CASES: list[ConfigurationTestCase] = [
         configuration=rc.RandomizedCompilingConfiguration(
             base_cycles=_ALTERNATING_BASE_CYCLES,
             base_cycle_repetitions=5,
-            variables=rc.RandomizedCompilingVariables(
-                twirled_unitaries_prefix="twirled_unitaries"
-            )
+            variables=rc.RandomizedCompilingVariables(twirled_unitaries_prefix="twirled_unitaries"),
         ),
-        base_cycle_loop_length=4
+        base_cycle_loop_length=4,
     ),
 ]
 
 
-def generate_source_unitaries(configuration: rc.RandomizedCompilingConfiguration, rng: np.random.Generator) -> dict[str, list[float]]:
+def generate_source_unitaries(
+    configuration: rc.RandomizedCompilingConfiguration, rng: np.random.Generator
+) -> dict[str, list[float]]:
     source_unitaries = {}
     cycle_count = configuration.base_cycle_repetitions * len(configuration.base_cycles) + 1
     for qubit in configuration.qubits_sorted:
-        source_unitaries[configuration.variables.source_unitaries(qubit)] = rng.uniform(-0.5, 0.5, size=rc._ANGLES_PER_UNITARY * cycle_count).tolist()
+        source_unitaries[configuration.variables.source_unitaries(qubit)] = rng.uniform(
+            -0.5, 0.5, size=rc._ANGLES_PER_UNITARY * cycle_count
+        ).tolist()
     return source_unitaries
 
 
 @pytest.mark.parametrize(
-    "test_case",
-    CONFIGURATION_TEST_CASES,
-    ids=[f"configuration{i}" for i in range(len(CONFIGURATION_TEST_CASES))]
+    "test_case", CONFIGURATION_TEST_CASES, ids=[f"configuration{i}" for i in range(len(CONFIGURATION_TEST_CASES))]
 )
 def test_randomized_compiling_configuration(
     test_case: ConfigurationTestCase,
@@ -644,8 +678,12 @@ def test_randomized_compiling_configuration(
     assert test_case.configuration._seed_loop_length == test_case.seed_loop_length
     assert test_case.configuration._seed_loop_inner_length == test_case.seed_loop_inner_length
     assert test_case.configuration._base_cycle_loop_length == test_case.base_cycle_loop_length
-    expected_total_u2_cycles = test_case.configuration.base_cycle_repetitions * len(test_case.configuration.base_cycles) + 1
-    looped_base_cycles = test_case.seed_loop_length * (test_case.seed_loop_inner_length + 1) + test_case.base_cycle_loop_length
+    expected_total_u2_cycles = (
+        test_case.configuration.base_cycle_repetitions * len(test_case.configuration.base_cycles) + 1
+    )
+    looped_base_cycles = (
+        test_case.seed_loop_length * (test_case.seed_loop_inner_length + 1) + test_case.base_cycle_loop_length
+    )
     # after the seed and base loop cycles, we complete a final base cycle.
     completed_base_cycles = looped_base_cycles + 1
     # we add one for the initial cycle (i.e. where there were no previous random Paulis to invert).
@@ -657,7 +695,7 @@ def test_randomized_compiling_configuration(
     program += build_cycle_program(test_case.configuration, test_case.readout_randomization)
 
     rng = np.random.default_rng(seed=CONFIGURATION_TEST_SEED)
-    memory_map, rc_seeds,readout_seeds = test_case.generate_seeds_and_memory_map(rng)
+    memory_map, rc_seeds, readout_seeds = test_case.generate_seeds_and_memory_map(rng)
 
     with open(_FIXTURE_DIRECTORY / f"{request.node.name}.json") as f:
         final_memory = json.load(f)
@@ -673,7 +711,9 @@ def test_randomized_compiling_configuration(
     if test_case.readout_randomization is not None:
         if readout_seeds is None:
             raise ValueError("Readout seeds should not be None when readout randomization is provided.")
-        pauli_pairs = test_case.configuration.get_final_pauli_pairs(TEST_SHOT_COUNT, pauli_conjugates_map, rc_seeds, accumulate=False)
+        pauli_pairs = test_case.configuration.get_final_pauli_pairs(
+            TEST_SHOT_COUNT, pauli_conjugates_map, rc_seeds, accumulate=False
+        )
         test_case.readout_randomization.verify_final_memory(
             final_memory,
             readout_seeds,
