@@ -1,8 +1,5 @@
-from typing import Union
-
 import numpy as np
 import pytest
-from numpy.typing import NDArray
 from qcs_sdk.client import QCSClient
 from qcs_sdk.qpu.api import ExecutionOptionsBuilder, retrieve_results, submit
 from qcs_sdk.qpu.translation import TranslationResult, translate
@@ -12,13 +9,13 @@ from pyquil._qpu import randomized_compiling as rc
 from ..unit import test_qpu_randomized_compiling as trc
 
 
-def _get_bitstrings_and_final_memory(
+def _get_final_memory(
     live_quantum_processor_id: str,
     translation_result: TranslationResult,
-    memory_map: dict[str, Union[list[int], list[float]]],
+    memory_map: dict[str, list[int] | list[float]],
     execution_options: ExecutionOptionsBuilder,
     qcs_client: QCSClient,
-) -> tuple[NDArray[np.int8], dict[str, Union[list[int], list[float]]]]:
+) -> dict[str, list[int] | list[float]]:
     job_id = submit(
         translation_result.program, memory_map, live_quantum_processor_id, qcs_client, execution_options.build()
     )
@@ -28,10 +25,7 @@ def _get_bitstrings_and_final_memory(
         execution_options=execution_options.build(),
         client=qcs_client,
     )
-    final_memory: dict[str, Union[list[int], list[float]]] = {k: v.inner() for k, v in results.memory.items()}
-    return np.array(
-        [execution_result.data.to_i32() for name, execution_result in results.buffers.items() if "_classified" in name]
-    ).transpose(), final_memory
+    return {k: v.inner() for k, v in results.memory.items()}
 
 
 @pytest.fixture
@@ -59,7 +53,7 @@ def test_randomized_compiling_configuration(
     memory_map, rc_seeds, readout_seeds = test_case.generate_seeds_and_memory_map(rng)
 
     translation_result = translate(program.out(), trc.TEST_SHOT_COUNT, quantum_processor_id, client_configuration)
-    bitstrings, final_memory = _get_bitstrings_and_final_memory(
+    final_memory = _get_final_memory(
         quantum_processor_id,
         translation_result,
         memory_map,

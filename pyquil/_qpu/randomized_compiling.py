@@ -10,7 +10,7 @@ The main entrypoint is the `RandomizedCompilingConfiguration` dataclass which ca
     the phase angles of the ZXZXZ decomposition (see
     `RandomizedCompilingConfiguration.build_quil_program`).
 * generate random seeds for drawing random Paulis on the QPU (see
-    `RandomizedCompilingConfiguration.generate_random_seeds`).
+    `RandomizedCompilingConfiguration.generate_seed_values`).
 * build a memory map for QPU execution (see `RandomizedCompilingConfiguration.build_memory_map`).
 * track Pauli frames on a per shot basis (see `RandomizedCompilingConfiguration.track_pauli_frames`).
 * verify the final memory after execution to check that the correct Pauli frames were applied (see
@@ -27,7 +27,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
-from typing import Union, cast
+from typing import cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -44,7 +44,6 @@ from pyquil.quilbase import (
     ClassicalShiftRight,
     Declare,
     Delay,
-    Expression,
     Jump,
     JumpTarget,
     JumpUnless,
@@ -91,7 +90,7 @@ class _TwirledCycle:
             if qubit in self.two_qubit_gates and qubit in self.idle_qubits:
                 raise ValueError(f"qubit {qubit} is configured as both an edge and idle qubit")
 
-    def __getitem__(self, node: int) -> Union[_TEdge, int]:
+    def __getitem__(self, node: int) -> _TEdge | int:
         if node in self.idle_qubits:
             return node
         elif node in self.two_qubit_gates:
@@ -107,7 +106,7 @@ class _TwirledCycle:
         return set(self.two_qubit_gates.keys()) | self.idle_qubits
 
     @classmethod
-    def from_base_cycle(cls, cycle: Sequence[Union[_TEdge, int]]) -> "_TwirledCycle":
+    def from_base_cycle(cls, cycle: Sequence[_TEdge | int]) -> "_TwirledCycle":
         two_qubit_gates = dict()
         idle_qubits = set()
         for edge_or_idle in cycle:
@@ -285,10 +284,6 @@ class _PauliSeedAndPairCache:
             self.pauli_pairs[key] = (previous_conjugate, next_pauli)
         pauli_pair = self.pauli_pairs[key]
         return seed_value, pauli_pair
-
-
-def _radians_to_cycles(region_name: str, index: int) -> Expression:
-    return MemoryReference(region_name, index) * 2 * math.pi
 
 
 _MAX_SEQUENCER_VALUE = (1 << _BITS_PER_VALUE) - 1
@@ -516,7 +511,7 @@ PAULI_CONJUGATES_MAPS = {
 
 def build_memory_values_for_paulis_conjugates_map(
     pauli_conjugates_map: Mapping[tuple["PauliLiteral", "PauliLiteral"], tuple["PauliLiteral", "PauliLiteral"]],
-) -> Union[list[int], list[float]]:
+) -> list[int] | list[float]:
     """Convert a Pauli conjugates map to a list of integers representing the next Pauli pair for each previous Pauli pair.
 
     The result may be supplied as the memory values for the `pauli_conjugates_map` memory region on the QPU (see
@@ -527,7 +522,7 @@ def build_memory_values_for_paulis_conjugates_map(
         previous_pauli_index = _pauli_pair_to_int(previous_paulis)
         next_pauli_index = _pauli_pair_to_int(next_paulis)
         memory_values[previous_pauli_index] = next_pauli_index
-    return cast(Union[list[int], list[float]], memory_values)
+    return cast(list[int] | list[float], memory_values)
 
 
 @dataclass(frozen=True)
@@ -582,15 +577,15 @@ class _PauliPair:
     unitary angles for this (qubit, layer_index).
     """
 
-    previous: Union[_PauliReference, PauliLiteral, _PauliConjugate]
-    next: Union[_PauliReference, PauliLiteral]
+    previous: _PauliReference | PauliLiteral | _PauliConjugate
+    next: _PauliReference | PauliLiteral
 
     def build_quil_call_instruction(
         self,
         destination: inst.CallArgument,
         source: inst.CallArgument,
         unitary_angle_offset: inst.CallArgument,
-    ) -> Union[Call, None]:
+    ) -> Call | None:
         """Build a Quil Call instruction based on the Pauli pair.
 
         Each underlying union variant will correspond to a different extern function signature.
@@ -759,8 +754,7 @@ class RandomizedCompilingConfiguration:
     * Tracking the Paulis played on each qubit at each layer over a sequence of shots (see
         `track_pauli_frames`).
     * Verifying that the final memory read off the QPU is consistent with the expected random Paulis calculated
-        on the client (see `verify_final_paulis`)that the final memory read off the QPU is consistent with the expected random Paulis calculated
-        on the client (see `verify_final_paulis`) and, more generally, verifying
+        on the client (see `verify_final_memory`).
 
     This class does not:
 
@@ -768,7 +762,7 @@ class RandomizedCompilingConfiguration:
     * generate source unitaries for the gate program.
     """
 
-    base_cycles: tuple[tuple[Union[_TEdge, int], ...], ...]
+    base_cycles: tuple[tuple[_TEdge | int, ...], ...]
     """
     A list of cycles (which itself is a list of edges) representing the base cycles to apply in sequence
     for randomized compiling.
@@ -802,25 +796,37 @@ class RandomizedCompilingConfiguration:
     invert_random_paulis: bool = True
     """
     Whether to invert the random Paulis from the previous layer. Setting this to False may be useful
-    in conjuction with `track_pauli_frames`.
+    in conjunction with `track_pauli_frames`.
     """
 
     skip_first_layer: bool = False
     """
     Whether to skip randomly compiling (twirling) the first layer (i.e. the layer preceding the first base cycle).
 
-    Note, this does *not* presume the first layer's gate is omitted from the program -- it will still have a
-    reserved index within the Pauli seeds, however, the user becomes responsible for declaring its own
-    source and, if necessary, twirled unitaries as well as apply any desired twirling to the first layer.
+    The first layer's gate is *not* omitted from the program -- it is still played, just without a random Pauli
+    merged into it automatically. No space is reserved for it in the RC-managed twirled unitary memory (see
+    `_managed_u2_layer_count`), so the caller becomes responsible for separately declaring and supplying whatever
+    unitary the first layer should play.
+
+    The first Pauli draw (`pauli_seed_q{n}[0]` at Pauli index 0) remains reserved for this layer regardless -- the
+    rest of the program's Pauli bookkeeping assumes it was applied there, whether or not it actually was. If the
+    first layer should still be twirled, apply that same draw yourself via `apply_pauli_pair(qubit, 0, ...)`,
+    targeting your own separately-declared memory.
     """
 
     skip_final_layer: bool = False
     """
     Whether to skip randomly compiling (twirling) the final layer (i.e. the layer following the last base cycle).
 
-    Note, this does *not* presume the final layer's gate is omitted from the program -- it will still have a
-    reserved index within the Pauli seeds, however, the user becomes responsible for declaring its own
-    source and, if necessary, twirled unitaries as well as apply any desired twirling to the final layer.
+    The final layer's gate is *not* omitted from the program -- it is still played, just without a random Pauli
+    merged into it automatically. No space is reserved for it in the RC-managed twirled unitary memory (see
+    `_managed_u2_layer_count`), so the caller becomes responsible for separately declaring and supplying whatever
+    unitary the final layer should play.
+
+    If the final layer should still undo the accumulated random compiling (e.g. to realign the measurement
+    basis), apply it yourself via `apply_pauli_pair(qubit, _cycle_count, ...)`, targeting your own
+    separately-declared memory; this correctly computes the inverse of the accumulated Pauli frame as
+    `previous`, with `next` fixed to the identity.
     """
 
     def __post_init__(self) -> None:
@@ -836,7 +842,7 @@ class RandomizedCompilingConfiguration:
 
     @property
     def _paulis_per_value(self) -> int:
-        """The number of Paulis reprensented in a single INTEGER memory value.
+        """The number of Paulis represented in a single INTEGER memory value.
 
         If the base cycle length is less than `_MAX_PAULIS_PER_VALUE` and it is not a factor of `_MAX_PAULIS_PER_VALUE`,
         this will be the largest multiple of the base cycle length that is less than `_MAX_PAULIS_PER_VALUE`. This ensures
@@ -877,7 +883,7 @@ class RandomizedCompilingConfiguration:
         return self._cycle_count + 1 - int(self.skip_first_layer) - int(self.skip_final_layer)
 
     def _get_unitary_memory_index(self, layer_index: int) -> int:
-        """Map an absolute layer index (`0` to `_cycle_count` inclusive) that is aware of skipped layers.
+        """Map an absolute layer index (`0` to `_cycle_count` inclusive) to an index that accounts for skipped layers.
 
         Raises a `ValueError` if `layer_index` refers to a layer excluded from this memory by `skip_first_layer` or
         `skip_final_layer`. Those layers are still played in the program; their (untwirled) unitary must simply be
@@ -979,13 +985,13 @@ class RandomizedCompilingConfiguration:
     def build_memory_map(
         self,
         random_seeds: NDArray[np.int64],
-        pauli_conjugates_map: Union[list[int], list[float]],
-    ) -> dict[str, Union[list[int], list[float]]]:
+        pauli_conjugates_map: list[int] | list[float],
+    ) -> dict[str, list[int] | list[float]]:
         """Build the memory map for executing the randomized compiling program on the QPU.
 
         This does not include the source unitary angles, which must separately be supplied by the user.
         """
-        memory_map: dict[str, Union[list[int], list[float]]] = {
+        memory_map: dict[str, list[int] | list[float]] = {
             self.variables.unitary_angle_offset: [0 if self.skip_first_layer else _ANGLES_PER_UNITARY],
             self.variables.loop_break: [0],
         }
@@ -998,7 +1004,7 @@ class RandomizedCompilingConfiguration:
         for qubit_index, q in enumerate(self.qubits_sorted):
             memory_map[self.variables.pauli_seed(q)] = random_seeds[qubit_index].tolist()
             memory_map[self.variables.twirled_unitaries(q)] = np.zeros(
-                ((self._cycle_count + 1) * _ANGLES_PER_UNITARY,), dtype=float
+                (self._managed_u2_layer_count * _ANGLES_PER_UNITARY,), dtype=float
             ).tolist()
 
         current_seed_length = (
@@ -1044,7 +1050,7 @@ class RandomizedCompilingConfiguration:
 
             for qubit in self.qubits_sorted:
                 edge = cycle.two_qubit_gates[qubit] if qubit in cycle.two_qubit_gates else None
-                previous: Union[_PauliConjugate, _PauliReference, PauliLiteral]
+                previous: _PauliConjugate | _PauliReference | PauliLiteral
                 if self.invert_random_paulis and edge is not None:
                     pauli_left = cursor.previous_ref(self.variables.current_seeds(edge[0]))
                     pauli_right = cursor.previous_ref(self.variables.current_seeds(edge[1]))
@@ -1059,7 +1065,7 @@ class RandomizedCompilingConfiguration:
                 else:
                     previous = PauliLiteral.I
 
-                next_: Union[_PauliReference, PauliLiteral]
+                next_: _PauliReference | PauliLiteral
                 next_cycle = (
                     self._base_twirled_cycles[cycle_index + 1] if cycle_index < self._base_cycle_length - 1 else None
                 )
@@ -1303,15 +1309,15 @@ class RandomizedCompilingConfiguration:
         layer_index: int,
         source_unitaries: str | None = None,
         target_unitaries: str | None = None,
-        unitary_offset: Union[MemoryReference, int, float] | None = None,
-    ) -> Union[Call, None]:
+        unitary_offset: MemoryReference | int | float | None = None,
+    ) -> Call | None:
         """Apply the twirl to the source unitary for a given qubit and layer index.
 
         This function is for applying an existing twirl to a source unitary for a specific qubit and layer index. Note,
         this does not step the PRNG. This is useful when `ShotsPerRandomization` is configured and we want to apply the existing
         twirl a freshly drawn unitary (typically by invoking `choose_random_real_sub_regions`).
         """
-        previous_pauli: Union[_PauliReference, _PauliConjugate, PauliLiteral]
+        previous_pauli: _PauliReference | _PauliConjugate | PauliLiteral
         if layer_index == 0 or not self.invert_random_paulis:
             previous_pauli = PauliLiteral.I
         else:
@@ -1345,7 +1351,7 @@ class RandomizedCompilingConfiguration:
             else:
                 previous_pauli = PauliLiteral.I
 
-        next_pauli: Union[_PauliReference, PauliLiteral]
+        next_pauli: _PauliReference | PauliLiteral
         if layer_index == self._cycle_count:
             next_pauli = PauliLiteral.I
         else:
@@ -1385,8 +1391,8 @@ class RandomizedCompilingConfiguration:
 
     def verify_final_memory(
         self,
-        final_memory: dict[str, Union[list[int], list[float]]],
-        original_memory: dict[str, Union[list[int], list[float]]],
+        final_memory: dict[str, list[int] | list[float]],
+        original_memory: dict[str, list[int] | list[float]],
         shot_count: int,
         pauli_conjugates_map: Mapping[tuple[PauliLiteral, PauliLiteral], tuple[PauliLiteral, PauliLiteral]],
     ) -> None:
