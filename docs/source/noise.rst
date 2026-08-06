@@ -702,6 +702,7 @@ gate noise, respectively.
                 MEASURE(0, ("ro", 0)),
                 MEASURE(1, ("ro", 1)),
             ])
+            noisy.wrap_in_numshots_loop(1000)
             bitstrings = qc.run(noisy).get_register_map().get("ro")
 
             # Expectation of Z0 and Z1
