@@ -30,7 +30,7 @@ quil = ">=0.15.3,<0.18"
 packaging = ">=23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
-rigetti-quax = ">=0.7.0"
+rigetti-quax = "^0.7.2"
 
 # latex extra
 ipython = { version = "^8.16.0", optional = true }

@@ -4,7 +4,9 @@ This package provides:
 
 - **Noise model** (``_legacy_noise``): Kraus-map based noise construction
   for the QVM, including ``KrausModel``, ``NoiseModel``, and decoherence
-  helpers.
+  helpers. This is the public, supported API and is re-exported below; it was
+  previously the module ``pyquil/noise.py``, and every name it exported is still
+  importable from ``pyquil.noise``.
 
 - **Channel classes** (``_channels``): quax-backed ``Channel``,
   ``MeasurementChannel``, ``ResetChannel``, and ``CycleChannel`` dataclasses
@@ -18,19 +20,26 @@ This package provides:
 """
 
 # ── Noise model (Kraus-map based) ───────────────────────────────────────
+# Everything below is re-exported so that moving ``pyquil/noise.py`` into this package is not a
+# breaking change. The underscore-prefixed names were never public API, but they are re-exported
+# too so that any code reaching for them keeps working.
 from pyquil.noise._legacy_noise import (
+    _CHARS,  # noqa: F401
     ANGLE_TOLERANCE,
     INFINITY,
     NO_NOISE,
     KrausModel,
     NoiseModel,
     NoisyGateUndefined,
+    _apply_local_transforms,  # noqa: F401
     _bitstring_probs_by_qubit,  # noqa: F401
     _check_kraus_ops,  # noqa: F401
     _create_kraus_pragmas,  # noqa: F401
     _decoherence_noise_model,  # noqa: F401
     _get_program_gates,  # noqa: F401
+    _KrausModel,  # noqa: F401
     _noise_model_program_header,  # noqa: F401
+    _NoiseModel,  # noqa: F401
     _run,  # noqa: F401
     add_decoherence_noise,
     append_kraus_to_gate,

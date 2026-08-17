@@ -30,17 +30,20 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
-from functools import reduce
-from operator import mul
+from dataclasses import dataclass, field
+from functools import lru_cache
 from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Protocol,
+    TypeAlias,
     overload,
     runtime_checkable,
 )
+
+from deprecated import deprecated
 
 from pyquil.external.rpcq import CompilerISA
 from pyquil.noise._channels import (
@@ -51,11 +54,12 @@ from pyquil.noise._channels import (
     SuperopChannel,
     SuperopResetChannel,
     _ChannelBase,
-    _ResetChannelBase,
 )
 from pyquil.quilbase import Gate, Measurement, ResetQubit
 
 if TYPE_CHECKING:
+    from qcs_sdk.qpu.isa import InstructionSetArchitecture
+
     from pyquil import Program
     from pyquil.paulis import PauliSum, PauliTerm
 
@@ -65,9 +69,13 @@ logger = logging.getLogger(__name__)
 # Protocol
 # ──────────────────────────────────────────────────────────
 
-# Channel union type returned by get_channel
-ChannelType = SuperopChannel | Channel | MeasurementChannel | SuperopResetChannel | ResetChannel | CycleChannel
-NoiseInstruction = Gate | Measurement | ResetQubit
+ChannelType: TypeAlias = (
+    SuperopChannel | Channel | MeasurementChannel | SuperopResetChannel | ResetChannel | CycleChannel
+)
+"""Any noise channel that :meth:`NoiseModelLike.get_channel` may return."""
+
+NoiseInstruction: TypeAlias = Gate | Measurement | ResetQubit
+"""Any instruction a noise channel may be attached to."""
 
 
 @runtime_checkable
@@ -80,6 +88,11 @@ class NoiseModelLike(Protocol):
     consumers.
 
     The standard concrete implementation is :class:`NoiseModel`.
+
+    .. note::
+        This protocol is ``runtime_checkable``, so ``isinstance`` checks only verify that a
+        ``get_channel`` *attribute* exists — not that its signature matches. Do not rely on
+        ``isinstance`` to validate a candidate noise model.
     """
 
     @overload
@@ -112,26 +125,26 @@ class NoiseModel:
     or other channel iterable.
     """
 
-    channels: Mapping[NoiseInstruction, ChannelType]
-    """Immutable mapping from instruction to its noise channel."""
+    channels: Mapping[NoiseInstruction, ChannelType] = field(default_factory=dict)
+    """Immutable mapping from instruction to its noise channel.
 
-    def __init__(
-        self,
-        channels: Mapping[NoiseInstruction, ChannelType] | None = None,
-    ) -> None:
-        if channels is None:
-            channels = {}
+    Wrapped in a :class:`types.MappingProxyType` by ``__post_init__``, so the mapping passed in
+    cannot be mutated through the model afterwards. (``MappingProxyType`` is used in preference to
+    a third-party frozen-dict type to keep pyQuil's dependency surface unchanged.)
+    """
+
+    def __post_init__(self) -> None:
+        """Validate that every key matches its channel's instruction, and freeze the mapping."""
+        channels = self.channels
         if not isinstance(channels, Mapping):
             raise TypeError("NoiseModel channels must be a mapping. Use NoiseModel.from_channels(...) for iterables.")
 
-        channel_map: dict[NoiseInstruction, ChannelType] = {}
         for inst, channel in channels.items():
             if channel.inst != inst:
                 raise ValueError(
                     f"NoiseModel channel key {inst!r} does not match channel instruction {channel.inst!r}."
                 )
-            channel_map[inst] = channel
-        object.__setattr__(self, "channels", MappingProxyType(channel_map))
+        object.__setattr__(self, "channels", MappingProxyType(dict(channels)))
 
     def __getstate__(self) -> dict[str, dict[NoiseInstruction, ChannelType]]:
         # ``channels`` is a MappingProxyType (unpicklable); serialize it as a plain dict.
@@ -177,12 +190,39 @@ class NoiseModel:
         return cls(channels=channel_map)
 
     @classmethod
-    def from_isa(cls: type[NoiseModel], compiler_isa: CompilerISA) -> NoiseModel:
-        """Create a noise model from an instruction set architecture.
+    def from_isa(cls: type[NoiseModel], isa: InstructionSetArchitecture) -> NoiseModel:
+        """Create a noise model from a QCS ``InstructionSetArchitecture``.
+
+        This is the preferred ISA entry point: it takes the ``qcs_sdk`` ISA returned by
+        :func:`qcs_sdk.qpu.isa.get_instruction_set_architecture`, rather than the legacy
+        rpcq-derived :class:`~pyquil.external.rpcq.CompilerISA`.
+
+        :param isa: The QCS API ``InstructionSetArchitecture``.
+        :return: A NoiseModel with channels according to the ISA's fidelities.
+
+        .. seealso:: :meth:`from_compiler_isa` for the channel-construction details and caveats.
+        """
+        from pyquil.quantum_processor.transformers import qcs_isa_to_compiler_isa
+
+        return cls.from_compiler_isa(qcs_isa_to_compiler_isa(isa))
+
+    @classmethod
+    @deprecated(
+        version="4.17.0",
+        reason="pyquil.external.rpcq (and CompilerISA) will be removed in pyQuil v5. "
+        "Use NoiseModel.from_isa with a qcs_sdk InstructionSetArchitecture instead.",
+    )
+    def from_compiler_isa(cls: type[NoiseModel], compiler_isa: CompilerISA) -> NoiseModel:
+        """Create a noise model from an rpcq-derived compiler ISA.
 
         Gate fidelities are converted to depolarizing channels and measurement
-        errors are symmetric. Only gates with concrete numeric parameters are
-        included.
+        errors are symmetric. Only gates with concrete numeric parameters and a
+        fidelity below 1.0 are included.
+
+        .. deprecated:: 4.17.0
+            :class:`~pyquil.external.rpcq.CompilerISA` is part of the rpcq layer slated for
+            removal in pyQuil v5. Use :meth:`from_isa` with a ``qcs_sdk``
+            ``InstructionSetArchitecture``.
 
         .. note::
             Two-qubit gate channels are keyed by the ISA edge's operand order
@@ -210,11 +250,12 @@ class NoiseModel:
 
                     if gate_name is None:
                         continue
-                    # Skip gates with non-numeric parameters
-                    if not all(isinstance(p, (float, int, complex)) for p in params):
+                    # Skip gates with non-numeric parameters. ``complex`` is excluded
+                    # deliberately: gate parameters must be real, and float(complex) raises.
+                    if not all(isinstance(p, (float, int)) for p in params):
                         continue
 
-                    numeric_params: list[float] = [float(p) for p in params if isinstance(p, (float, int, complex))]
+                    numeric_params: list[float] = [float(p) for p in params if isinstance(p, (float, int))]
                     inst = Gate(name=gate_name, params=numeric_params, qubits=qubits)
                     if fidelity is not None and fidelity < 1.0:
                         channels[inst] = Channel.from_gate_fidelity(inst=inst, fidelity=fidelity)
@@ -236,6 +277,10 @@ class NoiseModel:
                         # MeasureInfo for the same qubit may carry a usable fidelity.
                         continue
                     seen_measure_qubits.add(qubit_idx)
+                    # Matching the gate branch, a perfect readout gets no channel at all rather
+                    # than an identity one.
+                    if fidelity >= 1.0:
+                        continue
                     m_inst = Measurement(qubit=QuilQubit(qubit_idx), classical_reg=None)
                     channels[m_inst] = MeasurementChannel.from_readout_fidelity(inst=m_inst, fidelity=fidelity)
 
@@ -249,10 +294,10 @@ class NoiseModel:
 
                     if gate_name is None:
                         continue
-                    if not all(isinstance(p, (float, int, complex)) for p in params):
+                    if not all(isinstance(p, (float, int)) for p in params):
                         continue
 
-                    numeric_params = [float(p) for p in params if isinstance(p, (float, int, complex))]
+                    numeric_params = [float(p) for p in params if isinstance(p, (float, int))]
                     inst = Gate(name=gate_name, params=numeric_params, qubits=qubits)
                     if fidelity is not None and fidelity < 1.0:
                         channels[inst] = Channel.from_gate_fidelity(inst=inst, fidelity=fidelity)
@@ -268,14 +313,10 @@ class NoiseModel:
 
         :return: JSON string representation.
         """
-        channel_data = []
-        for ch in self.channels.values():
-            # Match by base class so every gate channel (SuperopChannel, Channel) and reset
-            # channel (SuperopResetChannel, ResetChannel) is covered, plus measurement and cycle.
-            if isinstance(ch, (_ChannelBase, _ResetChannelBase, MeasurementChannel, CycleChannel)):
-                channel_data.append({"type": type(ch).__name__, "data": ch.to_json()})
-            else:
-                logger.warning(f"Skipping serialization of {type(ch).__name__} (not yet supported).")
+        # Every member of ChannelType derives from _ChannelBase or _ResetChannelBase, or is a
+        # MeasurementChannel or CycleChannel — all of which implement to_json — so there is no
+        # unsupported case to skip here.
+        channel_data = [{"type": type(ch).__name__, "data": ch.to_json()} for ch in self.channels.values()]
         return json.dumps({"channels": channel_data})
 
     @classmethod
@@ -363,11 +404,11 @@ class NoiseModel:
 class DepolarizingNoiseModel:
     r"""A noise model that applies uniform depolarizing noise to every gate.
 
-    For any ``Gate`` instruction, returns a :class:`SuperopChannel` with the specified
+    For any ``Gate`` instruction, returns a :class:`Channel` with the specified
     depolarizing constant.  Measurements and resets are treated as ideal.
 
     :param depolarizing_constant: The depolarization constant :math:`p` where
-        :math:`\\mathcal{D}_p(\\rho) = p \\, \\rho + (1-p) \\, I/d`.
+        :math:`\mathcal{D}_p(\rho) = p \, \rho + (1-p) \, I/d`.
         A value of 1.0 means no noise; 0.0 means full depolarization.
     """
 
@@ -385,8 +426,20 @@ class DepolarizingNoiseModel:
     def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
         """Return a depolarizing channel for gates; ``None`` for measurements/resets."""
         if isinstance(inst, Gate):
-            return Channel.from_depolarizing_constant(inst, self.depolarizing_constant)
+            return _depolarizing_channel(inst, self.depolarizing_constant)
         return None
+
+
+@lru_cache(maxsize=1024)
+def _depolarizing_channel(inst: Gate, depolarizing_constant: float) -> Channel:
+    """Build (and memoize) the depolarizing channel for one gate.
+
+    :class:`DepolarizingNoiseModel` synthesizes channels on demand, and a resolver walking a
+    program will ask for the same handful of gates thousands of times. Building the channel
+    involves resolving the gate unitary and deriving its Hamiltonian, so the results are cached
+    on the (hashable) instruction and constant.
+    """
+    return Channel.from_depolarizing_constant(inst, depolarizing_constant)
 
 
 # ──────────────────────────────────────────────────────────
@@ -397,8 +450,12 @@ class DepolarizingNoiseModel:
 def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> float:
     """Estimate the program fidelity for a given noise model.
 
-    Works by multiplying the gate process fidelities together. Readout noise
-    is not considered.
+    Works by multiplying the gate process fidelities together.
+
+    .. note::
+        Readout and reset noise are **not** considered: measurement and reset channels are
+        skipped, as is the readout portion of any :class:`~pyquil.noise._channels.CycleChannel`.
+        The result describes the coherent part of the program only.
 
     :param program: The program of interest.
     :param noise_model: A noise model.
@@ -411,9 +468,9 @@ def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> 
             # Gate channels (SuperopChannel, Channel) and cycle channels both expose a
             # process (Pauli) fidelity; treat all gate-based channels the same.
             if isinstance(channel, (_ChannelBase, CycleChannel)):
-                gate_fidelities.append(channel.pauli_fidelity)
+                gate_fidelities.append(channel.process_fidelity)
 
-    return reduce(mul, gate_fidelities)
+    return math.prod(gate_fidelities)
 
 
 def _light_cone_program(program: Program, qubits: list[int]) -> Program:

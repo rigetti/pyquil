@@ -132,12 +132,18 @@ def _integer_base_and_exponent(n: int) -> tuple[int, int] | None:
     return base, exponent
 
 
-def _is_perfect_power(n: int) -> bool:
+def _is_prime_power(n: int) -> bool:
     """Check if n is a prime power (p^k for prime p, k >= 1).
 
     This ensures the matrix dimension can be interpreted as k qudits of
     dimension p.  Composite non-prime-power dimensions like 6 = 2*3 are
     ambiguous and rejected.
+
+    .. note::
+        Prime-power dimensions are always read with the *prime* as the qudit dimension, so a
+        4x4 matrix describes two qubits, never one ququart, and a 16x16 matrix describes four
+        qubits, never two ququarts. Non-prime qudit dimensions need the dimensions to be stated
+        explicitly rather than inferred from the matrix size.
     """
     return _integer_base_and_exponent(n) is not None
 
@@ -788,9 +794,10 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         else:
             raise TypeError("Matrix argument must be a list or NumPy array/matrix")
 
-        if not _is_perfect_power(rows):
+        if not _is_prime_power(rows):
             raise ValueError(
-                f"Dimension of matrix must be a perfect power of an integer (e.g. 2, 3, 4, 8, 9, ...), got {rows}"
+                f"Dimension of matrix must be a power of a prime qudit dimension "
+                f"(e.g. 2, 3, 4, 5, 8, 9, 16, 27, ...), got {rows}"
             )
 
         if not contains_parameters:
@@ -818,7 +825,9 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
     def num_args(self) -> int:
         """Get the number of qudit arguments the gate takes.
 
-        For a matrix of dimension d^k with d a prime qudit dimension, returns k.
+        For a matrix of dimension d^k with d a prime qudit dimension, returns k. So a 4x4 matrix
+        takes two qubit arguments (not one ququart) and a 9x9 matrix takes two qutrit arguments;
+        see :func:`_is_prime_power`.
 
         :raises ValueError: If the matrix dimension is not a prime power (see
             :func:`_integer_base_and_exponent`).
@@ -826,7 +835,10 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         rows = len(self.matrix)
         decomposition = _integer_base_and_exponent(rows)
         if decomposition is None:
-            raise ValueError(f"Matrix dimension must be a prime power (e.g. 2, 3, 4, 8, 9, ...), got {rows}.")
+            raise ValueError(
+                f"Matrix dimension must be a power of a prime qudit dimension "
+                f"(e.g. 2, 3, 4, 5, 8, 9, 16, 27, ...), got {rows}."
+            )
         return decomposition[1]
 
     @property
@@ -885,8 +897,21 @@ class DefPermutationGate(DefGate):
         quil_rs.GateDefinition.specification.__set__(self, specification)  # type: ignore[attr-defined]
 
     def num_args(self) -> int:
-        """Get the number of arguments the gate takes."""
-        return int(np.log2(len(self.permutation)))
+        """Get the number of qudit arguments the gate takes.
+
+        A permutation of length d^k permutes the basis states of k qudits of dimension d, so this
+        returns k on the same prime-power reading as :meth:`DefGate.num_args`.
+
+        :raises ValueError: If the permutation length is not a prime power.
+        """
+        levels = len(self.permutation)
+        decomposition = _integer_base_and_exponent(levels)
+        if decomposition is None:
+            raise ValueError(
+                f"Permutation length must be a power of a prime qudit dimension "
+                f"(e.g. 2, 3, 4, 5, 8, 9, 16, 27, ...), got {levels}."
+            )
+        return decomposition[1]
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()

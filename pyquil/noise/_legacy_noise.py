@@ -21,7 +21,6 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import numpy as np
-from deprecated import deprecated
 
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX, I
@@ -42,8 +41,10 @@ _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops
 class KrausModel(_KrausModel):
     """Encapsulate a single gate's noise model.
 
-    .. deprecated::
-        Use :class:`pyquil.noise.Channel` for quax-based noise modeling.
+    .. note::
+        This is the original Kraus-map noise model, used by the QVM. A quax-backed replacement
+        lives in ``pyquil.noise._channels``; it is not yet part of the public API, so this class
+        remains the supported way to describe QVM noise and is not deprecated.
 
     :ivar str gate: The name of the gate.
     :ivar Sequence[float] params: Optional parameters for the gate.
@@ -121,13 +122,16 @@ class KrausModel(_KrausModel):
 _NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
 
 
-@deprecated(
-    version="4.17.0",
-    reason="Use the quax-based noise model, which will become the public API in the next major "
-    "version of pyquil. This class will be removed at that time.",
-)
 class NoiseModel(_NoiseModel):
     """Encapsulate the QPU noise model containing information about the noisy gates.
+
+    .. note::
+        This is the original Kraus-map noise model, used by the QVM and by
+        :func:`~pyquil.api.get_qc`. A quax-backed replacement lives in
+        ``pyquil.noise._channels`` / ``pyquil.noise._noise_model``; until that becomes public,
+        this class is the supported way to describe QVM noise. It is therefore not deprecated —
+        marking it so would warn users of ``get_qc(..., noisy=True)`` about pyQuil's own internal
+        use of it, with no importable alternative to move to.
 
     :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
     :ivar dict[int,np.array] assignment_probs: The single qubit readout assignment
