@@ -56,8 +56,96 @@ from pyquil.quilatom import (
 if TYPE_CHECKING:  # avoids circular import
     from pyquil.paulis import PauliSum
 
+import math
+
 import quil.expression as quil_rs_expr
 import quil.instructions as quil_rs
+
+# Primes used to peel perfect powers apart in :func:`_integer_base_and_exponent`. An exponent
+# whose prime factors all lie in this list is fully reducible; matrix dimensions never approach
+# ``2 ** 61``, so this covers every realistic qudit decomposition.
+_SMALL_PRIMES = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61)
+
+
+def _int_n_root(x: int, n: int) -> int:
+    """Return the integer ``n``-th root of ``x`` (the largest ``m`` with ``m ** n <= x``).
+
+    Uses integer binary search, so it is exact for arbitrarily large ``x`` without the
+    numerical instability of a floating-point ``x ** (1 / n)``. Runs in ``O(log x)``.
+    """
+    low, high = 1, x
+    while low <= high:
+        mid = (low + high) // 2
+        mid_pow_n = mid**n
+        if mid_pow_n == x:
+            return mid
+        elif mid_pow_n < x:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return low - 1
+
+
+def _is_prime(n: int) -> bool:
+    """Return whether ``n`` is prime, via trial division seeded by :data:`_SMALL_PRIMES`."""
+    if n < 2:
+        return False
+    for p in _SMALL_PRIMES:
+        if n == p:
+            return True
+        if n % p == 0:
+            return False
+    for d in range(_SMALL_PRIMES[-1] + 2, math.isqrt(n) + 1, 2):
+        if n % d == 0:
+            return False
+    return True
+
+
+def _integer_base_and_exponent(n: int) -> tuple[int, int] | None:
+    """Decompose n as ``base ** exponent`` for a prime ``base``.
+
+    Returns the prime ``d`` and the exponent ``k`` such that ``n == d ** k``, or ``None`` if
+    ``n`` is not a prime power. This is the natural qudit decomposition: a matrix dimension
+    ``d ** k`` describes ``k`` qudits of dimension ``d``. Composite non-prime-power dimensions
+    like ``6 = 2 * 3`` are ambiguous and rejected (``None``).
+
+    Runs in ``O(log^2 n)`` by repeatedly extracting exact integer prime-th roots (see
+    :func:`_int_n_root`), rather than trial-dividing up to ``sqrt(n)``.
+    """
+    if n < 2:
+        return None
+
+    # Peel off prime-th roots: whenever the current base is a perfect p-th power, replace it
+    # with its p-th root and fold p into the exponent. What remains is the primitive base b
+    # (with maximal exponent k) such that n == b ** k. Once b < 2 ** p no larger prime can
+    # reduce it further, so we stop.
+    base, exponent = n, 1
+    for p in _SMALL_PRIMES:
+        while (root := _int_n_root(base, p)) >= 2 and root**p == base:
+            base, exponent = root, exponent * p
+        if root < 2:
+            break
+
+    # n is a prime power exactly when its primitive base is prime.
+    if not _is_prime(base):
+        return None
+    return base, exponent
+
+
+def _is_prime_power(n: int) -> bool:
+    """Check if n is a prime power (p^k for prime p, k >= 1).
+
+    This ensures the matrix dimension can be interpreted as k qudits of
+    dimension p.  Composite non-prime-power dimensions like 6 = 2*3 are
+    ambiguous and rejected.
+
+    .. note::
+        Prime-power dimensions are always read with the *prime* as the qudit dimension, so a
+        4x4 matrix describes two qubits, never one ququart, and a 16x16 matrix describes four
+        qubits, never two ququarts. Non-prime qudit dimensions need the dimensions to be stated
+        explicitly rather than inferred from the matrix size.
+    """
+    return _integer_base_and_exponent(n) is not None
 
 
 class _InstructionMeta(abc.ABCMeta):
@@ -706,8 +794,11 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
         else:
             raise TypeError("Matrix argument must be a list or NumPy array/matrix")
 
-        if 0 != rows & (rows - 1):
-            raise ValueError(f"Dimension of matrix must be a power of 2, got {rows}")
+        if not _is_prime_power(rows):
+            raise ValueError(
+                f"Dimension of matrix must be a power of a prime qudit dimension "
+                f"(e.g. 2, 3, 4, 5, 8, 9, 16, 27, ...), got {rows}"
+            )
 
         if not contains_parameters:
             np_matrix = np.asarray(matrix)
@@ -732,9 +823,23 @@ class DefGate(quil_rs.GateDefinition, AbstractInstruction):
             return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
 
     def num_args(self) -> int:
-        """Get the number of qubit arguments the gate takes."""
+        """Get the number of qudit arguments the gate takes.
+
+        For a matrix of dimension d^k with d a prime qudit dimension, returns k. So a 4x4 matrix
+        takes two qubit arguments (not one ququart) and a 9x9 matrix takes two qutrit arguments;
+        see :func:`_is_prime_power`.
+
+        :raises ValueError: If the matrix dimension is not a prime power (see
+            :func:`_integer_base_and_exponent`).
+        """
         rows = len(self.matrix)
-        return int(np.log2(rows))
+        decomposition = _integer_base_and_exponent(rows)
+        if decomposition is None:
+            raise ValueError(
+                f"Matrix dimension must be a power of a prime qudit dimension "
+                f"(e.g. 2, 3, 4, 5, 8, 9, 16, 27, ...), got {rows}."
+            )
+        return decomposition[1]
 
     @property
     def matrix(self) -> np.ndarray:
@@ -792,8 +897,21 @@ class DefPermutationGate(DefGate):
         quil_rs.GateDefinition.specification.__set__(self, specification)  # type: ignore[attr-defined]
 
     def num_args(self) -> int:
-        """Get the number of arguments the gate takes."""
-        return int(np.log2(len(self.permutation)))
+        """Get the number of qudit arguments the gate takes.
+
+        A permutation of length d^k permutes the basis states of k qudits of dimension d, so this
+        returns k on the same prime-power reading as :meth:`DefGate.num_args`.
+
+        :raises ValueError: If the permutation length is not a prime power.
+        """
+        levels = len(self.permutation)
+        decomposition = _integer_base_and_exponent(levels)
+        if decomposition is None:
+            raise ValueError(
+                f"Permutation length must be a power of a prime qudit dimension "
+                f"(e.g. 2, 3, 4, 5, 8, 9, 16, 27, ...), got {levels}."
+            )
+        return decomposition[1]
 
     def __str__(self) -> str:
         return super().to_quil_or_debug()
