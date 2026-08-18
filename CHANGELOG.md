@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.18.0-rc.1 (2026-08-18)
+
+### Features
+
+#### drop Python 3.9 support, add rigetti-quax (1/5) (#1858)
+
+#### qudit noise model (2/5) (#1854) (#1859)
+
+### Fixes
+
+#### format complex params with nonzero real and unit imaginary part (#1850)
+
 ## 4.18.0-rc.0 (2026-07-16)
 
 ### Features
