@@ -39,6 +39,7 @@ from typing import Any, Literal, NamedTuple, TypeAlias, cast
 
 import jax.numpy as jnp
 import networkx as nx
+import numpy as np
 import quax as qx
 from jax import Array
 
@@ -55,7 +56,7 @@ from pyquil.noise._noise_model import (
     NoiseModelLike,
 )
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, substitute
+from pyquil.quilatom import MemoryReference, Qubit, _contained_mrefs, substitute
 from pyquil.quilbase import DefCircuit, Gate, Measurement, Reset, ResetQubit
 
 logger = logging.getLogger(__name__)
@@ -147,13 +148,33 @@ def expand_defcircuit_body(
     :param circuit_definitions: All known DEFCIRCUIT definitions (for nested expansion).
     :yields: Concrete instructions with physical qubits and resolved parameters.
     """
-    qarg_to_arg_map = {qarg: q for q, qarg in zip(inst.qubits, defcircuit.qubit_variables, strict=False)}
-    parg_to_arg_map = {parg: param for param, parg in zip(inst.params, defcircuit.parameters, strict=False)}
+    if len(inst.qubits) != len(defcircuit.qubit_variables):
+        raise ValueError(
+            f"{inst.out()!r} passes {len(inst.qubits)} qubit(s) but DEFCIRCUIT "
+            f"{defcircuit.name} declares {len(defcircuit.qubit_variables)} "
+            f"({[str(a) for a in defcircuit.qubit_variables]})."
+        )
+    if len(inst.params) != len(defcircuit.parameters):
+        raise ValueError(
+            f"{inst.out()!r} passes {len(inst.params)} parameter(s) but DEFCIRCUIT "
+            f"{defcircuit.name} declares {len(defcircuit.parameters)} "
+            f"({[str(a) for a in defcircuit.parameters]})."
+        )
+    qarg_to_arg_map = {qarg: q for q, qarg in zip(inst.qubits, defcircuit.qubit_variables, strict=True)}
+    parg_to_arg_map = {parg: param for param, parg in zip(inst.params, defcircuit.parameters, strict=True)}
+
+    def resolve_qubit(qarg: Any) -> Any:
+        """Map a formal argument to its concrete qubit, passing literal qubits through.
+
+        A DEFCIRCUIT body may name a fixed qubit directly (``DEFCIRCUIT C q: X q; X 3``),
+        which is legal Quil and is not part of the formal-argument map.
+        """
+        return qarg_to_arg_map.get(qarg, qarg)
 
     for circuit_inst in defcircuit.instructions:
         if isinstance(circuit_inst, Gate):
             circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubits = [qarg_to_arg_map[qarg] for qarg in circuit_inst.qubits]  # type: ignore[index,misc]
+            circuit_inst.qubits = [resolve_qubit(qarg) for qarg in circuit_inst.qubits]
             if hasattr(circuit_inst, "params"):
                 circuit_inst.params = [substitute(param, parg_to_arg_map) for param in circuit_inst.params]  # type: ignore[arg-type]
             if circuit_inst.name in circuit_definitions:
@@ -164,11 +185,11 @@ def expand_defcircuit_body(
                 yield circuit_inst
         elif isinstance(circuit_inst, Measurement):
             circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubit = qarg_to_arg_map[circuit_inst.qubit]  # type: ignore[index]
+            circuit_inst.qubit = resolve_qubit(circuit_inst.qubit)
             yield circuit_inst
         elif isinstance(circuit_inst, ResetQubit):
             circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubit = qarg_to_arg_map[circuit_inst.qubit]  # type: ignore[index]
+            circuit_inst.qubit = resolve_qubit(circuit_inst.qubit)
             yield circuit_inst
         else:
             yield deepcopy(circuit_inst)  # type: ignore[misc]
@@ -293,7 +314,7 @@ def expand_program(
             raise ValueError(f"CycleChannel for {inst.name} was not expanded before gate resolution.")
 
         # Parameterized gate → callable that resolves params at call time.
-        if any(isinstance(p, MemoryReference) for p in inst.params):
+        if any(_contained_mrefs(p) for p in inst.params):  # type: ignore[arg-type]
             gate_name = inst.name
             if custom_gates is not None and gate_name in custom_gates:
                 gate_def = custom_gates[gate_name]
@@ -305,14 +326,36 @@ def expand_program(
             param_indices: list[int] = []
             concrete_values: list[float] = []
             for p in inst.params:
-                if isinstance(p, MemoryReference) and p.name not in measure_regs:
+                mrefs = _contained_mrefs(p)  # type: ignore[arg-type]
+                if not mrefs:
+                    # A concrete number: a compile-time constant for this gate.
+                    param_indices.append(-1)
+                    concrete_values.append(float(np.real(p)))
+                elif not isinstance(p, MemoryReference):
+                    # An arithmetic expression over one or more memory regions, e.g.
+                    # ``RX(theta[0] / 2) 0``. Each ParametricGate argument maps to a single
+                    # slot of the flat parameter vector, which is what lets the simulator
+                    # batch same-shaped gates under one ``jax.vmap``; an arbitrary
+                    # expression would have to become part of that batching key.
+                    raise ValueError(
+                        f"Gate parameter {p} in {inst.out()!r} is an expression over memory "
+                        f"region(s) {sorted(m.name for m in mrefs)}, which is not supported. "
+                        "Pass the parameter directly (e.g. RX(theta[0]) with the division folded "
+                        "into the value you bind), or substitute concrete values into the program "
+                        "before simulating."
+                    )
+                elif p.name in measure_regs:
+                    # Classically-conditioned angle: the value is only known mid-circuit.
+                    raise ValueError(
+                        f"Gate parameter {p} in {inst.out()!r} reads memory region "
+                        f"'{p.name}', which is written by a MEASURE in this program. "
+                        "Feed-forward (classically-conditioned) parameters are not supported."
+                    )
+                else:
                     param_indices.append(param_counter)
                     concrete_values.append(float("nan"))
                     param_refs.append((p.name, p.offset))
                     param_counter += 1
-                else:
-                    param_indices.append(-1)
-                    concrete_values.append(float(p.real) if hasattr(p, "real") else float(p))
 
             return ParametricGate(gate_def, tuple(param_indices), tuple(concrete_values)), qubits
 
@@ -365,8 +408,13 @@ def expand_program(
                 op, qubits = _resolve_reset_qubit(inst)
                 _emit_op(op, qubits)
             case Reset():
+                # A global RESET is the same physical operation as a targeted one on every
+                # qubit, so it must consult the noise model per qubit rather than always
+                # emitting the ideal reset -- otherwise a model carrying reset channels is
+                # silently ignored for `RESET` while being honoured for `RESET <q>`.
                 for q in all_qubits:
-                    _emit_op(qx.gates.RESET(dim=_dimension_for(q)), (q,))
+                    op, qubits = _resolve_reset_qubit(ResetQubit(Qubit(q)))
+                    _emit_op(op, qubits)
 
     for inst in program.instructions:
         if isinstance(inst, DefCircuit):
@@ -414,7 +462,18 @@ def remap_qubits(
     :param qubit_indices: Mapping from physical qubit id → 0-based index.
     :return: Remapped qubit tuples.
     """
-    return [tuple(qubit_indices[q] for q in qubits) for qubits in qubit_tuples]
+    remapped: list[tuple[int, ...]] = []
+    for qubits in qubit_tuples:
+        missing = [q for q in qubits if q not in qubit_indices]
+        if missing:
+            raise ValueError(
+                f"Operation on qubit(s) {missing} but the simulated register is "
+                f"{sorted(qubit_indices)}. Pass qubits=[...] listing every qubit the program "
+                "touches. (Qubits named literally inside a DEFCIRCUIT body are not discovered "
+                "automatically and always need to be listed.)"
+            )
+        remapped.append(tuple(qubit_indices[q] for q in qubits))
+    return remapped
 
 
 def build_dag(qubit_tuples: list[tuple[int, ...]]) -> nx.DiGraph:
@@ -556,11 +615,15 @@ def resolve_for_gradable(
     qubits: list[int] | None = None,
     dims: tuple[int, ...] | None = None,
 ) -> Resolution:
-    """Resolve a program for the grad-able (state-vector / density-matrix) simulators.
+    """Resolve *program* for the differentiable state-vector and density-matrix simulators.
 
-    Measurements become dephasing ``SuperOp`` operators, so the resolved program
-    contains only ``Unitary``/``SuperOp`` operators and no compressor barriers are
-    needed.  Thin wrapper over :func:`resolve_program` with ``measurement="superop"``.
+    ``MEASURE`` becomes a dephasing superoperator so the pipeline stays grad-able.
+
+    :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
+    :param noise_model: Optional noise model; instructions with no channel are ideal.
+    :param qubits: Explicit register order. Defaults to the program's qubits, ascending.
+    :param dims: Optional pre-determined per-qudit dimensions, in ``qubits`` order.
+    :return: A :class:`Resolution` produced with ``measurement="superop"``.
     """
     return resolve_program(program, noise_model, qubits, dims, measurement="superop")
 
@@ -571,11 +634,15 @@ def resolve_for_trajectory(
     qubits: list[int] | None = None,
     dims: tuple[int, ...] | None = None,
 ) -> Resolution:
-    """Resolve a program for the trajectory simulators.
+    """Resolve *program* for the Monte-Carlo trajectory simulators.
 
-    Measurements remain sampled ``QuantumInstrument`` operators (kept out of merges
-    by compressor barriers).  Thin wrapper over :func:`resolve_program` with
-    ``measurement="instrument"``.
+    ``MEASURE`` stays a ``QuantumInstrument`` that can be sampled.
+
+    :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
+    :param noise_model: Optional noise model; instructions with no channel are ideal.
+    :param qubits: Explicit register order. Defaults to the program's qubits, ascending.
+    :param dims: Optional pre-determined per-qudit dimensions, in ``qubits`` order.
+    :return: A :class:`Resolution` produced with ``measurement="instrument"``.
     """
     return resolve_program(program, noise_model, qubits, dims, measurement="instrument")
 
@@ -902,9 +969,31 @@ def compressor_from_dag(
         root = uf.find(nk)
         root_to_nodes.setdefault(root, []).append(nk)
 
+    # A *merged* group's operator is built by ``_merge_ops``, which embeds its members
+    # into the sorted union subsystem -- so sorted is the truth for those. A *singleton*
+    # group, though, is emitted verbatim by ``compress`` below, so its operator is still
+    # in the instruction's own operand order: ``CCNOT 2 1 0`` yields a matrix indexed
+    # (2, 1, 0), not (0, 1, 2). Advertising a sorted subsystem for it would tell the
+    # caller to apply that matrix to permuted qudits.
+    #
+    # The state-vector path re-derives each op's offsets inside its group
+    # (``group_positions`` in ``_build_vectorized_unitary_constructor``) and so was
+    # correct either way, but the density-matrix path dispatches purely on the
+    # subsystem advertised here -- and silently produced wrong states for any
+    # non-ascending multi-qubit gate. Since a 3+ qubit gate can never merge under the
+    # default ``max_subsystem_size=2``, it is always a singleton, so every reversed
+    # ``CCNOT``/``CSWAP`` was affected.
+    #
+    # Reporting the raw operand order costs nothing (the embedding becomes the
+    # identity) at the price of treating e.g. (0, 1) and (1, 0) as distinct bases,
+    # i.e. one extra ``jax.lax.switch`` branch per operand ordering actually used.
     root_to_subsystem: dict[int, tuple[int, ...]] = {}
     for root, qubits in group_qubits.items():
-        root_to_subsystem[root] = tuple(sorted(qubits))
+        nodes = root_to_nodes[root]
+        if len(nodes) == 1:
+            root_to_subsystem[root] = tuple(dag.nodes[nodes[0]]["qubits"])
+        else:
+            root_to_subsystem[root] = tuple(sorted(qubits))
 
     # Emit the *groups* in a topological order of the **quotient** graph rather
     # than the original DAG.  A merged group can legitimately contain an op that

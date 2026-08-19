@@ -288,7 +288,7 @@ the operations they admit.
      - Yes
      - Resets (measurements as total channel)
      - ``jit`` + ``grad``
-   * - ``TrajectorySimulator``
+   * - ``TrajectorySimulator`` [#planned]_
      - Monte-Carlo sampling
      - Yes
      - Yes
@@ -378,6 +378,14 @@ which is deprecated for removal in pyQuil v5.)
 
 Trajectory
 ----------
+
+.. note::
+   ``TrajectorySimulator`` is **not yet available**.  This section describes the design that
+   the resolver's ``measurement="instrument"`` mode and ``resolve_for_trajectory`` exist to
+   support; the simulator itself lands in a follow-up change.  The code block below will not
+   run against this release.
+
+.. [#planned] Planned; see the note under `Trajectory`_.
 
 For programs with mid-circuit measurements, resets, and feed-forward-style
 sampling, unravel the dynamics into pure-state **quantum trajectories**: each

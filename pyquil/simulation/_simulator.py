@@ -27,6 +27,20 @@ there are no compressor barriers:
 
 The ``compute`` method is the main entry point; for the grad-able family it can be
 passed directly to ``jax.jit`` or ``jax.grad``.
+
+.. warning::
+    **Qubit ordering is big-endian here, unlike the rest of pyQuil.**  The first entry of
+    the simulator's ``qubits`` list is the *most* significant subsystem of the returned
+    state, so for ``qubits=[0, 1]`` the program ``X 0`` yields the basis state ``|10>``
+    (index 2).  Every other simulator in pyQuil -- :class:`~pyquil.api.WavefunctionSimulator`,
+    :class:`~pyquil.simulation.ReferenceWavefunctionSimulator`, the QVM -- is little-endian,
+    where qubit 0 is the least significant bit and ``X 0`` gives ``|01>`` (index 1).
+
+    This is a deliberate departure: tying subsystem order to the ``qubits`` list makes the
+    state's axes read in the same order the register is written, which removes a persistent
+    source of confusion when working with multi-qudit registers.  It does mean amplitudes
+    must be reversed to compare against pyQuil's other simulators or against QVM readout
+    bit order.
 """
 
 from __future__ import annotations
@@ -101,10 +115,37 @@ class ProgramSimulator:
         dims: tuple[int, ...] | None = None,
         measurement: MeasurementMode = "instrument",
     ) -> None:
+        """Expand *program* into a compressed operator stack.
+
+        :param program: The Quil program to simulate. May contain ``DEFGATE`` and
+            ``DEFCIRCUIT`` definitions, which are expanded.
+        :param qubits: Explicit register, in the order the state's subsystems will follow.
+            Defaults to the program's qubits in ascending order. Pass this to include a
+            qubit the program never names (an idle spectator), to fix a specific ordering,
+            or when a ``DEFCIRCUIT`` body names a literal qubit -- those are not discovered
+            automatically.
+        :param noise_model: Optional noise model. Channels are looked up per instruction;
+            instructions with no channel are simulated ideally.
+        :param max_subsystem_size: Largest number of qudits the compressor may merge
+            adjacent operations onto. Larger values mean fewer, bigger operators: usually
+            faster to run and slower to compile. Purely a performance knob -- results are
+            independent of it.
+        :param dims: Per-qudit dimensions, in ``qubits`` order. Defaults to inferring them
+            from the program's gates and channels (2 unless something says otherwise).
+        :param measurement: How ``MEASURE`` is represented. The grad-able simulators
+            override this to ``"superop"``; see :func:`~pyquil.simulation._resolver.expand_program`.
+        :raises ValueError: If ``qubits`` contains duplicates.
+        """
         self._validate(program)
 
         if qubits is None:
             qubits = sorted(program.get_qubit_indices())
+        elif len(set(qubits)) != len(qubits):
+            duplicates = sorted({q for q in qubits if qubits.count(q) > 1})
+            raise ValueError(
+                f"qubits contains duplicate entries {duplicates}: {qubits}. Each qubit must "
+                "appear exactly once, since the list defines the register's subsystems."
+            )
         self.qubits = qubits
         self.n_qubits = len(qubits)
 
@@ -149,28 +190,69 @@ class ProgramSimulator:
     # -- public pipeline methods --------------------------
 
     def linearize(self, memory_map: MemoryMap) -> Array:
-        """Convert a memory map to a flat JAX parameter vector."""
+        """Convert a memory map to a flat JAX parameter vector.
+
+        The vector's layout is fixed at construction (the order in which parametric gates
+        were expanded), so it is the vector every ``compute``/``resolve`` call expects.
+
+        :param memory_map: Values for each declared memory region, as passed to the QVM.
+        :return: A flat ``float`` vector with one entry per runtime parameter.
+        """
         return self._linearize_fn(memory_map)
 
     def _default_params(self, params: Array | None) -> Array:
-        """Return *params*, or the empty-memory-map vector when ``None``.
+        """Return *params*, validated against the program's parameter count.
 
-        Lets callers omit ``params`` for parameter-free programs (where the
-        vector is empty).  For a parametric program the empty memory map raises
-        on the missing register, which is clearer than silently using zeros.
+        Lets callers omit ``params`` for parameter-free programs. Anything else -- a
+        parametric program called with no vector, or a vector of the wrong length -- is a
+        caller error, and is reported as one: the underlying ``jax`` indexing would
+        otherwise fail with an opaque gather-out-of-range message, or silently ignore
+        trailing values.
+
+        :raises ValueError: If ``params`` has the wrong length, or is omitted for a
+            program that takes parameters.
         """
-        return self.linearize({}) if params is None else params
+        if params is None:
+            if self._n_params:
+                raise ValueError(
+                    f"This program has {self._n_params} parameter(s); params cannot be omitted. "
+                    "Build the vector with linearize(memory_map)."
+                )
+            return jnp.array([], dtype=float)
+
+        params = jnp.asarray(params)
+        if params.shape != (self._n_params,):
+            raise ValueError(
+                f"Expected {self._n_params} parameter(s) for this program, got shape "
+                f"{tuple(params.shape)}. Build the vector with linearize(memory_map)."
+            )
+        return params
 
     def resolve(self, params: Array) -> list[ResolvedOp]:
-        """Resolve parameters into one operator per DAG node."""
+        """Resolve parameters into one operator per DAG node.
+
+        :param params: Flat parameter vector from :meth:`linearize`.
+        :return: One ``(operator, subsystem)`` pair per expanded operation, in program order.
+        """
         return self._resolve_fn(params)
 
     def compress(self, resolved: list[ResolvedOp]) -> list[ResolvedOp]:
-        """Merge operators via greedy edge contraction."""
+        """Merge operators via greedy edge contraction.
+
+        :param resolved: Operators from :meth:`resolve`.
+        :return: Merged operators, one per compressor group, in application order. A merged
+            group's subsystem is sorted; an unmerged operation keeps its own operand order.
+        """
         return self._compress_fn(resolved)
 
     def compute(self, params: Array | None = None, **kwargs: Any) -> Any:
-        """Compute the simulation result.  Subclasses must override."""
+        """Compute the simulation result.  Subclasses must override.
+
+        :param params: Flat parameter vector from :meth:`linearize`; omit for a
+            parameter-free program.
+        :param kwargs: Subclass-specific options.
+        :return: The simulated result (a state vector, density matrix, ...).
+        """
         raise NotImplementedError
 
 
@@ -202,6 +284,12 @@ class _GradableSimulator(ProgramSimulator):
         max_subsystem_size: int = 2,
         dims: tuple[int, ...] | None = None,
     ) -> None:
+        """Set up the compressed-stack evolution machinery.
+
+        Arguments are as :meth:`ProgramSimulator.__init__`, except that ``measurement`` is
+        pinned to ``"superop"``: this family represents ``MEASURE`` as a dephasing
+        superoperator so the whole pipeline stays differentiable.
+        """
         super().__init__(
             program,
             qubits,
@@ -235,6 +323,11 @@ class _GradableSimulator(ProgramSimulator):
         scales with the number of distinct base subsystems rather than the number of
         operations.  The state-vector and density-matrix simulators differ only in
         their branch and state types.
+
+        :param state: The state to evolve (a ``StateVector`` or ``DensityMatrix``).
+        :param op_stack: Operator matrices, one row per compressed operation, zero-padded
+            to a common size and ordered as the compressor emits them.
+        :return: The evolved state, of the same type as *state*.
         """
         branches = self._branches  # type: ignore[attr-defined]
 
@@ -449,7 +542,19 @@ class PureStateVectorSimulator(_GradableSimulator):
         *,
         max_subsystem_size: int = 2,
     ) -> None:
+        """Prepare a pure-state simulator for a gate-only program.
+
+        :param program: A Quil program of unitary operations only. Measurements, resets and
+            noise channels are rejected -- including ones reached through a ``DEFCIRCUIT``.
+            Use :class:`DensityMatrixSimulator` for those.
+        :param qubits: Explicit register in state-subsystem order; see
+            :meth:`ProgramSimulator.__init__`. Remember the ordering is big-endian.
+        :param max_subsystem_size: Compressor merge budget; performance only. See
+            :meth:`ProgramSimulator.__init__`.
+        :raises ValueError: If the program contains a non-unitary operation.
+        """
         super().__init__(program, qubits, noise_model=None, max_subsystem_size=max_subsystem_size)
+        self._validate_expanded()
         self._psi0 = qx.zero_state_vector(dims=self.dims)
 
         # Vectorized gate construction (vmap per gate type) followed by a
@@ -487,6 +592,24 @@ class PureStateVectorSimulator(_GradableSimulator):
                 raise ValueError(f"PureStateVectorSimulator does not support measurements.  Found: {inst}")
             if isinstance(inst, (Reset, ResetQubit)):
                 raise ValueError(f"PureStateVectorSimulator does not support resets.  Found: {inst}")
+
+    def _validate_expanded(self) -> None:
+        """Reject any expanded operation that is not a pure unitary.
+
+        ``_validate`` sees only top-level instructions, so a ``MEASURE`` or ``RESET`` hidden
+        in a ``DEFCIRCUIT`` body slips past it and would otherwise surface much later as a
+        shape error from the unitary-only vectorized builder. Checking the expanded stack
+        catches those, and anything else non-unitary a noise model or future instruction
+        type might introduce.
+        """
+        for op, subsystem in zip(self._expanded_ops, self._raw_subsystems, strict=True):
+            if not isinstance(op, (qx.Unitary, ParametricGate)):
+                raise ValueError(
+                    f"PureStateVectorSimulator supports unitary operations only, but the "
+                    f"expanded program contains a {type(op).__name__} on qubit(s) "
+                    f"{list(subsystem)}. Measurements, resets and noise channels require "
+                    "DensityMatrixSimulator; note that these may come from a DEFCIRCUIT body."
+                )
 
     def compute(self, params: Array | None = None) -> qx.StateVector:  # type: ignore[override]
         """Compute the final state vector.
@@ -562,6 +685,18 @@ class DensityMatrixSimulator(_GradableSimulator):
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 2,
     ) -> None:
+        """Prepare a density-matrix simulator.
+
+        :param program: Any Quil program, including measurements and resets. ``MEASURE`` is
+            applied as a dephasing channel: the resulting state is the correct *reduced*
+            density matrix averaged over outcomes, but no classical outcome is recorded, so
+            the register written by the measurement is not simulated.
+        :param qubits: Explicit register in state-subsystem order; see
+            :meth:`ProgramSimulator.__init__`. Remember the ordering is big-endian.
+        :param noise_model: Optional noise model. Instructions with no channel are ideal.
+        :param max_subsystem_size: Compressor merge budget; performance only. See
+            :meth:`ProgramSimulator.__init__`.
+        """
         super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
         self._rho0 = qx.zero_state_matrix(dims=self.dims)
 
