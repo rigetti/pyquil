@@ -370,8 +370,11 @@ applied as their total (outcome-averaged) channel.
 
 A device-realistic model can be built directly from an instruction set
 architecture with :meth:`NoiseModel.from_isa <pyquil.noise._noise_model.NoiseModel.from_isa>`,
-which converts per-gate fidelities to depolarizing channels and per-qubit
-readout fidelities to symmetric confusion.
+which takes a QCS ``InstructionSetArchitecture`` and converts per-gate fidelities to
+depolarizing channels and per-qubit readout fidelities to symmetric confusion.  (For the
+legacy rpcq-derived ``CompilerISA``, use
+:meth:`NoiseModel.from_compiler_isa <pyquil.noise._noise_model.NoiseModel.from_compiler_isa>`,
+which is deprecated for removal in pyQuil v5.)
 
 Trajectory
 ----------

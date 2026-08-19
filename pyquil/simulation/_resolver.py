@@ -43,11 +43,11 @@ import quax as qx
 from jax import Array
 
 from pyquil.noise._channels import (
-    Channel,
+    ChannelBase,
     CustomGateMap,
     CycleChannel,
     MeasurementChannel,
-    ResetChannel,
+    ResetChannelBase,
     get_custom_gates_from_program,
     get_instruction_unitary,
 )
@@ -281,9 +281,13 @@ def expand_program(
         nonlocal param_counter
         qubits = tuple(inst.get_qubit_indices())
 
-        # Check noise model first.
+        # Check noise model first. Match on ChannelBase, not a concrete class: gate channels
+        # come in both Lindbladian-backed (Channel) and raw-superoperator (SuperopChannel)
+        # flavors, and every derived operation (composition, twirling, coherent/stochastic
+        # splitting) returns the latter. Narrowing to one of them silently drops the other's
+        # noise and simulates the ideal gate instead.
         channel = noise_model.get_channel(inst) if noise_model is not None else None
-        if isinstance(channel, Channel):
+        if isinstance(channel, ChannelBase):
             return channel.process, qubits
         if isinstance(channel, CycleChannel):
             raise ValueError(f"CycleChannel for {inst.name} was not expanded before gate resolution.")
@@ -342,7 +346,9 @@ def expand_program(
         """Resolve a targeted reset instruction."""
         qubits = tuple(inst.get_qubit_indices())  # type: ignore[arg-type]
         channel = noise_model.get_channel(inst) if noise_model is not None else None
-        if isinstance(channel, ResetChannel):
+        # ResetChannelBase, not ResetChannel: see the note in _resolve_gate. SuperopResetChannel
+        # is the other reset flavor and must not fall through to the ideal reset.
+        if isinstance(channel, ResetChannelBase):
             return channel.process, qubits
         return qx.gates.RESET(dim=_dimension_for(qubits[0])), qubits
 
@@ -370,10 +376,19 @@ def expand_program(
             channel = noise_model.get_channel(inst) if noise_model is not None else None
 
             if isinstance(channel, CycleChannel):
-                # Expand using the channel's constituent operators.
+                # Expand using the channel's constituent operators. A MeasurementChannel
+                # constituent carries a QuantumInstrument, which must be collapsed to its total
+                # channel under measurement="superop" exactly as a standalone MEASURE is -- the
+                # grad-able pipeline is not meant to carry an instrument.
                 for sub_ch in channel.channels:
-                    sub_qubits = tuple(sub_ch.inst.get_qubit_indices())
-                    _emit_op(sub_ch.process, sub_qubits)
+                    # Use the channel's own `qubits` property rather than reaching through to
+                    # `inst.get_qubit_indices()`, whose return type varies across the constituent
+                    # families (a list for gates, a set-or-None for resets).
+                    sub_qubits = tuple(sub_ch.qubits)
+                    if measurement == "superop" and isinstance(sub_ch, MeasurementChannel):
+                        _emit_op(sub_ch.process.total_channel(), sub_qubits)
+                    else:
+                        _emit_op(sub_ch.process, sub_qubits)
             else:
                 # Expand DEFCIRCUIT body and resolve each instruction.
                 for expanded_inst in expand_defcircuit_body(inst, circuit_definitions[inst.name], circuit_definitions):

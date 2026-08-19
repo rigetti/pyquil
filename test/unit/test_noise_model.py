@@ -32,7 +32,7 @@ from pyquil.noise._channels import (
     SuperopChannel,
     SuperopResetChannel,
     _build_cycle_channel,
-    _ChannelBase,
+    ChannelBase,
     _evaluate_parameter_designators,
     _operator_dims_from_dimension,
     get_custom_gates_from_program,
@@ -593,7 +593,7 @@ class TestSuperopResetChannel:
     def test_ideal_reset_maps_excited_to_ground(self):
         """An ideal reset on an excited qubit should produce |0><0|."""
         inst = RESET(0)
-        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
+        ch = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
         noise_model = NoiseModel.from_channels([ch])
         # Prepare |1> then reset
         program = Program(X(0), RESET(0))
@@ -604,7 +604,7 @@ class TestSuperopResetChannel:
     def test_ideal_reset_maps_superposition_to_ground(self):
         """An ideal reset on a superposition state should produce |0><0|."""
         inst = RESET(0)
-        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
+        ch = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
         noise_model = NoiseModel.from_channels([ch])
         # Prepare |+> then reset
         program = Program(RX(np.pi / 2, 0), RESET(0))
@@ -615,7 +615,7 @@ class TestSuperopResetChannel:
     def test_noisy_reset_reduces_fidelity(self):
         """A noisy reset should produce a state with fidelity < 1 relative to |0><0|."""
         inst = RESET(0)
-        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=0.90)
+        ch = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=0.90)
         noise_model = NoiseModel.from_channels([ch])
         program = Program(X(0), RESET(0))
         rho = _dm(program, noise_model=noise_model)
@@ -627,7 +627,7 @@ class TestSuperopResetChannel:
     def test_reset_in_multi_qubit_circuit(self):
         """Reset on one qubit should not affect the other qubit."""
         inst = RESET(0)
-        ch = ResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
+        ch = SuperopResetChannel.from_reset_fidelity(inst=inst, fidelity=1.0)
         noise_model = NoiseModel.from_channels([ch])
         # Prepare |11> then reset qubit 0
         program = Program(X(0), X(1), RESET(0))
@@ -1050,9 +1050,9 @@ class TestCycleChannel:
 
 class TestChannelGeneratorOps:
     def test_process_is_superop_and_is_gate_channel(self):
-        """process is derived by evolving the generator; the channel is a _ChannelBase."""
+        """process is derived by evolving the generator; the channel is a ChannelBase."""
         ch = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
-        assert isinstance(ch, _ChannelBase)
+        assert isinstance(ch, ChannelBase)
         assert isinstance(ch.process, qx.SuperOp)
 
     def test_matches_superop_channel_fidelity(self):

@@ -373,8 +373,20 @@ def get_instruction_unitary(
     return result
 
 
-class _ChannelBase(ABC):
+class ChannelBase(ABC):
     """Shared behavior for noise channels backed by a superoperator ``process``.
+
+    This is the public base of every *gate* channel — :class:`Channel` and
+    :class:`SuperopChannel` — and is the type to branch on when handling a gate channel
+    generically::
+
+        if isinstance(channel, ChannelBase):
+            apply(channel.process)
+
+    Testing against a concrete class instead silently misses the other one: most channel
+    operations (``@``, :meth:`pauli_twirl`, :meth:`to_coherent_channel`,
+    :meth:`to_stochastic_channel`) return a :class:`SuperopChannel`, so a consumer that only
+    checks for :class:`Channel` would treat their output as noiseless.
 
     Most noisy operations in quantum programs can be represented as superoperators,
     including all Gates and Resets.
@@ -416,7 +428,7 @@ class _ChannelBase(ABC):
 
     @classmethod
     @abstractmethod
-    def from_json(cls, json_str: str) -> _ChannelBase:
+    def from_json(cls, json_str: str) -> ChannelBase:
         """Deserialize a channel from a JSON string produced by :meth:`to_json`."""
         ...
 
@@ -707,7 +719,7 @@ class _ChannelBase(ABC):
 
     __hash__ = None  # type: ignore[assignment]
 
-    def __matmul__(self, other: _ChannelBase) -> SuperopChannel:
+    def __matmul__(self, other: ChannelBase) -> SuperopChannel:
         r"""Compose two channels: ``channel_B @ channel_A``.
 
         Both channels share the same gate instruction. The composition factors
@@ -726,7 +738,7 @@ class _ChannelBase(ABC):
         generator level (which is CPTP-safe and stays a :class:`Channel`), add the channels with
         :meth:`Channel.__add__` instead.
         """
-        if not isinstance(other, _ChannelBase):
+        if not isinstance(other, ChannelBase):
             return NotImplemented
         if self.inst != other.inst:
             raise ValueError(f"Cannot compose channels for different gates: {self.inst.out()} vs {other.inst.out()}")
@@ -751,10 +763,10 @@ class _ChannelBase(ABC):
 
 @final
 @dataclass(frozen=True, eq=False)
-class SuperopChannel(_ChannelBase):
+class SuperopChannel(ChannelBase):
     """A noise channel that stores a superoperator directly, for a specific gate.
 
-    This is the special case of :class:`_ChannelBase` whose ``process`` is a stored
+    This is the special case of :class:`ChannelBase` whose ``process`` is a stored
     ``qx.SuperOp`` (rather than derived from a Lindbladian generator, as :class:`Channel`). It is
     what the manifold-leaving operations (composition ``@``, :meth:`pauli_twirl`,
     :meth:`to_coherent_channel`, :meth:`to_stochastic_channel`) return, and is useful when only a
@@ -764,7 +776,7 @@ class SuperopChannel(_ChannelBase):
     The superoperator *includes* the gate unitary, so the channel replaces the gate rather than
     being applied after it, and can be converted to alternative representations (Choi, Kraus,
     Pauli-Liouville) via ``quax``. Fidelity metrics are computed relative to ``ideal_unitary``,
-    and the error alone is available as :attr:`~_ChannelBase.error_process`.
+    and the error alone is available as :attr:`~ChannelBase.error_process`.
     """
 
     inst: Gate
@@ -923,7 +935,7 @@ class _LindbladianBacked(ABC):  # noqa: B024  (abstract mixin; its contract, `li
 
 @final
 @dataclass(frozen=True, eq=False)
-class Channel(_LindbladianBacked, _ChannelBase):
+class Channel(_LindbladianBacked, ChannelBase):
     r"""A noisy quantum gate: the ideal gate together with the noise that accompanies it.
 
     ``Channel`` is the primary way to describe gate noise. Rather than a raw error matrix, it
@@ -947,7 +959,7 @@ class Channel(_LindbladianBacked, _ChannelBase):
       the ideal gate, sweeping noise strength in a physically meaningful way.
     - :meth:`__add__` combines the *noise* of two channels on the same gate, keeping the gate.
 
-    Note that ``@`` (:meth:`~_ChannelBase.__matmul__`) is different from ``+``: it is the exact
+    Note that ``@`` (:meth:`~ChannelBase.__matmul__`) is different from ``+``: it is the exact
     superoperator composition of the two noisy processes and returns a :class:`SuperopChannel`,
     because composing two Lindbladian evolutions is not itself a Lindbladian evolution unless the
     generators commute.
@@ -1768,8 +1780,12 @@ class MeasurementChannel:
         return _tensor_into_cycle(self, other)
 
 
-class _ResetChannelBase(ABC):
+class ResetChannelBase(ABC):
     """Shared behavior for reset noise channels backed by a superoperator ``process``.
+
+    This is the public base of every *reset* channel — :class:`ResetChannel` and
+    :class:`SuperopResetChannel` — and, as with :class:`ChannelBase`, is the type to branch on
+    rather than either concrete class.
 
     A reset channel replaces a targeted reset with a CPTP ``process`` (a ``qx.SuperOp`` that
     *includes* the ideal reset). Unlike gate channels there is no unitary; fidelity is
@@ -1779,7 +1795,7 @@ class _ResetChannelBase(ABC):
     """
 
     # Declared under TYPE_CHECKING rather than as abstract properties for the same reason as in
-    # :class:`_ChannelBase` — an abstract property collides with the subclass dataclass field.
+    # :class:`ChannelBase` — an abstract property collides with the subclass dataclass field.
     if TYPE_CHECKING:
         inst: ResetQubit
         process: qx.SuperOp
@@ -1791,7 +1807,7 @@ class _ResetChannelBase(ABC):
 
     @classmethod
     @abstractmethod
-    def from_json(cls, json_str: str) -> _ResetChannelBase:
+    def from_json(cls, json_str: str) -> ResetChannelBase:
         """Deserialize a reset channel from a JSON string produced by :meth:`to_json`."""
         ...
 
@@ -1886,7 +1902,7 @@ class _ResetChannelBase(ABC):
 
 @final
 @dataclass(frozen=True, eq=False)
-class SuperopResetChannel(_ResetChannelBase):
+class SuperopResetChannel(ResetChannelBase):
     """A reset noise channel attaches a superoperator to a specific reset operation.
 
     The ``process`` field is a ``qx.SuperOp`` which *includes* the ideal reset, so the channel
@@ -1910,7 +1926,7 @@ class SuperopResetChannel(_ResetChannelBase):
         fidelity: float,
         dim: int = 2,
     ) -> SuperopResetChannel:
-        r"""Create a SuperopResetChannel whose :attr:`~_ResetChannelBase.process_fidelity` is ``fidelity``.
+        r"""Create a SuperopResetChannel whose :attr:`~ResetChannelBase.process_fidelity` is ``fidelity``.
 
         The ideal reset maps every state to :math:`|0\rangle\langle 0|`; noise is a depolarizing
         channel applied *after* it, so the process is ``depolarizing @ RESET`` — every state is
@@ -1987,7 +2003,7 @@ class SuperopResetChannel(_ResetChannelBase):
 
 @final
 @dataclass(frozen=True, eq=False)
-class ResetChannel(_LindbladianBacked, _ResetChannelBase):
+class ResetChannel(_LindbladianBacked, ResetChannelBase):
     """A reset channel modeled as finite-time relaxation toward the ground state.
 
     The ``process`` is ``qx.evolve(lindbladian, gate_time)`` for a purely dissipative relaxation
@@ -2088,7 +2104,7 @@ class ResetChannel(_LindbladianBacked, _ResetChannelBase):
         return cls(inst=inst, lindbladian=lindbladian, gate_time=data["gate_time"])
 
 
-CycleConstituent: TypeAlias = _ChannelBase | _ResetChannelBase | MeasurementChannel
+CycleConstituent: TypeAlias = ChannelBase | ResetChannelBase | MeasurementChannel
 """A single operation within a cycle: a gate channel, a reset channel, or a measurement channel."""
 
 
@@ -2187,9 +2203,9 @@ class CycleChannel:
         return self.inst.get_qubit_indices()
 
     @property
-    def _gate_channels(self) -> tuple[_ChannelBase, ...]:
+    def _gate_channels(self) -> tuple[ChannelBase, ...]:
         """The gate channels in the cycle; the only constituents carrying a gate fidelity."""
-        return tuple(ch for ch in self.channels if isinstance(ch, _ChannelBase))
+        return tuple(ch for ch in self.channels if isinstance(ch, ChannelBase))
 
     @cached_property
     def process_fidelity(self) -> float:
@@ -2318,7 +2334,7 @@ class CycleChannel:
 
 def _channel_to_formal_inst(channel: CycleConstituent) -> Gate | Measurement | ResetQubit:
     """Convert a channel's instruction to use formal arguments for DefCircuit."""
-    if isinstance(channel, _ChannelBase):
+    if isinstance(channel, ChannelBase):
         inst = channel.inst
         return Gate(
             name=inst.name,
@@ -2326,7 +2342,7 @@ def _channel_to_formal_inst(channel: CycleConstituent) -> Gate | Measurement | R
             qubits=[FormalArgument(f"q{q}") for q in inst.get_qubit_indices()],
             modifiers=inst.modifiers,  # type: ignore[arg-type]
         )
-    elif isinstance(channel, _ResetChannelBase):
+    elif isinstance(channel, ResetChannelBase):
         qubit_idx = channel.qubits[0]
         return ResetQubit(qubit=FormalArgument(f"q{qubit_idx}"))
     elif isinstance(channel, MeasurementChannel):
@@ -2366,9 +2382,9 @@ def _tensor_into_cycle(
     may itself be a :class:`CycleChannel`, in which case its constituents are flattened in and
     ``a | b | c`` builds one three-operation cycle rather than failing on the second ``|``.
     """
-    if not isinstance(left, (_ChannelBase, _ResetChannelBase, MeasurementChannel, CycleChannel)):
+    if not isinstance(left, (ChannelBase, ResetChannelBase, MeasurementChannel, CycleChannel)):
         return NotImplemented
-    if not isinstance(right, (_ChannelBase, _ResetChannelBase, MeasurementChannel, CycleChannel)):
+    if not isinstance(right, (ChannelBase, ResetChannelBase, MeasurementChannel, CycleChannel)):
         return NotImplemented
 
     overlap = set(left.qubits) & set(right.qubits)

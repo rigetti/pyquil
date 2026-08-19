@@ -334,14 +334,14 @@ class TestMixedQubitQutrit:
     def test_mixed_qubit_qutrit_entanglement_via_defgate(self):
         """Test entanglement with qutrit gates.
 
-        Note: DefGate requires matrix dimensions that are a perfect power
+        Note: DefGate requires matrix dimensions that are a prime power
         of an integer (2, 3, 4, 8, 9, 16, 25, 27, ...). Mixed qubit/qutrit
         custom gates (e.g. 6x6) cannot use DefGate since 6 is not a
-        perfect power. We test entanglement using built-in qutrit gates.
+        prime power. We test entanglement using built-in qutrit gates.
         """
         # DefGate rejects non-perfect-power matrices (6 = 2*3)
         mat = np.eye(6, dtype=complex)
-        with pytest.raises(ValueError, match="perfect power"):
+        with pytest.raises(ValueError, match="prime qudit dimension"):
             DefGate("BAD_GATE", mat)
 
         # Test entanglement using built-in gates instead:
@@ -462,8 +462,8 @@ class TestDimensionInference:
         assert psi.dims == (3, 3)
 
     def test_custom_defgate_rejects_non_perfect_power(self):
-        """DefGate rejects matrices whose dimension is not a perfect power."""
-        # 6 = 2*3 is not a perfect power of any integer
+        """DefGate rejects matrices whose dimension is not a prime power."""
+        # 6 = 2*3 is not a prime power
         mat = np.eye(6, dtype=complex)
-        with pytest.raises(ValueError, match="perfect power"):
+        with pytest.raises(ValueError, match="prime qudit dimension"):
             DefGate("BAD_GATE", mat)
