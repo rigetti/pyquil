@@ -2,6 +2,7 @@
 
 import jax.numpy as jnp
 import numpy as np
+import pytest
 import quax as qx
 
 from pyquil.gates import CNOT, MEASURE, RESET, RX, RZ, H, X
@@ -82,6 +83,26 @@ class TestExpandProgram:
         p = Program(dc, Gate("MY_CYCLE", [], [Qubit(0), Qubit(1)]))
         ops, qubit_tuples, _ = expand_program(p)
         assert len(ops) == 2
+
+    def test_defcircuit_body_rejects_literal_qubits(self):
+        """A DEFCIRCUIT body must reference only its own formal arguments.
+
+        Quil permits a literal qubit in a body, but such a qubit is invisible to
+        ``Program.get_qubit_indices``, so it escapes the register the simulator sizes itself
+        for. Rejecting it here beats the downstream KeyError.
+        """
+        q0 = FormalArgument("q0")
+        dc = DefCircuit("LEAKY", [], [q0], [H(q0), X(Qubit(3))])
+        p = Program(dc, Gate("LEAKY", [], [Qubit(0)]))
+        with pytest.raises(ValueError, match="not one of its formal arguments"):
+            expand_program(p)
+
+    def test_defcircuit_rejects_arity_mismatch(self):
+        q0, q1 = FormalArgument("q0"), FormalArgument("q1")
+        dc = DefCircuit("PAIR", [], [q0, q1], [CNOT(q0, q1)])
+        p = Program(dc, Gate("PAIR", [], [Qubit(0)]))
+        with pytest.raises(ValueError, match="but DEFCIRCUIT PAIR declares 2"):
+            expand_program(p)
 
     def test_cycle_channel_expansion(self):
         """CycleChannel constituents are emitted instead of DEFCIRCUIT body."""

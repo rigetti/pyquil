@@ -339,21 +339,18 @@ def get_instruction_unitary(
     standard quax gate table ``qx.gates.QUANTUM_GATES``. Parametric gates are supported
     provided all parameters are concrete numeric values.
 
-    ``DAGGER`` modifiers are applied (an odd number of them conjugate-transposes the
-    result). ``CONTROLLED`` and ``FORKED`` are rejected: each adds a qudit to the
-    instruction, so honouring them means building a larger operator than the named gate,
-    which is not yet implemented.
+    Gate modifiers (``DAGGER``, ``CONTROLLED``, ``FORKED``) are not supported and are
+    rejected rather than ignored; see :func:`_reject_gate_modifiers`.
 
     :param inst: The gate instruction.
     :param custom_gates: Optional dictionary of additional gate definitions (e.g. from
         :func:`get_custom_gates_from_program`). Takes precedence over the standard gate set.
-    :return: The unitary matrix, including the effect of any ``DAGGER`` modifiers.
-    :raises ValueError: If any gate parameter is symbolic, or the gate carries a
-        ``CONTROLLED`` or ``FORKED`` modifier.
+    :return: The unitary matrix.
+    :raises ValueError: If any gate parameter is symbolic, or the gate carries any modifier.
     :raises KeyError: If the gate name is not found in either the custom or standard gate set.
     """
     name = inst.name
-    dagger_count = _validate_and_count_dagger_modifiers(inst)
+    _reject_gate_modifiers(inst)
 
     # Look up gate definition: custom gates take precedence
     if custom_gates is not None and name in custom_gates:
@@ -377,37 +374,30 @@ def get_instruction_unitary(
     # quax parametric gates may return Operator instead of Unitary; wrap if needed
     if not isinstance(result, qx.Unitary):
         result = qx.Unitary.from_matrix(result.matrix, result.dims)
-
-    # DAGGER is an involution, so only the parity matters.
-    if dagger_count % 2 == 1:
-        result = qx.Unitary.from_matrix(result.h.matrix, result.dims)
     return result
 
 
-def _validate_and_count_dagger_modifiers(inst: Gate) -> int:
-    """Return the number of ``DAGGER`` modifiers on *inst*, rejecting the others.
+def _reject_gate_modifiers(inst: Gate) -> None:
+    """Reject any gate modifier on *inst*.
 
-    ``CONTROLLED`` and ``FORKED`` each consume an extra qudit from the front of the
-    instruction's qubit list, so the operator they denote is larger than the named gate's
-    and cannot be produced by a table lookup alone. Rejecting them explicitly keeps an
-    unsupported modifier from being silently dropped, which would return the *unmodified*
-    gate and quietly simulate the wrong circuit.
+    Gate modifiers are not supported. ``CONTROLLED`` and ``FORKED`` each consume an extra
+    qudit from the front of the instruction's qubit list, so the operator they denote is
+    larger than the named gate's and cannot be produced by a table lookup at all. ``DAGGER``
+    could be applied by conjugate-transposing the result, but is rejected too so that the
+    supported gate set is a single simple rule rather than a per-modifier exception list.
 
-    :raises ValueError: If ``inst`` carries a ``CONTROLLED`` or ``FORKED`` modifier.
+    Rejecting is the point: silently dropping a modifier returns the *unmodified* gate, so
+    ``DAGGER RX(0.7) 0`` would simulate ``RX(+0.7)`` and quietly give the wrong answer.
+
+    :raises ValueError: If ``inst`` carries any modifier.
     """
-    dagger_count = 0
-    for modifier in inst.modifiers:
-        name = str(modifier).upper()
-        if name == "DAGGER":
-            dagger_count += 1
-        else:
-            raise ValueError(
-                f"Gate modifier {name} is not supported (in {inst.out()!r}). Only DAGGER is "
-                "implemented; CONTROLLED and FORKED add a qudit to the instruction and need a "
-                "larger operator than the named gate provides. Expand the modifier into an "
-                "explicit gate definition instead."
-            )
-    return dagger_count
+    if inst.modifiers:
+        names = ", ".join(sorted({str(modifier).upper() for modifier in inst.modifiers}))
+        raise ValueError(
+            f"Gate modifiers are not supported, but {inst.out()!r} carries {names}. Expand the "
+            "modifier into an explicit gate (e.g. a DEFGATE, or the inverse rotation angle for "
+            "DAGGER) before simulating."
+        )
 
 
 class ChannelBase(ABC):

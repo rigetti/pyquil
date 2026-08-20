@@ -190,15 +190,6 @@ class TestAgainstPyquilReferenceSimulators:
         overlap = abs(np.vdot(expected, got)) / (np.linalg.norm(expected) * np.linalg.norm(got))
         assert overlap == pytest.approx(1.0, abs=1e-9)
 
-    def test_dagger_modifier_matches_reference(self):
-        """Regression: DAGGER used to be dropped, silently applying RX(+theta)."""
-        program = Program(RX(0.7, 0).dagger())
-        got = _sv(program, qubits=[0])
-        expected = np.asarray(ReferenceWavefunctionSimulator(n_qubits=1).do_program(program).wf).reshape(-1)
-        np.testing.assert_allclose(got, expected, atol=1e-10)
-        # ...and is genuinely the inverse rotation, not the forward one.
-        assert not np.allclose(got, _sv(Program(RX(0.7, 0)), qubits=[0]), atol=1e-6)
-        np.testing.assert_allclose(got, _sv(Program(RX(-0.7, 0)), qubits=[0]), atol=1e-10)
 
 
 class TestBigEndianOrdering:
@@ -596,9 +587,22 @@ class TestErrorHandling:
         with pytest.raises(ValueError, match="cannot be omitted"):
             sim.compute()
 
-    def test_unsupported_modifier_reports_clearly(self):
-        with pytest.raises(ValueError, match="CONTROLLED"):
-            _dm(Program(X(1).controlled(0)), qubits=[0, 1])
+    @pytest.mark.parametrize(
+        ("program", "modifier"),
+        [
+            (Program(RX(0.7, 0).dagger()), "DAGGER"),
+            (Program(X(1).controlled(0)), "CONTROLLED"),
+        ],
+        ids=["dagger", "controlled"],
+    )
+    def test_unsupported_modifier_reports_clearly(self, program, modifier):
+        """Modifiers are rejected, never silently dropped.
+
+        Silently dropping one is the dangerous failure: ``DAGGER RX(0.7) 0`` would simulate
+        ``RX(+0.7)`` and return a plausible wrong state.
+        """
+        with pytest.raises(ValueError, match=f"modifiers are not supported.*{modifier}"):
+            _dm(program, qubits=[0, 1])
 
     def test_expression_valued_parameter_reports_clearly(self):
         program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0) / 2, 0))

@@ -17,15 +17,15 @@
 
 All simulators share the preprocessing in :class:`ProgramSimulator` (expansion,
 dimension inference, ``linearize``/``resolve``/``compress``).  This module provides
-the **grad-able** family (:class:`_GradableSimulator`) — jit/grad-friendly evolution
-of a compressed ``Unitary``/``SuperOp`` stack; measurements are dephasing SuperOps and
-there are no compressor barriers:
+the **differentiable** family (:class:`_DifferentiableSimulator`) — jit/grad-friendly evolution
+of a compressed ``Unitary``/``SuperOp`` stack, with measurements represented as dephasing
+SuperOps:
 
 * :class:`PureStateVectorSimulator` — gate-only programs (no noise, measurements,
   or resets).
 * :class:`DensityMatrixSimulator` — any program, optionally with noise.
 
-The ``compute`` method is the main entry point; for the grad-able family it can be
+The ``compute`` method is the main entry point; for the differentiable family it can be
 passed directly to ``jax.jit`` or ``jax.grad``.
 
 .. warning::
@@ -61,14 +61,13 @@ from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
 from pyquil.simulation._resolver import (
-    MeasurementMode,
+    FixedOp,
     ParametricGate,
     ResolvedOp,
-    adapt_for_density_matrix,
     build_dag,
     compressor_from_dag,
     enumerate_bases,
-    resolve_for_gradable,
+    resolve_for_differentiable,
 )
 
 
@@ -96,13 +95,21 @@ class ProgramSimulator:
 
     Handles the pipeline common to every backend: circuit expansion, qubit
     ordering, dimension inference, and building the ``linearize``/``resolve``/
-    ``compress`` closures.  The :class:`_GradableSimulator` family base specialises it
+    ``compress`` closures.  The :class:`_DifferentiableSimulator` family base specialises it
     for the state-vector and density-matrix simulators, supplying the execution
     machinery each needs.
 
     Subclasses override :meth:`_validate` and :meth:`compute`.
 
     Instances are treated as immutable after construction.
+
+    .. note::
+        This is deliberately a shared *base class* rather than a composed "simulation plan"
+        object that each simulator holds. Composition would model the relationship more
+        faithfully — the preprocessing is arguably a has-a, and a plan could be built once and
+        evaluated several ways — but with only two consumers it would add a layer of indirection
+        without paying for itself. Revisit if a third and fourth simulator arrive and genuinely
+        want to share a prepared program.
     """
 
     def __init__(
@@ -113,7 +120,6 @@ class ProgramSimulator:
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 2,
         dims: tuple[int, ...] | None = None,
-        measurement: MeasurementMode = "instrument",
     ) -> None:
         """Expand *program* into a compressed operator stack.
 
@@ -132,9 +138,13 @@ class ProgramSimulator:
             independent of it.
         :param dims: Per-qudit dimensions, in ``qubits`` order. Defaults to inferring them
             from the program's gates and channels (2 unless something says otherwise).
-        :param measurement: How ``MEASURE`` is represented. The grad-able simulators
-            override this to ``"superop"``; see :func:`~pyquil.simulation._resolver.expand_program`.
         :raises ValueError: If ``qubits`` contains duplicates.
+
+        ``MEASURE`` is always resolved to a dephasing superoperator here: every simulator in
+        this module is differentiable, and an instrument is not. The trajectory simulators
+        select the instrument representation through
+        :func:`~pyquil.simulation._resolver.resolve_for_trajectory` instead, so there is no
+        mode to configure on this class.
         """
         self._validate(program)
 
@@ -150,8 +160,8 @@ class ProgramSimulator:
         self.n_qubits = len(qubits)
 
         # Expand the program into operators, inferring register dimensions when not
-        # supplied.  The grad-able simulators resolve measurements to dephasing SuperOps.
-        res = resolve_for_gradable(program, noise_model, qubits, dims)
+        # supplied.  The differentiable simulators resolve measurements to dephasing SuperOps.
+        res = resolve_for_differentiable(program, noise_model, qubits, dims)
         self.dims = res.dims
         self._resolve_fn = res.resolve
         self._expanded_ops = tuple(res.ops)
@@ -170,17 +180,7 @@ class ProgramSimulator:
 
         dag = build_dag(res.subsystems)
 
-        # Measurements (QuantumInstrument) must not be merged by the compressor.
-        # Under the grad-able ("superop") mode no instruments are produced, so this
-        # is naturally empty and the compressor is free to merge every operation.
-        barrier_nodes = {i for i, op in enumerate(res.ops) if isinstance(op, qx.QuantumInstrument)}
-
-        self._compress_fn = compressor_from_dag(
-            dag,
-            max_subsystem_size,
-            dims=self.dims,
-            barrier_nodes=barrier_nodes,
-        )
+        self._compress_fn = compressor_from_dag(dag, max_subsystem_size, dims=self.dims)
 
     # -- hook for subclass validation ---------------------
 
@@ -257,11 +257,11 @@ class ProgramSimulator:
 
 
 # ══════════════════════════════════════════════════════════
-# Grad-able family base (state-vector / density-matrix)
+# Differentiable family base (state-vector / density-matrix)
 # ══════════════════════════════════════════════════════════
 
 
-class _GradableSimulator(ProgramSimulator):
+class _DifferentiableSimulator(ProgramSimulator):
     """Base for the jit/grad-friendly state-vector and density-matrix simulators.
 
     Adds the compressed-stack evolution machinery.  It enumerates the distinct
@@ -271,8 +271,8 @@ class _GradableSimulator(ProgramSimulator):
     ``self._idx_arr``), so the compiled graph size scales with the number of distinct
     base subsystems rather than the number of operations.
 
-    Measurements are dephasing SuperOps (``measurement="superop"``) and the compressor
-    runs with no barriers, so former-measurement operators merge freely.
+    Measurements are dephasing SuperOps, so they merge with neighbouring operations like any
+    other superoperator; the compressor's convexity check is what preserves their ordering.
     """
 
     def __init__(
@@ -286,9 +286,7 @@ class _GradableSimulator(ProgramSimulator):
     ) -> None:
         """Set up the compressed-stack evolution machinery.
 
-        Arguments are as :meth:`ProgramSimulator.__init__`, except that ``measurement`` is
-        pinned to ``"superop"``: this family represents ``MEASURE`` as a dephasing
-        superoperator so the whole pipeline stays differentiable.
+        Arguments are as :meth:`ProgramSimulator.__init__`.
         """
         super().__init__(
             program,
@@ -296,7 +294,6 @@ class _GradableSimulator(ProgramSimulator):
             noise_model=noise_model,
             max_subsystem_size=max_subsystem_size,
             dims=dims,
-            measurement="superop",
         )
 
         # The merge structure depends only on the DAG (not on parameter values), so
@@ -344,22 +341,32 @@ class _GradableSimulator(ProgramSimulator):
 # ══════════════════════════════════════════════════════════
 
 
-def _embed_unitary_to_group(
-    op: qx.Unitary,
+def _embed_op_to_group(
+    op: FixedOp,
     target_dims: tuple[int, ...],
     positions: tuple[int, ...],
-    d_max: int,
+    width: int,
+    *,
+    as_superop: bool,
 ) -> Array:
-    """Embed *op* into a merge group and pad to the uniform stack width ``d_max``.
+    """Embed *op* into a merge group, optionally lift to a superoperator, and pad to ``width``.
 
-    :func:`quax.embed` places ``op`` (whose qudits map to ``positions`` within the
-    group) into the group Hilbert space ``target_dims``; the trailing pad to
-    ``d_max`` — the stack width shared by every group — is plain array padding with
-    no quax equivalent.  This is traceable, so it serves both the eager
-    constant-gate path and the vmapped parametric path.
+    :func:`quax.embed` places ``op`` (whose qudits map to ``positions`` within the group) into
+    the group Hilbert space ``target_dims``.  With ``as_superop`` the embedded operator is then
+    converted with :func:`quax.to_superop`; embedding and lifting commute for a unitary
+    (``to_superop`` is a homomorphism), so doing the lift last lets the density-matrix path
+    reuse this whole helper unchanged.  The trailing pad to ``width`` — the stack width shared
+    by every group, ``d_max`` for unitaries and ``d_max**2`` for superoperators — is plain
+    array padding with no quax equivalent.
+
+    This is traceable, so it serves both the eager constant path and the vmapped parametric
+    path.
     """
-    embedded = qx.embed(op, target_dims=target_dims, positions=positions).matrix
-    return jnp.pad(embedded, [(0, d_max - s) for s in embedded.shape])
+    embedded: FixedOp = qx.embed(op, target_dims=target_dims, positions=positions)
+    if as_superop:
+        embedded = qx.to_superop(embedded)
+    matrix = embedded.matrix
+    return jnp.pad(matrix, [(0, width - size) for size in matrix.shape])
 
 
 @dataclass
@@ -381,18 +388,21 @@ class _GateBatch:
     #: Positions within the group occupied by the gate's qudits.
     group_positions: tuple[int, ...]
     #: Uniform stack width every embedded matrix is padded to.
-    d_max: int
+    width: int
+    #: Whether members are lifted to superoperators after embedding.
+    as_superop: bool
     #: Sorted-array positions this batch fills, one per member.
     positions: list[int] = field(default_factory=list)
     #: Parameter-vector index for each free argument, one list per member.
     param_indices: list[list[int]] = field(default_factory=list)
 
     def builder(self) -> Callable[[Array], Array]:
-        """Return ``params -> (n_members, d_max, d_max)`` embedded gate matrices."""
+        """Return ``params -> (n_members, width, width)`` embedded gate matrices."""
         concrete = {slot for slot, _ in self.concrete_args}
         free_slots = [j for j in range(self.n_args) if j not in concrete]
         gate_fn, n_args, concrete_args = self.gate_fn, self.n_args, self.concrete_args
-        target_dims, group_positions, d_max = self.target_dims, self.group_positions, self.d_max
+        target_dims, group_positions = self.target_dims, self.group_positions
+        width, as_superop = self.width, self.as_superop
         param_indices = jnp.asarray(self.param_indices)  # (n_members, n_free)
 
         def single(free_values: Array) -> Array:
@@ -401,20 +411,22 @@ class _GateBatch:
                 args[slot] = val
             for k, slot in enumerate(free_slots):
                 args[slot] = free_values[k]
-            return _embed_unitary_to_group(gate_fn(*args), target_dims, group_positions, d_max)
+            return _embed_op_to_group(gate_fn(*args), target_dims, group_positions, width, as_superop=as_superop)
 
         batched = jax.vmap(single)
         return lambda params: batched(params[param_indices])
 
 
-def _make_group_fold(group_start: list[int], n_ops: int, d_max: int) -> Callable[[Array], Array]:
+def _make_group_fold(group_start: list[int], n_ops: int, width: int) -> Callable[[Array], Array]:
     """Build the per-group matrix-product fold.
 
-    ``fold(raw)`` takes ``(n_ops, d_max, d_max)`` embedded gate matrices laid out
-    in group order and returns ``(n_groups, d_max, d_max)`` — the ordered matrix
-    product of each group's gates.  Groups are gathered into a padded
-    ``(n_groups, max_size, ...)`` array (short groups padded with an identity
-    sentinel) so every group folds under a single ``jax.vmap``.
+    ``fold(raw)`` takes ``(n_ops, width, width)`` embedded matrices laid out in group order and
+    returns ``(n_groups, width, width)`` — the ordered matrix product of each group's members.
+    Groups are gathered into a padded ``(n_groups, max_size, ...)`` array (short groups padded
+    with an identity sentinel) so every group folds under a single ``jax.vmap``.
+
+    The fold is representation-agnostic: composing superoperators is the same left-multiplication
+    as composing unitaries, so only ``width`` changes between the two simulators.
     """
     n_groups = len(group_start) - 1
     sizes = np.diff(group_start)
@@ -426,7 +438,7 @@ def _make_group_fold(group_start: list[int], n_ops: int, d_max: int) -> Callable
     for g in range(n_groups):
         gather[g, : sizes[g]] = np.arange(group_start[g], group_start[g + 1])
     gather_jax = jnp.asarray(gather)
-    eye = jnp.eye(d_max, dtype=complex)
+    eye = jnp.eye(width, dtype=complex)
 
     def group_product(mats: Array) -> Array:
         final, _ = jax.lax.scan(lambda acc, m: (m @ acc, None), eye, mats)
@@ -439,22 +451,41 @@ def _make_group_fold(group_start: list[int], n_ops: int, d_max: int) -> Callable
     return fold
 
 
-def _build_vectorized_unitary_constructor(
+def _build_vectorized_operator_constructor(
     expanded_ops: tuple[Any, ...],
     raw_subsystems: tuple[tuple[int, ...], ...],
     emit_order: list[tuple[int, list[int], tuple[int, ...]]],
     dims: tuple[int, ...],
     d_max: int,
+    *,
+    as_superop: bool,
 ) -> Callable[[Array], Array]:
-    """Build a JIT-friendly constructor for the compressed unitary stack.
+    """Build a JIT-friendly constructor for the compressed operator stack.
 
-    Returns ``build(params) -> (n_groups, d_max, d_max)``: one matrix per merge
-    group, equal to ``compress(resolve(params))`` but assembled so the traced
-    graph scales with the number of distinct gate *kinds* rather than the number
-    of gates.  Each gate is embedded into its merge group's Hilbert space, then
-    the gates of every group are folded together via :func:`_make_group_fold`.
+    Returns ``build(params) -> (n_groups, width, width)`` with ``width = d_max`` for unitaries
+    and ``d_max ** 2`` for superoperators: one matrix per merge group, equal to
+    ``compress(resolve(params))`` but assembled so the traced graph scales with the number of
+    distinct gate *kinds* rather than the number of gates.  Each operation is embedded into its
+    merge group's Hilbert space, then each group's members are folded together via
+    :func:`_make_group_fold`.
+
+    This is the single most performance-critical piece of the module, and the reason for its
+    complexity is measured rather than assumed.  Building the stack the obvious way — a Python
+    comprehension over ``compress(resolve(params))`` — puts one traced operation per *gate* in
+    the graph, and XLA compile time grows superlinearly: at 12 qubits x 20 layers that is
+    **180 s versus 0.35 s**, a 518x difference (XLA itself prints "Very slow compile?").  The
+    density-matrix simulator used the obvious construction until this was generalized, and
+    compiled 51x slower than the state-vector one for parametric programs.
+
+    :param expanded_ops: Operators from expansion, one per DAG node.
+    :param raw_subsystems: Each operator's own qubit tuple, in operand order.
+    :param emit_order: The compressor's ``(root, nodes, subsystem)`` groups, in emit order.
+    :param dims: Per-qudit dimensions of the whole register.
+    :param d_max: Largest group Hilbert-space dimension.
+    :param as_superop: Lift every operation to a superoperator (density-matrix evolution).
     """
     n_ops = len(expanded_ops)
+    width = d_max * d_max if as_superop else d_max
 
     # Lay raw ops out in group order: group g occupies sorted positions
     # [group_start[g], group_start[g + 1]).
@@ -493,23 +524,28 @@ def _build_vectorized_unitary_constructor(
                     concrete_args=concrete_args,
                     target_dims=target_dims,
                     group_positions=group_positions,
-                    d_max=d_max,
+                    width=width,
+                    as_superop=as_superop,
                 )
                 batches[key] = batch
             batch.positions.append(pos)
             batch.param_indices.append([pi for pi in op.param_indices if pi >= 0])
         else:
+            # Constant operations are embedded once, eagerly. In superoperator mode this
+            # also covers the non-unitary ops a noise model contributes (channel SuperOps,
+            # and instrument total channels): ``qx.embed`` handles them, and ``to_superop``
+            # is idempotent, so they need no special case.
             const_positions.append(pos)
-            const_mats.append(_embed_unitary_to_group(op, target_dims, group_positions, d_max))
+            const_mats.append(_embed_op_to_group(op, target_dims, group_positions, width, as_superop=as_superop))
 
     builders = [(np.asarray(b.positions), b.builder()) for b in batches.values()]
     const_pos_arr = np.asarray(const_positions) if const_positions else None
     const_stack = jnp.stack(const_mats) if const_mats else None
 
-    fold = _make_group_fold(group_start, n_ops, d_max)
+    fold = _make_group_fold(group_start, n_ops, width)
 
     def build(params: Array) -> Array:
-        raw = jnp.zeros((n_ops, d_max, d_max), dtype=complex)
+        raw = jnp.zeros((n_ops, width, width), dtype=complex)
         for positions, builder in builders:
             raw = raw.at[positions].set(builder(params))
         if const_stack is not None:
@@ -524,7 +560,7 @@ def _build_vectorized_unitary_constructor(
 # ══════════════════════════════════════════════════════════
 
 
-class PureStateVectorSimulator(_GradableSimulator):
+class PureStateVectorSimulator(_DifferentiableSimulator):
     """Simulator for gate-only programs (no noise, measurements, or resets).
 
     All methods are jit- and grad-friendly::
@@ -562,12 +598,13 @@ class PureStateVectorSimulator(_GradableSimulator):
         # compilation (small traced graph) AND fast runtime (compressed
         # op count in the state-evolution scan).
         emit_order = getattr(self._compress_fn, "emit_order", [])
-        self._vmapped_build_fn = _build_vectorized_unitary_constructor(
+        self._vmapped_build_fn = _build_vectorized_operator_constructor(
             self._expanded_ops,
             self._raw_subsystems,
             emit_order,
             self.dims,
             self.d_max,
+            as_superop=False,
         )
 
         # One switch branch per distinct base subsystem: it rebuilds a Unitary
@@ -667,7 +704,7 @@ class PureStateVectorSimulator(_GradableSimulator):
 # ══════════════════════════════════════════════════════════
 
 
-class DensityMatrixSimulator(_GradableSimulator):
+class DensityMatrixSimulator(_DifferentiableSimulator):
     """Density-matrix simulator for any program, optionally with noise.
 
     All methods are jit- and grad-friendly::
@@ -700,6 +737,19 @@ class DensityMatrixSimulator(_GradableSimulator):
         super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
         self._rho0 = qx.zero_state_matrix(dims=self.dims)
 
+        # Same vectorized construction as the state-vector simulator, lifted to
+        # superoperators.  Building the stack per-operation instead costs ~50x in JIT
+        # compile time for parametric programs; see
+        # :func:`_build_vectorized_operator_constructor`.
+        self._vmapped_build_fn = _build_vectorized_operator_constructor(
+            self._expanded_ops,
+            self._raw_subsystems,
+            getattr(self._compress_fn, "emit_order", []),
+            self.dims,
+            self.d_max,
+            as_superop=True,
+        )
+
         # One switch branch per distinct base subsystem: it rebuilds a SuperOp
         # from the padded matrix slice for its base and applies it to the state.
         def superop_branch(
@@ -716,21 +766,6 @@ class DensityMatrixSimulator(_GradableSimulator):
             for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
         ]
 
-        # See :class:`PureStateVectorSimulator`: for parameter-free programs the
-        # superoperator stack is constant, so it can be built once and reused to keep
-        # the traced graph to just the scan over a concrete array. It is materialised
-        # lazily on the first :meth:`compute` call rather than eagerly here, so
-        # constructing the simulator stays cheap.
-        self._const_op_stack: Array | None = None
-
-    def _stack_superops(self, resolved: list[ResolvedOp]) -> Array:
-        """Compress, promote each op to a SuperOp, and stack."""
-        compressed = self.compress(resolved)
-        superops = adapt_for_density_matrix(compressed)
-        d_max2 = self.d_max * self.d_max
-        mats = [_pad_matrix(superop.matrix, d_max2, d_max2) for superop, _ in superops]
-        return jnp.stack(mats, axis=0)
-
     def compute(self, params: Array | None = None) -> qx.DensityMatrix:  # type: ignore[override]
         """Compute the final density matrix.
 
@@ -743,16 +778,11 @@ class DensityMatrixSimulator(_GradableSimulator):
             pass ``None``) for a parameter-free program.
         :return: The final density matrix.
         """
-        if not self._has_params and self.op_index:
-            # Parameter-free program: build the constant superop stack once, then reuse.
-            if self._const_op_stack is None:
-                self._const_op_stack = self._stack_superops(self.resolve(jnp.zeros(0)))
-            op_stack = self._const_op_stack
-        else:
-            resolved = self.resolve(self._default_params(params))
-            if not resolved:
-                return self._rho0
-            op_stack = self._stack_superops(resolved)
+        # No operations (e.g. empty program) → the initial state is the result.
+        if not self._branches:
+            return self._rho0
+
+        op_stack = self._vmapped_build_fn(self._default_params(params))
         return self.apply(self._rho0, op_stack)
 
     def __call__(self, params: Array | None = None) -> qx.DensityMatrix:

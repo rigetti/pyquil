@@ -45,7 +45,6 @@ from jax import Array
 
 from pyquil.noise._channels import (
     ChannelBase,
-    CustomGateMap,
     CycleChannel,
     MeasurementChannel,
     ResetChannelBase,
@@ -68,10 +67,10 @@ logger = logging.getLogger(__name__)
 # A fixed (non-parameterized) operator — the most specific native quax type.
 FixedOp: TypeAlias = qx.Unitary | qx.SuperOp | qx.KrausMap | qx.QuantumInstrument
 
-# How ``MEASURE`` is represented during expansion.  The grad-able simulators
+# How ``MEASURE`` is represented during expansion.  The differentiable simulators
 # (state-vector, density-matrix) treat a measurement as a plain dephasing
 # ``SuperOp`` (``"superop"``); the trajectory simulators keep it as a sampled
-# ``QuantumInstrument`` (``"instrument"``).  See :func:`resolve_for_gradable` and
+# ``QuantumInstrument`` (``"instrument"``).  See :func:`resolve_for_differentiable` and
 # :func:`resolve_for_trajectory`.
 MeasurementMode: TypeAlias = Literal["superop", "instrument"]
 
@@ -164,12 +163,22 @@ def expand_defcircuit_body(
     parg_to_arg_map = {parg: param for param, parg in zip(inst.params, defcircuit.parameters, strict=True)}
 
     def resolve_qubit(qarg: Any) -> Any:
-        """Map a formal argument to its concrete qubit, passing literal qubits through.
+        """Map a formal argument to its concrete qubit.
 
-        A DEFCIRCUIT body may name a fixed qubit directly (``DEFCIRCUIT C q: X q; X 3``),
-        which is legal Quil and is not part of the formal-argument map.
+        A DEFCIRCUIT body must reference only the circuit's own formal arguments. Quil permits
+        a literal qubit in a body (``DEFCIRCUIT C q: X q; X 3``), but simulating one is a trap:
+        the qubit is invisible to ``Program.get_qubit_indices``, so it silently escapes the
+        register the simulator sizes itself for. Rejecting it here is clearer than the
+        downstream failure.
         """
-        return qarg_to_arg_map.get(qarg, qarg)
+        if qarg not in qarg_to_arg_map:
+            raise ValueError(
+                f"DEFCIRCUIT {defcircuit.name} body references {qarg}, which is not one of its "
+                f"formal arguments ({[str(a) for a in defcircuit.qubit_variables]}). Literal "
+                "qubits in a DEFCIRCUIT body are not supported; parameterize the circuit over "
+                "all the qubits it touches."
+            )
+        return qarg_to_arg_map[qarg]
 
     for circuit_inst in defcircuit.instructions:
         if isinstance(circuit_inst, Gate):
@@ -211,37 +220,11 @@ def _measure_registers(program: Program) -> set[str]:
     return regs
 
 
-class _ExpansionContext(NamedTuple):
-    """Program-level derivations that are independent of qubit dimensions.
-
-    Computing these once lets :func:`resolve_program` expand a program twice
-    (dimension inference, then final expansion) without re-deriving the custom
-    gates, circuit definitions, etc. on each pass.
-    """
-
-    circuit_definitions: dict[str, DefCircuit]
-    custom_gates: CustomGateMap | None
-    measure_regs: set[str]
-    all_qubits: list[int]
-
-
-def _build_expansion_context(program: Program) -> _ExpansionContext:
-    """Derive the dimension-independent expansion context for a program."""
-    circuit_definitions: dict[str, DefCircuit] = {
-        inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)
-    }
-    custom_gates = get_custom_gates_from_program(program) or None
-    measure_regs = _measure_registers(program)
-    all_qubits = sorted(program.get_qubit_indices())
-    return _ExpansionContext(circuit_definitions, custom_gates, measure_regs, all_qubits)
-
-
 def expand_program(
     program: Program,
     noise_model: NoiseModelLike | None = None,
     qubit_dimensions: Mapping[int, int] | None = None,
     *,
-    context: _ExpansionContext | None = None,
     measurement: MeasurementMode = "instrument",
 ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
     """Expand a program into operators and physical qubit tuples.
@@ -266,13 +249,10 @@ def expand_program(
     :param qubit_dimensions: Optional mapping from physical qubit id to its
         Hilbert-space dimension. Used for ideal measurement and reset operators,
         whose quax constructors otherwise default to qubit dimension.
-    :param context: Optional precomputed :class:`_ExpansionContext`. When omitted
-        it is derived from the program; pass it to avoid recomputing the
-        dimension-independent derivations across multiple expansion passes.
     :param measurement: How to represent ``MEASURE`` instructions.  ``"instrument"``
         (default) keeps a sampled ``QuantumInstrument``; ``"superop"`` emits the
         measurement's dephasing total channel as a ``SuperOp`` so no instrument
-        (and hence no compressor barrier) is produced — used by the grad-able
+        is produced — used by the differentiable
         simulators.
     :return: Tuple of ``(ops, qubit_tuples, param_refs)`` where each op is
         either a concrete quax operator or a ``Callable[[Array], Unitary]``
@@ -280,13 +260,15 @@ def expand_program(
         IDs, and ``param_refs`` is a list of ``(register_name, offset)``
         pairs for each scalar parameter in program order.
     """
-    # Derive (or reuse) the dimension-independent program context.
-    if context is None:
-        context = _build_expansion_context(program)
-    circuit_definitions = context.circuit_definitions
-    custom_gates = context.custom_gates
-    measure_regs = context.measure_regs
-    all_qubits = context.all_qubits
+    # Program-level derivations. These are independent of qubit dimensions, so
+    # ``resolve_program``'s two passes each recompute them; measured at 1-4 ms (under 6% of a
+    # resolve), which is not worth caching across the passes.
+    circuit_definitions: dict[str, DefCircuit] = {
+        inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)
+    }
+    custom_gates = get_custom_gates_from_program(program) or None
+    measure_regs = _measure_registers(program)
+    all_qubits = sorted(program.get_qubit_indices())
 
     ops: list[ExpandedOp] = []
     qubit_tuples: list[tuple[int, ...]] = []
@@ -372,7 +354,7 @@ def expand_program(
         Under ``measurement="instrument"`` the result is a ``QuantumInstrument``
         (sampled by the trajectory simulators).  Under ``measurement="superop"``
         the instrument's dephasing total channel is returned as a ``SuperOp`` so
-        the grad-able pipeline never has to carry — or merge — an instrument.
+        the differentiable pipeline never has to carry — or merge — an instrument.
         """
         qubits = tuple(inst.get_qubit_indices())
         channel = noise_model.get_channel(inst) if noise_model is not None else None
@@ -427,7 +409,7 @@ def expand_program(
                 # Expand using the channel's constituent operators. A MeasurementChannel
                 # constituent carries a QuantumInstrument, which must be collapsed to its total
                 # channel under measurement="superop" exactly as a standalone MEASURE is -- the
-                # grad-able pipeline is not meant to carry an instrument.
+                # differentiable pipeline is not meant to carry an instrument.
                 for sub_ch in channel.channels:
                     # Use the channel's own `qubits` property rather than reaching through to
                     # `inst.get_qubit_indices()`, whose return type varies across the constituent
@@ -469,8 +451,7 @@ def remap_qubits(
             raise ValueError(
                 f"Operation on qubit(s) {missing} but the simulated register is "
                 f"{sorted(qubit_indices)}. Pass qubits=[...] listing every qubit the program "
-                "touches. (Qubits named literally inside a DEFCIRCUIT body are not discovered "
-                "automatically and always need to be listed.)"
+                "touches."
             )
         remapped.append(tuple(qubit_indices[q] for q in qubits))
     return remapped
@@ -513,26 +494,6 @@ def _infer_dims(resolved: list[ResolvedOp], n_qubits: int) -> tuple[int, ...]:
 # ══════════════════════════════════════════════════════════
 
 
-def _freeze_resolver(
-    ops: list[ExpandedOp],
-    subsystems: list[tuple[int, ...]],
-) -> Callable[[Array], list[ResolvedOp]]:
-    """Build the closure that turns a parameter vector into resolved operations.
-
-    Fixed operators pass straight through; ``ParametricGate`` items are called
-    with the parameter vector to produce a concrete ``Unitary``.
-    """
-    frozen = list(zip(ops, subsystems, strict=False))
-
-    def resolve(params: Array) -> list[ResolvedOp]:
-        return [
-            (cast(Callable[[Array], qx.Unitary], item)(params) if callable(item) else item, subsystem)
-            for item, subsystem in frozen
-        ]
-
-    return resolve
-
-
 class Resolution(NamedTuple):
     """Everything the simulators need from a program after expansion.
 
@@ -540,14 +501,26 @@ class Resolution(NamedTuple):
     :param ops: Expanded operators, one per DAG node, in program order.
     :param subsystems: 0-based qubit tuple each operator acts on.
     :param param_refs: ``(register_name, offset)`` for each scalar parameter.
-    :param resolve: Closure mapping a parameter vector to ``(operator, subsystem)`` pairs.
     """
 
     dims: tuple[int, ...]
     ops: list[ExpandedOp]
     subsystems: list[tuple[int, ...]]
     param_refs: list[tuple[str, int]]
-    resolve: Callable[[Array], list[ResolvedOp]]
+
+    def resolve(self, params: Array) -> list[ResolvedOp]:
+        """Bind *params* to produce one concrete operator per expanded operation.
+
+        Fixed operators pass straight through; :class:`ParametricGate` entries are called with
+        the parameter vector to build their ``Unitary``.
+
+        :param params: Flat parameter vector, laid out as ``param_refs``.
+        :return: ``(operator, subsystem)`` pairs in program order.
+        """
+        return [
+            (op(params) if isinstance(op, ParametricGate) else op, subsystem)
+            for op, subsystem in zip(self.ops, self.subsystems, strict=True)
+        ]
 
 
 def resolve_program(
@@ -580,7 +553,7 @@ def resolve_program(
         appear in the program.
     :param dims: Optional pre-determined per-qudit dimensions.
     :param measurement: Measurement representation — see :func:`expand_program`.
-        Prefer the :func:`resolve_for_gradable` / :func:`resolve_for_trajectory`
+        Prefer the :func:`resolve_for_differentiable` / :func:`resolve_for_trajectory`
         entry points, which pin the correct mode for each simulator family.
     :return: A :class:`Resolution`.
     """
@@ -588,28 +561,25 @@ def resolve_program(
         qubits = sorted(program.get_qubit_indices())
     qubit_indices = {q: i for i, q in enumerate(qubits)}
 
-    # Derive the dimension-independent context once and reuse it across both passes.
-    context = _build_expansion_context(program)
-
     def expand(
         qubit_dimensions: Mapping[int, int] | None,
     ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
         ops, phys_qubits, param_refs = expand_program(
-            program, noise_model, qubit_dimensions=qubit_dimensions, context=context, measurement=measurement
+            program, noise_model, qubit_dimensions=qubit_dimensions, measurement=measurement
         )
         return ops, remap_qubits(phys_qubits, qubit_indices), param_refs
 
     if dims is None:
         ops, subsystems, param_refs = expand(None)
-        resolve = _freeze_resolver(ops, subsystems)
-        dims = _infer_dims(resolve(jnp.zeros(len(param_refs))), len(qubits))
+        probe = Resolution(dims=(), ops=ops, subsystems=subsystems, param_refs=param_refs)
+        dims = _infer_dims(probe.resolve(jnp.zeros(len(param_refs))), len(qubits))
 
     qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
     ops, subsystems, param_refs = expand(qubit_dimensions)
-    return Resolution(dims, ops, subsystems, param_refs, _freeze_resolver(ops, subsystems))
+    return Resolution(dims, ops, subsystems, param_refs)
 
 
-def resolve_for_gradable(
+def resolve_for_differentiable(
     program: Program,
     noise_model: NoiseModelLike | None = None,
     qubits: list[int] | None = None,
@@ -617,7 +587,7 @@ def resolve_for_gradable(
 ) -> Resolution:
     """Resolve *program* for the differentiable state-vector and density-matrix simulators.
 
-    ``MEASURE`` becomes a dephasing superoperator so the pipeline stays grad-able.
+    ``MEASURE`` becomes a dephasing superoperator so the pipeline stays differentiable.
 
     :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
     :param noise_model: Optional noise model; instructions with no channel are ideal.
@@ -658,7 +628,7 @@ def enumerate_bases(
     subsystems can be read straight off ``emit_order`` — no ``resolve``/``compress``
     probe is required.
 
-    The grad-able simulators dispatch each compressed operation through a
+    The differentiable simulators dispatch each compressed operation through a
     ``jax.lax.switch`` keyed by its base, so the number of *distinct* bases (rather
     than the number of operations) sets the size of the compiled graph.
 
@@ -812,8 +782,6 @@ def compressor_from_dag(
     dag: nx.DiGraph,
     max_subsystem_size: int,
     dims: tuple[int, ...] = (),
-    *,
-    barrier_nodes: set[int] | None = None,
 ) -> Callable[[list[ResolvedOp]], list[ResolvedOp]]:
     """Build a compressor that merges operators via greedy edge contraction.
 
@@ -821,14 +789,12 @@ def compressor_from_dag(
     reduces the number of distinct subsystem shapes and therefore JIT
     compilation time.
 
-    1. Classify each node as *mergeable* or *barrier* (e.g. measurement).
-       Barrier nodes are never merged.
-    2. Build a priority queue of candidate edge merges sorted by resulting
+    1. Build a priority queue of candidate edge merges sorted by resulting
        subsystem size (ascending), so 1-qubit gates are absorbed into
        neighbouring multi-qubit groups first.
-    3. Greedily contract edges while the merged subsystem fits within
+    2. Greedily contract edges while the merged subsystem fits within
        ``max_subsystem_size``.
-    4. Return a closure that receives the resolved operator list and produces
+    3. Return a closure that receives the resolved operator list and produces
        a compressed operator list.
 
     :param dag: Program dependency DAG (nodes indexed 0..N-1, each with
@@ -836,8 +802,6 @@ def compressor_from_dag(
     :param max_subsystem_size: Maximum number of qubits in a merged group.
         0 disables merging entirely.
     :param dims: Per-qudit dimensions tuple for embedding during merge.
-    :param barrier_nodes: Optional set of node indices that should not be
-        merged (e.g. measurement nodes). If ``None``, all nodes are mergeable.
     :return: A closure ``compress(ops) -> list[ResolvedOp]``.
     """
     n_original = dag.number_of_nodes()
@@ -856,9 +820,6 @@ def compressor_from_dag(
             n_original,
         )
         return compress_passthrough
-
-    if barrier_nodes is None:
-        barrier_nodes = set()
 
     # --- Priority-queue based greedy edge contraction ---
     uf = _UnionFind()
@@ -885,9 +846,8 @@ def compressor_from_dag(
         ``>= 2`` between them in *either* direction — i.e. some other group is
         sandwiched on a dependency path from one to the other.  Merging across
         such a node would force it to be reordered relative to the merged group,
-        which is exactly what must be forbidden for barriers (measurements) and
-        for any non-commuting gate.  A direct edge ``root_a -> root_b`` alone is
-        fine; only an *indirect* path is a problem.
+        which is exactly what must be forbidden for any non-commuting operation.  A direct
+        edge ``root_a -> root_b`` alone is fine; only an *indirect* path is a problem.
         """
         for src, dst in ((root_a, root_b), (root_b, root_a)):
             stack = [s for s in quotient.successors(src) if s != dst]
@@ -916,8 +876,6 @@ def compressor_from_dag(
     # Smaller union sizes are processed first.
     heap: list[tuple[int, int, int]] = []
     for u_node, v_node in dag.edges:
-        if u_node in barrier_nodes or v_node in barrier_nodes:
-            continue
         union_size = len(group_qubits[u_node] | group_qubits[v_node])
         if union_size <= max_subsystem_size:
             heapq.heappush(heap, (union_size, u_node, v_node))
@@ -931,10 +889,9 @@ def compressor_from_dag(
         union_qubits = group_qubits[ru] | group_qubits[rv]
         if len(union_qubits) > max_subsystem_size:
             continue
-        # Reject merges that would move a barrier (measurement) or a
-        # non-commuting gate across the merged group.  Without this check the
-        # compressor can fuse two gates that straddle a mid-circuit measurement,
-        # silently reordering the measurement and corrupting the result.
+        # Reject non-convex merges: fusing two groups must not reorder anything that lies
+        # topologically between them.  This is what protects operation order in general --
+        # including around measurements -- so no separate barrier concept is needed.
         if _contraction_cycles(ru, rv):
             continue
         new_root = uf.union(ru, rv)
@@ -952,7 +909,7 @@ def compressor_from_dag(
             | set(dag.predecessors(v_node))
         ):
             rn = uf.find(neighbour)
-            if rn == new_root or neighbour in barrier_nodes:
+            if rn == new_root:
                 continue
             new_union_size = len(group_qubits[new_root] | group_qubits[rn])
             if new_union_size <= max_subsystem_size:
@@ -977,7 +934,7 @@ def compressor_from_dag(
     # caller to apply that matrix to permuted qudits.
     #
     # The state-vector path re-derives each op's offsets inside its group
-    # (``group_positions`` in ``_build_vectorized_unitary_constructor``) and so was
+    # (``group_positions`` in ``_build_vectorized_operator_constructor``) and so was
     # correct either way, but the density-matrix path dispatches purely on the
     # subsystem advertised here -- and silently produced wrong states for any
     # non-ascending multi-qubit gate. Since a 3+ qubit gate can never merge under the
@@ -997,23 +954,17 @@ def compressor_from_dag(
 
     # Emit the *groups* in a topological order of the **quotient** graph rather
     # than the original DAG.  A merged group can legitimately contain an op that
-    # precedes a barrier (e.g. a measurement) in program order *together* with
-    # an op that depends on that barrier — the merge is valid because the
-    # pre-barrier op commutes with the barrier, so it may be applied after it.
-    # But emitting the group at its earliest member's position (as an earlier
-    # version did, by walking the original DAG) would place the *whole* group —
-    # including the post-barrier op — before the barrier, silently applying
-    # post-measurement gates before the measurement and corrupting its outcome.
-    # A quotient topological sort respects every inter-group dependency, so a
-    # group is emitted only after all groups it depends on.  The lexicographic
-    # key — each group's minimum original node index — keeps barrier singletons
-    # (measurements are never merged) emitted in program order, so the order of
-    # ``QuantumInstrument`` ops in the compressed list (and hence the
-    # measurement-outcome columns in :func:`_apply_trajectory_operations`)
-    # matches the order of ``MEASURE`` instructions in the program: any ancestor
-    # group of a measurement has a member preceding it in program order and thus
-    # a strictly smaller minimum index, so a later measurement can never be
-    # emitted before an earlier one.
+    # precedes a measurement in program order *together* with an op that depends on that
+    # measurement — the merge is valid because the earlier op commutes with it, so it may be
+    # applied afterwards.  But emitting the group at its earliest member's position (as an
+    # earlier version did, by walking the original DAG) would place the *whole* group —
+    # including the later op — before the measurement, silently applying post-measurement
+    # gates first and corrupting the outcome.
+    # A quotient topological sort respects every inter-group dependency, so a group is
+    # emitted only after all groups it depends on.  The lexicographic key — each group's
+    # minimum original node index — additionally keeps operations that cannot merge emitted
+    # in program order: any ancestor group has a member preceding it in program order and
+    # thus a strictly smaller minimum index.
     group_min_index: dict[int, int] = {}
     for nk in dag.nodes:
         root = uf.find(nk)

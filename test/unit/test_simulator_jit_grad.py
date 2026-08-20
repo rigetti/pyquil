@@ -12,7 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-"""jit/grad contract for the grad-able simulators.
+"""jit/grad contract for the differentiable simulators.
 
 Both :class:`PureStateVectorSimulator` and :class:`DensityMatrixSimulator` advertise
 ``compute`` as directly usable under ``jax.jit`` and ``jax.grad``. These tests pin that

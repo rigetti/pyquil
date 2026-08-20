@@ -32,6 +32,14 @@ is designed to solve two problems with the existing simulators simultaneously:
   levels (qutrits and beyond), readout confusion, and reset infidelity — and
   composes them exactly.
 
+* **Qudits.** The register is not assumed to be a collection of qubits. Every stage carries
+  explicit per-qudit dimensions, so a program may act on qutrits, on a mixed register (say
+  ``(3, 3, 2)``), or on any other combination, and an operator may move population *out* of
+  the computational subspace. This is the primary motivation for the module: leakage is a
+  dominant error mechanism on real hardware, and it cannot be represented at all in a
+  simulator whose state is a tensor of two-level systems. Dimensions are inferred from the
+  program (see `Resolver`_), so qubit-only programs need no extra ceremony.
+
 * **Performance and differentiability.** Every stage is expressed in JAX so that
   the entire forward simulation is a single traceable function. It can be
   ``jax.jit``-compiled (amortizing compilation across a parameter sweep) and
@@ -176,12 +184,41 @@ Expansion does several things at once:
   channel describing the joint noise of a whole parallel cycle — the cycle is
   replaced by the channel's constituent operators directly.
 
+  A body must reference **only its own formal arguments**. Quil allows a literal qubit in a
+  body (``DEFCIRCUIT C q: X q; X 3``), but such a qubit is invisible to
+  ``Program.get_qubit_indices``, so it escapes the register the simulator sizes itself for.
+  It is rejected rather than silently mis-simulated.
+
+* **Gate modifiers are not supported.** ``DAGGER``, ``CONTROLLED`` and ``FORKED`` are all
+  rejected. ``CONTROLLED`` and ``FORKED`` each add a qudit to the instruction, so the operator
+  they denote is larger than the named gate and cannot come from a table lookup; ``DAGGER``
+  could be honoured by conjugate-transposing, but is rejected too so that the supported gate
+  set is one rule rather than a per-modifier exception list. Expand a modifier into an explicit
+  gate — or, for ``DAGGER``, the inverse rotation angle — before simulating. Rejecting is the
+  important part: silently dropping a modifier would simulate ``RX(+theta)`` for
+  ``DAGGER RX(theta)`` and return a plausible wrong answer.
+
 * **Dimension inference.** The register dimension of each qudit is inferred from
   the operators that act on it (e.g. a ``TX`` gate or a qutrit channel promotes a
   line to dimension 3). The program is expanded twice: once with default qubit
   dimensions to infer the true dimensions, then again with those dimensions so
   that *ideal* measurement and reset operators are built at the correct size.
   Passing ``dims`` explicitly skips the first pass.
+
+  .. note::
+     This double expansion is the least elegant part of the pipeline, and it is worth being
+     explicit about why it is here. The dimensions are a property of the *resolved operators*,
+     but resolving an ideal ``MEASURE`` or ``RESET`` requires already knowing the dimension of
+     the line it acts on — there is nothing in ``MEASURE 0`` itself that says whether qubit 0 is
+     a qubit or a qutrit. That circularity has to be broken somewhere.
+
+     Two alternatives were considered and rejected. Requiring callers to declare ``dims`` up
+     front removes the second pass but makes every qutrit program carry bookkeeping the module
+     could have derived. Defaulting silently to dimension 2 and promoting later is worse still:
+     an ideal reset built at the wrong size fails deep inside a tensor contraction, far from the
+     instruction that caused it. Expanding twice keeps the ergonomics and localizes the cost,
+     which is small — the second pass reuses nothing but is cheap relative to compilation — and
+     ``dims=`` remains available for callers who already know.
 
 Dependency DAG
 --------------
@@ -210,12 +247,17 @@ Key properties:
   absorbed into neighbouring multi-qubit groups first. This reduces the number
   of *distinct* subsystem shapes, which is what governs compile time.
 
-* **Convexity / barrier safety.** A merge is rejected if it would create a cycle
-  in the contracted (quotient) graph — i.e. if some operation lies on a
-  dependency path *between* the two groups. This is what prevents two gates that
-  straddle a mid-circuit measurement from being fused, which would silently
-  reorder the measurement. Measurements (and any explicit barrier) are marked as
-  non-mergeable.
+* **Convexity.** A merge is rejected if it would create a cycle in the contracted (quotient)
+  graph — i.e. if some operation lies on a dependency path *between* the two groups. This is
+  what prevents two gates that straddle a mid-circuit measurement from being fused, which would
+  silently reorder the measurement. Convexity is the *only* mechanism protecting operation
+  order; there is no separate barrier concept.
+
+  For the differentiable simulators a measurement is just a dephasing superoperator, so it
+  merges with its neighbours like any other operation and needs no special treatment. The
+  trajectory simulator keeps measurements as quantum instruments, which are harder to merge;
+  that restriction will be introduced along with the simulator that needs it rather than
+  imposed on these two in advance.
 
 * **Order-preserving emission.** The merged groups are emitted in a
   lexicographic topological order keyed by program index, guaranteeing that
@@ -252,15 +294,25 @@ appear, both designed so that the compiled graph scales with the number of
   :func:`jax.lax.switch` branch selected by its base subsystem. Only one branch
   per distinct subsystem is traced.
 
-* **Vectorized construction.** For state-vector evolution, gate matrices of the
-  same *kind* (same constructor, constant arguments, and embedding) are built in
-  a single ``jax.vmap`` and then folded within each merge group by a segmented
-  matrix-product scan. The traced graph is then proportional to the number of
-  gate kinds, not the number of gates. For parameter-free programs the operator
-  stack is a compile-time constant and is materialized once and reused.
+* **Vectorized construction.** Operator matrices of the same *kind* (same constructor,
+  constant arguments, and embedding) are built in a single ``jax.vmap`` and then folded within
+  each merge group by a segmented matrix-product scan. The traced graph is then proportional to
+  the number of gate kinds, not the number of gates. Both the state-vector and density-matrix
+  simulators use this path — the latter lifts each operator to a superoperator after embedding.
+
+  This is the most intricate code in the module, and it earns its keep. Building the stack the
+  obvious way, with a Python comprehension over the compressed operators, puts one traced
+  operation per gate into the graph, and XLA compile time grows superlinearly: at 20 qubits and
+  20 layers that is **180 s against 0.35 s**, a 518x difference.
 
 Because the whole calculator is a pure JAX function of :math:`\theta` (and, for
 trajectories, a PRNG key), ``jax.jit`` and ``jax.grad`` compose with it directly.
+
+The parameter vector is **optional**. ``compute()`` may be called with no argument for a
+program that declares no runtime parameters; for a parametric program the vector is required,
+must have one entry per parametric gate *occurrence*, and is most easily built with
+``sim.linearize(memory_map)``. A wrong length or a missing vector is reported as such rather
+than surfacing as an indexing error from JAX.
 
 
 The three simulators
