@@ -48,7 +48,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import jax
 import jax.numpy as jnp
@@ -62,12 +62,9 @@ from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
 from pyquil.simulation._resolver import (
     FixedOp,
+    MeasurementMode,
     ParametricGate,
-    ResolvedOp,
-    build_dag,
-    compressor_from_dag,
-    enumerate_bases,
-    resolve_for_differentiable,
+    resolve_program,
 )
 
 
@@ -120,6 +117,7 @@ class ProgramSimulator:
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 2,
         dims: tuple[int, ...] | None = None,
+        measurement: MeasurementMode = "superop",
     ) -> None:
         """Expand *program* into a compressed operator stack.
 
@@ -138,13 +136,12 @@ class ProgramSimulator:
             independent of it.
         :param dims: Per-qudit dimensions, in ``qubits`` order. Defaults to inferring them
             from the program's gates and channels (2 unless something says otherwise).
+        :param measurement: How ``MEASURE`` is represented. ``"superop"`` (the default)
+            resolves it to a dephasing superoperator, which is what keeps the simulators in
+            this module differentiable; the resulting state is correct averaged over outcomes
+            but records none of them. ``"instrument"`` keeps a sampleable
+            ``QuantumInstrument``, for a subclass that samples trajectories.
         :raises ValueError: If ``qubits`` contains duplicates.
-
-        ``MEASURE`` is always resolved to a dephasing superoperator here: every simulator in
-        this module is differentiable, and an instrument is not. The trajectory simulators
-        select the instrument representation through
-        :func:`~pyquil.simulation._resolver.resolve_for_trajectory` instead, so there is no
-        mode to configure on this class.
         """
         self._validate(program)
 
@@ -159,9 +156,8 @@ class ProgramSimulator:
         self.qubits = qubits
         self.n_qubits = len(qubits)
 
-        # Expand the program into operators, inferring register dimensions when not
-        # supplied.  The differentiable simulators resolve measurements to dephasing SuperOps.
-        res = resolve_for_differentiable(program, noise_model, qubits, dims)
+        # Expand the program into operators, inferring register dimensions when not supplied.
+        res = resolve_program(program, noise_model, qubits, dims, measurement=measurement)
         self.dims = res.dims
         self._resolve_fn = res.resolve
         self._expanded_ops = tuple(res.ops)
@@ -178,9 +174,16 @@ class ProgramSimulator:
 
         self._linearize_fn = linearize
 
-        dag = build_dag(res.subsystems)
+        # A sampled instrument has to stay addressable.  Fusing one into a neighbour would
+        # preserve the circuit's overall channel, so the convexity check alone permits it —
+        # but the outcome would no longer be observable, so it must be kept atomic.  Nothing
+        # is atomic under ``measurement="superop"``: a dephasing channel merges like any other.
+        atomic = tuple(i for i, op in enumerate(res.ops) if isinstance(op, qx.QuantumInstrument))
 
-        self._compress_fn = compressor_from_dag(dag, max_subsystem_size, dims=self.dims)
+        # Merge planning is purely structural — it needs the subsystems and nothing else —
+        # so it is quax's, not Quil's.  The plan is data: the vectorized stack builder below
+        # reads its groups without ever materialising a resolved operator.
+        self.plan = qx.MergePlan.greedy(res.subsystems, max_subsystem_size, atomic=atomic)
 
     # -- hook for subclass validation ---------------------
 
@@ -228,22 +231,24 @@ class ProgramSimulator:
             )
         return params
 
-    def resolve(self, params: Array) -> list[ResolvedOp]:
-        """Resolve parameters into one operator per DAG node.
+    def resolve(self, params: Array) -> qx.Circuit:
+        """Resolve parameters into the program's circuit.
 
         :param params: Flat parameter vector from :meth:`linearize`.
-        :return: One ``(operator, subsystem)`` pair per expanded operation, in program order.
+        :return: A :class:`quax.Circuit` with one operation per expanded operation, in
+            program order.
         """
         return self._resolve_fn(params)
 
-    def compress(self, resolved: list[ResolvedOp]) -> list[ResolvedOp]:
-        """Merge operators via greedy edge contraction.
+    def compress(self, resolved: qx.Circuit) -> qx.Circuit:
+        """Merge operations according to :attr:`plan`.
 
-        :param resolved: Operators from :meth:`resolve`.
-        :return: Merged operators, one per compressor group, in application order. A merged
-            group's subsystem is sorted; an unmerged operation keeps its own operand order.
+        :param resolved: The circuit from :meth:`resolve`.
+        :return: The merged circuit, one operation per plan group, in application order. A
+            merged group's subsystem is ascending; an unmerged operation keeps its own
+            operand order.
         """
-        return self._compress_fn(resolved)
+        return self.plan.apply(resolved)
 
     def compute(self, params: Array | None = None, **kwargs: Any) -> Any:
         """Compute the simulation result.  Subclasses must override.
@@ -265,7 +270,7 @@ class _DifferentiableSimulator(ProgramSimulator):
     """Base for the jit/grad-friendly state-vector and density-matrix simulators.
 
     Adds the compressed-stack evolution machinery.  It enumerates the distinct
-    *base subsystems* the compressor emits (:func:`enumerate_bases`) and applies the
+    *base subsystems* the merge plan emits (:attr:`quax.MergePlan.bases`) and applies the
     operator stack with a :func:`jax.lax.scan` whose body dispatches each operator to
     the :func:`jax.lax.switch` branch for its base (``self._branches``, keyed by
     ``self._idx_arr``), so the compiled graph size scales with the number of distinct
@@ -296,10 +301,10 @@ class _DifferentiableSimulator(ProgramSimulator):
             dims=dims,
         )
 
-        # The merge structure depends only on the DAG (not on parameter values), so
-        # the base subsystems can be read straight off the compressor's emit order —
-        # no ``resolve``/``compress`` probe is required.
-        self.bases, self.op_index = enumerate_bases(self._compress_fn.emit_order)  # type: ignore[attr-defined]
+        # The merge structure depends only on the subsystems (not on parameter values), so
+        # the base subsystems can be read straight off the plan — no ``resolve``/``compress``
+        # probe is required.
+        self.bases, self.op_index = self.plan.bases, self.plan.op_index
         self.base_dims = [tuple(self.dims[q] for q in base) for base in self.bases]
         self.base_total_dim = [math.prod(d) for d in self.base_dims]
         self.d_max = max(self.base_total_dim) if self.base_total_dim else 1
@@ -454,7 +459,7 @@ def _make_group_fold(group_start: list[int], n_ops: int, width: int) -> Callable
 def _build_vectorized_operator_constructor(
     expanded_ops: tuple[Any, ...],
     raw_subsystems: tuple[tuple[int, ...], ...],
-    emit_order: list[tuple[int, list[int], tuple[int, ...]]],
+    groups: tuple[qx.Group, ...],
     dims: tuple[int, ...],
     d_max: int,
     *,
@@ -479,7 +484,7 @@ def _build_vectorized_operator_constructor(
 
     :param expanded_ops: Operators from expansion, one per DAG node.
     :param raw_subsystems: Each operator's own qubit tuple, in operand order.
-    :param emit_order: The compressor's ``(root, nodes, subsystem)`` groups, in emit order.
+    :param groups: The plan's ``(operation indices, subsystem)`` groups, in application order.
     :param dims: Per-qudit dimensions of the whole register.
     :param d_max: Largest group Hilbert-space dimension.
     :param as_superop: Lift every operation to a superoperator (density-matrix evolution).
@@ -492,7 +497,7 @@ def _build_vectorized_operator_constructor(
     sorted_indices: list[int] = []
     group_subsystems: list[tuple[int, ...]] = []  # merge subsystem per sorted position
     group_start: list[int] = [0]
-    for _, nodes, subsystem in emit_order:
+    for nodes, subsystem in groups:
         for nk in nodes:
             sorted_indices.append(nk)
             group_subsystems.append(subsystem)
@@ -597,11 +602,10 @@ class PureStateVectorSimulator(_DifferentiableSimulator):
         # segmented matmul scan for compression.  This gives both fast
         # compilation (small traced graph) AND fast runtime (compressed
         # op count in the state-evolution scan).
-        emit_order = getattr(self._compress_fn, "emit_order", [])
         self._vmapped_build_fn = _build_vectorized_operator_constructor(
             self._expanded_ops,
             self._raw_subsystems,
-            emit_order,
+            self.plan.groups,
             self.dims,
             self.d_max,
             as_superop=False,
@@ -681,22 +685,11 @@ class PureStateVectorSimulator(_DifferentiableSimulator):
             pass ``None``) for a parameter-free program.
         :return: The full unitary matrix.
         """
-        resolved = self.resolve(self._default_params(params))
-        compressed = self.compress(resolved)
-
-        accumulated: qx.Unitary | None = None
-        for op, subsystem in compressed:
-            embedded = qx.embed(op, target_dims=self.dims, positions=subsystem)
-            if accumulated is None:
-                accumulated = embedded
-            else:
-                accumulated = embedded @ accumulated
-
-        if accumulated is None:
+        circuit = self.compress(self.resolve(self._default_params(params)))
+        if circuit.num_ops == 0:
             d = math.prod(self.dims)
             return qx.Unitary.from_matrix(jnp.eye(d, dtype=complex), (self.dims, self.dims))
-
-        return accumulated
+        return cast(qx.Unitary, circuit.compose())
 
 
 # ══════════════════════════════════════════════════════════
@@ -744,7 +737,7 @@ class DensityMatrixSimulator(_DifferentiableSimulator):
         self._vmapped_build_fn = _build_vectorized_operator_constructor(
             self._expanded_ops,
             self._raw_subsystems,
-            getattr(self._compress_fn, "emit_order", []),
+            self.plan.groups,
             self.dims,
             self.d_max,
             as_superop=True,

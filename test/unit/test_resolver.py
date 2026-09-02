@@ -25,7 +25,6 @@ from pyquil.quilbase import (
     ResetQubit,
 )
 from pyquil.simulation._resolver import (
-    build_dag,
     expand_program,
     remap_qubits,
     resolve_program,
@@ -154,35 +153,24 @@ class TestExpandProgram:
 
 
 # ──────────────────────────────────────────────────────────
-# remap_qubits & build_dag
+# remap_qubits
+#
+# Dependency-graph construction and merge planning are quax's; they are covered by
+# ``tests/test_circuits.py`` there.  What stays here is the Quil-specific part: mapping
+# physical qubit ids onto register indices.
 # ──────────────────────────────────────────────────────────
 
 
-class TestRemapAndDag:
+class TestRemapQubits:
     def test_remap_qubits(self):
         qubit_tuples = [(3,), (5,), (3, 5)]
         qubit_indices = {3: 0, 5: 1}
         result = remap_qubits(qubit_tuples, qubit_indices)
         assert result == [(0,), (1,), (0, 1)]
 
-    def test_build_dag_single_qubit_chain(self):
-        qubit_tuples = [(0,), (0,), (0,)]
-        dag = build_dag(qubit_tuples)
-        assert dag.has_edge(0, 1)
-        assert dag.has_edge(1, 2)
-        assert not dag.has_edge(0, 2)
-
-    def test_build_dag_independent_qubits(self):
-        qubit_tuples = [(0,), (1,)]
-        dag = build_dag(qubit_tuples)
-        assert dag.number_of_edges() == 0
-
-    def test_build_dag_multi_qubit(self):
-        qubit_tuples = [(0,), (1,), (0, 1)]
-        dag = build_dag(qubit_tuples)
-        assert dag.has_edge(0, 2)
-        assert dag.has_edge(1, 2)
-        assert not dag.has_edge(0, 1)
+    def test_remap_rejects_a_qubit_outside_the_register(self):
+        with pytest.raises(ValueError, match="but the simulated register is"):
+            remap_qubits([(3,), (7,)], {3: 0})
 
 
 # ──────────────────────────────────────────────────────────
@@ -217,11 +205,18 @@ class TestResolveProgram:
         assert len(ops) == 1
         assert isinstance(ops[0][0], qx.Unitary)
 
-    def test_dag_structure(self):
+    def test_dependency_structure(self):
         p = Program(H(0), X(0), CNOT(0, 1))
-        dag = build_dag(resolve_program(p).subsystems)
-        assert dag.has_edge(0, 1)
-        assert dag.has_edge(1, 2)
+        edges = qx.dependency_edges(resolve_program(p).subsystems)
+        assert (0, 1) in edges
+        assert (1, 2) in edges
+
+    def test_resolve_returns_a_circuit_on_the_program_register(self):
+        p = Program(H(0), CNOT(0, 1))
+        circuit = resolve_program(p).resolve(_EMPTY_PARAMS)
+        assert isinstance(circuit, qx.Circuit)
+        assert circuit.dims == (2, 2)
+        assert circuit.subsystems == ((0,), (0, 1))
 
     def test_measurement_and_reset(self):
         p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))

@@ -13,32 +13,34 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Shared infrastructure for the density-matrix and state-vector simulators.
+"""Compilation from Quil to :class:`quax.Circuit`.
 
-This module provides the simulation preprocessing pipeline:
+This module owns the half of simulation preprocessing that is about *Quil*:
 
 1. **Expander** — expands a program into a flat list of operators and physical
    qubit tuples, resolving noise channels, custom gates, and DEFCIRCUIT
    bodies.  Fixed (non-parameterized) operations are returned as concrete
-   quax types; parameterized gates are returned as callables.
-2. **Resolver** — converts a parameter vector into a list of
-   ``(operator, subsystem)`` pairs using native quax types.
-3. **Adapters** — convert resolved operations into the form expected by each
-   simulator backend (``SuperOp`` for density matrices; ``Unitary``/``KrausMap``/
-   ``QuantumInstrument`` for state-vector trajectories).
-4. **Compressor** — merges adjacent operators via greedy edge contraction.
+   quax types; parameterized gates are returned as :class:`ParametricGate`
+   callables, since a gate angle may be a memory reference from a ``DECLARE``
+   that is not known until run time.
+2. **Resolver** — binds a parameter vector to produce a :class:`quax.Circuit`:
+   concrete operators, each placed on a register index.
+
+Everything downstream of that circuit is quantum information rather than Quil,
+and lives in quax: merge planning (:class:`quax.MergePlan`), operator fusion,
+dimension inference and the representation changes each backend needs
+(:meth:`quax.Circuit.to_superops`, :meth:`quax.Circuit.to_kraus_maps`).  The
+boundary is deliberate — a circuit carries no gate names, no parameters and no
+classical memory, so quax never needs a notion of a program.
 """
 
 from __future__ import annotations
 
-import heapq
-import logging
 from collections.abc import Callable, Iterator, Mapping
 from copy import deepcopy
 from typing import Any, Literal, NamedTuple, TypeAlias, cast
 
 import jax.numpy as jnp
-import networkx as nx
 import numpy as np
 import quax as qx
 from jax import Array
@@ -58,14 +60,12 @@ from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Qubit, _contained_mrefs, substitute
 from pyquil.quilbase import DefCircuit, Gate, Measurement, Reset, ResetQubit
 
-logger = logging.getLogger(__name__)
-
 # ──────────────────────────────────────────────────────────
 # Type aliases
 # ──────────────────────────────────────────────────────────
 
 # A fixed (non-parameterized) operator — the most specific native quax type.
-FixedOp: TypeAlias = qx.Unitary | qx.SuperOp | qx.KrausMap | qx.QuantumInstrument
+FixedOp: TypeAlias = qx.CircuitOp
 
 # How ``MEASURE`` is represented during expansion.  The differentiable simulators
 # (state-vector, density-matrix) treat a measurement as a plain dephasing
@@ -117,14 +117,8 @@ class ParametricGate:
 # resolves parameters into a Unitary.
 ExpandedOp: TypeAlias = FixedOp | ParametricGate
 
-# Resolved operations retain the most specific native quax type.
-ResolvedOp = tuple[FixedOp, tuple[int, ...]]
-
-# Trajectory operations for the state-vector simulator.
-TrajectoryOp = tuple[qx.Unitary | qx.KrausMap | qx.QuantumInstrument, tuple[int, ...]]
-
-# Density-matrix operations.
-DensityMatrixOp = tuple[qx.SuperOp, tuple[int, ...]]
+# One resolved operation: a concrete operator and the register indices it acts on.
+ResolvedOp: TypeAlias = qx.Placement
 
 
 # ──────────────────────────────────────────────────────────
@@ -430,7 +424,7 @@ def expand_program(
 
 
 # ══════════════════════════════════════════════════════════
-# DAG construction & qubit remapping
+# Qubit remapping
 # ══════════════════════════════════════════════════════════
 
 
@@ -457,38 +451,6 @@ def remap_qubits(
     return remapped
 
 
-def build_dag(qubit_tuples: list[tuple[int, ...]]) -> nx.DiGraph:
-    """Build a dependency DAG from qubit tuples.
-
-    Each node corresponds to one operation (indexed 0..N-1). An edge
-    ``(u, v)`` exists when ``u`` and ``v`` act on a shared qubit and
-    ``u`` precedes ``v`` in program order.
-
-    :param qubit_tuples: Remapped qubit tuples (0-based indices).
-    :return: DAG with node attribute ``"qubits"`` storing each node's qubit tuple.
-    """
-    dag: nx.DiGraph = nx.DiGraph()
-    last_on_qubit: dict[int, int] = {}
-
-    for idx, qubits in enumerate(qubit_tuples):
-        dag.add_node(idx, qubits=qubits)
-        for q in qubits:
-            if q in last_on_qubit:
-                dag.add_edge(last_on_qubit[q], idx)
-            last_on_qubit[q] = idx
-
-    return dag
-
-
-def _infer_dims(resolved: list[ResolvedOp], n_qubits: int) -> tuple[int, ...]:
-    """Infer per-qudit dimensions from resolved operators."""
-    dims = [2] * n_qubits
-    for op, subsystem in resolved:
-        for q, d in zip(subsystem, op.dims[1], strict=False):
-            dims[q] = max(dims[q], d)
-    return tuple(dims)
-
-
 # ══════════════════════════════════════════════════════════
 # Resolver
 # ══════════════════════════════════════════════════════════
@@ -508,7 +470,7 @@ class Resolution(NamedTuple):
     subsystems: list[tuple[int, ...]]
     param_refs: list[tuple[str, int]]
 
-    def resolve(self, params: Array) -> list[ResolvedOp]:
+    def placements(self, params: Array) -> list[ResolvedOp]:
         """Bind *params* to produce one concrete operator per expanded operation.
 
         Fixed operators pass straight through; :class:`ParametricGate` entries are called with
@@ -521,6 +483,17 @@ class Resolution(NamedTuple):
             (op(params) if isinstance(op, ParametricGate) else op, subsystem)
             for op, subsystem in zip(self.ops, self.subsystems, strict=True)
         ]
+
+    def resolve(self, params: Array) -> qx.Circuit:
+        """Bind *params* to produce the program's :class:`quax.Circuit`.
+
+        This is the hand-off out of Quil: past this point there are no gate names, no memory
+        references and no instructions, only operators placed on a register.
+
+        :param params: Flat parameter vector, laid out as ``param_refs``.
+        :return: The circuit, on a register of ``dims``.
+        """
+        return qx.Circuit(dims=self.dims, ops=tuple(self.placements(params)))
 
 
 def resolve_program(
@@ -572,7 +545,7 @@ def resolve_program(
     if dims is None:
         ops, subsystems, param_refs = expand(None)
         probe = Resolution(dims=(), ops=ops, subsystems=subsystems, param_refs=param_refs)
-        dims = _infer_dims(probe.resolve(jnp.zeros(len(param_refs))), len(qubits))
+        dims = qx.Circuit.infer_dims(probe.placements(jnp.zeros(len(param_refs))), len(qubits))
 
     qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
     ops, subsystems, param_refs = expand(qubit_dimensions)
@@ -615,398 +588,3 @@ def resolve_for_trajectory(
     :return: A :class:`Resolution` produced with ``measurement="instrument"``.
     """
     return resolve_program(program, noise_model, qubits, dims, measurement="instrument")
-
-
-def enumerate_bases(
-    emit_order: list[tuple[int, list[int], tuple[int, ...]]],
-) -> tuple[list[tuple[int, ...]], tuple[int, ...]]:
-    """Enumerate the distinct base subsystems produced by a compressor.
-
-    The compressor's ``emit_order`` (see :func:`compressor_from_dag`) lists one
-    ``(root, nodes, subsystem)`` entry per emitted group, in application order.  The
-    merge structure depends only on the DAG, not on parameter values, so the base
-    subsystems can be read straight off ``emit_order`` — no ``resolve``/``compress``
-    probe is required.
-
-    The differentiable simulators dispatch each compressed operation through a
-    ``jax.lax.switch`` keyed by its base, so the number of *distinct* bases (rather
-    than the number of operations) sets the size of the compiled graph.
-
-    :param emit_order: The ``emit_order`` attribute of a compressor closure.
-    :return: ``(bases, op_index)`` where ``bases`` is the distinct subsystems in
-        first-seen order and ``op_index[k]`` is the base index of the ``k``-th
-        emitted operation.
-    """
-    bases: list[tuple[int, ...]] = []
-    sub_to_branch: dict[tuple[int, ...], int] = {}
-    op_index: list[int] = []
-    for _, _, subsystem in emit_order:
-        if subsystem not in sub_to_branch:
-            sub_to_branch[subsystem] = len(bases)
-            bases.append(subsystem)
-        op_index.append(sub_to_branch[subsystem])
-    return bases, tuple(op_index)
-
-
-# ══════════════════════════════════════════════════════════
-# Adapters
-#
-# These adapters live outside the resolver intentionally. The resolver produces
-# operators in their most specific native type (Unitary, SuperOp, KrausMap,
-# QuantumInstrument). Each simulator backend then adapts these to its required
-# representation. This separation keeps the resolver backend-agnostic and the
-# per-op conversion cost (type dispatch + matrix reshape) is negligible compared
-# to the actual simulation.
-# ══════════════════════════════════════════════════════════
-
-
-def adapt_for_density_matrix(
-    ops: list[ResolvedOp],
-) -> list[DensityMatrixOp]:
-    """Convert resolved operations to ``(SuperOp, subsystem)`` pairs for density-matrix simulation.
-
-    * ``Unitary`` → ``qx.to_superop(op)``
-    * ``SuperOp`` → pass through
-    * ``KrausMap`` → ``qx.to_superop(op)``
-    * ``QuantumInstrument`` → ``qx.to_superop(op.total_channel())``
-
-    :param ops: Resolved operations from :func:`build_resolver`.
-    :return: List of ``(SuperOp, subsystem)`` pairs.
-    """
-    result: list[DensityMatrixOp] = []
-    for op, subsystem in ops:
-        # ``qx.to_superop`` is single-dispatch and idempotent on SuperOp, so it
-        # covers Unitary/SuperOp/KrausMap directly; only an instrument needs its
-        # total channel taken first.
-        channel = op.total_channel() if isinstance(op, qx.QuantumInstrument) else op
-        result.append((qx.to_superop(channel), subsystem))
-    return result
-
-
-def adapt_for_trajectory(
-    ops: list[ResolvedOp],
-    kraus_truncation_threshold: float = 1e-6,
-) -> list[TrajectoryOp]:
-    """Convert resolved operations to trajectory-compatible types.
-
-    * ``Unitary`` → pass through
-    * ``SuperOp`` → ``truncate_kraus(to_kraus(op))`` → ``KrausMap``
-    * ``KrausMap`` → pass through
-    * ``QuantumInstrument`` → pass through
-
-    :param ops: Resolved operations from :func:`build_resolver`.
-    :param kraus_truncation_threshold: Threshold for Kraus truncation.
-    :return: List of ``(Unitary | KrausMap | QuantumInstrument, subsystem)`` pairs.
-    """
-    result: list[TrajectoryOp] = []
-    for op, subsystem in ops:
-        match op:
-            case qx.SuperOp():
-                km = qx.truncate_kraus(qx.to_kraus(op), atol=kraus_truncation_threshold)
-                result.append((km, subsystem))
-            case qx.Unitary() | qx.KrausMap() | qx.QuantumInstrument():
-                result.append((op, subsystem))
-            case _:
-                raise TypeError(f"Cannot adapt operator of type {type(op).__name__} for trajectory simulation.")
-    return result
-
-
-# ══════════════════════════════════════════════════════════
-# Compressor (greedy edge contraction)
-# ══════════════════════════════════════════════════════════
-
-
-def _merge_ops(
-    ops_with_subsystems: list[ResolvedOp],
-    merged_subsystem: tuple[int, ...],
-    dims: tuple[int, ...],
-) -> ResolvedOp:
-    """Merge a sequence of operators into a single operator on the union subsystem.
-
-    Each operator is embedded into the merged Hilbert space with :func:`quax.embed`
-    and composed sequentially with ``@``.  Quax's operator ``@`` promotes mixed
-    types automatically (requires ``rigetti-quax >= 0.6.5``), so an all-``Unitary``
-    group yields a ``Unitary`` while a group containing any channel promotes to a
-    ``SuperOp``.  Downstream adapters handle final conversion (e.g. to ``KrausMap``
-    for trajectories).
-
-    :param ops_with_subsystems: Ordered list of ``(operator, subsystem)`` pairs
-        to merge (applied in order: first element is applied first).
-    :param merged_subsystem: Sorted tuple of qubit indices for the merged operator.
-    :param dims: Global per-qudit dimensions tuple.
-    :return: A single ``(operator, merged_subsystem)`` pair.
-    """
-    target_dims = tuple(dims[q] for q in merged_subsystem)
-
-    accumulated: FixedOp | None = None
-    for op, subsystem in ops_with_subsystems:
-        positions = tuple(merged_subsystem.index(q) for q in subsystem)
-        embedded = qx.embed(op, target_dims=target_dims, positions=positions)
-        accumulated = embedded if accumulated is None else embedded @ accumulated
-
-    if accumulated is None:
-        raise ValueError("Cannot merge an empty operation group.")
-    return accumulated, merged_subsystem
-
-
-class _UnionFind:
-    """Simple union-find (disjoint set) data structure for node grouping."""
-
-    def __init__(self) -> None:
-        self._parent: dict[int, int] = {}
-        self._rank: dict[int, int] = {}
-
-    def make_set(self, x: int) -> None:
-        self._parent[x] = x
-        self._rank[x] = 0
-
-    def find(self, x: int) -> int:
-        while self._parent[x] != x:
-            self._parent[x] = self._parent[self._parent[x]]  # path compression
-            x = self._parent[x]
-        return x
-
-    def union(self, x: int, y: int) -> int:
-        rx, ry = self.find(x), self.find(y)
-        if rx == ry:
-            return rx
-        if self._rank[rx] < self._rank[ry]:
-            rx, ry = ry, rx
-        self._parent[ry] = rx
-        if self._rank[rx] == self._rank[ry]:
-            self._rank[rx] += 1
-        return rx
-
-
-def compressor_from_dag(
-    dag: nx.DiGraph,
-    max_subsystem_size: int,
-    dims: tuple[int, ...] = (),
-) -> Callable[[list[ResolvedOp]], list[ResolvedOp]]:
-    """Build a compressor that merges operators via greedy edge contraction.
-
-    The algorithm prioritises merging small gates into larger groups, which
-    reduces the number of distinct subsystem shapes and therefore JIT
-    compilation time.
-
-    1. Build a priority queue of candidate edge merges sorted by resulting
-       subsystem size (ascending), so 1-qubit gates are absorbed into
-       neighbouring multi-qubit groups first.
-    2. Greedily contract edges while the merged subsystem fits within
-       ``max_subsystem_size``.
-    3. Return a closure that receives the resolved operator list and produces
-       a compressed operator list.
-
-    :param dag: Program dependency DAG (nodes indexed 0..N-1, each with
-        a ``"qubits"`` attribute).
-    :param max_subsystem_size: Maximum number of qubits in a merged group.
-        0 disables merging entirely.
-    :param dims: Per-qudit dimensions tuple for embedding during merge.
-    :return: A closure ``compress(ops) -> list[ResolvedOp]``.
-    """
-    n_original = dag.number_of_nodes()
-
-    if max_subsystem_size == 0 or n_original == 0:
-        passthrough_emit_order = [
-            (nk, [nk], tuple(dag.nodes[nk]["qubits"])) for nk in nx.lexicographical_topological_sort(dag)
-        ]
-
-        def compress_passthrough(ops: list[ResolvedOp]) -> list[ResolvedOp]:
-            return ops
-
-        compress_passthrough.emit_order = passthrough_emit_order  # type: ignore[attr-defined]
-        logger.info(
-            "Compressor: %d ops (no merging), max_subsystem_size=0",
-            n_original,
-        )
-        return compress_passthrough
-
-    # --- Priority-queue based greedy edge contraction ---
-    uf = _UnionFind()
-    group_qubits: dict[int, set[int]] = {}
-
-    for nk in dag.nodes:
-        uf.make_set(nk)
-        group_qubits[nk] = set(dag.nodes[nk]["qubits"])
-
-    # Quotient graph over current group roots, kept in lock-step with the
-    # union-find structure.  It starts as a copy of the dependency DAG and is
-    # contracted whenever two groups merge.  It is the authority on whether a
-    # candidate merge is *convex*: contracting two groups must not reorder any
-    # operation that lies topologically between them (see ``_contraction_cycles``).
-    quotient: nx.DiGraph = nx.DiGraph()
-    quotient.add_nodes_from(dag.nodes)
-    quotient.add_edges_from(dag.edges)
-
-    def _contraction_cycles(root_a: int, root_b: int) -> bool:
-        """Return ``True`` if merging two groups would create a cycle.
-
-        The quotient graph is always a DAG, so contracting ``root_a`` and
-        ``root_b`` introduces a cycle iff there is a directed path of length
-        ``>= 2`` between them in *either* direction — i.e. some other group is
-        sandwiched on a dependency path from one to the other.  Merging across
-        such a node would force it to be reordered relative to the merged group,
-        which is exactly what must be forbidden for any non-commuting operation.  A direct
-        edge ``root_a -> root_b`` alone is fine; only an *indirect* path is a problem.
-        """
-        for src, dst in ((root_a, root_b), (root_b, root_a)):
-            stack = [s for s in quotient.successors(src) if s != dst]
-            seen = set(stack)
-            while stack:
-                node = stack.pop()
-                if node == dst:
-                    return True
-                for nxt in quotient.successors(node):
-                    if nxt not in seen:
-                        seen.add(nxt)
-                        stack.append(nxt)
-        return False
-
-    def _contract_quotient(keep: int, drop: int) -> None:
-        """Contract ``drop`` into ``keep`` in the quotient graph."""
-        for pred in list(quotient.predecessors(drop)):
-            if pred != keep:
-                quotient.add_edge(pred, keep)
-        for succ in list(quotient.successors(drop)):
-            if succ != keep:
-                quotient.add_edge(keep, succ)
-        quotient.remove_node(drop)
-
-    # Build initial candidate heap: (union_size, u, v)
-    # Smaller union sizes are processed first.
-    heap: list[tuple[int, int, int]] = []
-    for u_node, v_node in dag.edges:
-        union_size = len(group_qubits[u_node] | group_qubits[v_node])
-        if union_size <= max_subsystem_size:
-            heapq.heappush(heap, (union_size, u_node, v_node))
-
-    while heap:
-        _, u_node, v_node = heapq.heappop(heap)
-        ru = uf.find(u_node)
-        rv = uf.find(v_node)
-        if ru == rv:
-            continue
-        union_qubits = group_qubits[ru] | group_qubits[rv]
-        if len(union_qubits) > max_subsystem_size:
-            continue
-        # Reject non-convex merges: fusing two groups must not reorder anything that lies
-        # topologically between them.  This is what protects operation order in general --
-        # including around measurements -- so no separate barrier concept is needed.
-        if _contraction_cycles(ru, rv):
-            continue
-        new_root = uf.union(ru, rv)
-        group_qubits[new_root] = union_qubits
-        old_root = rv if new_root == ru else ru
-        if old_root in group_qubits:
-            del group_qubits[old_root]
-        _contract_quotient(new_root, old_root)
-
-        # Re-enqueue edges from the newly merged group to its neighbours.
-        for neighbour in (
-            set(dag.successors(u_node))
-            | set(dag.predecessors(u_node))
-            | set(dag.successors(v_node))
-            | set(dag.predecessors(v_node))
-        ):
-            rn = uf.find(neighbour)
-            if rn == new_root:
-                continue
-            new_union_size = len(group_qubits[new_root] | group_qubits[rn])
-            if new_union_size <= max_subsystem_size:
-                heapq.heappush(heap, (new_union_size, u_node, neighbour))
-
-    # --- Build merge plan ---
-    # Order the *members within each group* by a lexicographical topological
-    # sort of the original DAG (= program order), so ``_merge_ops`` composes
-    # them in the order they appear in the program.
-    topo_order = list(nx.lexicographical_topological_sort(dag))
-
-    root_to_nodes: dict[int, list[int]] = {}
-    for nk in topo_order:
-        root = uf.find(nk)
-        root_to_nodes.setdefault(root, []).append(nk)
-
-    # A *merged* group's operator is built by ``_merge_ops``, which embeds its members
-    # into the sorted union subsystem -- so sorted is the truth for those. A *singleton*
-    # group, though, is emitted verbatim by ``compress`` below, so its operator is still
-    # in the instruction's own operand order: ``CCNOT 2 1 0`` yields a matrix indexed
-    # (2, 1, 0), not (0, 1, 2). Advertising a sorted subsystem for it would tell the
-    # caller to apply that matrix to permuted qudits.
-    #
-    # The state-vector path re-derives each op's offsets inside its group
-    # (``group_positions`` in ``_build_vectorized_operator_constructor``) and so was
-    # correct either way, but the density-matrix path dispatches purely on the
-    # subsystem advertised here -- and silently produced wrong states for any
-    # non-ascending multi-qubit gate. Since a 3+ qubit gate can never merge under the
-    # default ``max_subsystem_size=2``, it is always a singleton, so every reversed
-    # ``CCNOT``/``CSWAP`` was affected.
-    #
-    # Reporting the raw operand order costs nothing (the embedding becomes the
-    # identity) at the price of treating e.g. (0, 1) and (1, 0) as distinct bases,
-    # i.e. one extra ``jax.lax.switch`` branch per operand ordering actually used.
-    root_to_subsystem: dict[int, tuple[int, ...]] = {}
-    for root, qubits in group_qubits.items():
-        nodes = root_to_nodes[root]
-        if len(nodes) == 1:
-            root_to_subsystem[root] = tuple(dag.nodes[nodes[0]]["qubits"])
-        else:
-            root_to_subsystem[root] = tuple(sorted(qubits))
-
-    # Emit the *groups* in a topological order of the **quotient** graph rather
-    # than the original DAG.  A merged group can legitimately contain an op that
-    # precedes a measurement in program order *together* with an op that depends on that
-    # measurement — the merge is valid because the earlier op commutes with it, so it may be
-    # applied afterwards.  But emitting the group at its earliest member's position (as an
-    # earlier version did, by walking the original DAG) would place the *whole* group —
-    # including the later op — before the measurement, silently applying post-measurement
-    # gates first and corrupting the outcome.
-    # A quotient topological sort respects every inter-group dependency, so a group is
-    # emitted only after all groups it depends on.  The lexicographic key — each group's
-    # minimum original node index — additionally keeps operations that cannot merge emitted
-    # in program order: any ancestor group has a member preceding it in program order and
-    # thus a strictly smaller minimum index.
-    group_min_index: dict[int, int] = {}
-    for nk in dag.nodes:
-        root = uf.find(nk)
-        if root not in group_min_index or nk < group_min_index[root]:
-            group_min_index[root] = nk
-
-    emit_order: list[tuple[int, list[int], tuple[int, ...]]] = []
-    for root in nx.lexicographical_topological_sort(quotient, key=lambda r: group_min_index[r]):
-        emit_order.append((root, root_to_nodes[root], root_to_subsystem[root]))
-
-    # --- Log the compression statistics ---
-    n_groups = len(emit_order)
-    n_multi = sum(1 for _, nodes, _ in emit_order if len(nodes) > 1)
-    subsystem_sizes = [len(sub) for _, _, sub in emit_order]
-    avg_subsystem = sum(subsystem_sizes) / len(subsystem_sizes) if subsystem_sizes else 0.0
-    max_sub = max(subsystem_sizes) if subsystem_sizes else 0
-
-    logger.info(
-        "Compressor: %d ops → %d groups (ratio=%.2f), "
-        "%d merged groups, avg_subsystem=%.2f, max_subsystem=%d, max_subsystem_size=%d",
-        n_original,
-        n_groups,
-        n_groups / n_original if n_original else 1.0,
-        n_multi,
-        avg_subsystem,
-        max_sub,
-        max_subsystem_size,
-    )
-
-    # --- Build compress closure ---
-    def compress(ops: list[ResolvedOp]) -> list[ResolvedOp]:
-        result: list[ResolvedOp] = []
-        for _, nodes, subsystem in emit_order:
-            if len(nodes) == 1:
-                result.append(ops[nodes[0]])
-            else:
-                group_ops = [(ops[nk][0], ops[nk][1]) for nk in nodes]
-                merged = _merge_ops(group_ops, subsystem, dims)
-                result.append(merged)
-        return result
-
-    # Expose merge recipe: for each group, (nodes_in_topo_order, merged_subsystem).
-    compress.emit_order = emit_order  # type: ignore[attr-defined]
-
-    return compress
