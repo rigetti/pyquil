@@ -133,9 +133,7 @@ class TestExpandProgram:
         dc = DefCircuit("VCYC", [], [q0], [X(q0)])
         cycle_inst = Gate("VCYC", [], [Qubit(0)])
         # Noiseless X channel: the gate lives in the process (ideal_unitary == process action).
-        gate_channel = SuperopChannel(
-            inst=X(0), process=qx.to_superop(qx.gates.X), ideal_unitary=qx.gates.X
-        )
+        gate_channel = SuperopChannel(inst=X(0), process=qx.to_superop(qx.gates.X), ideal_unitary=qx.gates.X)
         nm = NoiseModel.from_channels([CycleChannel(inst=cycle_inst, defcircuit=dc, channels=(gate_channel,))])
         p = Program(dc, cycle_inst)
         ops, _, _ = expand_program(p, nm)
@@ -290,30 +288,52 @@ class TestChannelFlavorDispatch:
             assert jnp.allclose(emitted, derived.process.matrix)
 
 
-class TestCycleMeasurementMode:
-    def test_measurement_in_a_cycle_honors_superop_mode(self):
-        """A MeasurementChannel inside a cycle must collapse to its total channel in superop mode.
+class TestMeasurementRepresentation:
+    """Expansion always emits an instrument; collapsing it is the backend's job.
 
-        The superop pipeline is not meant to carry a QuantumInstrument; the cycle path used to
-        emit one regardless of mode, unlike a standalone MEASURE.
-        """
+    There used to be a ``measurement`` mode on expansion, chosen by the simulator family, so
+    that the differentiable backends never had to carry an instrument. It was redundant:
+    collapsing an instrument to its total channel is exactly what
+    :meth:`quax.Circuit.to_superops` does, so the mode is a representation change applied one
+    layer too early. These tests pin the equivalence that let it be deleted.
+    """
+
+    def test_measurement_in_a_cycle_is_an_instrument(self):
         gate = Channel.from_depolarizing_constant(RX(np.pi / 2, 0), 0.99)
         readout = MeasurementChannel.from_readout_fidelity(MEASURE(1, None), fidelity=0.95)
         cycle = gate | readout
         noise_model = NoiseModel.from_channels([cycle])
         program = Program(cycle.defcircuit, cycle.inst)
 
-        superop_ops, _, _ = expand_program(program, noise_model, measurement="superop")
-        assert all(isinstance(op, qx.SuperOp) for op in superop_ops)
-        assert jnp.allclose(qx.to_superop(superop_ops[1]).matrix, readout.process.total_channel().matrix)
-
-        instrument_ops, _, _ = expand_program(program, noise_model, measurement="instrument")
-        assert isinstance(instrument_ops[1], qx.QuantumInstrument)
+        ops, _, _ = expand_program(program, noise_model)
+        assert isinstance(ops[1], qx.QuantumInstrument)
 
     def test_standalone_measurement_matches_cycle_behavior(self):
-        """Whatever a bare MEASURE emits per mode, the cycle path must emit the same kind."""
+        """A bare MEASURE and one reached through a cycle must emit the same kind of operator."""
         readout = MeasurementChannel.from_readout_fidelity(MEASURE(0, None), fidelity=0.95)
         noise_model = NoiseModel.from_channels([readout])
-        for mode, expected in (("superop", qx.SuperOp), ("instrument", qx.QuantumInstrument)):
-            ops, _, _ = expand_program(Program(MEASURE(0, None)), noise_model, measurement=mode)
-            assert isinstance(ops[0], expected)
+        ops, _, _ = expand_program(Program(MEASURE(0, None)), noise_model)
+        assert isinstance(ops[0], qx.QuantumInstrument)
+
+    @pytest.mark.parametrize("fidelity", [1.0, 0.95, 0.9])
+    @pytest.mark.parametrize("asymmetry", [0.0, 0.3])
+    def test_collapsing_an_instrument_gives_the_dephasing_channel(self, fidelity, asymmetry):
+        """``to_superops`` reproduces what the old ``measurement="superop"`` mode emitted."""
+        inst = MEASURE(0, None)
+        readout = MeasurementChannel.from_readout_fidelity(inst, fidelity=fidelity, asymmetry=asymmetry)
+        noise_model = NoiseModel.from_channels([readout])
+        circuit = resolve_program(Program(H(0), inst), noise_model).resolve(_EMPTY_PARAMS)
+
+        assert isinstance(circuit[1][0], qx.QuantumInstrument)
+        collapsed = circuit.to_superops()
+        assert all(isinstance(op, qx.SuperOp) for op in collapsed.operators)
+        assert jnp.allclose(collapsed[1][0].matrix, qx.to_superop(readout.process.total_channel()).matrix)
+
+    def test_the_differentiable_family_keeps_no_instruments(self):
+        """``_prepare_ops`` collapses them, which is why that family has nothing atomic."""
+        from pyquil.simulation._simulator import DensityMatrixSimulator
+
+        sim = DensityMatrixSimulator(Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, ("ro", 0))))
+        assert not any(isinstance(op, qx.QuantumInstrument) for op in sim._expanded_ops)
+        # Nothing is pinned, so the measurement is free to merge with the gate before it.
+        assert sim.plan.groups == (((0, 1), (0,)),)

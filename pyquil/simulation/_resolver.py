@@ -38,7 +38,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Mapping
 from copy import deepcopy
-from typing import Any, Literal, NamedTuple, TypeAlias, cast
+from typing import Any, NamedTuple, TypeAlias, cast
 
 import jax.numpy as jnp
 import numpy as np
@@ -66,13 +66,6 @@ from pyquil.quilbase import DefCircuit, Gate, Measurement, Reset, ResetQubit
 
 # A fixed (non-parameterized) operator — the most specific native quax type.
 FixedOp: TypeAlias = qx.CircuitOp
-
-# How ``MEASURE`` is represented during expansion.  The differentiable simulators
-# (state-vector, density-matrix) treat a measurement as a plain dephasing
-# ``SuperOp`` (``"superop"``); the trajectory simulators keep it as a sampled
-# ``QuantumInstrument`` (``"instrument"``).  See :func:`resolve_for_differentiable` and
-# :func:`resolve_for_trajectory`.
-MeasurementMode: TypeAlias = Literal["superop", "instrument"]
 
 
 class ParametricGate:
@@ -218,8 +211,6 @@ def expand_program(
     program: Program,
     noise_model: NoiseModelLike | None = None,
     qubit_dimensions: Mapping[int, int] | None = None,
-    *,
-    measurement: MeasurementMode = "instrument",
 ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
     """Expand a program into operators and physical qubit tuples.
 
@@ -238,16 +229,18 @@ def expand_program(
     ``SuperOp``, noisy measurements become ``QuantumInstrument``, and noisy
     resets become ``SuperOp``.
 
+    A ``MEASURE`` always becomes a :class:`quax.QuantumInstrument`, which is the
+    representation that retains the most information.  A backend that does not branch on
+    outcomes collapses it with :meth:`quax.Circuit.to_superops`, which replaces each
+    instrument with its total channel; that is exactly equivalent to resolving the
+    measurement as a dephasing superoperator in the first place, so expansion does not need
+    to know which kind of backend it is feeding.
+
     :param program: Quil program (may contain DEFCIRCUITs).
     :param noise_model: Optional noise model.
     :param qubit_dimensions: Optional mapping from physical qubit id to its
         Hilbert-space dimension. Used for ideal measurement and reset operators,
         whose quax constructors otherwise default to qubit dimension.
-    :param measurement: How to represent ``MEASURE`` instructions.  ``"instrument"``
-        (default) keeps a sampled ``QuantumInstrument``; ``"superop"`` emits the
-        measurement's dephasing total channel as a ``SuperOp`` so no instrument
-        is produced — used by the differentiable
-        simulators.
     :return: Tuple of ``(ops, qubit_tuples, param_refs)`` where each op is
         either a concrete quax operator or a ``Callable[[Array], Unitary]``
         for parameterized gates, each qubit tuple contains physical qubit
@@ -343,13 +336,7 @@ def expand_program(
         return qubit_dimensions.get(qubit, 2) if qubit_dimensions is not None else 2
 
     def _resolve_measurement(inst: Measurement) -> tuple[FixedOp, tuple[int, ...]]:
-        """Resolve a measurement instruction.
-
-        Under ``measurement="instrument"`` the result is a ``QuantumInstrument``
-        (sampled by the trajectory simulators).  Under ``measurement="superop"``
-        the instrument's dephasing total channel is returned as a ``SuperOp`` so
-        the differentiable pipeline never has to carry — or merge — an instrument.
-        """
+        """Resolve a measurement instruction to a ``QuantumInstrument``."""
         qubits = tuple(inst.get_qubit_indices())
         channel = noise_model.get_channel(inst) if noise_model is not None else None
         instrument = (
@@ -357,8 +344,6 @@ def expand_program(
             if isinstance(channel, MeasurementChannel)
             else qx.gates.MEASURE(dim=_dimension_for(qubits[0]))
         )
-        if measurement == "superop":
-            return instrument.total_channel(), qubits
         return instrument, qubits
 
     def _resolve_reset_qubit(inst: ResetQubit) -> tuple[FixedOp, tuple[int, ...]]:
@@ -400,19 +385,14 @@ def expand_program(
             channel = noise_model.get_channel(inst) if noise_model is not None else None
 
             if isinstance(channel, CycleChannel):
-                # Expand using the channel's constituent operators. A MeasurementChannel
-                # constituent carries a QuantumInstrument, which must be collapsed to its total
-                # channel under measurement="superop" exactly as a standalone MEASURE is -- the
-                # differentiable pipeline is not meant to carry an instrument.
+                # Expand using the channel's constituent operators.  A MeasurementChannel
+                # constituent carries a QuantumInstrument and is emitted as one, exactly as a
+                # standalone MEASURE is.
                 for sub_ch in channel.channels:
                     # Use the channel's own `qubits` property rather than reaching through to
                     # `inst.get_qubit_indices()`, whose return type varies across the constituent
                     # families (a list for gates, a set-or-None for resets).
-                    sub_qubits = tuple(sub_ch.qubits)
-                    if measurement == "superop" and isinstance(sub_ch, MeasurementChannel):
-                        _emit_op(sub_ch.process.total_channel(), sub_qubits)
-                    else:
-                        _emit_op(sub_ch.process, sub_qubits)
+                    _emit_op(sub_ch.process, tuple(sub_ch.qubits))
             else:
                 # Expand DEFCIRCUIT body and resolve each instruction.
                 for expanded_inst in expand_defcircuit_body(inst, circuit_definitions[inst.name], circuit_definitions):
@@ -501,8 +481,6 @@ def resolve_program(
     noise_model: NoiseModelLike | None = None,
     qubits: list[int] | None = None,
     dims: tuple[int, ...] | None = None,
-    *,
-    measurement: MeasurementMode = "instrument",
 ) -> Resolution:
     """Expand a program and build its parameter-resolving closure.
 
@@ -525,9 +503,6 @@ def resolve_program(
         program. Use this when the simulator knows about qubits that don't
         appear in the program.
     :param dims: Optional pre-determined per-qudit dimensions.
-    :param measurement: Measurement representation — see :func:`expand_program`.
-        Prefer the :func:`resolve_for_differentiable` / :func:`resolve_for_trajectory`
-        entry points, which pin the correct mode for each simulator family.
     :return: A :class:`Resolution`.
     """
     if qubits is None:
@@ -537,9 +512,7 @@ def resolve_program(
     def expand(
         qubit_dimensions: Mapping[int, int] | None,
     ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
-        ops, phys_qubits, param_refs = expand_program(
-            program, noise_model, qubit_dimensions=qubit_dimensions, measurement=measurement
-        )
+        ops, phys_qubits, param_refs = expand_program(program, noise_model, qubit_dimensions=qubit_dimensions)
         return ops, remap_qubits(phys_qubits, qubit_indices), param_refs
 
     if dims is None:
@@ -550,41 +523,3 @@ def resolve_program(
     qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
     ops, subsystems, param_refs = expand(qubit_dimensions)
     return Resolution(dims, ops, subsystems, param_refs)
-
-
-def resolve_for_differentiable(
-    program: Program,
-    noise_model: NoiseModelLike | None = None,
-    qubits: list[int] | None = None,
-    dims: tuple[int, ...] | None = None,
-) -> Resolution:
-    """Resolve *program* for the differentiable state-vector and density-matrix simulators.
-
-    ``MEASURE`` becomes a dephasing superoperator so the pipeline stays differentiable.
-
-    :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
-    :param noise_model: Optional noise model; instructions with no channel are ideal.
-    :param qubits: Explicit register order. Defaults to the program's qubits, ascending.
-    :param dims: Optional pre-determined per-qudit dimensions, in ``qubits`` order.
-    :return: A :class:`Resolution` produced with ``measurement="superop"``.
-    """
-    return resolve_program(program, noise_model, qubits, dims, measurement="superop")
-
-
-def resolve_for_trajectory(
-    program: Program,
-    noise_model: NoiseModelLike | None = None,
-    qubits: list[int] | None = None,
-    dims: tuple[int, ...] | None = None,
-) -> Resolution:
-    """Resolve *program* for the Monte-Carlo trajectory simulators.
-
-    ``MEASURE`` stays a ``QuantumInstrument`` that can be sampled.
-
-    :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
-    :param noise_model: Optional noise model; instructions with no channel are ideal.
-    :param qubits: Explicit register order. Defaults to the program's qubits, ascending.
-    :param dims: Optional pre-determined per-qudit dimensions, in ``qubits`` order.
-    :return: A :class:`Resolution` produced with ``measurement="instrument"``.
-    """
-    return resolve_program(program, noise_model, qubits, dims, measurement="instrument")

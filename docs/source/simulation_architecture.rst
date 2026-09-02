@@ -291,10 +291,17 @@ Key properties:
   exactly the thing being computed. Such operations are passed to the planner as ``atomic``
   and are never merged.
 
-  For the differentiable simulators a measurement is a dephasing superoperator, so it merges
-  with its neighbours like any other operation and nothing is atomic. The
-  ``measurement="instrument"`` mode on :class:`~pyquil.simulation._simulator.ProgramSimulator`
-  selects the sampleable representation, and instruments are then marked atomic automatically.
+  Which operations those are is not something expansion decides. A ``MEASURE`` is always
+  expanded to a ``QuantumInstrument``, the representation that keeps the most information, and
+  each backend then adapts it: the differentiable simulators collapse every instrument to its
+  total channel in ``_prepare_ops``, after which a measurement merges with its neighbours like
+  any other superoperator and nothing is atomic; a trajectory backend keeps its instruments, and
+  they are pinned automatically because they are still there.
+
+  Collapsing an instrument to its total channel is exactly
+  :meth:`quax.Circuit.to_superops`, which is why expansion needs no mode parameter: resolving a
+  measurement as a dephasing superoperator up front and collapsing an instrument afterwards give
+  bit-identical results, so the choice belongs to whoever evolves the circuit.
 
 * **Emission order is not application order.** Groups are emitted in a topological order of the
   quotient graph, keyed by each group's earliest member. That respects every dependency, but it
@@ -535,9 +542,9 @@ Trajectory
 
 .. note::
    ``TrajectorySimulator`` is **not yet available**.  This section describes the design that
-   the resolver's ``measurement="instrument"`` mode and ``resolve_for_trajectory`` exist to
-   support; the simulator itself lands in a follow-up change.  The code block below will not
-   run against this release.
+   the instrument representation and the merge plan's ``atomic`` set exist to support; the
+   simulator itself lands in a follow-up change.  The code block below will not run against
+   this release.
 
 .. [#planned] Planned; see the note under `Trajectory`_.
 

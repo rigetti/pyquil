@@ -61,8 +61,8 @@ from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
 from pyquil.simulation._resolver import (
+    ExpandedOp,
     FixedOp,
-    MeasurementMode,
     ParametricGate,
     resolve_program,
 )
@@ -117,7 +117,6 @@ class ProgramSimulator:
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 2,
         dims: tuple[int, ...] | None = None,
-        measurement: MeasurementMode = "superop",
     ) -> None:
         """Expand *program* into a compressed operator stack.
 
@@ -136,11 +135,6 @@ class ProgramSimulator:
             independent of it.
         :param dims: Per-qudit dimensions, in ``qubits`` order. Defaults to inferring them
             from the program's gates and channels (2 unless something says otherwise).
-        :param measurement: How ``MEASURE`` is represented. ``"superop"`` (the default)
-            resolves it to a dephasing superoperator, which is what keeps the simulators in
-            this module differentiable; the resulting state is correct averaged over outcomes
-            but records none of them. ``"instrument"`` keeps a sampleable
-            ``QuantumInstrument``, for a subclass that samples trajectories.
         :raises ValueError: If ``qubits`` contains duplicates.
         """
         self._validate(program)
@@ -157,7 +151,10 @@ class ProgramSimulator:
         self.n_qubits = len(qubits)
 
         # Expand the program into operators, inferring register dimensions when not supplied.
-        res = resolve_program(program, noise_model, qubits, dims, measurement=measurement)
+        # Expansion is backend-agnostic: a MEASURE always arrives as a QuantumInstrument, and
+        # a backend that does not branch on outcomes collapses it in ``_prepare_ops``.
+        res = resolve_program(program, noise_model, qubits, dims)
+        res = res._replace(ops=self._prepare_ops(res.ops))
         self.dims = res.dims
         self._resolve_fn = res.resolve
         self._expanded_ops = tuple(res.ops)
@@ -174,10 +171,11 @@ class ProgramSimulator:
 
         self._linearize_fn = linearize
 
-        # A sampled instrument has to stay addressable.  Fusing one into a neighbour would
+        # A surviving instrument has to stay addressable.  Fusing one into a neighbour would
         # preserve the circuit's overall channel, so the convexity check alone permits it —
-        # but the outcome would no longer be observable, so it must be kept atomic.  Nothing
-        # is atomic under ``measurement="superop"``: a dephasing channel merges like any other.
+        # but the outcome would no longer be observable.  A backend that collapsed its
+        # instruments in ``_prepare_ops`` therefore has nothing atomic, and its measurements
+        # merge like any other channel; one that kept them gets them pinned.
         atomic = tuple(i for i, op in enumerate(res.ops) if isinstance(op, qx.QuantumInstrument))
 
         # Merge planning is purely structural — it needs the subsystems and nothing else —
@@ -185,10 +183,19 @@ class ProgramSimulator:
         # reads its groups without ever materialising a resolved operator.
         self.plan = qx.MergePlan.greedy(res.subsystems, max_subsystem_size, atomic=atomic)
 
-    # -- hook for subclass validation ---------------------
+    # -- hooks for subclasses -----------------------------
 
     def _validate(self, program: Program) -> None:
         """Override to reject unsupported instructions."""
+
+    def _prepare_ops(self, ops: list[ExpandedOp]) -> list[ExpandedOp]:
+        """Adapt the expanded operators to what this backend evolves.
+
+        The default keeps them as expanded, which retains a ``MEASURE`` as a sampleable
+        ``QuantumInstrument``.  Override to convert; see
+        :meth:`_DifferentiableSimulator._prepare_ops`.
+        """
+        return ops
 
     # -- public pipeline methods --------------------------
 
@@ -276,9 +283,26 @@ class _DifferentiableSimulator(ProgramSimulator):
     ``self._idx_arr``), so the compiled graph size scales with the number of distinct
     base subsystems rather than the number of operations.
 
-    Measurements are dephasing SuperOps, so they merge with neighbouring operations like any
-    other superoperator; the compressor's convexity check is what preserves their ordering.
+    Measurements are collapsed to dephasing SuperOps by :meth:`_prepare_ops`, so they merge
+    with neighbouring operations like any other superoperator; the merge plan's convexity check
+    is what preserves their ordering.
     """
+
+    def _prepare_ops(self, ops: list[ExpandedOp]) -> list[ExpandedOp]:
+        """Collapse every instrument to its total channel.
+
+        Neither simulator in this family branches on a measurement outcome, and an instrument
+        is not differentiable, so a ``MEASURE`` is evolved as the dephasing channel obtained by
+        summing over its outcomes.  The resulting state is the correct outcome-averaged density
+        matrix, but no classical outcome is recorded.
+
+        This is :meth:`quax.Circuit.to_superops` applied one operator early — at construction
+        rather than per ``resolve`` — which is free, since an instrument never depends on a
+        runtime parameter.  Doing it here rather than in expansion is what lets expansion stay
+        backend-agnostic, and it is why this family has no atomic operations: once the
+        instruments are gone there is nothing that must stay individually addressable.
+        """
+        return [qx.to_superop(op.total_channel()) if isinstance(op, qx.QuantumInstrument) else op for op in ops]
 
     def __init__(
         self,
