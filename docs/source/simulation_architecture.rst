@@ -154,7 +154,9 @@ Linearizer
 A Quil program references classical memory by name and offset (e.g.
 ``theta[0]``). The linearizer flattens a :class:`~pyquil.api.MemoryMap` into the
 dense parameter vector :math:`\theta \in \mathbb{R}^{n}` that the rest of the
-pipeline (and ``jax.grad``) operates on. The layout — which ``(register,
+pipeline (and ``jax.grad``) operates on, where :math:`n` is the number of runtime
+parameters the program uses — one per scalar memory reference appearing in a gate
+angle, counted in the order the parametric gates were expanded. The layout — which ``(register,
 offset)`` pair occupies each slot — is discovered during expansion and fixed for
 the life of the object, so ``linearize`` is a cheap gather.
 
@@ -386,15 +388,75 @@ the operations they admit.
      - Yes
      - ``jit`` (per batch)
 
-The qubit ceilings are set by memory: a state vector holds :math:`2^{N}`
-amplitudes, so pure-state and trajectory simulation are practical to roughly
-:math:`N \lesssim 26`; a density matrix holds :math:`4^{N}` entries, limiting the
-density-matrix backend to roughly :math:`N \lesssim 13`.
-
 All simulators take the program (and, where relevant, a ``noise_model`` and
 ``max_subsystem_size``) at construction, and expose ``linearize``, ``resolve``,
-``compress``, and ``compute``. ``compute`` is the entry point and takes the flat
-parameter vector from ``linearize``.
+``compress``, and ``compute``. ``compute`` is the entry point; it takes the flat
+parameter vector from ``linearize``, which may be omitted for a program with no
+runtime parameters.
+
+Memory
+------
+
+What limits register size is the size of the state itself. For a register of
+:math:`N` qudits of dimension :math:`d`, at ``complex128`` (16 bytes per entry):
+
+.. math::
+
+   \text{state vector} = 16\, d^{N}\ \text{bytes}
+   \qquad
+   \text{density matrix} = 16\, d^{2N}\ \text{bytes}
+
+A trajectory simulation holds one state vector per trajectory in the batch, so
+its cost is the state-vector figure times the per-device batch size — which is
+why batch size, not register size, is the knob for fitting it into memory.
+
+.. list-table:: State size for qubits (:math:`d = 2`)
+   :header-rows: 1
+   :widths: 20 40 40
+
+   * - :math:`N`
+     - State vector
+     - Density matrix
+   * - 10
+     - 16 KiB
+     - 16 MiB
+   * - 13
+     - 128 KiB
+     - 1 GiB
+   * - 16
+     - 1 MiB
+     - 64 GiB
+   * - 20
+     - 16 MiB
+     - 16 TiB
+   * - 26
+     - 1 GiB
+     - —
+   * - 30
+     - 16 GiB
+     - —
+
+Read the ceiling off whatever budget you actually have rather than from a fixed
+number of qubits: 1 GiB of state is reached at :math:`N = 26` for a state vector
+and at :math:`N = 13` for a density matrix, and each further qubit costs
+:math:`2\times` and :math:`4\times` respectively. Qutrits move the base rather
+than the shape — :math:`3^{N}` and :math:`9^{N}` — so a 13-qutrit state vector
+(24 MiB) sits between a 20- and a 21-qubit one.
+
+These are *dense* representations, so the cost depends only on the register, not
+on how entangled it is: a product state occupies exactly as much memory as a
+maximally entangled one, and none of the three backends differ in this respect.
+Splitting a program into independent subsystems and simulating each in its own
+smaller register is a real and large saving, but it is a decision above this
+layer — the simulators here evolve whatever register they are given.
+
+Beyond the state, the compressed operator stack holds
+:math:`n_\text{groups} \times W^{2}` entries, with :math:`W = d_\text{max}` for
+unitary evolution and :math:`W = d_\text{max}^{2}` for superoperator evolution,
+where :math:`d_\text{max}` is the largest merge group's Hilbert-space dimension.
+At the default ``max_subsystem_size=2`` this is negligible against the state;
+raising it grows the stack as :math:`d^{4k}` for a :math:`k`-qudit budget in the
+density-matrix case, which is the practical reason not to set it high.
 
 Pure state vector
 -----------------
@@ -414,7 +476,7 @@ full program unitary in addition to the state.
 
    # A Bell state (no runtime parameters).
    sim = PureStateVectorSimulator(Program(H(0), CNOT(0, 1)))
-   psi = sim.compute(jnp.array([]))          # final state vector
+   psi = sim.compute()                        # final state vector
 
    # The full 4x4 program unitary.
    U = sim.unitary(jnp.array([]))
@@ -458,7 +520,7 @@ applied as their total (outcome-averaged) channel.
    ])
 
    sim = DensityMatrixSimulator(Program(gate), noise_model=noise)
-   rho = sim.compute(jnp.array([]))           # final density matrix (a quax DensityMatrix)
+   rho = sim.compute()                        # final density matrix (a quax DensityMatrix)
 
 A device-realistic model can be built directly from an instruction set
 architecture with :meth:`NoiseModel.from_isa <pyquil.noise._noise_model.NoiseModel.from_isa>`,
