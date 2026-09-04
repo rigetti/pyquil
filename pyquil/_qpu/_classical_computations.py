@@ -20,7 +20,7 @@ _GATE_OR_PULSE_INSTRUCTION = (qb.Gate, qb.Measurement, qb.Reset, qb.Pulse, qb.Ca
 
 
 def _into_blocks(instructions: ty.Sequence[qb.AbstractInstruction]) -> tuple[tuple[qb.AbstractInstruction, ...], ...]:
-    blocks = [[]]
+    blocks: list[list[qb.AbstractInstruction]] = [[]]
     for instruction in instructions:
         if isinstance(instruction, _QUIL_BLOCK_DELIMITERS):
             blocks.append([])

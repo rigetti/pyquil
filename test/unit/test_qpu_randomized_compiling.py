@@ -399,7 +399,7 @@ class ConfigurationTestCase:
             for qubit in self.readout_randomization.qubits_sorted:
                 call = self.configuration.apply_pauli_pair(
                     qubit,
-                    self.configuration._cycle_count,
+                    self.configuration.cycle_count,
                     source_unitaries=f"readout_randomization_q{qubit}",
                     target_unitaries=f"readout_randomization_q{qubit}",
                     unitary_offset=0,
@@ -464,7 +464,7 @@ def _skipped_layer_regions(
     if configuration.skip_first_layer:
         regions[0] = "first"
     if configuration.skip_final_layer and readout_randomization is None:
-        regions[configuration._cycle_count] = "final"
+        regions[configuration.cycle_count] = "final"
     return regions
 
 
@@ -500,6 +500,8 @@ def _zxzxz(
                     _skipped_layer_region_name(qubit, skipped_layer_regions[layer_index]), angle_index
                 )
             else:
+                if memory_index is None:
+                    raise RuntimeError("memory_index must be set in this case")
                 ref = configuration.variables.twirled_unitaries_ref(qubit, memory_index, angle_index)
             program += gates.RZ(2 * np.pi * ref, qubit)
             if angle_index < 2:
@@ -793,6 +795,6 @@ def test_randomized_compiling_configuration(
             final_memory,
             readout_seeds,
             TEST_SHOT_COUNT,
-            test_case.configuration._cycle_count,
+            test_case.configuration.cycle_count,
             pauli_pairs,
         )
