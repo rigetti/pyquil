@@ -26,7 +26,6 @@ scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
 qcs-sdk-python = ">=0.20.1,<0.22"
-quil = "0.18.0rc2"
 packaging = ">=23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
@@ -45,6 +44,7 @@ matplotlib = {version = "^3.9.0", optional = true}
 matplotlib-inline = {version = "^0.1.7", optional = true}
 seaborn = {version = "^0.13.2", optional = true}
 toml = {version = "^0.10.2", optional = true}
+quil = "^0.18.0"
 
 [tool.poetry.extras]
 latex = ["ipython"]
