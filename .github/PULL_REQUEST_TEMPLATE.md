@@ -10,6 +10,7 @@ Insert your PR description here. Thanks for [contributing][contributing] to pyQu
 - [ ] All changes to code are covered via unit tests.
 - [ ] Parameters and return values have type hints with [PEP 484 syntax][pep-484].
 - [ ] Functions and classes have useful [Sphinx-style][sphinx] docstrings.
+- [ ] Live QPU tests have run via `pytest test --live-qpu-access` by myself or a reviewer.
 - [ ] (New Feature) The [docs][docs] have been updated accordingly.
 - [ ] (Bugfix) The associated issue is referenced above using [auto-close keywords][auto-close].
 

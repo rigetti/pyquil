@@ -1786,15 +1786,15 @@ files = [
 
 [[package]]
 name = "mistune"
-version = "3.3.2"
+version = "3.3.4"
 description = "A sane and fast Markdown parser with useful plugins and renderers"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"docs\""
 files = [
-    {file = "mistune-3.3.2-py3-none-any.whl", hash = "sha256:a678a56387d487db7368ede4647cb2ba1deff22ce61f92343e4ebe0ddfce4f2d"},
-    {file = "mistune-3.3.2.tar.gz", hash = "sha256:e12ee4f1e74336e91aa1141e35f913b337c40bdf7c0cc49f21fb853a27e8b62f"},
+    {file = "mistune-3.3.4-py3-none-any.whl", hash = "sha256:ee015381e955e370962968befe1d729ab60fafb6a715ac6751763fbce38c8d4a"},
+    {file = "mistune-3.3.4.tar.gz", hash = "sha256:58b5c96d6fcb61190dfe5fae498d2b2065f99cf61e9649418fd54cf1ada86dfe"},
 ]
 
 [[package]]
@@ -3239,38 +3239,38 @@ pyquil = ["pyquil (==4.14.2)"]
 
 [[package]]
 name = "quil"
-version = "0.17.0"
+version = "0.18.0"
 description = "A Python package for building and parsing Quil programs."
 optional = false
 python-versions = "<3.13,>=3.9"
 groups = ["main"]
 files = [
-    {file = "quil-0.17.0-cp310-cp310-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:b86bdbb88ea0efdddcbab1141b5319929ee7d176bb827e1b8eadad4160cb8d47"},
-    {file = "quil-0.17.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ab9aefe04f1a0eb84be4f0a85b6132e906afc910c018acfaa454bf03e5af9010"},
-    {file = "quil-0.17.0-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:772d292490333a74b2d8b4605064ef81a4f0b000ed0cab048f7d8d9c77ea7a58"},
-    {file = "quil-0.17.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d7318de8370ad10950987e6596306aef900631d7365e272f1396879532966148"},
-    {file = "quil-0.17.0-cp310-cp310-win_amd64.whl", hash = "sha256:7bf073400052dc1271c89cf860a427f9d4e2aeffd3bdadcf244b1db15c764906"},
-    {file = "quil-0.17.0-cp311-cp311-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:e64c5192528947227e8576f1bfbc8fc482673615286cca2b63509328dc4a8c4c"},
-    {file = "quil-0.17.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:24fc50550a6fb997179d0884fdae92548d165d37d09795b805eab2292876c8c0"},
-    {file = "quil-0.17.0-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:78a29082cc484a92dcda2d6ad2f95ac2ff7e401fc48cdf9e1d6fda82b8fc0b10"},
-    {file = "quil-0.17.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7e699bc5b43be6365e0ca5fc244985c90e8345c7bfca8edcdbfcc8ff8be7f62"},
-    {file = "quil-0.17.0-cp311-cp311-win_amd64.whl", hash = "sha256:76e6a1cef43f082fe039b704babc9a1200788a8b45b8d65b4fb856667eed23c3"},
-    {file = "quil-0.17.0-cp312-cp312-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:7c0a644f5a0a23e7d2bde47b035ce2377f0cce3870a142607e92675e9229e47b"},
-    {file = "quil-0.17.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a6c004801df9d645409e36b3eb80c79045e1dc2385fee71c6b01da82b8c66a32"},
-    {file = "quil-0.17.0-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:965db0df11e5bc22bbd3b203613d279552759a57dbb74805e91295e0a69876a6"},
-    {file = "quil-0.17.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fb54dd8f9769ce9c3cd4f0c0413b7dac344d0fb04c6f7e88e532b7bb9ce08037"},
-    {file = "quil-0.17.0-cp312-cp312-win_amd64.whl", hash = "sha256:bdd370e45f1405163ad63ce58dd75c2b6315272f7ec68ed5c18ada5eaae21506"},
-    {file = "quil-0.17.0-cp38-cp38-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:db4d3416e050993afd5323d0b72b648727819234f5a65248e5125958a35f4153"},
-    {file = "quil-0.17.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6a652b61c57832043fe738fe7f8a1ed37756703b5f9f888ed3d5c7f780e2c8ca"},
-    {file = "quil-0.17.0-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:97b7cf27e24a055738bfe027a63df96ec713ff601b5fd91a0ef079788640fe0f"},
-    {file = "quil-0.17.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d9415c208168011468235819ea7c9576d1fdda696cef24e668d72f8efc3d45e3"},
-    {file = "quil-0.17.0-cp38-cp38-win_amd64.whl", hash = "sha256:70719a3da80807a1d2dd4a8b70e5d0591b8b80dc60faecef45cc4fd6c3aa84f3"},
-    {file = "quil-0.17.0-cp39-cp39-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:4830b0b40d397291de9402c99a1a4d9bcbc21f69d718d66b725b49eb2bb8aef1"},
-    {file = "quil-0.17.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2707ed23f37bada6c90768687b7e293a8343fece9fcb9941bd443faec59c39a8"},
-    {file = "quil-0.17.0-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:02668e3e68c8b0c4845392a60e5b9cf1a957b3a1851dfcab63359a503016cbb1"},
-    {file = "quil-0.17.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c92ee8563869840b311a314778bd30cc7f021ce04dcdc48a981b8df77481b2ca"},
-    {file = "quil-0.17.0-cp39-cp39-win_amd64.whl", hash = "sha256:98634a586733042688449e8d7bc695d5ed1557b04d1a8e352592c7d8701be070"},
-    {file = "quil-0.17.0.tar.gz", hash = "sha256:ee9bc5db5e695354aaff371ef88eb2a16ec653b7b6ff1320242fbc60eed01b62"},
+    {file = "quil-0.18.0-cp310-cp310-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:966db739ecddd6cc2a3319316c344fb2b4c3a9fe49207de0408d5699d25dd0e7"},
+    {file = "quil-0.18.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4d4c4b7c08aef1933d18c2f90a5a17f450241b918984fccccd364d036cafa0c7"},
+    {file = "quil-0.18.0-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:9fc63ce1ed924af5d7377353d5412d67aca40cac23c7ac7b1d24b74d5a6661c4"},
+    {file = "quil-0.18.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2685d47f77f946a514f66cda1ec262204e2329f19d6ce9b2eec21a167cddb7d0"},
+    {file = "quil-0.18.0-cp310-cp310-win_amd64.whl", hash = "sha256:6212f3e0dc2148970b167b544ebc9b84c1eff56743ee4d289df2872cdce42f91"},
+    {file = "quil-0.18.0-cp311-cp311-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:2af6a425921be6752d16396a5987690b19594fc240a8bed15a55cb7a4c8bca93"},
+    {file = "quil-0.18.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d28da4e69364058516877969e22cecb51bfbb3a2b0fb6893d2dd487c5c24a6c3"},
+    {file = "quil-0.18.0-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:f931f5e911a7a9477ef1ed0e0dd06747107914de076d73267d3b3baf259988ca"},
+    {file = "quil-0.18.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ebc87ad37b3e8f20ddce50d7d34abf7ac3d2c4549102292680c3726ae1aa0734"},
+    {file = "quil-0.18.0-cp311-cp311-win_amd64.whl", hash = "sha256:88958f8685f0b5cd1724940fea2597d877a6de191e275d84928d71065927aaa4"},
+    {file = "quil-0.18.0-cp312-cp312-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:c8ba710dab02493de799846fd2337b47198f8fd5f0b4f1f97312d6b39cb03126"},
+    {file = "quil-0.18.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3f83bbf216f467972c00dded7095c18faa51ed8b81ff4b6a1c383cf7a4da9cdf"},
+    {file = "quil-0.18.0-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:36ca63af9dcae86bd02ab1aadd6e3dba68ea889ce1458f44b257f592e064a14e"},
+    {file = "quil-0.18.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f72d5de07cb974c0a0851add1687e190fc742e23a43c49480c790dd222f9d36a"},
+    {file = "quil-0.18.0-cp312-cp312-win_amd64.whl", hash = "sha256:5497f8cb0f99fd9831dfb12ab3d75519eb008479c76fb310b4083eefc1e52970"},
+    {file = "quil-0.18.0-cp38-cp38-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:9689adce70c75d14f32743e37a3fcee165a40cf2e715e4d7c7680adc4a9666cf"},
+    {file = "quil-0.18.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9ac23f232307b366c4201643685a7c5936b1ad64867e820bc078270645d99fba"},
+    {file = "quil-0.18.0-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:954cfbbbc5f1fd9f16dfce0762964c5307b7b4f9778e51501ea58285b2a6f6ac"},
+    {file = "quil-0.18.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b1baf83eda33103b770918e9af6fa08a1f82e64fa83fa959bcfb92795060bc65"},
+    {file = "quil-0.18.0-cp38-cp38-win_amd64.whl", hash = "sha256:aab0cd3ef00829d43027a9be64aab4349d05d84883c92a9d3702f62cbfb15a12"},
+    {file = "quil-0.18.0-cp39-cp39-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:023abab120e81ab8cd41e11e9f57b1b892ccaa868133d3b4b76de35fac8302e5"},
+    {file = "quil-0.18.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8164aaf63e3d8e6e1e21a252847482e6b6553a5b9282c0fecd59e4c703e6db54"},
+    {file = "quil-0.18.0-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:18d26d2636840d92e270f46c15f6adb06547a7c69e8e633f7a57ba67093ba1a8"},
+    {file = "quil-0.18.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0e919802fed4e53adeabb2bed8239cb1690d9ba050b676049cdc24e710b05872"},
+    {file = "quil-0.18.0-cp39-cp39-win_amd64.whl", hash = "sha256:9290b34ef94d45e4e5ef6a593eafa9b6725e24fcdcbe26f46f790931c1489ccf"},
+    {file = "quil-0.18.0.tar.gz", hash = "sha256:c5f77ae0674f7d51c3147976e4f2cb4421104f32e7885ea1012d232cb2392c19"},
 ]
 
 [package.dependencies]
@@ -3954,23 +3954,23 @@ files = [
 
 [[package]]
 name = "tornado"
-version = "6.5.7"
+version = "6.5.8"
 description = "Tornado is a Python web framework and asynchronous networking library, originally developed at FriendFeed."
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"docs\""
 files = [
-    {file = "tornado-6.5.7-cp39-abi3-macosx_10_9_universal2.whl", hash = "sha256:148b2eb15c2c765a50796172c1e499649b35f30d2e3c3d3e15913cfa56bfb163"},
-    {file = "tornado-6.5.7-cp39-abi3-macosx_10_9_x86_64.whl", hash = "sha256:9da38de27f1da3b78a966f0dae12b5a1ea9afe72ca805d84ff06508272ddf100"},
-    {file = "tornado-6.5.7-cp39-abi3-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:8d759e71906ee783f8867b93bf26a265743da4c1e2f4a018464c1ba019862972"},
-    {file = "tornado-6.5.7-cp39-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:8a46347a18f23fb92b396beebe0fb78f61dda0cc302445202c16203d8a18848b"},
-    {file = "tornado-6.5.7-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:7778b30bef919231265e91c69963ce0f49a1e9c07ac900bbe75b19ce2575ba92"},
-    {file = "tornado-6.5.7-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:e726f0c75da7726eec023aa62751ff8878bd2737e34fbdd33b1ae5897d2200f5"},
-    {file = "tornado-6.5.7-cp39-abi3-win32.whl", hash = "sha256:f8de3bf12d3efdd0cbe7c8887868198f8a91415e3f29fcf258d9b8eb7b1d9ae4"},
-    {file = "tornado-6.5.7-cp39-abi3-win_amd64.whl", hash = "sha256:de942f843533a039ef9fa3d9c88c7cd8a7c94553fb5ad0154270989b3d99a2c4"},
-    {file = "tornado-6.5.7-cp39-abi3-win_arm64.whl", hash = "sha256:ff934fce95643af5f11efdae618eaa73d469dc588641e5c8d19295a0c65c4796"},
-    {file = "tornado-6.5.7.tar.gz", hash = "sha256:66c513a76cda70d53907bc27cf1447557699c2e95aa48ba27a442ff61c3ddfc2"},
+    {file = "tornado-6.5.8-cp39-abi3-macosx_10_9_universal2.whl", hash = "sha256:cc6aa787d7cfab7c3d35189dc7a56fbd2399a569624c730c6b55b3d6531d0403"},
+    {file = "tornado-6.5.8-cp39-abi3-macosx_10_9_x86_64.whl", hash = "sha256:9715b5eb79735b2bcd454ce216a9275b7c0470e64ea1bf5742f78b2f72b26eeb"},
+    {file = "tornado-6.5.8-cp39-abi3-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:547d63f450d570c14fe0e8db2cfb14c9bbd1c2503b4a6612586267955aa47b58"},
+    {file = "tornado-6.5.8-cp39-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7e2360a0ffbe145eca8af0b19cb7203d79b1a98dd4cccdd6b368f6f49c2e3808"},
+    {file = "tornado-6.5.8-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:5d242290bdf7ab3151bc1065fdd75c0dcc21cbc7b49f22a4c56329c2d6566d22"},
+    {file = "tornado-6.5.8-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:7b94ff0e128fe0542f3bd331fb44d06260fc4ac16881545159f34ef08aad4195"},
+    {file = "tornado-6.5.8-cp39-abi3-win32.whl", hash = "sha256:67832909c4779c64942380cb5f044a5c6163d00831472d80e25e115de9917836"},
+    {file = "tornado-6.5.8-cp39-abi3-win_amd64.whl", hash = "sha256:11881db6b7c168494be2c2d12e65931451bdf7ee718535418ae1d8855dd5a0ee"},
+    {file = "tornado-6.5.8-cp39-abi3-win_arm64.whl", hash = "sha256:68a7468c7e289f8514d7d664101753903217eff1bb6822c6b5994a0b5f5bcb26"},
+    {file = "tornado-6.5.8.tar.gz", hash = "sha256:9452e1b208a8bd771e2cb1f2ff564985b9b214bdebbe622793e1799e0a6bd23f"},
 ]
 
 [[package]]
@@ -4182,4 +4182,4 @@ latex = ["ipython"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11, <3.13"
-content-hash = "5503ff72b2c686de77ff3b8052d08c442d171314d64b643d51775170de61a14e"
+content-hash = "db17ec91fd28189ec57ea5cc65ad00deeeb9681ee180f3bd2837e2b8ddc871e6"
