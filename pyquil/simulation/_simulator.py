@@ -105,30 +105,6 @@ class ProgramSimulator(ABC):
     a gradient, a batch of trajectories.
 
     Instances are immutable after construction.
-
-    .. note::
-        **Why an explicit** ``__init__`` **rather than a frozen dataclass with cached
-        properties.**  The derived state here is eager *by requirement*, not habit.  The fused
-        operator stack of a parameter-free program (``const_stack`` in
-        :func:`_build_vectorized_operator_constructor`) has to be materialised outside any
-        ``jax`` trace: built lazily on first use inside ``jax.jit(sim.compute)`` it becomes a
-        traced constant and XLA constant-folds a per-gate composition subgraph, which is the
-        180 s-versus-0.35 s compile-time regression measured on that function.  A
-        ``cached_property`` is exactly such a lazy construction.  A frozen dataclass would
-        therefore need a ``__post_init__`` that touches every cached property in dependency
-        order to force it, and any property left off that list silently reintroduces the
-        regression -- the same kind of implicit contract this class avoids elsewhere.  The
-        constructor arguments (a ``Program``, a noise model) are also mutable and not
-        meaningfully comparable, so the generated ``__eq__``/``__hash__`` would have to be
-        disabled anyway.  The pure-data objects this class produces (:class:`Resolution`,
-        :class:`~pyquil.simulation._circuit.MergePlan`,
-        :class:`~pyquil.simulation._circuit.Circuit`) *are* frozen dataclasses.
-
-    .. note::
-        This is a shared *base class* rather than a composed "prepared program" that each
-        simulator holds.  Composition models the relationship more faithfully, and is planned
-        once all four simulators exist so the shared object is designed against every backend
-        rather than two.
     """
 
     def __init__(
@@ -144,10 +120,8 @@ class ProgramSimulator(ABC):
         :param program: The Quil program to simulate. May contain ``DEFGATE`` and
             ``DEFCIRCUIT`` definitions, which are expanded.
         :param qubits: The register order: the state's subsystems follow this list, most
-            significant first. Defaults to the program's qubits in ascending order. When
-            given it must contain exactly the qubits the program acts on -- a qubit the program
-            never touches would have no effect on the result, and one the list omits could not
-            be simulated at all.
+            significant first. Defaults to the program's qubits in ascending order. If provided,
+            it must contain exactly the qubits the program acts on.
         :param noise_model: Optional noise model. Channels are looked up per instruction;
             instructions with no channel are simulated ideally.
         :param max_subsystem_size: Largest number of qudits the compressor may merge
