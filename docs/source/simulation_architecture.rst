@@ -435,7 +435,7 @@ the operations they admit.
      - Yes
      - Resets (measurements as total channel)
      - ``jit`` + ``grad``
-   * - ``TrajectorySimulator`` [#planned]_
+   * - ``TrajectorySimulator``
      - Monte-Carlo sampling
      - Yes
      - Yes
@@ -641,14 +641,6 @@ which is deprecated for removal in pyQuil v5.)
 Trajectory
 ----------
 
-.. note::
-   ``TrajectorySimulator`` is **not yet available**.  This section describes the design that
-   the instrument representation and the merge plan's ``atomic`` set exist to support; the
-   simulator itself lands in a follow-up change.  The code block below will not run against
-   this release.
-
-.. [#planned] Planned; see the note under `Trajectory`_.
-
 For programs with mid-circuit measurements, resets, and feed-forward-style
 sampling, unravel the dynamics into pure-state **quantum trajectories**: each
 trajectory samples a Kraus operator (or measurement outcome) at every noisy step
@@ -660,12 +652,28 @@ The number of trajectories is set by the shape of the PRNG key: a scalar key
 runs one trajectory, while a batch of keys (from ``jax.random.split``) runs that
 many in parallel via ``vmap``. A measurement is handled by flattening its
 ``QuantumInstrument`` into a single Kraus axis, so sampling a Kraus index also
-selects the outcome.
+selects the outcome. Measurements are passed to the merge plan as ``atomic`` (see
+`Compressor`_), and outcome columns are labelled by each measurement's *program*
+index, so they follow the ``MEASURE`` instructions in program order regardless of
+how the plan ordered its groups.
+
+The sampling kernel is compiled once, at construction. Its layout — which
+subsystem each merged operation acts on, which operations are measurements, and
+how many Kraus operators each has — depends only on the program's structure, so
+each ``compute`` or ``sample`` call rebuilds just the zero-padded Kraus stack for
+its parameters and passes it to the compiled kernel as an argument. (Kraus counts
+are structural too: composing a channel with unitaries conjugates its Choi matrix,
+which leaves the eigenvalues, and hence the truncated Kraus count, unchanged.)
+
+.. note::
+   Trajectory sampling should be run at 64-bit precision (``jax_enable_x64``).
+   Converting a merged channel to Kraus form goes through an eigendecomposition
+   of its Choi matrix, and the default ``kraus_truncation_threshold`` of ``1e-6``
+   is at the noise floor of 32-bit arithmetic.
 
 .. code-block:: python
 
    import jax
-   import jax.numpy as jnp
    from pyquil import Program
    from pyquil.gates import H, MEASURE
    from pyquil.quilatom import MemoryReference
@@ -674,15 +682,14 @@ selects the outcome.
 
    p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
    sim = TrajectorySimulator(p)
-   params = jnp.array([])
 
-   # A batch of 1000 trajectories in parallel.
+   # A batch of 1000 trajectories in parallel (no runtime parameters, so none are passed).
    keys = jax.random.split(jax.random.key(0), 1000)
-   psi_batch, outcomes = sim.compute(params, keys)
+   psi_batch, outcomes = sim.compute(key=keys)
    # outcomes has shape (1000, n_measurements); ~50/50 for an H gate.
 
    # Or, scalable sampling that streams batches and keeps only the outcomes:
-   shots = sim.sample(params, num_trajectories=100_000, batch_size=2_000)
+   shots = sim.sample(num_trajectories=100_000, batch_size=2_000)
 
 ``sample`` runs trajectories in fixed-size batches, discarding state vectors
 between batches so the total number of shots is unbounded by memory. When
