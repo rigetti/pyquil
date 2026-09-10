@@ -347,7 +347,7 @@ class DiagramBuilder:
                 self._build_measure()
             elif isinstance(instr, Gate):
                 if "FORKED" in instr.modifiers:
-                    raise ValueError(f"LaTeX output does not currently supportFORKED modifiers: {instr}.")
+                    raise ValueError(f"LaTeX output does not currently support FORKED modifiers: {instr}.")
                 # the easy case is 1q operations
                 if len(instr.qubits) == 1:
                     self._build_1q_unitary()
@@ -357,7 +357,7 @@ class DiagramBuilder:
                     else:
                         self._build_generic_unitary()
             elif isinstance(instr, UNSUPPORTED_INSTRUCTION_CLASSES):
-                raise ValueError(f"LaTeX output does not currently supportthe following instruction: {instr.out()}")
+                raise ValueError(f"LaTeX output does not currently support the following instruction: {instr.out()}")
             else:
                 self.index += 1
 

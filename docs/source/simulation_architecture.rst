@@ -6,12 +6,14 @@ Noisy simulation architecture
 
 .. note::
 
-   The simulators described here live in the experimental, private modules
-   ``pyquil.simulation._simulator`` and ``pyquil.simulation._resolver`` (and the
-   noise model in ``pyquil.noise._noise_model`` / ``pyquil.noise._channels``).
-   The API is not yet stable and the import paths are private. It is documented
-   here because the design is intended to become the default simulation backend
-   in a future major release, replacing the NumPy reference simulators.
+   **Experimental.** The simulators described here live in the private modules
+   ``pyquil.simulation._simulator``, ``pyquil.simulation._resolver`` and
+   ``pyquil.simulation._circuit`` (and the noise model in ``pyquil.noise``).
+   The API is not stable: names, signatures and return types may change in any
+   release before pyQuil 5, and the import paths are private on purpose. It is
+   documented here because the design is intended to become the default
+   simulation backend in a future major release, replacing the NumPy reference
+   simulators, and because using it in real work is how the API will be settled.
 
    These modules depend on `JAX <https://jax.readthedocs.io>`_ (via the
    ``rigetti-quax`` package), which provides the operator algebra and the
@@ -154,11 +156,27 @@ Linearizer
 A Quil program references classical memory by name and offset (e.g.
 ``theta[0]``). The linearizer flattens a :class:`~pyquil.api.MemoryMap` into the
 dense parameter vector :math:`\theta \in \mathbb{R}^{n}` that the rest of the
-pipeline (and ``jax.grad``) operates on, where :math:`n` is the number of runtime
-parameters the program uses — one per scalar memory reference appearing in a gate
-angle, counted in the order the parametric gates were expanded. The layout — which ``(register,
-offset)`` pair occupies each slot — is discovered during expansion and fixed for
-the life of the object, so ``linearize`` is a cheap gather.
+pipeline (and ``jax.grad``) operates on. Here :math:`n` is the number of
+**distinct** memory references the program's gates read, in order of first use:
+a reference used by several gates occupies a single slot, so the program
+
+.. code-block::
+
+   DECLARE theta REAL[2]
+   DECLARE phi REAL[1]
+   RX(theta[0]) 0
+   RX(theta[0]) 1
+   RZ(phi[0]) 0
+
+has :math:`n = 2` with slots ``theta[0], phi[0]`` — not three — and the gradient
+with respect to slot 0 is already the total derivative through both ``RX`` gates.
+The layout is discovered during expansion and fixed for the life of the object;
+``sim.parameters`` lists it and ``sim.parameter_index("theta", 0)`` looks a slot
+up, which is how the component of a gradient belonging to one ``DECLARE`` entry is
+found. ``linearize`` itself is a pure gather over the region arrays, so it can be
+jitted and differentiated through: ``jax.grad(lambda t: loss(sim.compute(
+sim.linearize({"theta": t}))))`` differentiates with respect to the declared
+memory directly.
 
 Resolver
 --------
@@ -181,7 +199,10 @@ Expansion does several things at once:
 * **Noise resolution.** Each instruction is looked up in the noise model. A
   noisy gate becomes its ``SuperOp``; a noisy measurement becomes a
   ``QuantumInstrument``; a noisy reset becomes a ``SuperOp``. Instructions with
-  no channel resolve to their ideal operator.
+  no channel resolve to their ideal operator. The lookup is by instruction
+  *equality* — gate name, parameters, qubits and modifiers together — so
+  ``RX(pi/2) 0`` and ``RX(pi/2) 1`` are distinct keys, and a channel attached to
+  ``RX(pi/2) 0`` does not apply to ``RX(pi/4) 0``.
 
 * **Most-specific typing.** Operators are kept in their tightest native type —
   ideal gates as ``Unitary``, channels as ``SuperOp``, measurements as
@@ -203,8 +224,19 @@ Expansion does several things at once:
 
   A body must reference **only its own formal arguments**. Quil allows a literal qubit in a
   body (``DEFCIRCUIT C q: X q; X 3``), but such a qubit is invisible to
-  ``Program.get_qubit_indices``, so it escapes the register the simulator sizes itself for.
-  It is rejected rather than silently mis-simulated.
+  ``Program.get_qubit_indices`` (`pyQuil issue #1868
+  <https://github.com/rigetti/pyquil/issues/1868>`_), so it escapes the register the simulator
+  sizes itself for. It is rejected rather than silently mis-simulated; the check is a stopgap
+  until that issue is fixed.
+
+* **Unsupported instructions raise; non-quantum ones are ignored.** Control flow (``JUMP``,
+  ``JUMP-WHEN``, ``JUMP-UNLESS``) and classical memory instructions (``MOVE``, ``ADD``, ``EQ``,
+  ``LOAD``, ...) change which quantum operations run or what a measured register means, and a
+  straight-line simulation cannot honour them, so they are rejected with a clear error.
+  Declarations and definitions, ``PRAGMA``, labels, ``HALT``/``NOP``/``WAIT`` and every Quil-T
+  pulse-level instruction (``PULSE``, ``DELAY``, ``FENCE``, ``SHIFT-PHASE``, ...) are ignored:
+  they are the physical realisation of the logical program, not a change to it, and rejecting
+  them would make compiled programs unsimulatable.
 
 * **Gate modifiers are not supported.** ``DAGGER``, ``CONTROLLED`` and ``FORKED`` are all
   rejected. ``CONTROLLED`` and ``FORKED`` each add a qudit to the instruction, so the operator
@@ -220,7 +252,8 @@ Expansion does several things at once:
   line to dimension 3). The program is expanded twice: once with default qubit
   dimensions to infer the true dimensions, then again with those dimensions so
   that *ideal* measurement and reset operators are built at the correct size.
-  Passing ``dims`` explicitly skips the first pass.
+  (:func:`~pyquil.simulation._resolver.resolve_program` accepts ``dims`` to skip
+  the first pass; the simulators always infer.)
 
   .. note::
      This double expansion is the least elegant part of the pipeline, and it is worth being
@@ -229,13 +262,14 @@ Expansion does several things at once:
      the line it acts on — there is nothing in ``MEASURE 0`` itself that says whether qubit 0 is
      a qubit or a qutrit. That circularity has to be broken somewhere.
 
-     Two alternatives were considered and rejected. Requiring callers to declare ``dims`` up
-     front removes the second pass but makes every qutrit program carry bookkeeping the module
-     could have derived. Defaulting silently to dimension 2 and promoting later is worse still:
+     Two alternatives were considered and rejected. Requiring callers to declare register
+     dimensions up front removes the second pass but makes every qutrit program carry
+     bookkeeping the module could have derived — which is also why the simulators take no
+     ``dims`` argument: an all-qutrit register holding only qubit gates never populates the
+     extra level, so nothing observable depends on declaring it. Defaulting silently to dimension 2 and promoting later is worse still:
      an ideal reset built at the wrong size fails deep inside a tensor contraction, far from the
      instruction that caused it. Expanding twice keeps the ergonomics and localizes the cost,
-     which is small — the second pass reuses nothing but is cheap relative to compilation — and
-     ``dims=`` remains available for callers who already know.
+     which is small — the second pass reuses nothing but is cheap relative to compilation.
 
 Dependency DAG
 --------------
@@ -395,11 +429,48 @@ the operations they admit.
      - Yes
      - ``jit`` (per batch)
 
-All simulators take the program (and, where relevant, a ``noise_model`` and
-``max_subsystem_size``) at construction, and expose ``linearize``, ``resolve``,
-``compress``, and ``compute``. ``compute`` is the entry point; it takes the flat
-parameter vector from ``linearize``, which may be omitted for a program with no
-runtime parameters.
+API shape
+---------
+
+All simulators share one shape, chosen to stay close to the simulator APIs of
+Cirq, Qiskit and PennyLane where the design allows it:
+
+* **Construction** takes the program (and, where relevant, a ``noise_model`` and
+  ``max_subsystem_size``). Cirq and Qiskit construct a simulator without a
+  program and pass it at run time; here the program is bound at construction
+  because building the fused operator stack and its ``jit`` closures *is* the
+  expensive step, and it is reused across every evaluation. ``qubits`` fixes the
+  register order (big-endian) and must be exactly the qubits the program acts on.
+* **Parameters**: ``parameters``, ``parameter_index`` and ``linearize`` describe
+  and build the flat parameter vector (see `Linearizer`_).
+* **Introspection**: ``resolve(params)`` returns the program's
+  :class:`~pyquil.simulation._circuit.Circuit`, ``compress(circuit)`` the merged one,
+  and ``plan`` the :class:`~pyquil.simulation._circuit.MergePlan` behind it.
+* **Evaluation**: ``compute(params)`` is the entry point and returns a quax state
+  (``StateVector`` or ``DensityMatrix``); ``params`` may be omitted for a program
+  with no runtime parameters. The trajectory simulator adds a PRNG key and returns
+  the sampled outcomes alongside the state, and offers ``sample`` for outcomes
+  alone.
+
+Samples are not the only thing worth computing. Because ``compute`` returns a
+quax state and is itself a pure JAX function, any quax metric composes with it
+under ``jit`` and ``grad`` — fidelity to a target, purity, entanglement measures,
+Pauli expectation values, or a composite loss built from several — without a
+PennyLane-style "measurement process" layer in between:
+
+.. code-block:: python
+
+   import jax
+   import quax as qx
+
+   sim = DensityMatrixSimulator(program, noise_model=noise_model)
+   target = qx.zero_state_matrix(dims=sim.dims)
+
+   def infidelity(params):
+       return 1.0 - qx.fidelity(sim.compute(params), target)
+
+   value, grad = jax.value_and_grad(infidelity)(sim.linearize(memory_map))
+   d_theta0 = grad[sim.parameter_index("theta", 0)]
 
 Memory
 ------
@@ -486,7 +557,7 @@ full program unitary in addition to the state.
    psi = sim.compute()                        # final state vector
 
    # The full 4x4 program unitary.
-   U = sim.unitary(jnp.array([]))
+   U = sim.unitary()
 
    # A parametric program, jit-compiled and differentiated.
    from pyquil.quilatom import MemoryReference

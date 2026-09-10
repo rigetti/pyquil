@@ -15,19 +15,12 @@ from pyquil.quilbase import (
 from pyquil.quilbase import (
     Gate as QuilGate,
 )
-from pyquil.simulation._simulator import PureStateVectorSimulator
+from test.unit.simulation_programs import simulate_state_vector
 
 _EMPTY_PARAMS = jnp.array([], dtype=float)
 
 
-def _sv(program, qubits=None, memory_map=None):
-    """Compute pure state vector for a gate-only program."""
-    sim = PureStateVectorSimulator(program, qubits=qubits)
-    if memory_map:
-        params = sim.linearize(memory_map)
-    else:
-        params = _EMPTY_PARAMS
-    return sim.compute(params)
+_sv = simulate_state_vector
 
 
 class TestSingleQubitGates:

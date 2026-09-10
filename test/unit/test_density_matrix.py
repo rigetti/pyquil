@@ -45,7 +45,7 @@ import numpy as np
 import pytest
 import quax as qx
 
-from pyquil.gates import CCNOT, CNOT, CSWAP, CZ, MEASURE, RESET, RX, RY, RZ, SWAP, H, I, S, T, X, Y, Z
+from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, H, I, X
 from pyquil.noise._channels import (
     Channel,
     MeasurementChannel,
@@ -58,7 +58,16 @@ from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare, Gate, ResetQubit
 from pyquil.simulation._reference import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
-from pyquil.simulation._simulator import DensityMatrixSimulator, PureStateVectorSimulator
+from pyquil.simulation._simulator import DensityMatrixSimulator
+from test.unit.simulation_programs import (
+    COMPARABLE,
+    PROGRAMS,
+    assert_physical,
+    assert_pure,
+    reverse_endianness,
+    simulate_density_matrix,
+    simulate_state_vector,
+)
 
 _EMPTY_PARAMS = jnp.array([], dtype=float)
 
@@ -68,64 +77,18 @@ _QUTRIT_X = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]], dtype=complex)
 
 def _dm(program, qubits=None, noise_model=None, memory_map=None, **kwargs):
     """Final density matrix as a plain numpy array."""
-    sim = DensityMatrixSimulator(program, qubits=qubits, noise_model=noise_model, **kwargs)
-    params = sim.linearize(memory_map) if memory_map else _EMPTY_PARAMS
-    return np.asarray(sim.compute(params).matrix)
+    return np.asarray(simulate_density_matrix(program, qubits, noise_model, memory_map, **kwargs).matrix)
 
 
 def _sv(program, qubits=None, memory_map=None, **kwargs):
     """Final state vector as a flat numpy array."""
-    sim = PureStateVectorSimulator(program, qubits=qubits, **kwargs)
-    params = sim.linearize(memory_map) if memory_map else _EMPTY_PARAMS
-    return np.asarray(sim.compute(params).matrix).reshape(-1)
+    return np.asarray(simulate_state_vector(program, qubits, memory_map, **kwargs).matrix).reshape(-1)
 
 
-def _reverse_endianness(array, n_qubits):
-    """Reverse qubit significance, to compare against pyQuil's little-endian simulators.
-
-    Works for a state vector (1-D) or a density matrix (2-D) over ``n_qubits`` qubits.
-    """
-    axes = tuple(reversed(range(n_qubits)))
-    if array.ndim == 1:
-        return array.reshape((2,) * n_qubits).transpose(axes).reshape(-1)
-    tensor = array.reshape((2,) * (2 * n_qubits))
-    perm = axes + tuple(n + n_qubits for n in axes)
-    return tensor.transpose(perm).reshape(2**n_qubits, 2**n_qubits)
-
-
-def _assert_pure(rho, psi, atol=1e-10):
-    """Assert ``rho == |psi><psi|``."""
-    np.testing.assert_allclose(rho, np.outer(psi, psi.conj()), atol=atol)
-
-
-def _assert_physical(rho, atol=1e-9):
-    """Assert *rho* is a valid density matrix: unit trace, Hermitian, positive semi-definite."""
-    assert np.trace(rho).real == pytest.approx(1.0, abs=atol)
-    np.testing.assert_allclose(rho, rho.conj().T, atol=atol)
-    assert np.linalg.eigvalsh(rho).min() > -atol
-
-
-# Programs reused across the noiseless equivalence tests. Deliberately includes gates whose
-# operands are *not* in ascending order -- the compressor advertises a sorted subsystem for
-# merged groups but an unmerged operation keeps its own operand order, and getting that wrong
-# silently permutes qudits in the density-matrix path only.
-_PROGRAMS = {
-    "empty": Program(),
-    "single_x": Program(X(0)),
-    "hadamard": Program(H(0)),
-    "bell": Program(H(0), CNOT(0, 1)),
-    "ghz3": Program(H(0), CNOT(0, 1), CNOT(1, 2)),
-    "clifford_chain": Program(H(0), S(0), T(0), H(0), Z(0), Y(0)),
-    "rotations": Program(RX(0.3, 0), RY(0.7, 0), RZ(1.1, 0)),
-    "two_qubit_mixed": Program(RX(0.4, 0), RY(0.9, 1), CNOT(0, 1), RZ(1.1, 0), CZ(0, 1)),
-    "ccnot_sorted": Program(H(0), H(1), CCNOT(0, 1, 2)),
-    "ccnot_reversed": Program(X(1), X(2), CCNOT(2, 1, 0)),
-    "cnot_reversed": Program(X(1), CNOT(1, 0)),
-    "cswap_reversed": Program(X(0), X(2), CSWAP(2, 1, 0)),
-    "swap_reversed": Program(X(1), SWAP(2, 0)),
-    "deep": Program(RX(0.4, 0), RY(0.9, 1), CNOT(0, 1), RZ(1.1, 0), CZ(1, 2), RX(0.2, 2), SWAP(0, 2)),
-    "idle_qubit": Program(X(0), I(1)),
-}
+_reverse_endianness = reverse_endianness
+_assert_pure = assert_pure
+_assert_physical = assert_physical
+_PROGRAMS = PROGRAMS
 
 
 class TestNoiselessMatchesStateVector:
@@ -157,20 +120,7 @@ class TestNoiselessMatchesStateVector:
 class TestAgainstPyquilReferenceSimulators:
     """Cross-check against pyQuil's independent (little-endian) reference implementations."""
 
-    _COMPARABLE = [
-        "single_x",
-        "hadamard",
-        "bell",
-        "ghz3",
-        "clifford_chain",
-        "rotations",
-        "two_qubit_mixed",
-        "ccnot_sorted",
-        "ccnot_reversed",
-        "cnot_reversed",
-        "cswap_reversed",
-        "deep",
-    ]
+    _COMPARABLE = COMPARABLE
 
     @pytest.mark.parametrize("name", _COMPARABLE)
     def test_matches_reference_density_simulator(self, name):
