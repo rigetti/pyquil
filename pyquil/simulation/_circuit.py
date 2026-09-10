@@ -368,20 +368,15 @@ def _contraction_creates_cycle(quotient: nx.DiGraph, a: int, b: int) -> bool:
     The quotient is always a DAG, so contracting two nodes introduces a cycle iff there is a
     directed path of length two or more between them in *either* direction — some other group
     is sandwiched on a dependency path from one to the other, and merging across it would force
-    it to be reordered.  A direct edge alone is fine; only an indirect path is a problem.
+    it to be reordered.  A direct edge alone is fine, so it is set aside before asking networkx
+    whether any other path connects the two.
     """
-    for source, target in ((a, b), (b, a)):
-        stack = [s for s in quotient.successors(source) if s != target]
-        seen = set(stack)
-        while stack:
-            node = stack.pop()
-            if node == target:
-                return True
-            for following in quotient.successors(node):
-                if following not in seen:
-                    seen.add(following)
-                    stack.append(following)
-    return False
+    direct = [(u, v) for u, v in ((a, b), (b, a)) if quotient.has_edge(u, v)]
+    quotient.remove_edges_from(direct)
+    try:
+        return nx.has_path(quotient, a, b) or nx.has_path(quotient, b, a)
+    finally:
+        quotient.add_edges_from(direct)
 
 
 @dataclass(frozen=True)
@@ -471,6 +466,79 @@ class MergePlan:
         """
         return cls(groups=tuple(((i,), tuple(sub)) for i, sub in enumerate(subsystems)), num_ops=len(subsystems))
 
+    # ``from_partition`` is the seam for further merge strategies.  Each of these is a few lines
+    # on the dependency DAG with networkx, and none is implemented until a use case asks for it:
+    #   * layer-wise fusion from ``nx.topological_generations`` -- fuse per qudit pair across
+    #     consecutive layers, mirroring the cycle structure of ``CycleChannel`` noise models;
+    #   * light-cone pruning from ``nx.ancestors`` of the measured operations -- drop operations
+    #     that cannot affect a terminal measurement;
+    #   * independent registers from ``nx.weakly_connected_components`` -- simulate disconnected
+    #     subregisters separately;
+    #   * round-based pairwise merging from ``nx.max_weight_matching`` -- a non-greedy
+    #     alternative to smallest-union-first.
+    # Tensor-network contraction ordering (opt_einsum, cotengra) optimises a different objective,
+    # a full contraction rather than a fused stack for a jitted scan, and is not a merge plan.
+    @classmethod
+    def from_partition(
+        cls,
+        subsystems: Sequence[tuple[int, ...]],
+        groups: Iterable[Iterable[int]],
+        *,
+        max_subsystem_size: int | None = None,
+    ) -> MergePlan:
+        """Build a plan from a partition of the operations into groups.
+
+        This is the constructor every merge strategy reduces to: decide which operations belong
+        together, hand the partition over, and let the plan validate and order it.  A group is
+        accepted only if it is *convex* -- no operation outside it lies on a dependency path
+        between two of its members -- which is checked by building the quotient DAG of the
+        partition with :func:`networkx.quotient_graph` and requiring it to be acyclic.  Groups
+        are then emitted in a topological order of that quotient, ties broken by each group's
+        earliest member, so unmerged operations keep their relative program order.
+
+        :param subsystems: One tuple of register indices per operation, in application order.
+        :param groups: The partition: each operation index appears in exactly one group.
+        :param max_subsystem_size: If given, a merged group may span at most this many qudits.
+            A group of one operation is never bounded by it.
+        :return: The plan.
+        :raises ValueError: If ``groups`` is not a partition of the operations, a group is not
+            convex, or a merged group exceeds ``max_subsystem_size``.
+        """
+        subsystems = tuple(tuple(int(q) for q in sub) for sub in subsystems)
+        num_ops = len(subsystems)
+        blocks = [tuple(sorted(int(n) for n in group)) for group in groups]
+        covered = sorted(node for block in blocks for node in block)
+        if any(not block for block in blocks) or covered != list(range(num_ops)):
+            raise ValueError(
+                f"groups must partition the {num_ops} operation(s) into non-empty groups; got "
+                f"{len(covered)} entries covering {len(set(covered))} distinct operations."
+            )
+
+        qudits = {block: set().union(*(set(subsystems[node]) for node in block)) for block in blocks}
+        if max_subsystem_size is not None:
+            too_wide = [block for block in blocks if len(block) > 1 and len(qudits[block]) > max_subsystem_size]
+            if too_wide:
+                raise ValueError(f"Group(s) {too_wide} span more than max_subsystem_size={max_subsystem_size} qudits.")
+
+        quotient = nx.quotient_graph(
+            dependency_graph(subsystems),
+            [set(block) for block in blocks],
+            create_using=nx.DiGraph(),
+        )
+        if not nx.is_directed_acyclic_graph(quotient):
+            involved = sorted({tuple(sorted(block)) for edge in nx.find_cycle(quotient) for block in edge[:2]})
+            raise ValueError(
+                f"Group(s) {involved} are not convex: an operation in one depends on the other and vice "
+                "versa, so merging them would reorder an operation that lies between them."
+            )
+
+        plan_groups: list[Group] = []
+        for block in nx.lexicographical_topological_sort(quotient, key=min):
+            nodes = tuple(sorted(block))
+            subsystem = subsystems[nodes[0]] if len(nodes) == 1 else tuple(sorted(qudits[nodes]))
+            plan_groups.append((nodes, subsystem))
+        return cls(groups=tuple(plan_groups), num_ops=num_ops)
+
     @classmethod
     def greedy(
         cls,
@@ -558,28 +626,12 @@ class MergePlan:
                 if union_size <= max_subsystem_size:
                     heapq.heappush(candidates, (union_size, u, neighbour))
 
-        # Every dependency edge runs from a lower index to a higher one, so ascending operation
-        # index is a topological order of the original graph: listing each group's members in
-        # index order composes them in application order.
+        # The contraction loop above is the only strategy-specific part; validation and emission
+        # order are shared with every other strategy through ``from_partition``.
         members: dict[int, list[int]] = {}
-        first_member: dict[int, int] = {}
         for node in range(num_ops):
-            root = union_find[node]
-            members.setdefault(root, []).append(node)
-            first_member.setdefault(root, node)
-
-        # Emit groups in topological order of the *quotient*, not of the original graph.  A
-        # valid group may hold an operation preceding an atomic one together with an operation
-        # depending on it; emitting the group at its earliest member's position would move the
-        # whole group — the dependent operation included — ahead of the atomic operation.
-        # Breaking ties on each group's first member keeps unmerged operations, atomic ones in
-        # particular, in application order relative to each other.
-        groups: list[Group] = []
-        for root in nx.lexicographical_topological_sort(quotient, key=lambda r: first_member[r]):
-            nodes = members[root]
-            subsystem = subsystems[nodes[0]] if len(nodes) == 1 else tuple(sorted(group_qudits[root]))
-            groups.append((tuple(nodes), tuple(subsystem)))
-        return cls(groups=tuple(groups), num_ops=num_ops)
+            members.setdefault(union_find[node], []).append(node)
+        return cls.from_partition(subsystems, members.values())
 
     def apply(self, circuit: Circuit) -> Circuit:
         """Merge a circuit's operations according to this plan.

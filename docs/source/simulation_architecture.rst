@@ -306,6 +306,14 @@ Had the plan been hidden inside an opaque ``optimize()`` call, that path would
 not be expressible from outside quax. :meth:`~pyquil.simulation._circuit.MergePlan.apply` performs the
 eager merge for callers that want the operators themselves.
 
+Greedy contraction is one strategy, not the definition of a plan.
+:meth:`~pyquil.simulation._circuit.MergePlan.from_partition` accepts *any* partition of the
+operations into groups, checks that every group is convex (the quotient DAG of the partition
+must be acyclic) and within budget, and emits the groups in topological order. ``greedy``
+computes its partition and hands it over, and a future strategy — layer-wise fusion,
+light-cone pruning, independent-register splitting — is a few lines of networkx on the
+dependency DAG that produce a partition.
+
 Key properties:
 
 * **Small-first priority.** Candidate merges are taken from a priority queue

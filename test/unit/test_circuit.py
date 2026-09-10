@@ -405,6 +405,68 @@ class TestPlanValidation:
         assert str(plan) == "MergePlan(num_ops=2, num_groups=2, num_bases=2)"
 
 
+class TestFromPartition:
+    """``from_partition`` is the constructor every strategy reduces to."""
+
+    def test_reproduces_the_greedy_plan_from_its_partition(self):
+        rng = np.random.default_rng(20260910)
+        for _ in range(50):
+            subsystems = random_subsystems(rng, 20, 5, max_arity=2)
+            greedy = MergePlan.greedy(subsystems, 2)
+            rebuilt = MergePlan.from_partition(subsystems, [nodes for nodes, _ in greedy.groups])
+            assert rebuilt.groups == greedy.groups
+
+    def test_orders_groups_topologically_with_program_order_ties(self):
+        # Three independent single-qudit chains, handed over out of order.
+        subsystems = [(0,), (1,), (2,), (0,), (1,), (2,)]
+        plan = MergePlan.from_partition(subsystems, [[2, 5], [0, 3], [1, 4]])
+        assert plan.groups == (((0, 3), (0,)), ((1, 4), (1,)), ((2, 5), (2,)))
+
+    def test_a_dependent_group_is_emitted_after_what_it_depends_on(self):
+        subsystems = [(0,), (0, 1), (1,)]
+        plan = MergePlan.from_partition(subsystems, [[2], [0, 1]])
+        assert plan.groups == (((0, 1), (0, 1)), ((2,), (1,)))
+
+    def test_a_lone_operation_keeps_its_operand_order(self):
+        plan = MergePlan.from_partition([(1, 0), (0,)], [[0], [1]])
+        assert plan.groups[0] == ((0,), (1, 0))
+
+    def test_rejects_a_non_convex_group(self):
+        # 0 and 2 sandwich 1 on qudit 0; merging them would reorder 1.
+        with pytest.raises(ValueError, match="not convex"):
+            MergePlan.from_partition([(0,), (0,), (0,)], [[0, 2], [1]])
+
+    def test_rejects_a_group_over_the_budget(self):
+        with pytest.raises(ValueError, match="max_subsystem_size=2"):
+            MergePlan.from_partition([(0,), (1,), (2,)], [[0, 1, 2]], max_subsystem_size=2)
+
+    def test_a_lone_operation_is_never_bounded_by_the_budget(self):
+        plan = MergePlan.from_partition([(0, 1, 2)], [[0]], max_subsystem_size=1)
+        assert plan.num_groups == 1
+
+    @pytest.mark.parametrize("groups", [[[0], [1]], [[0, 1, 2], [2]], [[0], [], [1, 2]]])
+    def test_rejects_a_non_partition(self, groups):
+        with pytest.raises(ValueError, match="must partition"):
+            MergePlan.from_partition([(0,), (1,), (2,)], groups)
+
+    def test_empty(self):
+        assert MergePlan.from_partition([], []).groups == ()
+
+    def test_random_partitions_are_well_formed_or_rejected_for_the_right_reason(self):
+        """Any convex partition gives a well-formed plan; a rejection names the non-convex groups."""
+        rng = np.random.default_rng(7)
+        for _ in range(100):
+            subsystems = random_subsystems(rng, 12, 4, max_arity=2)
+            labels = rng.integers(0, 5, size=12)
+            partition = [list(np.flatnonzero(labels == g)) for g in range(5) if (labels == g).any()]
+            try:
+                plan = MergePlan.from_partition(subsystems, partition)
+            except ValueError as error:
+                assert "not convex" in str(error)
+                continue
+            assert_plan_is_well_formed(plan, subsystems)
+
+
 class TestGreedyPlanCases:
     def test_a_chain_collapses_to_one_group(self):
         subsystems = [(0,), (0, 1), (1,)]
