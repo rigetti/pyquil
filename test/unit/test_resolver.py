@@ -24,6 +24,7 @@ from pyquil.quilbase import (
     Measurement,
     ResetQubit,
 )
+from pyquil.simulation._circuit import Circuit, dependency_edges
 from pyquil.simulation._resolver import (
     expand_program,
     remap_qubits,
@@ -205,14 +206,14 @@ class TestResolveProgram:
 
     def test_dependency_structure(self):
         p = Program(H(0), X(0), CNOT(0, 1))
-        edges = qx.dependency_edges(resolve_program(p).subsystems)
+        edges = dependency_edges(resolve_program(p).subsystems)
         assert (0, 1) in edges
         assert (1, 2) in edges
 
     def test_resolve_returns_a_circuit_on_the_program_register(self):
         p = Program(H(0), CNOT(0, 1))
         circuit = resolve_program(p).resolve(_EMPTY_PARAMS)
-        assert isinstance(circuit, qx.Circuit)
+        assert isinstance(circuit, Circuit)
         assert circuit.dims == (2, 2)
         assert circuit.subsystems == ((0,), (0, 1))
 
@@ -294,7 +295,7 @@ class TestMeasurementRepresentation:
     There used to be a ``measurement`` mode on expansion, chosen by the simulator family, so
     that the differentiable backends never had to carry an instrument. It was redundant:
     collapsing an instrument to its total channel is exactly what
-    :meth:`quax.Circuit.to_superops` does, so the mode is a representation change applied one
+    :meth:`~pyquil.simulation._circuit.Circuit.to_superops` does, so the mode is a representation change applied one
     layer too early. These tests pin the equivalence that let it be deleted.
     """
 

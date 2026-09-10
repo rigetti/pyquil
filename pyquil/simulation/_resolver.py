@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Compilation from Quil to :class:`quax.Circuit`.
+"""Compilation from Quil to :class:`~pyquil.simulation._circuit.Circuit`.
 
 This module owns the half of simulation preprocessing that is about *Quil*:
 
@@ -23,13 +23,13 @@ This module owns the half of simulation preprocessing that is about *Quil*:
    quax types; parameterized gates are returned as :class:`ParametricGate`
    callables, since a gate angle may be a memory reference from a ``DECLARE``
    that is not known until run time.
-2. **Resolver** — binds a parameter vector to produce a :class:`quax.Circuit`:
+2. **Resolver** — binds a parameter vector to produce a :class:`~pyquil.simulation._circuit.Circuit`:
    concrete operators, each placed on a register index.
 
 Everything downstream of that circuit is quantum information rather than Quil,
-and lives in quax: merge planning (:class:`quax.MergePlan`), operator fusion,
+and lives in quax: merge planning (:class:`~pyquil.simulation._circuit.MergePlan`), operator fusion,
 dimension inference and the representation changes each backend needs
-(:meth:`quax.Circuit.to_superops`, :meth:`quax.Circuit.to_kraus_maps`).  The
+(:meth:`~pyquil.simulation._circuit.Circuit.to_superops`, :meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`).  The
 boundary is deliberate — a circuit carries no gate names, no parameters and no
 classical memory, so quax never needs a notion of a program.
 """
@@ -59,13 +59,14 @@ from pyquil.noise._noise_model import (
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Qubit, _contained_mrefs, substitute
 from pyquil.quilbase import DefCircuit, Gate, Measurement, Reset, ResetQubit
+from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
 
 # ──────────────────────────────────────────────────────────
 # Type aliases
 # ──────────────────────────────────────────────────────────
 
 # A fixed (non-parameterized) operator — the most specific native quax type.
-FixedOp: TypeAlias = qx.CircuitOp
+FixedOp: TypeAlias = CircuitOp
 
 
 class ParametricGate:
@@ -111,7 +112,7 @@ class ParametricGate:
 ExpandedOp: TypeAlias = FixedOp | ParametricGate
 
 # One resolved operation: a concrete operator and the register indices it acts on.
-ResolvedOp: TypeAlias = qx.Placement
+ResolvedOp: TypeAlias = Placement
 
 
 # ──────────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ def expand_program(
 
     A ``MEASURE`` always becomes a :class:`quax.QuantumInstrument`, which is the
     representation that retains the most information.  A backend that does not branch on
-    outcomes collapses it with :meth:`quax.Circuit.to_superops`, which replaces each
+    outcomes collapses it with :meth:`~pyquil.simulation._circuit.Circuit.to_superops`, which replaces each
     instrument with its total channel; that is exactly equivalent to resolving the
     measurement as a dephasing superoperator in the first place, so expansion does not need
     to know which kind of backend it is feeding.
@@ -464,8 +465,8 @@ class Resolution(NamedTuple):
             for op, subsystem in zip(self.ops, self.subsystems, strict=True)
         ]
 
-    def resolve(self, params: Array) -> qx.Circuit:
-        """Bind *params* to produce the program's :class:`quax.Circuit`.
+    def resolve(self, params: Array) -> Circuit:
+        """Bind *params* to produce the program's :class:`~pyquil.simulation._circuit.Circuit`.
 
         This is the hand-off out of Quil: past this point there are no gate names, no memory
         references and no instructions, only operators placed on a register.
@@ -473,7 +474,7 @@ class Resolution(NamedTuple):
         :param params: Flat parameter vector, laid out as ``param_refs``.
         :return: The circuit, on a register of ``dims``.
         """
-        return qx.Circuit(dims=self.dims, ops=tuple(self.placements(params)))
+        return Circuit(dims=self.dims, ops=tuple(self.placements(params)))
 
 
 def resolve_program(
@@ -518,7 +519,7 @@ def resolve_program(
     if dims is None:
         ops, subsystems, param_refs = expand(None)
         probe = Resolution(dims=(), ops=ops, subsystems=subsystems, param_refs=param_refs)
-        dims = qx.Circuit.infer_dims(probe.placements(jnp.zeros(len(param_refs))), len(qubits))
+        dims = Circuit.infer_dims(probe.placements(jnp.zeros(len(param_refs))), len(qubits))
 
     qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
     ops, subsystems, param_refs = expand(qubit_dimensions)

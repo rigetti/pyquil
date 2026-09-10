@@ -122,13 +122,13 @@ Construction runs four conceptual stages, each materialized as a closure:
    │  Linearizer  │
         │
         ▼
-   ┌──────────────┐   θ ──► quax.Circuit
+   ┌──────────────┐   θ ──► Circuit
    │   Resolver   │   (consults the noise model; ideal gates stay parametric)
         │
         ▼   ─── the Quil/quantum-information boundary ───
         │
    ┌──────────────┐   merge adjacent operators, up to `max_subsystem_size`
-   │  Compressor  │   qudits — quax.MergePlan
+   │  Compressor  │   qudits — MergePlan
         │
         ▼
    ┌──────────────┐   apply the operator stack to the initial state
@@ -139,11 +139,11 @@ Construction runs four conceptual stages, each materialized as a closure:
 
 The linearizer and resolver are Quil-specific and live in ``_resolver.py``. The
 compressor is not: merge planning and operator fusion are quantum information,
-not language, so they live in quax (:class:`quax.Circuit`,
-:class:`quax.MergePlan`) and are shared with any other caller. The calculator is
+not language, so they live in quax (:class:`~pyquil.simulation._circuit.Circuit`,
+:class:`~pyquil.simulation._circuit.MergePlan`) and are shared with any other caller. The calculator is
 specialized per simulator in ``_simulator.py``.
 
-The dividing line is the :class:`quax.Circuit` the resolver produces. A circuit
+The dividing line is the :class:`~pyquil.simulation._circuit.Circuit` the resolver produces. A circuit
 carries concrete operators and their placements and nothing else — no gate
 names, no memory references, no control flow — so quax never needs a notion of
 a program, and pyquil keeps sole ownership of what a program means.
@@ -163,7 +163,7 @@ the life of the object, so ``linearize`` is a cheap gather.
 Resolver
 --------
 
-The resolver turns :math:`\theta` into a :class:`quax.Circuit`: an ordered
+The resolver turns :math:`\theta` into a :class:`~pyquil.simulation._circuit.Circuit`: an ordered
 sequence of concrete operators, each placed on a tuple of (zero-based) qudit
 indices, over a register of inferred dimensions. It is produced by
 :func:`~pyquil.simulation._resolver.resolve_program`, which returns a
@@ -240,7 +240,7 @@ Expansion does several things at once:
 Dependency DAG
 --------------
 
-The subsystem list induces a dependency DAG (:func:`quax.dependency_edges`): one
+The subsystem list induces a dependency DAG (:func:`~pyquil.simulation._circuit.dependency_edges`): one
 node per operation, with an edge :math:`u \to v` whenever :math:`u` and :math:`v`
 share a qubit and :math:`u` precedes :math:`v` in program order. The DAG encodes
 exactly the orderings that must be preserved; everything else is free to be
@@ -256,12 +256,12 @@ Compressor
 Applying operators one at a time is wasteful: a depth-:math:`D`,
 :math:`N`-qubit program issues many small one- and two-qubit operators, and
 under ``jit`` each distinct operator shape becomes a distinct branch in the
-compiled graph. The compressor (:meth:`quax.MergePlan.greedy`) performs **greedy
+compiled graph. The compressor (:meth:`~pyquil.simulation._circuit.MergePlan.greedy`) performs **greedy
 edge contraction** on the DAG, fusing adjacent operators into a single operator
 on the union of their qubits, up to a cap of ``max_subsystem_size`` qubits.
 
 Planning is separated from merging, and this matters more than it looks.
-:meth:`quax.MergePlan.greedy` consumes only the subsystem list and the size cap
+:meth:`~pyquil.simulation._circuit.MergePlan.greedy` consumes only the subsystem list and the size cap
 — no operators, no dimensions, no parameters — and returns a plan as *data*:
 which operations fuse into which group, the distinct base subsystems, and each
 group's base index. The vectorized construction described under `Calculator`_
@@ -269,7 +269,7 @@ reads that plan and builds the fused operator stack under ``jax.vmap`` **without
 ever materialising the individual operators**, which is what makes its compile
 time proportional to the number of gate kinds rather than the number of gates.
 Had the plan been hidden inside an opaque ``optimize()`` call, that path would
-not be expressible from outside quax. :meth:`quax.MergePlan.apply` performs the
+not be expressible from outside quax. :meth:`~pyquil.simulation._circuit.MergePlan.apply` performs the
 eager merge for callers that want the operators themselves.
 
 Key properties:
@@ -299,7 +299,7 @@ Key properties:
   they are pinned automatically because they are still there.
 
   Collapsing an instrument to its total channel is exactly
-  :meth:`quax.Circuit.to_superops`, which is why expansion needs no mode parameter: resolving a
+  :meth:`~pyquil.simulation._circuit.Circuit.to_superops`, which is why expansion needs no mode parameter: resolving a
   measurement as a dephasing superoperator up front and collapsing an instrument afterwards give
   bit-identical results, so the choice belongs to whoever evolves the circuit.
 
@@ -310,7 +310,7 @@ Key properties:
   Since operations sharing no qubit commute, this is physically harmless — but it means a
   caller must **not** use a group's position as an operation's identity. Measurement outcome
   columns are labelled from the operation indices carried in
-  :attr:`quax.MergePlan.groups`, which are unaffected by fusion.
+  :attr:`~pyquil.simulation._circuit.MergePlan.groups`, which are unaffected by fusion.
 
 Setting ``max_subsystem_size=0`` disables merging entirely (useful for
 debugging or for exact per-instruction inspection).
@@ -320,13 +320,13 @@ Adapters
 
 The resolver is backend-agnostic: it yields each operator in its most specific
 type. Each simulator then converts the merged circuit to the representation it
-evolves, using the methods on :class:`quax.Circuit`:
+evolves, using the methods on :class:`~pyquil.simulation._circuit.Circuit`:
 
-* **Density matrix** (:meth:`quax.Circuit.to_superops`): everything becomes a
+* **Density matrix** (:meth:`~pyquil.simulation._circuit.Circuit.to_superops`): everything becomes a
   ``SuperOp`` (a ``QuantumInstrument`` is collapsed to its total channel, since
   the density-matrix backend does not branch on outcomes).
 
-* **Trajectory** (:meth:`quax.Circuit.to_kraus_maps`): a ``SuperOp`` is
+* **Trajectory** (:meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`): a ``SuperOp`` is
   converted to a (truncated) ``KrausMap``; ``Unitary``, ``KrausMap``, and
   ``QuantumInstrument`` pass through unchanged, each already being applicable to
   a state vector either deterministically or by sampling.

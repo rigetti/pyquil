@@ -60,6 +60,7 @@ from pyquil.api import MemoryMap
 from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
+from pyquil.simulation._circuit import Circuit, Group, MergePlan
 from pyquil.simulation._resolver import (
     ExpandedOp,
     FixedOp,
@@ -181,7 +182,7 @@ class ProgramSimulator:
         # Merge planning is purely structural — it needs the subsystems and nothing else —
         # so it is quax's, not Quil's.  The plan is data: the vectorized stack builder below
         # reads its groups without ever materialising a resolved operator.
-        self.plan = qx.MergePlan.greedy(res.subsystems, max_subsystem_size, atomic=atomic)
+        self.plan = MergePlan.greedy(res.subsystems, max_subsystem_size, atomic=atomic)
 
     # -- hooks for subclasses -----------------------------
 
@@ -238,16 +239,16 @@ class ProgramSimulator:
             )
         return params
 
-    def resolve(self, params: Array) -> qx.Circuit:
+    def resolve(self, params: Array) -> Circuit:
         """Resolve parameters into the program's circuit.
 
         :param params: Flat parameter vector from :meth:`linearize`.
-        :return: A :class:`quax.Circuit` with one operation per expanded operation, in
+        :return: A :class:`~pyquil.simulation._circuit.Circuit` with one operation per expanded operation, in
             program order.
         """
         return self._resolve_fn(params)
 
-    def compress(self, resolved: qx.Circuit) -> qx.Circuit:
+    def compress(self, resolved: Circuit) -> Circuit:
         """Merge operations according to :attr:`plan`.
 
         :param resolved: The circuit from :meth:`resolve`.
@@ -277,7 +278,7 @@ class _DifferentiableSimulator(ProgramSimulator):
     """Base for the jit/grad-friendly state-vector and density-matrix simulators.
 
     Adds the compressed-stack evolution machinery.  It enumerates the distinct
-    *base subsystems* the merge plan emits (:attr:`quax.MergePlan.bases`) and applies the
+    *base subsystems* the merge plan emits (:attr:`~pyquil.simulation._circuit.MergePlan.bases`) and applies the
     operator stack with a :func:`jax.lax.scan` whose body dispatches each operator to
     the :func:`jax.lax.switch` branch for its base (``self._branches``, keyed by
     ``self._idx_arr``), so the compiled graph size scales with the number of distinct
@@ -296,7 +297,7 @@ class _DifferentiableSimulator(ProgramSimulator):
         summing over its outcomes.  The resulting state is the correct outcome-averaged density
         matrix, but no classical outcome is recorded.
 
-        This is :meth:`quax.Circuit.to_superops` applied one operator early — at construction
+        This is :meth:`~pyquil.simulation._circuit.Circuit.to_superops` applied one operator early — at construction
         rather than per ``resolve`` — which is free, since an instrument never depends on a
         runtime parameter.  Doing it here rather than in expansion is what lets expansion stay
         backend-agnostic, and it is why this family has no atomic operations: once the
@@ -483,7 +484,7 @@ def _make_group_fold(group_start: list[int], n_ops: int, width: int) -> Callable
 def _build_vectorized_operator_constructor(
     expanded_ops: tuple[Any, ...],
     raw_subsystems: tuple[tuple[int, ...], ...],
-    groups: tuple[qx.Group, ...],
+    groups: tuple[Group, ...],
     dims: tuple[int, ...],
     d_max: int,
     *,
