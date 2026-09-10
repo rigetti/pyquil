@@ -416,12 +416,31 @@ class TestToKrausMaps:
             finally:
                 jax.config.update("jax_enable_x64", True)
 
-    def test_truncation_drops_negligible_kraus_operators(self):
+    def test_keeps_a_fixed_size_kraus_set(self):
+        """The Kraus axis is d_out * d_in whatever the channel's rank; the surplus is zero.
+
+        Keeping the count fixed is what makes it a property of the circuit's structure rather
+        than of a parameter value, which is what lets a trajectory simulator compile its kernel
+        once.  A zero Kraus operator carries zero Born probability and is never sampled.
+        """
         unitary_channel = Circuit.from_ops([(qx.gates.H, (0,))]).to_superops()
-        truncated = unitary_channel.to_kraus_maps(atol=1e-6).operators[0]
-        # A unitary channel has Kraus rank 1, whatever the superoperator's dense shape.
+        converted = unitary_channel.to_kraus_maps().operators[0]
+
         # A Kraus map's matrix is (*ensemble, num_kraus, d_out, d_in).
-        assert truncated.matrix.shape[-3] == 1
+        assert converted.matrix.shape[-3] == 4
+        # A unitary channel has Kraus rank 1, so exactly one operator is non-zero.
+        assert int(jnp.sum(jnp.linalg.norm(converted.matrix, axis=(-2, -1)) > 0)) == 1
+
+    def test_keeps_low_weight_components(self):
+        """Error components far below the old fixed 1e-6 threshold survive the conversion.
+
+        A merged group's correlated multi-error branches sit at the product of its constituent
+        error rates, which is exactly what a truncating conversion used to discard.
+        """
+        channel = Circuit.from_ops([(qx.channels.depolarizing(1e-9, (2,)), (0,))])
+        converted = channel.to_kraus_maps().operators[0]
+
+        assert int(jnp.sum(jnp.linalg.norm(converted.matrix, axis=(-2, -1)) > 0)) == 4
 
 
 class TestCompose:
