@@ -191,7 +191,6 @@ class TestAgainstPyquilReferenceSimulators:
         assert overlap == pytest.approx(1.0, abs=1e-9)
 
 
-
 class TestBigEndianOrdering:
     """The register order is big-endian: ``qubits[0]`` is the most significant subsystem."""
 
@@ -386,7 +385,9 @@ class TestDecoherence:
 
             ch = Channel.from_coherence_times(RX(np.pi, 0), 40e-9, t1s=[20e-6], t2s=[15e-6])
             H = qutip.Qobj(np.asarray(ch.lindbladian.hamiltonian.matrix))
-            c_ops = [qutip.Qobj(j) for j in np.asarray(ch.lindbladian.jump_operators.matrix) if np.linalg.norm(j) > 1e-15]
+            c_ops = [
+                qutip.Qobj(j) for j in np.asarray(ch.lindbladian.jump_operators.matrix) if np.linalg.norm(j) > 1e-15
+            ]
             qutip.mesolve(H, qutip.Qobj(np.diag([1.0, 0.0]).astype(complex)), [0, 40e-9], c_ops=c_ops)
         """
         channel = Channel.from_coherence_times(RX(np.pi, 0), gate_duration=40e-9, t1s=[20e-6], t2s=[15e-6])
@@ -574,8 +575,19 @@ class TestErrorHandling:
             DensityMatrixSimulator(Program(X(0)), qubits=[0, 0])
 
     def test_qubit_outside_register_reports_clearly(self):
-        with pytest.raises(ValueError, match="must be exactly the qubits the program acts on"):
+        with pytest.raises(ValueError, match=r"must be exactly the qubits the program acts on.*missing: \[3\]"):
             _dm(Program(X(0), X(3)), qubits=[0])
+
+    def test_spectator_qubit_reports_clearly(self):
+        """``qubits`` fixes the register *order*; a qubit the program never touches is an error."""
+        with pytest.raises(ValueError, match=r"not in the program: \[1\]"):
+            _dm(Program(X(0)), qubits=[0, 1])
+
+    def test_qubits_may_reorder_the_register(self):
+        program = Program(X(0), I(1))
+        np.testing.assert_allclose(
+            np.diag(_dm(program, qubits=[1, 0])), np.diag(_dm(program, qubits=[0, 1]))[[0, 2, 1, 3]], atol=1e-12
+        )
 
     def test_wrong_parameter_count_reports_clearly(self):
         program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0))
@@ -592,8 +604,9 @@ class TestErrorHandling:
         [
             (Program(RX(0.7, 0).dagger()), "DAGGER"),
             (Program(X(1).controlled(0)), "CONTROLLED"),
+            (Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0).dagger()), "DAGGER"),
         ],
-        ids=["dagger", "controlled"],
+        ids=["dagger", "controlled", "dagger_parametric"],
     )
     def test_unsupported_modifier_reports_clearly(self, program, modifier):
         """Modifiers are rejected, never silently dropped.

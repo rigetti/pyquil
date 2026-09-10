@@ -314,3 +314,99 @@ class TestDensityMatrixJitAndGrad:
         np.testing.assert_allclose(np.asarray(jax.jit(sim.compute)().matrix), eager, atol=1e-12)
         # And repeated calls (which reuse the cached stack) stay correct.
         np.testing.assert_allclose(np.asarray(sim.compute().matrix), eager, atol=1e-12)
+
+
+# ══════════════════════════════════════════════════════════
+# Parameter layout: one slot per distinct memory reference
+# ══════════════════════════════════════════════════════════
+
+
+def _z_expectation(sim, params):
+    psi = sim.compute(params).matrix.reshape(-1)
+    return jnp.real(jnp.vdot(psi, _z_on_first_qubit(sim.dims) @ psi))
+
+
+def _shared_reference_program():
+    """``RX(theta[0]) 0; RY(theta[0]) 0``: one memory reference read by two gates."""
+    theta0 = MemoryReference("theta", 0)
+    return Program(Declare("theta", "REAL", 2), RX(theta0, 0), RY(theta0, 0))
+
+
+class TestParameterLayout:
+    def test_shared_reference_uses_one_slot(self):
+        sim = PureStateVectorSimulator(_shared_reference_program())
+        assert sim.parameters == (("theta", 0),)
+        assert sim.num_parameters == 1
+        assert sim.parameter_index("theta", 0) == 0
+
+    def test_parameter_index_reports_unknown_references(self):
+        sim = PureStateVectorSimulator(_shared_reference_program())
+        with pytest.raises(KeyError, match=r"theta\[1\] is not a parameter of this program"):
+            sim.parameter_index("theta", 1)
+
+    def test_slots_follow_first_use_not_declaration(self):
+        program = Program(
+            Declare("theta", "REAL", 2),
+            Declare("phi", "REAL", 1),
+            RX(MemoryReference("theta", 1), 0),
+            RZ(MemoryReference("phi", 0), 0),
+            RY(MemoryReference("theta", 0), 0),
+        )
+        sim = PureStateVectorSimulator(program)
+        assert sim.parameters == (("theta", 1), ("phi", 0), ("theta", 0))
+        assert sim.parameter_index("phi") == 1
+        params = sim.linearize({"theta": [0.1, 0.2], "phi": [0.3]})
+        np.testing.assert_allclose(np.asarray(params), [0.2, 0.3, 0.1])
+
+    def test_shared_slot_gradient_is_the_total_derivative(self):
+        """One slot feeding two gates yields d/dθ f(θ, θ) = ∂₁f + ∂₂f without manual summing."""
+        shared = PureStateVectorSimulator(_shared_reference_program())
+        split = PureStateVectorSimulator(
+            Program(Declare("theta", "REAL", 2), RX(MemoryReference("theta", 0), 0), RY(MemoryReference("theta", 1), 0))
+        )
+        theta = 0.7
+        np.testing.assert_allclose(
+            np.asarray(shared.compute(jnp.array([theta])).matrix),
+            np.asarray(split.compute(jnp.array([theta, theta])).matrix),
+            atol=1e-12,
+        )
+        total = jax.grad(lambda p: _z_expectation(shared, p))(jnp.array([theta]))
+        partials = jax.grad(lambda p: _z_expectation(split, p))(jnp.array([theta, theta]))
+        assert float(total[0]) == pytest.approx(float(partials.sum()), abs=1e-10)
+
+    def test_linearize_is_a_gather_over_the_memory_map(self):
+        """``linearize`` can be jitted and differentiated through, so memory maps are first-class."""
+        sim = PureStateVectorSimulator(_parametric_program(2), qubits=[0])
+        theta = jnp.array([0.3, 1.1])
+
+        def fn(t):
+            return _z_expectation(sim, sim.linearize({"theta": t}))
+
+        np.testing.assert_allclose(
+            np.asarray(jax.jit(sim.linearize)({"theta": theta})), np.asarray(sim.linearize({"theta": theta}))
+        )
+        through_map = np.asarray(jax.grad(fn)(theta))
+        direct = np.asarray(jax.grad(lambda p: _z_expectation(sim, p))(theta))
+        np.testing.assert_allclose(through_map, direct, atol=1e-10)
+
+    def test_linearize_reports_missing_and_short_regions(self):
+        sim = PureStateVectorSimulator(_parametric_program(2), qubits=[0])
+        with pytest.raises(KeyError, match="no region 'theta'"):
+            sim.linearize({})
+        with pytest.raises(ValueError, match=r"reads theta\[1\]"):
+            sim.linearize({"theta": [0.1]})
+
+    def test_parameter_free_program_has_an_empty_layout(self):
+        sim = PureStateVectorSimulator(Program(H(0)))
+        assert sim.parameters == ()
+        assert sim.linearize({}).shape == (0,)
+
+
+class TestAbstractInterface:
+    def test_bases_cannot_be_instantiated(self):
+        from pyquil.simulation._simulator import ProgramSimulator, _DifferentiableSimulator
+
+        with pytest.raises(TypeError, match="abstract"):
+            ProgramSimulator(Program(X(0)))  # type: ignore[abstract]
+        with pytest.raises(TypeError, match="abstract"):
+            _DifferentiableSimulator(Program(X(0)))  # type: ignore[abstract]

@@ -5,7 +5,30 @@ import numpy as np
 import pytest
 import quax as qx
 
-from pyquil.gates import CNOT, MEASURE, RESET, RX, RZ, H, X
+from pyquil.gates import (
+    ADD,
+    AND,
+    CNOT,
+    CONVERT,
+    DELAY,
+    EQ,
+    EXCHANGE,
+    FENCE,
+    HALT,
+    LOAD,
+    MEASURE,
+    MOVE,
+    NOP,
+    NOT,
+    RESET,
+    RX,
+    RZ,
+    SHIFT_PHASE,
+    STORE,
+    WAIT,
+    H,
+    X,
+)
 from pyquil.noise._channels import (
     Channel,
     CycleChannel,
@@ -16,12 +39,17 @@ from pyquil.noise._channels import (
 )
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import FormalArgument, MemoryReference, Qubit
+from pyquil.quilatom import FormalArgument, Frame, Label, MemoryReference, Qubit
 from pyquil.quilbase import (
     Declare,
     DefCircuit,
     Gate,
+    Jump,
+    JumpTarget,
+    JumpUnless,
+    JumpWhen,
     Measurement,
+    Pragma,
     ResetQubit,
 )
 from pyquil.simulation._circuit import Circuit, dependency_edges
@@ -338,3 +366,85 @@ class TestMeasurementRepresentation:
         assert not any(isinstance(op, qx.QuantumInstrument) for op in sim._resolution.ops)
         # Nothing is pinned, so the measurement is free to merge with the gate before it.
         assert sim.plan.groups == (((0, 1), (0,)),)
+
+
+# ──────────────────────────────────────────────────────────
+# Instruction support
+# ──────────────────────────────────────────────────────────
+
+
+class TestInstructionSupport:
+    """Control flow and classical memory raise; everything else non-quantum is ignored."""
+
+    @pytest.mark.parametrize(
+        "inst",
+        [
+            Jump(Label("end")),
+            JumpWhen(Label("end"), MemoryReference("ro", 0)),
+            JumpUnless(Label("end"), MemoryReference("ro", 0)),
+            NOT(("ro", 0)),
+            AND(("ro", 0), 1),
+            ADD(("x", 0), 1.0),
+            MOVE(("ro", 0), 1),
+            EXCHANGE(("ro", 0), ("ro", 1)),
+            CONVERT(("x", 0), ("ro", 0)),
+            LOAD(("ro", 0), "ro", ("n", 0)),
+            STORE("ro", ("n", 0), 1),
+            EQ(("ro", 0), ("ro", 1), 1),
+        ],
+        ids=lambda inst: type(inst).__name__,
+    )
+    def test_control_flow_and_classical_memory_raise(self, inst):
+        program = Program(
+            Declare("ro", "BIT", 2),
+            Declare("x", "REAL", 1),
+            Declare("n", "INTEGER", 1),
+            H(0),
+            inst,
+            JumpTarget(Label("end")),
+        )
+        with pytest.raises(ValueError, match="cannot be simulated"):
+            expand_program(program)
+
+    def test_non_quantum_instructions_are_ignored(self):
+        """Declarations, pragmas, labels, HALT/NOP/WAIT and pulse-level Quil-T pass through silently."""
+        frame = Frame([Qubit(0)], "rf")
+        program = Program(
+            Declare("ro", "BIT", 1),
+            Pragma("INITIAL_REWIRING", freeform_string='"NAIVE"'),
+            JumpTarget(Label("start")),
+            H(0),
+            FENCE(0),
+            DELAY(0, 1e-8),
+            SHIFT_PHASE(frame, 0.1),
+            NOP,
+            WAIT,
+            HALT,
+        )
+        ops, subsystems, _ = expand_program(program)
+        assert len(ops) == 1
+        assert isinstance(ops[0], qx.Unitary)
+        assert subsystems == ((0,),)
+
+
+class TestParameterSlots:
+    def test_repeated_reference_shares_a_slot(self):
+        theta0 = MemoryReference("theta", 0)
+        program = Program(Declare("theta", "REAL", 1), RX(theta0, 0), RZ(theta0, 1))
+        ops, _, parameters = expand_program(program)
+        assert parameters == (("theta", 0),)
+        assert [op.param_indices for op in ops] == [(0,), (0,)]
+
+    def test_distinct_references_get_distinct_slots_in_first_use_order(self):
+        program = Program(
+            Declare("theta", "REAL", 2), RX(MemoryReference("theta", 1), 0), RZ(MemoryReference("theta", 0), 0)
+        )
+        _, _, parameters = expand_program(program)
+        assert parameters == (("theta", 1), ("theta", 0))
+        assert resolve_program(program).num_parameters == 2
+
+    def test_parametric_gate_with_a_modifier_is_rejected(self):
+        """The parametric path must reject modifiers too, not just the fixed-gate path."""
+        program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0).dagger())
+        with pytest.raises(ValueError, match="modifiers are not supported.*DAGGER"):
+            expand_program(program)

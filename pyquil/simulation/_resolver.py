@@ -175,10 +175,9 @@ def expand_defcircuit_body(
 
         A DEFCIRCUIT body must reference only the circuit's own formal arguments. Quil permits
         a literal qubit in a body (``DEFCIRCUIT C q: X q; X 3``), but simulating one is a trap:
-        the qubit is invisible to ``Program.get_qubit_indices`` (see the pyQuil issue linked
-        from the architecture documentation), so it silently escapes the register the simulator
-        sizes itself for. Rejecting it here is clearer than the downstream failure; the check
-        can be dropped once ``Program.get_qubit_indices`` sees into DEFCIRCUIT bodies.
+        the qubit is invisible to ``Program.get_qubit_indices`` (pyQuil issue #1868), so it
+        silently escapes the register the simulator sizes itself for. Rejecting it here is
+        clearer than the downstream failure; the check can be dropped once #1868 is fixed.
         """
         if qarg not in qarg_to_arg_map:
             raise ValueError(
