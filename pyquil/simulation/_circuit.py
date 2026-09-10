@@ -15,33 +15,29 @@
 ##############################################################################
 """Straight-line circuits over a qudit register, and structural merge planning.
 
-A :class:`Circuit` is an ordered sequence of *concrete* quax operators, each placed on a
-subsystem of a fixed qudit register.  It is deliberately not a program: there are no gate
-names, no parameters, no classical memory and no control flow.  Building one is the job of
-whatever owns the source language — the Quil expander in :mod:`pyquil.simulation._resolver` —
-and this module's job begins once the operators exist.
+A :class:`Circuit` is an ordered sequence of concrete quax operators — unitaries, channels and
+measurement instruments — each placed on a subsystem of a fixed qudit register.  It is not a
+program: there are no gate names, no free parameters, no classical memory and no control flow.
+The Quil expander in :mod:`pyquil.simulation._resolver` produces one from a program; this module
+works on the operators alone.
 
-A :class:`MergePlan` is the purely combinatorial half of operator fusion: given only the
-subsystems each operation acts on, it decides which operations may be merged into a single
-larger operator without reordering anything that does not commute.  A plan is data, not a
-closure: its ``groups``, ``bases`` and ``op_index`` are the inputs a simulator needs in order
-to build a fused operator stack *without* first materialising every operator, which is what
-makes vectorised (``jax.vmap``) stack construction possible for parametric circuits.
+A :class:`MergePlan` decides which neighbouring operations of a circuit may be fused into a
+single larger operator without changing the circuit's action.  Fusing reduces the number of
+operator applications a simulator performs, and because a plan depends only on *which* qudits
+each operation touches, one plan serves every parameter value of a parametric circuit.
 
     >>> circuit = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1)), (qx.gates.X, (1,))])
     >>> plan = MergePlan.greedy(circuit.subsystems, max_subsystem_size=2)
     >>> plan.apply(circuit).num_ops
     1
-
-.. note::
-    Nothing here is specific to Quil, and the module is staged to move into ``quax`` (see quax
-    merge request !41, whose ``Circuit`` and ``MergePlan`` this module mirrors name for name).
-    It lives in pyQuil for now so the simulator API can settle against real use before the
-    seam is fixed.  One deliberate difference: quax carries no graph dependency and so
-    reimplements a small DAG for planning, whereas pyQuil already depends on ``networkx`` and
-    uses it for the dependency graph, the contracted quotient graph, the union-find and the
-    topological sort.
 """
+
+# Nothing in this module is specific to Quil, and it is staged to move into quax: it mirrors the
+# ``Circuit`` and ``MergePlan`` of quax merge request !41 name for name.  It lives in pyQuil for
+# now so the simulator API can settle against real use before the seam is fixed.  One deliberate
+# difference: quax carries no graph dependency and reimplements a small DAG for planning, whereas
+# pyQuil already depends on networkx and uses it for the dependency graph, the contracted
+# quotient graph, the union-find and the topological sort.
 
 from __future__ import annotations
 
@@ -74,11 +70,9 @@ def dependency_edges(subsystems: Sequence[tuple[int, ...]]) -> tuple[tuple[int, 
     """Return the dependency edges induced by a sequence of subsystems.
 
     An edge ``(u, v)`` means operation ``u`` must be applied before operation ``v`` because
-    they share a qudit and ``u`` comes first.  Only the *immediate* predecessor on each qudit
-    is recorded; the transitive closure is implied.
-
-    Because every edge runs from a lower index to a higher one, the identity permutation
-    ``0, 1, ..., n - 1`` is always a valid topological order of the result.
+    they share a qudit and ``u`` comes first.  Only the immediate predecessor on each qudit is
+    recorded; longer chains are implied.  Every edge runs from a lower index to a higher one,
+    so application order is always a valid ordering of the graph.
 
     :param subsystems: One tuple of register indices per operation, in application order.
     :return: Edges as ``(predecessor, successor)`` pairs.
@@ -384,10 +378,9 @@ class MergePlan:
     """A structural recipe for fusing a circuit's operations into groups.
 
     A plan depends only on *which* subsystems the operations act on — never on the operators
-    themselves, nor on any parameter value.  That is what makes it usable as data: a simulator
-    can read the group structure, the distinct subsystems and the per-group subsystem index off
-    a plan and build a fused operator stack under ``jax.vmap`` without ever materialising the
-    individual operators.  Call :meth:`apply` to do the materialising merge instead.
+    themselves, nor on any parameter value — so it is computed once per circuit structure and
+    reused.  :meth:`apply` performs the merge on a concrete circuit; the simulators instead read
+    :attr:`groups`, :attr:`bases` and :attr:`op_index` and build their fused operators directly.
 
     Groups are listed in an order that respects every dependency, and each group lists its
     members in application order.  A group of one operation keeps that operation's own operand
@@ -488,13 +481,12 @@ class MergePlan:
     ) -> MergePlan:
         """Build a plan from a partition of the operations into groups.
 
-        This is the constructor every merge strategy reduces to: decide which operations belong
-        together, hand the partition over, and let the plan validate and order it.  A group is
-        accepted only if it is *convex* -- no operation outside it lies on a dependency path
-        between two of its members -- which is checked by building the quotient DAG of the
-        partition with :func:`networkx.quotient_graph` and requiring it to be acyclic.  Groups
-        are then emitted in a topological order of that quotient, ties broken by each group's
-        earliest member, so unmerged operations keep their relative program order.
+        Any merge strategy reduces to this: decide which operations belong together, and let the
+        plan validate and order the result.  A group is accepted only if it is *convex* — no
+        operation outside the group lies on a dependency path between two of its members — since
+        fusing across such an operation would reorder it.  Groups are emitted in an order that
+        respects every dependency, ties broken by each group's earliest member, so operations
+        that are not merged keep their relative program order.
 
         :param subsystems: One tuple of register indices per operation, in application order.
         :param groups: The partition: each operation index appears in exactly one group.

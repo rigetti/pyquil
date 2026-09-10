@@ -93,16 +93,15 @@ StateT = TypeVar("StateT", qx.StateVector, qx.DensityMatrix)
 class ProgramSimulator(ABC):
     """Shared preprocessing base for program simulators.
 
-    Handles the pipeline common to every backend: circuit expansion, qubit ordering,
-    dimension inference, the parameter layout, and merge planning.  Subclasses implement
-    :meth:`compute` and may override the hooks :meth:`_validate`, :meth:`_prepare_ops` and
-    :meth:`_validate_ops`.  Everything else is ``@final``.
+    Handles what every simulator does with a program before evolving anything: expanding it
+    into operators, ordering the register, inferring qudit dimensions, laying out the runtime
+    parameters, and planning which operators to merge.  Concrete simulators add the evolution
+    itself through :meth:`compute`.
 
-    A simulator is an **object constructed from a program**, not a function called on one,
-    because efficient simulation builds several closures whose structure is fixed by the
-    program (and noise model) but whose inputs are the runtime parameters.  Building them
-    once lets the expensive analysis be shared across every evaluation -- a parameter sweep,
-    a gradient, a batch of trajectories.
+    A simulator is constructed **from a program** rather than called on one, because the
+    expensive work — analysing the program and compiling the evolution — depends only on the
+    program and noise model, not on the parameter values.  Doing it once lets a parameter
+    sweep, a gradient or a batch of trajectories reuse it.
 
     Instances are immutable after construction.
     """
@@ -266,9 +265,10 @@ class ProgramSimulator(ABC):
         """Convert a memory map to the flat parameter vector.
 
         The vector has one slot per distinct memory reference the program's gates read, in
-        the order of :attr:`parameters`.  This is a pure gather over the region arrays, so it
-        can be traced and differentiated: ``jax.grad(lambda t: loss(sim.compute(sim.linearize(
-        {"theta": t}))))`` differentiates with respect to the declared memory directly.
+        the order of :attr:`parameters`.  The conversion is differentiable, so a loss can be
+        differentiated with respect to the declared memory directly::
+
+            jax.grad(lambda theta: loss(sim.compute(sim.linearize({"theta": theta}))))(theta)
 
         :param memory_map: Values for each declared memory region, as passed to the QVM.
         :return: A flat ``float`` vector with one entry per parameter slot.
@@ -348,19 +348,15 @@ class ProgramSimulator(ABC):
 class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
     """Base for the jit/grad-friendly state-vector and density-matrix simulators.
 
-    Owns the whole evolution: it builds the fused operator stack with
-    :func:`_build_vectorized_operator_constructor` and applies it with a :func:`jax.lax.scan`
-    whose body dispatches each operator to the :func:`jax.lax.switch` branch for its base
-    subsystem, so the compiled graph size scales with the number of distinct base subsystems
-    (:attr:`~pyquil.simulation._circuit.MergePlan.bases`) rather than the number of operations.
+    The merged operators are built as one stack and applied to the initial state in a single
+    compiled loop, so compile time depends on the number of distinct gate kinds and subsystem
+    shapes rather than on the number of gates.  A concrete simulator supplies only its
+    representation: whether operators are unitaries or superoperators (:attr:`_as_superop`),
+    the initial state (:meth:`_initial_state`) and how one operator is applied
+    (:meth:`_make_branch`).
 
-    A concrete simulator supplies only its *representation*, through three abstract members:
-    :attr:`_as_superop`, :meth:`_initial_state` and :meth:`_make_branch`.  :meth:`compute` is
-    implemented here once and is final.
-
-    Measurements are collapsed to dephasing SuperOps by :meth:`_prepare_ops`, so they merge
-    with neighbouring operations like any other superoperator; the merge plan's convexity check
-    is what preserves their ordering.
+    Measurements are replaced by their dephasing channel (:meth:`_prepare_ops`), so they merge
+    with neighbouring operations like any other channel.
     """
 
     def __init__(
@@ -436,19 +432,12 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
 
     @final
     def _prepare_ops(self, ops: tuple[ExpandedOp, ...]) -> tuple[ExpandedOp, ...]:
-        """Collapse every instrument to its total channel.
+        """Replace every measurement instrument by its total channel.
 
-        Neither simulator in this family branches on a measurement outcome, and an instrument
-        is not differentiable, so a ``MEASURE`` is evolved as the dephasing channel obtained by
-        summing over its outcomes.  The resulting state is the correct outcome-averaged density
-        matrix, but no classical outcome is recorded.
-
-        This is :meth:`~pyquil.simulation._circuit.Circuit.to_superops` applied one operator
-        early -- at construction rather than per ``resolve`` -- which is free, since an
-        instrument never depends on a runtime parameter.  Doing it here rather than in expansion
-        is what lets expansion stay backend-agnostic, and it is why this family has no atomic
-        operations: once the instruments are gone there is nothing that must stay individually
-        addressable.
+        Neither simulator in this family records measurement outcomes, so a ``MEASURE`` is
+        evolved as the dephasing channel obtained by summing over its outcomes.  The resulting
+        state is the outcome-averaged density matrix; the classical register the measurement
+        writes is not simulated.
         """
         return tuple(qx.to_superop(op.total_channel()) if isinstance(op, qx.QuantumInstrument) else op for op in ops)
 
@@ -456,15 +445,12 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
     def compute(self, params: Array | None = None) -> StateT:  # type: ignore[override]
         """Compute the final state.
 
-        The fused operator stack is built for *params* and applied with a :func:`jax.lax.scan`
-        whose body dispatches each operator to the right base subsystem via
-        :func:`jax.lax.switch`.  This keeps the traced graph size proportional to the number
-        of distinct base subsystems rather than the number of operations, dramatically
-        reducing JIT compilation time for large programs.
+        Builds the merged operators for *params* and applies them to the initial state.  The
+        call can be wrapped in ``jax.jit``, ``jax.grad`` or ``jax.vmap``.
 
         :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
             pass ``None``) for a parameter-free program.
-        :return: The final state, in this backend's representation.
+        :return: The final state: a ``StateVector`` or a ``DensityMatrix``.
         """
         # No operations (e.g. empty program): the initial state is the result, and
         # ``lax.switch`` cannot be given zero branches.

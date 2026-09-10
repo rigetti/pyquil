@@ -13,28 +13,20 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Compilation from Quil to a :class:`~pyquil.simulation._circuit.Circuit`.
+r"""Compilation from Quil to a :class:`~pyquil.simulation._circuit.Circuit`.
 
-This module owns the half of simulation preprocessing that is about *Quil*:
+Turning a program into something a simulator can evolve happens in two steps:
 
-1. **Expander** — expands a program into a flat sequence of operators and physical
-   qubit tuples, resolving noise channels, custom gates, and DEFCIRCUIT
-   bodies.  Fixed (non-parameterized) operations are returned as concrete
-   quax types; parameterized gates are returned as :class:`ParametricGate`
-   callables, since a gate angle may be a memory reference from a ``DECLARE``
-   that is not known until run time.
-2. **Resolver** — binds a parameter vector to produce a
-   :class:`~pyquil.simulation._circuit.Circuit`: concrete operators, each placed on a
-   register index.
+1. **Expansion** (:func:`expand_program`) turns a program into a flat sequence of operators
+   and the physical qubits each acts on.  Noise channels replace the instructions they are
+   attached to, ``DEFGATE`` and ``DEFCIRCUIT`` definitions are expanded, and a gate whose
+   angle refers to declared memory becomes a :class:`ParametricGate` that is
+   evaluated once the parameter values are known.
+2. **Resolution** (:meth:`Resolution.resolve`) binds a parameter vector and returns the
+   :class:`~pyquil.simulation._circuit.Circuit` of concrete operators placed on a register.
 
-Everything downstream of that circuit is quantum information rather than Quil,
-and lives in :mod:`pyquil.simulation._circuit` (staged for quax): merge planning
-(:class:`~pyquil.simulation._circuit.MergePlan`), operator fusion, dimension inference and
-the representation changes each backend needs
-(:meth:`~pyquil.simulation._circuit.Circuit.to_superops`,
-:meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`).  The boundary is deliberate — a
-circuit carries no gate names, no parameters and no classical memory, so the circuit layer
-never needs a notion of a program.
+Everything after that — merging operators, converting representations, evolving a state — works
+on the circuit and knows nothing about Quil.
 """
 
 from __future__ import annotations
@@ -100,16 +92,16 @@ ParameterRef: TypeAlias = tuple[str, int]
 class ParametricGate:
     """A parametric gate whose matrix depends on runtime parameters.
 
-    Instances are callable: ``gate(params) -> qx.Unitary``.  They also expose the gate
-    constructor and parameter layout so that the simulator can group gates by type and use
-    ``jax.vmap`` for efficient batch construction.
+    Calling an instance with the flat parameter vector returns the gate's ``qx.Unitary``.  The
+    constructor and parameter layout are exposed so that gates of the same kind can be built
+    together in one vectorised operation.
 
     :param gate_fn: The quax gate constructor (e.g. ``qx.gates.RX``), or a parametric
         ``DEFGATE`` callable.
-    :param param_indices: Per-argument slot in the flat parameter vector, or ``-1`` when that
-        argument is a compile-time constant.  Two gates that read the same memory reference
-        share a slot; see :func:`expand_program`.
-    :param concrete_values: Per-argument concrete value (``nan`` for runtime-parametric slots).
+    :param param_indices: For each gate argument, its slot in the flat parameter vector, or
+        ``-1`` when the argument is a literal number.  Gates that read the same memory
+        reference share a slot; see :func:`expand_program`.
+    :param concrete_values: For each gate argument, its literal value (``nan`` for a slot).
     """
 
     gate_fn: Callable[..., qx.Operator]
@@ -274,12 +266,10 @@ def expand_program(
     (name, parameters, qubits and modifiers), so ``RX(pi/2) 0`` and ``RX(pi/2) 1``
     are distinct keys.
 
-    A ``MEASURE`` always becomes a :class:`quax.QuantumInstrument`, which is the
-    representation that retains the most information.  A backend that does not branch on
-    outcomes collapses it with :meth:`~pyquil.simulation._circuit.Circuit.to_superops`,
-    which replaces each instrument with its total channel; that is exactly equivalent to
-    resolving the measurement as a dephasing superoperator in the first place, so expansion
-    does not need to know which kind of backend it is feeding.
+    A ``MEASURE`` becomes a :class:`quax.QuantumInstrument`, whose outcome-labelled operators
+    let a trajectory simulator sample the result.  A simulator that does not record outcomes
+    replaces it by its total channel, the dephasing map obtained by summing over outcomes
+    (:meth:`~pyquil.simulation._circuit.Circuit.to_superops`).
 
     **Parameter layout.**  Each *distinct* memory reference appearing as a gate argument
     (``theta[0]``, say) is assigned one slot of the flat parameter vector, in order of first
@@ -502,12 +492,11 @@ def remap_qubits(
 
 @dataclass(frozen=True)
 class Resolution:
-    """Everything the simulators need from a program after expansion.
+    """An expanded program, ready to be resolved for any parameter values.
 
-    This is the program *template*: the last object that knows anything about Quil.  It owns
-    the parameter layout, because a slot in the parameter vector is meaningful only relative to
-    a ``DECLARE``, and :meth:`resolve` binds a parameter vector to hand back a
-    :class:`~pyquil.simulation._circuit.Circuit` that no longer refers to any of it.
+    Holds the expanded operators, where each acts, the register dimensions and the parameter
+    layout.  :meth:`resolve` binds a parameter vector and returns the corresponding
+    :class:`~pyquil.simulation._circuit.Circuit`.
 
     :param dims: Inferred per-qudit dimensions (e.g. ``(2, 2, 3)``).
     :param ops: Expanded operators, one per operation, in program order.
@@ -576,10 +565,9 @@ def resolve_program(
     * Measurements → ``qx.QuantumInstrument``
     * Noisy/ideal resets → ``qx.SuperOp``
 
-    The program is expanded twice: first with default (qubit) register
-    dimensions to infer each register's true dimension from the gates and noisy
-    channels, then again with those dimensions so ideal measurement/reset
-    instruments use the correct dimension.  Passing *dims* skips the first pass.
+    Register dimensions are inferred from the gates and channels acting on each qudit (a
+    qutrit gate or channel makes its qudit three-dimensional), so that ideal measurement and
+    reset operators are built at the right size.  Pass *dims* to fix them instead.
 
     :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
     :param noise_model: Optional noise model.
