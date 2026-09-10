@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import quax as qx
 
-from pyquil.gates import CNOT, RX, RY, RZ, H, X
+from pyquil.gates import CNOT, RX, RY, RZ, H, I, X
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Qubit
 from pyquil.quilbase import (
@@ -32,7 +32,7 @@ def _sv(program, qubits=None, memory_map=None):
 
 class TestSingleQubitGates:
     def test_identity(self):
-        p = Program()
+        p = Program(I(0))
         psi = _sv(p, qubits=[0])
         target = qx.StateVector.from_matrix(jnp.array([1.0, 0.0], dtype=complex), dims=(2,))
         assert qx.fidelity(psi, target) > 0.9999
@@ -91,7 +91,7 @@ class TestMultiQubitGates:
 
     def test_qubit_ordering(self):
         """State vector should respect the provided qubit ordering."""
-        p = Program(X(5))
+        p = Program(X(5), I(6))
         psi = _sv(p, qubits=[5, 6])
         # qubit 5 is index 0, qubit 6 is index 1
         # X on qubit 5 → |10> → state [0, 0, 1, 0]

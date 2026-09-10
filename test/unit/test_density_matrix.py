@@ -134,7 +134,7 @@ class TestNoiselessMatchesStateVector:
     @pytest.mark.parametrize("name", sorted(_PROGRAMS))
     def test_matches_state_vector(self, name):
         program = _PROGRAMS[name]
-        qubits = sorted(program.get_qubit_indices()) or [0]
+        qubits = sorted(program.get_qubit_indices())
         _assert_pure(_dm(program, qubits=qubits), _sv(program, qubits=qubits))
 
     @pytest.mark.parametrize("name", sorted(_PROGRAMS))
@@ -142,7 +142,7 @@ class TestNoiselessMatchesStateVector:
     def test_independent_of_compressor_budget(self, name, max_subsystem_size):
         """``max_subsystem_size`` is a performance knob and must not change the result."""
         program = _PROGRAMS[name]
-        qubits = sorted(program.get_qubit_indices()) or [0]
+        qubits = sorted(program.get_qubit_indices())
         reference = _dm(program, qubits=qubits)
         got = _dm(program, qubits=qubits, max_subsystem_size=max_subsystem_size)
         np.testing.assert_allclose(got, reference, atol=1e-10)
@@ -150,7 +150,7 @@ class TestNoiselessMatchesStateVector:
     @pytest.mark.parametrize("name", sorted(_PROGRAMS))
     def test_is_physical(self, name):
         program = _PROGRAMS[name]
-        qubits = sorted(program.get_qubit_indices()) or [0]
+        qubits = sorted(program.get_qubit_indices())
         _assert_physical(_dm(program, qubits=qubits))
 
 
@@ -196,21 +196,21 @@ class TestBigEndianOrdering:
     """The register order is big-endian: ``qubits[0]`` is the most significant subsystem."""
 
     def test_x_on_first_qubit_sets_high_bit(self):
-        rho = _dm(Program(X(0)), qubits=[0, 1])
+        rho = _dm(Program(X(0), I(1)), qubits=[0, 1])
         assert int(np.argmax(np.real(np.diag(rho)))) == 0b10
 
     def test_x_on_second_qubit_sets_low_bit(self):
-        rho = _dm(Program(X(1)), qubits=[0, 1])
+        rho = _dm(Program(I(0), X(1)), qubits=[0, 1])
         assert int(np.argmax(np.real(np.diag(rho)))) == 0b01
 
     def test_explicit_qubit_order_is_respected(self):
         """Reversing ``qubits`` reverses which subsystem the amplitude lands in."""
-        assert int(np.argmax(np.real(np.diag(_dm(Program(X(5)), qubits=[5, 6]))))) == 0b10
-        assert int(np.argmax(np.real(np.diag(_dm(Program(X(5)), qubits=[6, 5]))))) == 0b01
+        assert int(np.argmax(np.real(np.diag(_dm(Program(X(5), I(6)), qubits=[5, 6]))))) == 0b10
+        assert int(np.argmax(np.real(np.diag(_dm(Program(X(5), I(6)), qubits=[6, 5]))))) == 0b01
 
     def test_opposite_of_pyquil_reference(self):
         """Documents the deliberate divergence from the rest of pyQuil."""
-        program = Program(X(0))
+        program = Program(X(0), I(1))
         ours = int(np.argmax(np.abs(_sv(program, qubits=[0, 1]))))
         theirs = int(np.argmax(np.abs(np.asarray(ReferenceWavefunctionSimulator(n_qubits=2).do_program(program).wf))))
         assert (ours, theirs) == (0b10, 0b01)
@@ -574,7 +574,7 @@ class TestErrorHandling:
             DensityMatrixSimulator(Program(X(0)), qubits=[0, 0])
 
     def test_qubit_outside_register_reports_clearly(self):
-        with pytest.raises(ValueError, match="simulated register"):
+        with pytest.raises(ValueError, match="must be exactly the qubits the program acts on"):
             _dm(Program(X(0), X(3)), qubits=[0])
 
     def test_wrong_parameter_count_reports_clearly(self):
@@ -602,7 +602,7 @@ class TestErrorHandling:
         ``RX(+0.7)`` and return a plausible wrong state.
         """
         with pytest.raises(ValueError, match=f"modifiers are not supported.*{modifier}"):
-            _dm(program, qubits=[0, 1])
+            _dm(program)
 
     def test_expression_valued_parameter_reports_clearly(self):
         program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0) / 2, 0))

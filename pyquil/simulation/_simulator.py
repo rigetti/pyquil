@@ -15,18 +15,28 @@
 ##############################################################################
 """Program simulators backed by quax.
 
-All simulators share the preprocessing in :class:`ProgramSimulator` (expansion,
-dimension inference, ``linearize``/``resolve``/``compress``).  This module provides
-the **differentiable** family (:class:`_DifferentiableSimulator`) — jit/grad-friendly evolution
-of a compressed ``Unitary``/``SuperOp`` stack, with measurements represented as dephasing
-SuperOps:
+.. warning::
+    **Experimental.**  This module is deliberately private (``pyquil.simulation._simulator``)
+    and its API is not stable: names, signatures and return types may change in any release
+    before pyQuil 5.  It is published so the simulators can be exercised in real work and the
+    design settled against that experience.
+
+All simulators share the preprocessing in :class:`ProgramSimulator` (expansion, dimension
+inference, ``linearize``/``resolve``/``compress``).  This module provides the
+**differentiable** family (:class:`_DifferentiableSimulator`) — jit/grad-friendly evolution of
+a compressed ``Unitary``/``SuperOp`` stack, with measurements collapsed to dephasing SuperOps:
 
 * :class:`PureStateVectorSimulator` — gate-only programs (no noise, measurements,
   or resets).
 * :class:`DensityMatrixSimulator` — any program, optionally with noise.
 
 The ``compute`` method is the main entry point; for the differentiable family it can be
-passed directly to ``jax.jit`` or ``jax.grad``.
+passed directly to ``jax.jit`` or ``jax.grad``, and returns a quax state on which any quax
+metric can be evaluated inside the same transformation::
+
+    sim = DensityMatrixSimulator(program, noise_model=noise_model)
+    loss = lambda params: 1 - qx.fidelity(target, sim.compute(params))
+    jax.grad(loss)(sim.linearize(memory_map))
 
 .. warning::
     **Qubit ordering is big-endian here, unlike the rest of pyQuil.**  The first entry of
@@ -46,9 +56,10 @@ passed directly to ``jax.jit`` or ``jax.grad``.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
-from dataclasses import dataclass, field
-from typing import Any, cast
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field, replace
+from typing import Any, Generic, TypeVar, cast, final
 
 import jax
 import jax.numpy as jnp
@@ -64,23 +75,14 @@ from pyquil.simulation._circuit import Circuit, Group, MergePlan
 from pyquil.simulation._resolver import (
     ExpandedOp,
     FixedOp,
+    ParameterRef,
     ParametricGate,
+    Resolution,
     resolve_program,
 )
 
-
-def _pad_matrix(mat: Array, *target: int) -> Array:
-    """Zero-pad the trailing dimensions of *mat* up to *target* sizes.
-
-    Only the last ``len(target)`` axes are padded (top-left aligned); any
-    leading (ensemble/stack) axes are left untouched.
-    """
-    if all(mat.shape[-len(target) + i] == t for i, t in enumerate(target)):
-        return mat
-    pad = [(0, 0)] * (mat.ndim - len(target)) + [
-        (0, t - mat.shape[mat.ndim - len(target) + i]) for i, t in enumerate(target)
-    ]
-    return jnp.pad(mat, pad)
+#: The state a differentiable simulator evolves.
+StateT = TypeVar("StateT", qx.StateVector, qx.DensityMatrix)
 
 
 # ══════════════════════════════════════════════════════════
@@ -88,108 +90,142 @@ def _pad_matrix(mat: Array, *target: int) -> Array:
 # ══════════════════════════════════════════════════════════
 
 
-class ProgramSimulator:
+class ProgramSimulator(ABC):
     """Shared preprocessing base for program simulators.
 
-    Handles the pipeline common to every backend: circuit expansion, qubit
-    ordering, dimension inference, and building the ``linearize``/``resolve``/
-    ``compress`` closures.  The :class:`_DifferentiableSimulator` family base specialises it
-    for the state-vector and density-matrix simulators, supplying the execution
-    machinery each needs.
+    Handles the pipeline common to every backend: circuit expansion, qubit ordering,
+    dimension inference, the parameter layout, and merge planning.  Subclasses implement
+    :meth:`compute` and may override the hooks :meth:`_validate`, :meth:`_prepare_ops` and
+    :meth:`_validate_ops`.  Everything else is ``@final``.
 
-    Subclasses override :meth:`_validate` and :meth:`compute`.
+    A simulator is an **object constructed from a program**, not a function called on one,
+    because efficient simulation builds several closures whose structure is fixed by the
+    program (and noise model) but whose inputs are the runtime parameters.  Building them
+    once lets the expensive analysis be shared across every evaluation -- a parameter sweep,
+    a gradient, a batch of trajectories.
 
-    Instances are treated as immutable after construction.
+    Instances are immutable after construction.
 
     .. note::
-        This is deliberately a shared *base class* rather than a composed "simulation plan"
-        object that each simulator holds. Composition would model the relationship more
-        faithfully — the preprocessing is arguably a has-a, and a plan could be built once and
-        evaluated several ways — but with only two consumers it would add a layer of indirection
-        without paying for itself. Revisit if a third and fourth simulator arrive and genuinely
-        want to share a prepared program.
+        **Why an explicit** ``__init__`` **rather than a frozen dataclass with cached
+        properties.**  The derived state here is eager *by requirement*, not habit.  The fused
+        operator stack of a parameter-free program (``const_stack`` in
+        :func:`_build_vectorized_operator_constructor`) has to be materialised outside any
+        ``jax`` trace: built lazily on first use inside ``jax.jit(sim.compute)`` it becomes a
+        traced constant and XLA constant-folds a per-gate composition subgraph, which is the
+        180 s-versus-0.35 s compile-time regression measured on that function.  A
+        ``cached_property`` is exactly such a lazy construction.  A frozen dataclass would
+        therefore need a ``__post_init__`` that touches every cached property in dependency
+        order to force it, and any property left off that list silently reintroduces the
+        regression -- the same kind of implicit contract this class avoids elsewhere.  The
+        constructor arguments (a ``Program``, a noise model) are also mutable and not
+        meaningfully comparable, so the generated ``__eq__``/``__hash__`` would have to be
+        disabled anyway.  The pure-data objects this class produces (:class:`Resolution`,
+        :class:`~pyquil.simulation._circuit.MergePlan`,
+        :class:`~pyquil.simulation._circuit.Circuit`) *are* frozen dataclasses.
+
+    .. note::
+        This is a shared *base class* rather than a composed "prepared program" that each
+        simulator holds.  Composition models the relationship more faithfully, and is planned
+        once all four simulators exist so the shared object is designed against every backend
+        rather than two.
     """
 
     def __init__(
         self,
         program: Program,
-        qubits: list[int] | None = None,
+        qubits: Sequence[int] | None = None,
         *,
         noise_model: NoiseModelLike | None = None,
         max_subsystem_size: int = 2,
-        dims: tuple[int, ...] | None = None,
     ) -> None:
-        """Expand *program* into a compressed operator stack.
+        """Expand *program* and plan its compressed operator stack.
 
         :param program: The Quil program to simulate. May contain ``DEFGATE`` and
             ``DEFCIRCUIT`` definitions, which are expanded.
-        :param qubits: Explicit register, in the order the state's subsystems will follow.
-            Defaults to the program's qubits in ascending order. Pass this to include a
-            qubit the program never names (an idle spectator), to fix a specific ordering,
-            or when a ``DEFCIRCUIT`` body names a literal qubit -- those are not discovered
-            automatically.
+        :param qubits: The register order: the state's subsystems follow this list, most
+            significant first. Defaults to the program's qubits in ascending order. When
+            given it must contain exactly the qubits the program acts on -- a qubit the program
+            never touches would have no effect on the result, and one the list omits could not
+            be simulated at all.
         :param noise_model: Optional noise model. Channels are looked up per instruction;
             instructions with no channel are simulated ideally.
         :param max_subsystem_size: Largest number of qudits the compressor may merge
             adjacent operations onto. Larger values mean fewer, bigger operators: usually
             faster to run and slower to compile. Purely a performance knob -- results are
             independent of it.
-        :param dims: Per-qudit dimensions, in ``qubits`` order. Defaults to inferring them
-            from the program's gates and channels (2 unless something says otherwise).
-        :raises ValueError: If ``qubits`` contains duplicates.
+        :raises ValueError: If ``qubits`` contains duplicates or is not exactly the program's
+            qubit set, or if the program contains an instruction the simulator does not
+            support.
         """
         self._validate(program)
+        self.qubits: tuple[int, ...] = self._register(program, qubits)
 
-        if qubits is None:
-            qubits = sorted(program.get_qubit_indices())
-        elif len(set(qubits)) != len(qubits):
-            duplicates = sorted({q for q in qubits if qubits.count(q) > 1})
-            raise ValueError(
-                f"qubits contains duplicate entries {duplicates}: {qubits}. Each qubit must "
-                "appear exactly once, since the list defines the register's subsystems."
-            )
-        self.qubits = qubits
-        self.n_qubits = len(qubits)
+        # Expand the program into operators, inferring register dimensions.  Expansion is
+        # backend-agnostic: a MEASURE always arrives as a QuantumInstrument, and a backend that
+        # does not branch on outcomes collapses it in ``_prepare_ops``.
+        resolution = resolve_program(program, noise_model, list(self.qubits))
+        resolution = replace(resolution, ops=self._prepare_ops(resolution.ops))
+        self._validate_ops(resolution.ops, resolution.subsystems)
+        self._resolution = resolution
+        self.dims: tuple[int, ...] = resolution.dims
 
-        # Expand the program into operators, inferring register dimensions when not supplied.
-        # Expansion is backend-agnostic: a MEASURE always arrives as a QuantumInstrument, and
-        # a backend that does not branch on outcomes collapses it in ``_prepare_ops``.
-        res = resolve_program(program, noise_model, qubits, dims)
-        res = res._replace(ops=self._prepare_ops(res.ops))
-        self.dims = res.dims
-        self._resolve_fn = res.resolve
-        self._expanded_ops = tuple(res.ops)
-        self._raw_subsystems = tuple(res.subsystems)
-        self._n_params = len(res.param_refs)
-        param_refs = res.param_refs
-
-        # Build linearizer from parameter references discovered during expansion.
-        def linearize(memory_map: MemoryMap) -> Array:
-            if not param_refs:
-                return jnp.array([], dtype=float)
-            values = [float(memory_map[name][offset]) for name, offset in param_refs]
-            return jnp.array(values, dtype=float)
-
-        self._linearize_fn = linearize
+        # Parameter layout: one slot per distinct memory reference, in slot order.
+        self.parameters: tuple[ParameterRef, ...] = resolution.parameters
+        self._slot_of: dict[ParameterRef, int] = {ref: i for i, ref in enumerate(self.parameters)}
+        self._region_gathers: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        for name in dict.fromkeys(region for region, _ in self.parameters):
+            pairs = [(slot, offset) for slot, (region, offset) in enumerate(self.parameters) if region == name]
+            slots, offsets = zip(*pairs, strict=True)
+            self._region_gathers[name] = (np.asarray(slots, dtype=np.int32), np.asarray(offsets, dtype=np.int32))
 
         # A surviving instrument has to stay addressable.  Fusing one into a neighbour would
-        # preserve the circuit's overall channel, so the convexity check alone permits it —
+        # preserve the circuit's overall channel, so the convexity check alone permits it --
         # but the outcome would no longer be observable.  A backend that collapsed its
         # instruments in ``_prepare_ops`` therefore has nothing atomic, and its measurements
         # merge like any other channel; one that kept them gets them pinned.
-        atomic = tuple(i for i, op in enumerate(res.ops) if isinstance(op, qx.QuantumInstrument))
+        atomic = tuple(i for i, op in enumerate(resolution.ops) if isinstance(op, qx.QuantumInstrument))
 
-        # Merge planning is purely structural — it needs the subsystems and nothing else —
-        # so it is quax's, not Quil's.  The plan is data: the vectorized stack builder below
-        # reads its groups without ever materialising a resolved operator.
-        self.plan = MergePlan.greedy(res.subsystems, max_subsystem_size, atomic=atomic)
+        # Merge planning is purely structural -- it needs the subsystems and nothing else.  The
+        # plan is data: the vectorized stack builder reads its groups without ever
+        # materialising a resolved operator.
+        self.plan: MergePlan = MergePlan.greedy(resolution.subsystems, max_subsystem_size, atomic=atomic)
+
+    @staticmethod
+    def _register(program: Program, qubits: Sequence[int] | None) -> tuple[int, ...]:
+        """Validate ``qubits`` against the program and return the register order."""
+        program_qubits = set(program.get_qubit_indices())
+        if qubits is None:
+            return tuple(sorted(program_qubits))
+        register = tuple(int(q) for q in qubits)
+        if len(set(register)) != len(register):
+            duplicates = sorted({q for q in register if register.count(q) > 1})
+            raise ValueError(
+                f"qubits contains duplicate entries {duplicates}: {list(register)}. Each qubit must "
+                "appear exactly once, since the list defines the register's subsystems."
+            )
+        if set(register) != program_qubits:
+            extra = sorted(set(register) - program_qubits)
+            missing = sorted(program_qubits - set(register))
+            raise ValueError(
+                f"qubits must be exactly the qubits the program acts on, {sorted(program_qubits)}, in the "
+                f"desired order; got {list(register)}"
+                + (f" (not in the program: {extra})" if extra else "")
+                + (f" (missing: {missing})" if missing else "")
+                + "."
+            )
+        return register
 
     # -- hooks for subclasses -----------------------------
 
-    def _validate(self, program: Program) -> None:
-        """Override to reject unsupported instructions."""
+    def _validate(self, program: Program) -> None:  # noqa: B027 -- optional hook, not abstract
+        """Reject unsupported top-level instructions before expansion.
 
-    def _prepare_ops(self, ops: list[ExpandedOp]) -> list[ExpandedOp]:
+        The default accepts everything :func:`~pyquil.simulation._resolver.expand_program`
+        accepts.  Override to narrow, e.g. a unitary-only backend rejecting ``MEASURE``.
+        """
+
+    def _prepare_ops(self, ops: tuple[ExpandedOp, ...]) -> tuple[ExpandedOp, ...]:
         """Adapt the expanded operators to what this backend evolves.
 
         The default keeps them as expanded, which retains a ``MEASURE`` as a sampleable
@@ -198,19 +234,87 @@ class ProgramSimulator:
         """
         return ops
 
-    # -- public pipeline methods --------------------------
+    def _validate_ops(  # noqa: B027 -- optional hook, not abstract
+        self, ops: tuple[ExpandedOp, ...], subsystems: tuple[tuple[int, ...], ...]
+    ) -> None:
+        """Reject expanded operators this backend cannot evolve.
 
+        Runs after :meth:`_prepare_ops` and before any stack is built, so a backend can check
+        the *expanded* program -- which is where a ``MEASURE`` hidden in a ``DEFCIRCUIT`` body
+        or a channel contributed by a noise model first becomes visible.  The default accepts
+        everything.
+        """
+
+    # -- abstract interface -------------------------------
+
+    @abstractmethod
+    def compute(self, params: Array | None = None, **kwargs: Any) -> Any:
+        """Compute the simulation result.
+
+        :param params: Flat parameter vector from :meth:`linearize`; omit for a
+            parameter-free program.
+        :param kwargs: Backend-specific options.
+        :return: The simulated result (a state vector, density matrix, ...).
+        """
+
+    # -- final public pipeline ----------------------------
+
+    @property
+    def num_parameters(self) -> int:
+        """The length of the parameter vector :meth:`compute` expects."""
+        return len(self.parameters)
+
+    @final
+    def parameter_index(self, name: str, offset: int = 0) -> int:
+        """Return the slot of memory reference ``name[offset]`` in the parameter vector.
+
+        Use this to read the component of a gradient that belongs to a given ``DECLARE``
+        entry::
+
+            grad = jax.grad(loss)(params)
+            d_theta0 = grad[sim.parameter_index("theta", 0)]
+
+        :param name: The memory region, as declared.
+        :param offset: The index within the region.
+        :return: The slot index.
+        :raises KeyError: If the program's gates never read ``name[offset]``.
+        """
+        try:
+            return self._slot_of[(name, offset)]
+        except KeyError:
+            known = ", ".join(f"{n}[{o}]" for n, o in self.parameters) or "none"
+            raise KeyError(
+                f"{name}[{offset}] is not a parameter of this program; its parameters are: {known}."
+            ) from None
+
+    @final
     def linearize(self, memory_map: MemoryMap) -> Array:
-        """Convert a memory map to a flat JAX parameter vector.
+        """Convert a memory map to the flat parameter vector.
 
-        The vector's layout is fixed at construction (the order in which parametric gates
-        were expanded), so it is the vector every ``compute``/``resolve`` call expects.
+        The vector has one slot per distinct memory reference the program's gates read, in
+        the order of :attr:`parameters`.  This is a pure gather over the region arrays, so it
+        can be traced and differentiated: ``jax.grad(lambda t: loss(sim.compute(sim.linearize(
+        {"theta": t}))))`` differentiates with respect to the declared memory directly.
 
         :param memory_map: Values for each declared memory region, as passed to the QVM.
-        :return: A flat ``float`` vector with one entry per runtime parameter.
+        :return: A flat ``float`` vector with one entry per parameter slot.
+        :raises KeyError: If a region the program reads is missing from ``memory_map``.
+        :raises ValueError: If a region is too short for an offset the program reads.
         """
-        return self._linearize_fn(memory_map)
+        values = jnp.zeros(len(self.parameters), dtype=float)
+        for name, (slots, offsets) in self._region_gathers.items():
+            if name not in memory_map:
+                raise KeyError(f"memory_map has no region {name!r}; this program reads {sorted(self._region_gathers)}.")
+            region = jnp.asarray(memory_map[name], dtype=float)
+            if region.ndim != 1 or region.shape[0] <= int(offsets.max()):
+                raise ValueError(
+                    f"Region {name!r} has shape {tuple(region.shape)} but the program reads "
+                    f"{name}[{int(offsets.max())}]."
+                )
+            values = values.at[slots].set(region[offsets])
+        return values
 
+    @final
     def _default_params(self, params: Array | None) -> Array:
         """Return *params*, validated against the program's parameter count.
 
@@ -223,31 +327,34 @@ class ProgramSimulator:
         :raises ValueError: If ``params`` has the wrong length, or is omitted for a
             program that takes parameters.
         """
+        n = self.num_parameters
         if params is None:
-            if self._n_params:
+            if n:
                 raise ValueError(
-                    f"This program has {self._n_params} parameter(s); params cannot be omitted. "
+                    f"This program has {n} parameter(s); params cannot be omitted. "
                     "Build the vector with linearize(memory_map)."
                 )
             return jnp.array([], dtype=float)
 
         params = jnp.asarray(params)
-        if params.shape != (self._n_params,):
+        if params.shape != (n,):
             raise ValueError(
-                f"Expected {self._n_params} parameter(s) for this program, got shape "
+                f"Expected {n} parameter(s) for this program, got shape "
                 f"{tuple(params.shape)}. Build the vector with linearize(memory_map)."
             )
         return params
 
+    @final
     def resolve(self, params: Array) -> Circuit:
         """Resolve parameters into the program's circuit.
 
         :param params: Flat parameter vector from :meth:`linearize`.
-        :return: A :class:`~pyquil.simulation._circuit.Circuit` with one operation per expanded operation, in
-            program order.
+        :return: A :class:`~pyquil.simulation._circuit.Circuit` with one operation per
+            expanded operation, in program order.
         """
-        return self._resolve_fn(params)
+        return self._resolution.resolve(params)
 
+    @final
     def compress(self, resolved: Circuit) -> Circuit:
         """Merge operations according to :attr:`plan`.
 
@@ -258,38 +365,103 @@ class ProgramSimulator:
         """
         return self.plan.apply(resolved)
 
-    def compute(self, params: Array | None = None, **kwargs: Any) -> Any:
-        """Compute the simulation result.  Subclasses must override.
-
-        :param params: Flat parameter vector from :meth:`linearize`; omit for a
-            parameter-free program.
-        :param kwargs: Subclass-specific options.
-        :return: The simulated result (a state vector, density matrix, ...).
-        """
-        raise NotImplementedError
-
 
 # ══════════════════════════════════════════════════════════
 # Differentiable family base (state-vector / density-matrix)
 # ══════════════════════════════════════════════════════════
 
 
-class _DifferentiableSimulator(ProgramSimulator):
+class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
     """Base for the jit/grad-friendly state-vector and density-matrix simulators.
 
-    Adds the compressed-stack evolution machinery.  It enumerates the distinct
-    *base subsystems* the merge plan emits (:attr:`~pyquil.simulation._circuit.MergePlan.bases`) and applies the
-    operator stack with a :func:`jax.lax.scan` whose body dispatches each operator to
-    the :func:`jax.lax.switch` branch for its base (``self._branches``, keyed by
-    ``self._idx_arr``), so the compiled graph size scales with the number of distinct
-    base subsystems rather than the number of operations.
+    Owns the whole evolution: it builds the fused operator stack with
+    :func:`_build_vectorized_operator_constructor` and applies it with a :func:`jax.lax.scan`
+    whose body dispatches each operator to the :func:`jax.lax.switch` branch for its base
+    subsystem, so the compiled graph size scales with the number of distinct base subsystems
+    (:attr:`~pyquil.simulation._circuit.MergePlan.bases`) rather than the number of operations.
+
+    A concrete simulator supplies only its *representation*, through three abstract members:
+    :attr:`_as_superop`, :meth:`_initial_state` and :meth:`_make_branch`.  :meth:`compute` is
+    implemented here once and is final.
 
     Measurements are collapsed to dephasing SuperOps by :meth:`_prepare_ops`, so they merge
     with neighbouring operations like any other superoperator; the merge plan's convexity check
     is what preserves their ordering.
     """
 
-    def _prepare_ops(self, ops: list[ExpandedOp]) -> list[ExpandedOp]:
+    def __init__(
+        self,
+        program: Program,
+        qubits: Sequence[int] | None = None,
+        *,
+        noise_model: NoiseModelLike | None = None,
+        max_subsystem_size: int = 2,
+    ) -> None:
+        """Set up the compressed-stack evolution machinery.
+
+        Arguments are as :meth:`ProgramSimulator.__init__`.
+        """
+        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
+
+        # The merge structure depends only on the subsystems (not on parameter values), so
+        # the base subsystems can be read straight off the plan -- no ``resolve``/``compress``
+        # probe is required.
+        self.bases: tuple[tuple[int, ...], ...] = self.plan.bases
+        self.base_dims: tuple[tuple[int, ...], ...] = tuple(tuple(self.dims[q] for q in base) for base in self.bases)
+        self.base_total_dim: tuple[int, ...] = tuple(math.prod(d) for d in self.base_dims)
+        self.d_max: int = max(self.base_total_dim, default=1)
+        self._idx_arr = jnp.asarray(self.plan.op_index, dtype=jnp.int32)
+
+        # Vectorized gate construction (vmap per gate type) followed by a segmented matmul
+        # fold for compression.  This gives both fast compilation (small traced graph) and
+        # fast runtime (compressed op count in the state-evolution scan).
+        self._build_stack: Callable[[Array], Array] = _build_vectorized_operator_constructor(
+            self._resolution.ops,
+            self._resolution.subsystems,
+            self.plan.groups,
+            self.dims,
+            self.d_max,
+            as_superop=self._as_superop,
+        )
+
+        # One switch branch per distinct base subsystem.  The base owns the table; the
+        # concrete class only says how one branch rebuilds and applies its operator.
+        self._branches: tuple[Callable[[Array, StateT], StateT], ...] = tuple(
+            self._make_branch(base, base_dims, total_dim)
+            for base, base_dims, total_dim in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
+        )
+        self._state0: StateT = self._initial_state()
+
+    # -- abstract representation --------------------------
+
+    @property
+    @abstractmethod
+    def _as_superop(self) -> bool:
+        """Whether the stack holds superoperators (density matrix) or unitaries (state vector)."""
+
+    @abstractmethod
+    def _initial_state(self) -> StateT:
+        """Return the all-zeros state on :attr:`dims`, in this backend's representation."""
+
+    @abstractmethod
+    def _make_branch(
+        self, base: tuple[int, ...], base_dims: tuple[int, ...], total_dim: int
+    ) -> Callable[[Array, StateT], StateT]:
+        """Return the switch branch for one base subsystem.
+
+        The branch receives one row of the fused stack -- a ``(width, width)`` matrix padded
+        beyond ``total_dim`` (or ``total_dim ** 2`` for superoperators) -- and the current
+        state, and returns the evolved state.
+
+        :param base: Register indices the branch's operators act on.
+        :param base_dims: Their per-qudit dimensions.
+        :param total_dim: Their total Hilbert-space dimension.
+        """
+
+    # -- final implementation -----------------------------
+
+    @final
+    def _prepare_ops(self, ops: tuple[ExpandedOp, ...]) -> tuple[ExpandedOp, ...]:
         """Collapse every instrument to its total channel.
 
         Neither simulator in this family branches on a measurement outcome, and an instrument
@@ -297,68 +469,52 @@ class _DifferentiableSimulator(ProgramSimulator):
         summing over its outcomes.  The resulting state is the correct outcome-averaged density
         matrix, but no classical outcome is recorded.
 
-        This is :meth:`~pyquil.simulation._circuit.Circuit.to_superops` applied one operator early — at construction
-        rather than per ``resolve`` — which is free, since an instrument never depends on a
-        runtime parameter.  Doing it here rather than in expansion is what lets expansion stay
-        backend-agnostic, and it is why this family has no atomic operations: once the
-        instruments are gone there is nothing that must stay individually addressable.
+        This is :meth:`~pyquil.simulation._circuit.Circuit.to_superops` applied one operator
+        early -- at construction rather than per ``resolve`` -- which is free, since an
+        instrument never depends on a runtime parameter.  Doing it here rather than in expansion
+        is what lets expansion stay backend-agnostic, and it is why this family has no atomic
+        operations: once the instruments are gone there is nothing that must stay individually
+        addressable.
         """
-        return [qx.to_superop(op.total_channel()) if isinstance(op, qx.QuantumInstrument) else op for op in ops]
+        return tuple(qx.to_superop(op.total_channel()) if isinstance(op, qx.QuantumInstrument) else op for op in ops)
 
-    def __init__(
-        self,
-        program: Program,
-        qubits: list[int] | None = None,
-        *,
-        noise_model: NoiseModelLike | None = None,
-        max_subsystem_size: int = 2,
-        dims: tuple[int, ...] | None = None,
-    ) -> None:
-        """Set up the compressed-stack evolution machinery.
+    @final
+    def compute(self, params: Array | None = None) -> StateT:  # type: ignore[override]
+        """Compute the final state.
 
-        Arguments are as :meth:`ProgramSimulator.__init__`.
+        The fused operator stack is built for *params* and applied with a :func:`jax.lax.scan`
+        whose body dispatches each operator to the right base subsystem via
+        :func:`jax.lax.switch`.  This keeps the traced graph size proportional to the number
+        of distinct base subsystems rather than the number of operations, dramatically
+        reducing JIT compilation time for large programs.
+
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
+        :return: The final state, in this backend's representation.
         """
-        super().__init__(
-            program,
-            qubits,
-            noise_model=noise_model,
-            max_subsystem_size=max_subsystem_size,
-            dims=dims,
-        )
+        # No operations (e.g. empty program): the initial state is the result, and
+        # ``lax.switch`` cannot be given zero branches.
+        if not self._branches:
+            return self._state0
+        return self._apply(self._state0, self._build_stack(self._default_params(params)))
 
-        # The merge structure depends only on the subsystems (not on parameter values), so
-        # the base subsystems can be read straight off the plan — no ``resolve``/``compress``
-        # probe is required.
-        self.bases, self.op_index = self.plan.bases, self.plan.op_index
-        self.base_dims = [tuple(self.dims[q] for q in base) for base in self.bases]
-        self.base_total_dim = [math.prod(d) for d in self.base_dims]
-        self.d_max = max(self.base_total_dim) if self.base_total_dim else 1
-        self._idx_arr = jnp.asarray(self.op_index, dtype=jnp.int32)
+    @final
+    def __call__(self, params: Array | None = None) -> StateT:
+        """Alias for :meth:`compute`."""
+        return self.compute(params)
 
-        # Whether any gate matrix depends on a runtime parameter.  When it does not,
-        # the compressed operator stack is a compile-time constant and can be
-        # materialised eagerly (outside the traced graph), which avoids XLA
-        # constant-folding/autotuning a large ``compose_operator`` subgraph — the
-        # dominant JIT cost on accelerators for deep, literal-angle programs.
-        self._has_params = self._n_params > 0
-
-    def apply(self, state: Any, op_stack: Array) -> Any:
+    @final
+    def _apply(self, state: StateT, op_stack: Array) -> StateT:
         """Apply a stack of operator matrices to *state* via a scan + switch.
 
-        Each operator is dispatched to the switch branch for its base subsystem
-        (``self._branches``, keyed by ``self._idx_arr``), so the compiled graph size
-        scales with the number of distinct base subsystems rather than the number of
-        operations.  The state-vector and density-matrix simulators differ only in
-        their branch and state types.
-
-        :param state: The state to evolve (a ``StateVector`` or ``DensityMatrix``).
+        :param state: The state to evolve.
         :param op_stack: Operator matrices, one row per compressed operation, zero-padded
-            to a common size and ordered as the compressor emits them.
-        :return: The evolved state, of the same type as *state*.
+            to a common size and ordered as the plan emits them.
+        :return: The evolved state.
         """
-        branches = self._branches  # type: ignore[attr-defined]
+        branches = self._branches
 
-        def body(state: Any, xs: tuple[Array, Array]) -> tuple[Any, None]:
+        def body(state: StateT, xs: tuple[Array, Array]) -> tuple[StateT, None]:
             op_mat, sidx = xs
             return jax.lax.switch(sidx, branches, op_mat, state), None
 
@@ -407,9 +563,13 @@ class _GateBatch:
     free arguments, so all of them are built with a single ``jax.vmap``.  This
     keeps the traced graph proportional to the number of distinct gate *kinds*
     rather than the number of gates.
+
+    This is a mutable dataclass on purpose: it is an accumulator that
+    :func:`_build_vectorized_operator_constructor` fills while it walks the plan, and it is
+    consumed by :meth:`builder` immediately afterwards.
     """
 
-    gate_fn: Callable[..., qx.Unitary]
+    gate_fn: Callable[..., qx.Operator]
     n_args: int
     #: ``(slot, value)`` for each compile-time-constant argument.
     concrete_args: tuple[tuple[int, float], ...]
@@ -441,7 +601,10 @@ class _GateBatch:
                 args[slot] = val
             for k, slot in enumerate(free_slots):
                 args[slot] = free_values[k]
-            return _embed_op_to_group(gate_fn(*args), target_dims, group_positions, width, as_superop=as_superop)
+            gate = gate_fn(*args)
+            if not isinstance(gate, qx.Unitary):
+                gate = qx.Unitary.from_matrix(gate.matrix, gate.dims)
+            return _embed_op_to_group(gate, target_dims, group_positions, width, as_superop=as_superop)
 
         batched = jax.vmap(single)
         return lambda params: batched(params[param_indices])
@@ -471,8 +634,8 @@ def _make_group_fold(group_start: list[int], n_ops: int, width: int) -> Callable
     eye = jnp.eye(width, dtype=complex)
 
     def group_product(mats: Array) -> Array:
-        final, _ = jax.lax.scan(lambda acc, m: (m @ acc, None), eye, mats)
-        return final
+        final_mat, _ = jax.lax.scan(lambda acc, m: (m @ acc, None), eye, mats)
+        return final_mat
 
     def fold(raw: Array) -> Array:
         padded = jnp.concatenate([raw, eye[None]], axis=0)[gather_jax]  # (n_groups, max_size, d, d)
@@ -482,7 +645,7 @@ def _make_group_fold(group_start: list[int], n_ops: int, width: int) -> Callable
 
 
 def _build_vectorized_operator_constructor(
-    expanded_ops: tuple[Any, ...],
+    expanded_ops: tuple[ExpandedOp, ...],
     raw_subsystems: tuple[tuple[int, ...], ...],
     groups: tuple[Group, ...],
     dims: tuple[int, ...],
@@ -507,7 +670,7 @@ def _build_vectorized_operator_constructor(
     density-matrix simulator used the obvious construction until this was generalized, and
     compiled 51x slower than the state-vector one for parametric programs.
 
-    :param expanded_ops: Operators from expansion, one per DAG node.
+    :param expanded_ops: Operators from expansion, one per operation.
     :param raw_subsystems: Each operator's own qubit tuple, in operand order.
     :param groups: The plan's ``(operation indices, subsystem)`` groups, in application order.
     :param dims: Per-qudit dimensions of the whole register.
@@ -590,7 +753,7 @@ def _build_vectorized_operator_constructor(
 # ══════════════════════════════════════════════════════════
 
 
-class PureStateVectorSimulator(_DifferentiableSimulator):
+class PureStateVectorSimulator(_DifferentiableSimulator[qx.StateVector]):
     """Simulator for gate-only programs (no noise, measurements, or resets).
 
     All methods are jit- and grad-friendly::
@@ -604,7 +767,7 @@ class PureStateVectorSimulator(_DifferentiableSimulator):
     def __init__(
         self,
         program: Program,
-        qubits: list[int] | None = None,
+        qubits: Sequence[int] | None = None,
         *,
         max_subsystem_size: int = 2,
     ) -> None:
@@ -613,53 +776,26 @@ class PureStateVectorSimulator(_DifferentiableSimulator):
         :param program: A Quil program of unitary operations only. Measurements, resets and
             noise channels are rejected -- including ones reached through a ``DEFCIRCUIT``.
             Use :class:`DensityMatrixSimulator` for those.
-        :param qubits: Explicit register in state-subsystem order; see
-            :meth:`ProgramSimulator.__init__`. Remember the ordering is big-endian.
+        :param qubits: Register order; see :meth:`ProgramSimulator.__init__`. Remember the
+            ordering is big-endian.
         :param max_subsystem_size: Compressor merge budget; performance only. See
             :meth:`ProgramSimulator.__init__`.
         :raises ValueError: If the program contains a non-unitary operation.
         """
         super().__init__(program, qubits, noise_model=None, max_subsystem_size=max_subsystem_size)
-        self._validate_expanded()
-        self._psi0 = qx.zero_state_vector(dims=self.dims)
 
-        # Vectorized gate construction (vmap per gate type) followed by a
-        # segmented matmul scan for compression.  This gives both fast
-        # compilation (small traced graph) AND fast runtime (compressed
-        # op count in the state-evolution scan).
-        self._vmapped_build_fn = _build_vectorized_operator_constructor(
-            self._expanded_ops,
-            self._raw_subsystems,
-            self.plan.groups,
-            self.dims,
-            self.d_max,
-            as_superop=False,
-        )
+    @property
+    def _as_superop(self) -> bool:
+        return False
 
-        # One switch branch per distinct base subsystem: it rebuilds a Unitary
-        # from the padded matrix slice for its base and applies it to the state.
-        def unitary_branch(
-            base: tuple[int, ...], base_dims: tuple[int, ...], db: int
-        ) -> Callable[[Array, qx.StateVector], qx.StateVector]:
-            def branch(op_mat: Array, psi: qx.StateVector) -> qx.StateVector:
-                unitary = qx.Unitary.from_matrix(op_mat[:db, :db], (base_dims, base_dims))
-                return qx.targeted_apply_unitary(unitary, psi, base)
-
-            return branch
-
-        self._branches = [
-            unitary_branch(base, base_dims, db)
-            for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
-        ]
-
-    def _validate(self, program: Program) -> None:
+    def _validate(self, program: Program) -> None:  # noqa: B027 -- optional hook, not abstract
         for inst in program.instructions:
             if isinstance(inst, Measurement):
                 raise ValueError(f"PureStateVectorSimulator does not support measurements.  Found: {inst}")
             if isinstance(inst, (Reset, ResetQubit)):
                 raise ValueError(f"PureStateVectorSimulator does not support resets.  Found: {inst}")
 
-    def _validate_expanded(self) -> None:
+    def _validate_ops(self, ops: tuple[ExpandedOp, ...], subsystems: tuple[tuple[int, ...], ...]) -> None:
         """Reject any expanded operation that is not a pure unitary.
 
         ``_validate`` sees only top-level instructions, so a ``MEASURE`` or ``RESET`` hidden
@@ -668,7 +804,7 @@ class PureStateVectorSimulator(_DifferentiableSimulator):
         catches those, and anything else non-unitary a noise model or future instruction
         type might introduce.
         """
-        for op, subsystem in zip(self._expanded_ops, self._raw_subsystems, strict=True):
+        for op, subsystem in zip(ops, subsystems, strict=True):
             if not isinstance(op, (qx.Unitary, ParametricGate)):
                 raise ValueError(
                     f"PureStateVectorSimulator supports unitary operations only, but the "
@@ -677,34 +813,23 @@ class PureStateVectorSimulator(_DifferentiableSimulator):
                     "DensityMatrixSimulator; note that these may come from a DEFCIRCUIT body."
                 )
 
-    def compute(self, params: Array | None = None) -> qx.StateVector:  # type: ignore[override]
-        """Compute the final state vector.
+    def _initial_state(self) -> qx.StateVector:
+        return qx.zero_state_vector(dims=self.dims)
 
-        Operators are stacked into a single array and applied with a
-        :func:`jax.lax.scan` whose body dispatches each operator to the right
-        base subsystem via :func:`jax.lax.switch`.  This keeps the traced graph
-        size proportional to the number of distinct base subsystems rather than
-        the number of operations, dramatically reducing JIT compilation time
-        for large programs.
+    def _make_branch(
+        self, base: tuple[int, ...], base_dims: tuple[int, ...], total_dim: int
+    ) -> Callable[[Array, qx.StateVector], qx.StateVector]:
+        def branch(op_mat: Array, psi: qx.StateVector) -> qx.StateVector:
+            unitary = qx.Unitary.from_matrix(op_mat[:total_dim, :total_dim], (base_dims, base_dims))
+            return qx.targeted_apply_unitary(unitary, psi, base)
 
-        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
-            pass ``None``) for a parameter-free program.
-        :return: The final state vector.
-        """
-        # No operations (e.g. empty program) → the initial state is the result.
-        if not self._branches:
-            return self._psi0
-
-        # Vectorized construction: build embedded matrices via vmap, then
-        # compose within each merge group via a parallel fold.
-        op_stack = self._vmapped_build_fn(self._default_params(params))
-        return self.apply(self._psi0, op_stack)
-
-    def __call__(self, params: Array | None = None) -> qx.StateVector:
-        return self.compute(params)
+        return branch
 
     def unitary(self, params: Array | None = None) -> qx.Unitary:
         """Compute the full program unitary.
+
+        This composes the merged circuit eagerly on the whole register and is exponentially
+        expensive in the register size; it is meant for verification, not simulation.
 
         :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
             pass ``None``) for a parameter-free program.
@@ -722,7 +847,7 @@ class PureStateVectorSimulator(_DifferentiableSimulator):
 # ══════════════════════════════════════════════════════════
 
 
-class DensityMatrixSimulator(_DifferentiableSimulator):
+class DensityMatrixSimulator(_DifferentiableSimulator[qx.DensityMatrix]):
     """Density-matrix simulator for any program, optionally with noise.
 
     All methods are jit- and grad-friendly::
@@ -730,78 +855,35 @@ class DensityMatrixSimulator(_DifferentiableSimulator):
         sim = DensityMatrixSimulator(program, noise_model=noise_model)
         params = sim.linearize(memory_map)
         rho = jax.jit(sim.compute)(params)
+
+    ``MEASURE`` is applied as a dephasing channel: the resulting state is the correct
+    *reduced* density matrix averaged over outcomes, but no classical outcome is recorded, so
+    the register written by the measurement is not simulated.  Arguments are as
+    :meth:`ProgramSimulator.__init__`.
     """
 
-    def __init__(
-        self,
-        program: Program,
-        qubits: list[int] | None = None,
-        *,
-        noise_model: NoiseModelLike | None = None,
-        max_subsystem_size: int = 2,
-    ) -> None:
-        """Prepare a density-matrix simulator.
+    @property
+    def _as_superop(self) -> bool:
+        return True
 
-        :param program: Any Quil program, including measurements and resets. ``MEASURE`` is
-            applied as a dephasing channel: the resulting state is the correct *reduced*
-            density matrix averaged over outcomes, but no classical outcome is recorded, so
-            the register written by the measurement is not simulated.
-        :param qubits: Explicit register in state-subsystem order; see
-            :meth:`ProgramSimulator.__init__`. Remember the ordering is big-endian.
-        :param noise_model: Optional noise model. Instructions with no channel are ideal.
-        :param max_subsystem_size: Compressor merge budget; performance only. See
-            :meth:`ProgramSimulator.__init__`.
-        """
-        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
-        self._rho0 = qx.zero_state_matrix(dims=self.dims)
+    def _initial_state(self) -> qx.DensityMatrix:
+        return qx.zero_state_matrix(dims=self.dims)
 
-        # Same vectorized construction as the state-vector simulator, lifted to
-        # superoperators.  Building the stack per-operation instead costs ~50x in JIT
-        # compile time for parametric programs; see
-        # :func:`_build_vectorized_operator_constructor`.
-        self._vmapped_build_fn = _build_vectorized_operator_constructor(
-            self._expanded_ops,
-            self._raw_subsystems,
-            self.plan.groups,
-            self.dims,
-            self.d_max,
-            as_superop=True,
-        )
+    def _make_branch(
+        self, base: tuple[int, ...], base_dims: tuple[int, ...], total_dim: int
+    ) -> Callable[[Array, qx.DensityMatrix], qx.DensityMatrix]:
+        width = total_dim * total_dim
 
-        # One switch branch per distinct base subsystem: it rebuilds a SuperOp
-        # from the padded matrix slice for its base and applies it to the state.
-        def superop_branch(
-            base: tuple[int, ...], base_dims: tuple[int, ...], db2: int
-        ) -> Callable[[Array, qx.DensityMatrix], qx.DensityMatrix]:
-            def branch(op_mat: Array, rho: qx.DensityMatrix) -> qx.DensityMatrix:
-                superop = qx.SuperOp.from_matrix(op_mat[:db2, :db2], (base_dims, base_dims))
-                return qx.targeted_apply_superop(superop, rho, base)
+        def branch(op_mat: Array, rho: qx.DensityMatrix) -> qx.DensityMatrix:
+            superop = qx.SuperOp.from_matrix(op_mat[:width, :width], (base_dims, base_dims))
+            return qx.targeted_apply_superop(superop, rho, base)
 
-            return branch
+        return branch
 
-        self._branches = [
-            superop_branch(base, base_dims, db * db)
-            for base, base_dims, db in zip(self.bases, self.base_dims, self.base_total_dim, strict=True)
-        ]
 
-    def compute(self, params: Array | None = None) -> qx.DensityMatrix:  # type: ignore[override]
-        """Compute the final density matrix.
-
-        Superoperators are stacked and applied with a :func:`jax.lax.scan`
-        whose body dispatches to the correct base subsystem via
-        :func:`jax.lax.switch`, keeping the compiled graph size proportional to
-        the number of distinct base subsystems.
-
-        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
-            pass ``None``) for a parameter-free program.
-        :return: The final density matrix.
-        """
-        # No operations (e.g. empty program) → the initial state is the result.
-        if not self._branches:
-            return self._rho0
-
-        op_stack = self._vmapped_build_fn(self._default_params(params))
-        return self.apply(self._rho0, op_stack)
-
-    def __call__(self, params: Array | None = None) -> qx.DensityMatrix:
-        return self.compute(params)
+__all__ = [
+    "DensityMatrixSimulator",
+    "ProgramSimulator",
+    "PureStateVectorSimulator",
+    "Resolution",
+]

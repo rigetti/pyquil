@@ -13,32 +13,36 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Compilation from Quil to :class:`~pyquil.simulation._circuit.Circuit`.
+"""Compilation from Quil to a :class:`~pyquil.simulation._circuit.Circuit`.
 
 This module owns the half of simulation preprocessing that is about *Quil*:
 
-1. **Expander** — expands a program into a flat list of operators and physical
+1. **Expander** — expands a program into a flat sequence of operators and physical
    qubit tuples, resolving noise channels, custom gates, and DEFCIRCUIT
    bodies.  Fixed (non-parameterized) operations are returned as concrete
    quax types; parameterized gates are returned as :class:`ParametricGate`
    callables, since a gate angle may be a memory reference from a ``DECLARE``
    that is not known until run time.
-2. **Resolver** — binds a parameter vector to produce a :class:`~pyquil.simulation._circuit.Circuit`:
-   concrete operators, each placed on a register index.
+2. **Resolver** — binds a parameter vector to produce a
+   :class:`~pyquil.simulation._circuit.Circuit`: concrete operators, each placed on a
+   register index.
 
 Everything downstream of that circuit is quantum information rather than Quil,
-and lives in quax: merge planning (:class:`~pyquil.simulation._circuit.MergePlan`), operator fusion,
-dimension inference and the representation changes each backend needs
-(:meth:`~pyquil.simulation._circuit.Circuit.to_superops`, :meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`).  The
-boundary is deliberate — a circuit carries no gate names, no parameters and no
-classical memory, so quax never needs a notion of a program.
+and lives in :mod:`pyquil.simulation._circuit` (staged for quax): merge planning
+(:class:`~pyquil.simulation._circuit.MergePlan`), operator fusion, dimension inference and
+the representation changes each backend needs
+(:meth:`~pyquil.simulation._circuit.Circuit.to_superops`,
+:meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`).  The boundary is deliberate — a
+circuit carries no gate names, no parameters and no classical memory, so the circuit layer
+never needs a notion of a program.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Mapping
 from copy import deepcopy
-from typing import Any, NamedTuple, TypeAlias, cast
+from dataclasses import dataclass
+from typing import Any, TypeAlias
 
 import jax.numpy as jnp
 import numpy as np
@@ -50,6 +54,7 @@ from pyquil.noise._channels import (
     CycleChannel,
     MeasurementChannel,
     ResetChannelBase,
+    _reject_gate_modifiers,
     get_custom_gates_from_program,
     get_instruction_unitary,
 )
@@ -58,60 +63,75 @@ from pyquil.noise._noise_model import (
 )
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Qubit, _contained_mrefs, substitute
-from pyquil.quilbase import DefCircuit, Gate, Measurement, Reset, ResetQubit
+from pyquil.quilbase import (
+    AbstractInstruction,
+    ArithmeticBinaryOp,
+    ClassicalComparison,
+    ClassicalConvert,
+    ClassicalExchange,
+    ClassicalLoad,
+    ClassicalMove,
+    ClassicalStore,
+    DefCircuit,
+    Gate,
+    Jump,
+    JumpUnless,
+    JumpWhen,
+    LogicalBinaryOp,
+    Measurement,
+    Reset,
+    ResetQubit,
+    UnaryClassicalInstruction,
+)
 from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
 
 # ──────────────────────────────────────────────────────────
 # Type aliases
 # ──────────────────────────────────────────────────────────
 
-# A fixed (non-parameterized) operator — the most specific native quax type.
+#: A fixed (non-parameterized) operator — the most specific native quax type.
 FixedOp: TypeAlias = CircuitOp
 
+#: A ``(register_name, offset)`` pair naming one scalar of classical memory, e.g. ``("theta", 0)``.
+ParameterRef: TypeAlias = tuple[str, int]
 
+
+@dataclass(frozen=True, slots=True)
 class ParametricGate:
     """A parametric gate whose matrix depends on runtime parameters.
 
-    Instances are callable: ``gate(params) -> qx.Unitary``.  They also expose
-    the gate constructor and parameter layout so that the simulator can group
-    gates by type and use ``jax.vmap`` for efficient batch construction.
+    Instances are callable: ``gate(params) -> qx.Unitary``.  They also expose the gate
+    constructor and parameter layout so that the simulator can group gates by type and use
+    ``jax.vmap`` for efficient batch construction.
+
+    :param gate_fn: The quax gate constructor (e.g. ``qx.gates.RX``), or a parametric
+        ``DEFGATE`` callable.
+    :param param_indices: Per-argument slot in the flat parameter vector, or ``-1`` when that
+        argument is a compile-time constant.  Two gates that read the same memory reference
+        share a slot; see :func:`expand_program`.
+    :param concrete_values: Per-argument concrete value (``nan`` for runtime-parametric slots).
     """
 
-    __slots__ = ("gate_fn", "param_indices", "concrete_values")
-
-    def __init__(
-        self,
-        gate_fn: Callable[..., qx.Unitary],
-        param_indices: tuple[int, ...],
-        concrete_values: tuple[float, ...],
-    ) -> None:
-        #: The quax gate constructor (e.g. ``qx.gates.RX``).
-        self.gate_fn = gate_fn
-        #: Per-argument index into the flat parameter vector, or ``-1``
-        #: when that argument is a compile-time constant.
-        self.param_indices = param_indices
-        #: Per-argument concrete value (``nan`` for runtime-parametric slots).
-        self.concrete_values = concrete_values
+    gate_fn: Callable[..., qx.Operator]
+    param_indices: tuple[int, ...]
+    concrete_values: tuple[float, ...]
 
     def __call__(self, params: Array) -> qx.Unitary:
-        resolved: list[Any] = []
-        for pi, cv in zip(self.param_indices, self.concrete_values, strict=False):
-            if pi >= 0:
-                resolved.append(params[pi])
-            else:
-                resolved.append(cv)
+        """Build the gate for one parameter vector."""
+        resolved: list[Any] = [
+            params[pi] if pi >= 0 else cv for pi, cv in zip(self.param_indices, self.concrete_values, strict=True)
+        ]
         result = self.gate_fn(*resolved)
         if not isinstance(result, qx.Unitary):
-            result = cast(Any, result)
             result = qx.Unitary.from_matrix(result.matrix, result.dims)
         return result
 
 
-# An expanded item is either a fixed operator or a ParametricGate that
-# resolves parameters into a Unitary.
+#: An expanded item is either a fixed operator or a ParametricGate that resolves parameters
+#: into a Unitary.
 ExpandedOp: TypeAlias = FixedOp | ParametricGate
 
-# One resolved operation: a concrete operator and the register indices it acts on.
+#: One resolved operation: a concrete operator and the register indices it acts on.
 ResolvedOp: TypeAlias = Placement
 
 
@@ -155,9 +175,10 @@ def expand_defcircuit_body(
 
         A DEFCIRCUIT body must reference only the circuit's own formal arguments. Quil permits
         a literal qubit in a body (``DEFCIRCUIT C q: X q; X 3``), but simulating one is a trap:
-        the qubit is invisible to ``Program.get_qubit_indices``, so it silently escapes the
-        register the simulator sizes itself for. Rejecting it here is clearer than the
-        downstream failure.
+        the qubit is invisible to ``Program.get_qubit_indices`` (see the pyQuil issue linked
+        from the architecture documentation), so it silently escapes the register the simulator
+        sizes itself for. Rejecting it here is clearer than the downstream failure; the check
+        can be dropped once ``Program.get_qubit_indices`` sees into DEFCIRCUIT bodies.
         """
         if qarg not in qarg_to_arg_map:
             raise ValueError(
@@ -196,6 +217,28 @@ def expand_defcircuit_body(
 # Expander
 # ══════════════════════════════════════════════════════════
 
+#: Instructions the simulator refuses.  Each of these changes *which* quantum operations run
+#: (control flow) or what classical memory holds (and hence, via ``MEASURE`` targets and gate
+#: parameters, what the program means), and none can be honoured by a straight-line simulation.
+#: Everything else that is not a gate, measurement or reset is ignored: declarations and
+#: definitions, pragmas, labels, ``HALT``/``NOP``/``WAIT``, and all Quil-T pulse-level
+#: instructions, which are taken to be the physical realisation of the logical program rather
+#: than a change to it.
+UNSUPPORTED_INSTRUCTIONS: tuple[type[AbstractInstruction], ...] = (
+    Jump,
+    JumpWhen,
+    JumpUnless,
+    UnaryClassicalInstruction,
+    LogicalBinaryOp,
+    ArithmeticBinaryOp,
+    ClassicalMove,
+    ClassicalExchange,
+    ClassicalConvert,
+    ClassicalLoad,
+    ClassicalStore,
+    ClassicalComparison,
+)
+
 
 def _measure_registers(program: Program) -> set[str]:
     """Return the set of register names that are targets of MEASURE instructions."""
@@ -212,12 +255,12 @@ def expand_program(
     program: Program,
     noise_model: NoiseModelLike | None = None,
     qubit_dimensions: Mapping[int, int] | None = None,
-) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
+) -> tuple[tuple[ExpandedOp, ...], tuple[tuple[int, ...], ...], tuple[ParameterRef, ...]]:
     """Expand a program into operators and physical qubit tuples.
 
     Fixed (non-parameterized) operations are returned as concrete quax types
     (``Unitary``, ``SuperOp``, ``QuantumInstrument``).  Only parameterized
-    gates are returned as ``Callable[[Array], Unitary]``.
+    gates are returned as :class:`ParametricGate` callables.
 
     DEFCIRCUIT invocations are expanded:
 
@@ -228,25 +271,35 @@ def expand_program(
 
     The noise model is fully resolved during expansion: noisy gates become
     ``SuperOp``, noisy measurements become ``QuantumInstrument``, and noisy
-    resets become ``SuperOp``.
+    resets become ``SuperOp``.  A channel is looked up by instruction equality
+    (name, parameters, qubits and modifiers), so ``RX(pi/2) 0`` and ``RX(pi/2) 1``
+    are distinct keys.
 
     A ``MEASURE`` always becomes a :class:`quax.QuantumInstrument`, which is the
     representation that retains the most information.  A backend that does not branch on
-    outcomes collapses it with :meth:`~pyquil.simulation._circuit.Circuit.to_superops`, which replaces each
-    instrument with its total channel; that is exactly equivalent to resolving the
-    measurement as a dephasing superoperator in the first place, so expansion does not need
-    to know which kind of backend it is feeding.
+    outcomes collapses it with :meth:`~pyquil.simulation._circuit.Circuit.to_superops`,
+    which replaces each instrument with its total channel; that is exactly equivalent to
+    resolving the measurement as a dephasing superoperator in the first place, so expansion
+    does not need to know which kind of backend it is feeding.
+
+    **Parameter layout.**  Each *distinct* memory reference appearing as a gate argument
+    (``theta[0]``, say) is assigned one slot of the flat parameter vector, in order of first
+    use.  A reference used by several gates therefore maps to a single slot, so a gradient with
+    respect to that slot is already the total derivative — nothing has to be summed by hand.
 
     :param program: Quil program (may contain DEFCIRCUITs).
     :param noise_model: Optional noise model.
     :param qubit_dimensions: Optional mapping from physical qubit id to its
         Hilbert-space dimension. Used for ideal measurement and reset operators,
         whose quax constructors otherwise default to qubit dimension.
-    :return: Tuple of ``(ops, qubit_tuples, param_refs)`` where each op is
-        either a concrete quax operator or a ``Callable[[Array], Unitary]``
-        for parameterized gates, each qubit tuple contains physical qubit
-        IDs, and ``param_refs`` is a list of ``(register_name, offset)``
-        pairs for each scalar parameter in program order.
+    :return: Tuple of ``(ops, qubit_tuples, parameters)`` where each op is either a concrete
+        quax operator or a :class:`ParametricGate`, each qubit tuple contains physical qubit
+        IDs, and ``parameters`` lists the distinct ``(register_name, offset)`` references in
+        slot order.
+    :raises ValueError: If the program contains control flow or classical memory
+        instructions (see :data:`UNSUPPORTED_INSTRUCTIONS`), a gate modifier, an
+        expression-valued or feed-forward gate parameter, or a DEFCIRCUIT body that names a
+        literal qubit.
     """
     # Program-level derivations. These are independent of qubit dimensions, so
     # ``resolve_program``'s two passes each recompute them; measured at 1-4 ms (under 6% of a
@@ -260,8 +313,9 @@ def expand_program(
 
     ops: list[ExpandedOp] = []
     qubit_tuples: list[tuple[int, ...]] = []
-    param_refs: list[tuple[str, int]] = []
-    param_counter = 0
+    # Distinct memory references in first-use order; the value is the slot in the parameter
+    # vector.  ``dict`` preserves insertion order, which is what makes the slots stable.
+    slots: dict[ParameterRef, int] = {}
 
     def _emit_op(op: ExpandedOp, qubits: tuple[int, ...]) -> None:
         ops.append(op)
@@ -269,7 +323,10 @@ def expand_program(
 
     def _resolve_gate(inst: Gate) -> tuple[ExpandedOp, tuple[int, ...]]:
         """Resolve a single gate instruction to an operator or callable."""
-        nonlocal param_counter
+        # Modifiers are rejected on every path, parametric included: dropping ``DAGGER`` from
+        # ``DAGGER RX(theta[0]) 0`` would simulate ``RX(+theta)`` and return a plausible wrong
+        # state.  ``get_instruction_unitary`` performs the same check for the fixed path.
+        _reject_gate_modifiers(inst)
         qubits = tuple(inst.get_qubit_indices())
 
         # Check noise model first. Match on ChannelBase, not a concrete class: gate channels
@@ -292,6 +349,8 @@ def expand_program(
                 gate_def = qx.gates.QUANTUM_GATES[gate_name]
             else:
                 raise KeyError(f"Unknown gate '{gate_name}'.")
+            if isinstance(gate_def, qx.Unitary):
+                raise ValueError(f"Gate '{gate_name}' is not parametric but {inst.out()!r} passes parameters.")
 
             param_indices: list[int] = []
             concrete_values: list[float] = []
@@ -322,10 +381,8 @@ def expand_program(
                         "Feed-forward (classically-conditioned) parameters are not supported."
                     )
                 else:
-                    param_indices.append(param_counter)
+                    param_indices.append(slots.setdefault((p.name, p.offset), len(slots)))
                     concrete_values.append(float("nan"))
-                    param_refs.append((p.name, p.offset))
-                    param_counter += 1
 
             return ParametricGate(gate_def, tuple(param_indices), tuple(concrete_values)), qubits
 
@@ -379,6 +436,12 @@ def expand_program(
                     _emit_op(op, qubits)
 
     for inst in program.instructions:
+        if isinstance(inst, UNSUPPORTED_INSTRUCTIONS):
+            raise ValueError(
+                f"{str(inst)!r} cannot be simulated: control flow and classical memory "
+                "instructions change which quantum operations run, and this simulator evolves a "
+                "straight-line program. Resolve the instruction's effect before simulating."
+            )
         if isinstance(inst, DefCircuit):
             continue
 
@@ -401,7 +464,7 @@ def expand_program(
         elif isinstance(inst, (Gate, Measurement, ResetQubit, Reset)):
             _emit_instruction(inst)
 
-    return ops, qubit_tuples, param_refs
+    return tuple(ops), tuple(qubit_tuples), tuple(slots)
 
 
 # ══════════════════════════════════════════════════════════
@@ -410,14 +473,15 @@ def expand_program(
 
 
 def remap_qubits(
-    qubit_tuples: list[tuple[int, ...]],
-    qubit_indices: dict[int, int],
-) -> list[tuple[int, ...]]:
+    qubit_tuples: tuple[tuple[int, ...], ...] | list[tuple[int, ...]],
+    qubit_indices: Mapping[int, int],
+) -> tuple[tuple[int, ...], ...]:
     """Remap physical qubit IDs to 0-based indices.
 
-    :param qubit_tuples: List of physical qubit tuples from :func:`expand_program`.
+    :param qubit_tuples: Physical qubit tuples from :func:`expand_program`.
     :param qubit_indices: Mapping from physical qubit id → 0-based index.
     :return: Remapped qubit tuples.
+    :raises ValueError: If an operation touches a qubit outside ``qubit_indices``.
     """
     remapped: list[tuple[int, ...]] = []
     for qubits in qubit_tuples:
@@ -429,7 +493,7 @@ def remap_qubits(
                 "touches."
             )
         remapped.append(tuple(qubit_indices[q] for q in qubits))
-    return remapped
+    return tuple(remapped)
 
 
 # ══════════════════════════════════════════════════════════
@@ -437,33 +501,53 @@ def remap_qubits(
 # ══════════════════════════════════════════════════════════
 
 
-class Resolution(NamedTuple):
+@dataclass(frozen=True)
+class Resolution:
     """Everything the simulators need from a program after expansion.
 
+    This is the program *template*: the last object that knows anything about Quil.  It owns
+    the parameter layout, because a slot in the parameter vector is meaningful only relative to
+    a ``DECLARE``, and :meth:`resolve` binds a parameter vector to hand back a
+    :class:`~pyquil.simulation._circuit.Circuit` that no longer refers to any of it.
+
     :param dims: Inferred per-qudit dimensions (e.g. ``(2, 2, 3)``).
-    :param ops: Expanded operators, one per DAG node, in program order.
-    :param subsystems: 0-based qubit tuple each operator acts on.
-    :param param_refs: ``(register_name, offset)`` for each scalar parameter.
+    :param ops: Expanded operators, one per operation, in program order.
+    :param subsystems: 0-based qudit tuple each operator acts on, in operand order.
+    :param parameters: The distinct ``(register_name, offset)`` references, one per slot of the
+        parameter vector, in slot order.
     """
 
     dims: tuple[int, ...]
-    ops: list[ExpandedOp]
-    subsystems: list[tuple[int, ...]]
-    param_refs: list[tuple[str, int]]
+    ops: tuple[ExpandedOp, ...]
+    subsystems: tuple[tuple[int, ...], ...]
+    parameters: tuple[ParameterRef, ...]
 
-    def placements(self, params: Array) -> list[ResolvedOp]:
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "dims", tuple(int(d) for d in self.dims))
+        object.__setattr__(self, "ops", tuple(self.ops))
+        object.__setattr__(self, "subsystems", tuple(tuple(int(q) for q in sub) for sub in self.subsystems))
+        object.__setattr__(self, "parameters", tuple((str(name), int(offset)) for name, offset in self.parameters))
+        if len(self.ops) != len(self.subsystems):
+            raise ValueError(f"{len(self.ops)} operator(s) but {len(self.subsystems)} subsystem(s).")
+
+    @property
+    def num_parameters(self) -> int:
+        """The length of the parameter vector :meth:`resolve` expects."""
+        return len(self.parameters)
+
+    def placements(self, params: Array) -> tuple[Placement, ...]:
         """Bind *params* to produce one concrete operator per expanded operation.
 
         Fixed operators pass straight through; :class:`ParametricGate` entries are called with
         the parameter vector to build their ``Unitary``.
 
-        :param params: Flat parameter vector, laid out as ``param_refs``.
+        :param params: Flat parameter vector, laid out as :attr:`parameters`.
         :return: ``(operator, subsystem)`` pairs in program order.
         """
-        return [
+        return tuple(
             (op(params) if isinstance(op, ParametricGate) else op, subsystem)
             for op, subsystem in zip(self.ops, self.subsystems, strict=True)
-        ]
+        )
 
     def resolve(self, params: Array) -> Circuit:
         """Bind *params* to produce the program's :class:`~pyquil.simulation._circuit.Circuit`.
@@ -471,10 +555,10 @@ class Resolution(NamedTuple):
         This is the hand-off out of Quil: past this point there are no gate names, no memory
         references and no instructions, only operators placed on a register.
 
-        :param params: Flat parameter vector, laid out as ``param_refs``.
+        :param params: Flat parameter vector, laid out as :attr:`parameters`.
         :return: The circuit, on a register of ``dims``.
         """
-        return Circuit(dims=self.dims, ops=tuple(self.placements(params)))
+        return Circuit(dims=self.dims, ops=self.placements(params))
 
 
 def resolve_program(
@@ -483,11 +567,11 @@ def resolve_program(
     qubits: list[int] | None = None,
     dims: tuple[int, ...] | None = None,
 ) -> Resolution:
-    """Expand a program and build its parameter-resolving closure.
+    """Expand a program and build its parameter-resolving template.
 
     Operators are returned in their most specific native type:
 
-    * Ideal gates → ``qx.Unitary`` (parametric gates as a ``ParametricGate`` callable)
+    * Ideal gates → ``qx.Unitary`` (parametric gates as a :class:`ParametricGate` callable)
     * Noisy gates (``Channel``) → ``qx.SuperOp``
     * Expanded cycle gates with ``CycleChannel`` noise → constituent ``qx.SuperOp``
     * Measurements → ``qx.QuantumInstrument``
@@ -500,10 +584,9 @@ def resolve_program(
 
     :param program: Quil program (may contain DEFCIRCUITs and DEFGATEs).
     :param noise_model: Optional noise model.
-    :param qubits: Optional explicit qubit list. If ``None``, inferred from the
-        program. Use this when the simulator knows about qubits that don't
-        appear in the program.
-    :param dims: Optional pre-determined per-qudit dimensions.
+    :param qubits: Optional explicit qubit list, defining the register order. If ``None``,
+        the program's qubits in ascending order.
+    :param dims: Optional pre-determined per-qudit dimensions, in ``qubits`` order.
     :return: A :class:`Resolution`.
     """
     if qubits is None:
@@ -512,15 +595,15 @@ def resolve_program(
 
     def expand(
         qubit_dimensions: Mapping[int, int] | None,
-    ) -> tuple[list[ExpandedOp], list[tuple[int, ...]], list[tuple[str, int]]]:
-        ops, phys_qubits, param_refs = expand_program(program, noise_model, qubit_dimensions=qubit_dimensions)
-        return ops, remap_qubits(phys_qubits, qubit_indices), param_refs
+    ) -> tuple[tuple[ExpandedOp, ...], tuple[tuple[int, ...], ...], tuple[ParameterRef, ...]]:
+        ops, phys_qubits, parameters = expand_program(program, noise_model, qubit_dimensions=qubit_dimensions)
+        return ops, remap_qubits(phys_qubits, qubit_indices), parameters
 
     if dims is None:
-        ops, subsystems, param_refs = expand(None)
-        probe = Resolution(dims=(), ops=ops, subsystems=subsystems, param_refs=param_refs)
-        dims = Circuit.infer_dims(probe.placements(jnp.zeros(len(param_refs))), len(qubits))
+        ops, subsystems, parameters = expand(None)
+        probe = Resolution(dims=(), ops=ops, subsystems=subsystems, parameters=parameters)
+        dims = Circuit.infer_dims(probe.placements(jnp.zeros(len(parameters))), len(qubits))
 
     qubit_dimensions = {q: dims[i] for q, i in qubit_indices.items()}
-    ops, subsystems, param_refs = expand(qubit_dimensions)
-    return Resolution(dims, ops, subsystems, param_refs)
+    ops, subsystems, parameters = expand(qubit_dimensions)
+    return Resolution(dims, ops, subsystems, parameters)

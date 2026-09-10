@@ -165,7 +165,7 @@ class TestRemapQubits:
         qubit_tuples = [(3,), (5,), (3, 5)]
         qubit_indices = {3: 0, 5: 1}
         result = remap_qubits(qubit_tuples, qubit_indices)
-        assert result == [(0,), (1,), (0, 1)]
+        assert result == ((0,), (1,), (0, 1))
 
     def test_remap_rejects_a_qubit_outside_the_register(self):
         with pytest.raises(ValueError, match="but the simulated register is"):
@@ -335,6 +335,6 @@ class TestMeasurementRepresentation:
         from pyquil.simulation._simulator import DensityMatrixSimulator
 
         sim = DensityMatrixSimulator(Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, ("ro", 0))))
-        assert not any(isinstance(op, qx.QuantumInstrument) for op in sim._expanded_ops)
+        assert not any(isinstance(op, qx.QuantumInstrument) for op in sim._resolution.ops)
         # Nothing is pinned, so the measurement is free to merge with the gate before it.
         assert sim.plan.groups == (((0, 1), (0,)),)
