@@ -216,12 +216,13 @@ Expansion does several things at once:
   *not* resolved to a number. It is wrapped in a ``ParametricGate`` that, given
   :math:`\theta`, constructs the gate matrix. This keeps gate construction
   inside the traced/differentiated graph, which is what makes ``jax.grad`` with
-  respect to gate angles work. An angle may be any *affine* expression
-  :math:`a\,\theta_i + b` in a single memory reference -- ``RX(theta[0]/2 + pi)``,
-  ``RZ(-2*phi[1])`` -- which is what quilc emits when it compiles a parametric program;
-  the scale and offset travel with the gate, so such gates still batch with plain
-  ``RX(theta[1])``. Products or functions of references (``theta[0]*theta[1]``,
-  ``SIN(theta[0])``) are rejected with an error naming the parameter.
+  respect to gate angles work. An angle may be any Quil arithmetic expression over memory
+  references -- ``+ - * / ^``, the functions ``SIN``, ``COS``, ``SQRT``, ``EXP`` and ``CIS``,
+  and real or complex literals -- so ``RX(theta[0]/2 + pi)``, the form quilc emits when it
+  compiles a parametric program, and ``RZ(2*SIN(phi[1]))`` both simulate directly. Gates whose
+  expressions have the same *shape* (``SIN(theta[0])`` and ``SIN(theta[1])``) are still built in
+  one vectorised batch. A complex-valued argument (``CIS``, a complex literal) is accepted only
+  by a ``DEFGATE`` gate, since the built-in gates take real angles.
 
 * **DEFCIRCUIT and cycle expansion.** ``DEFCIRCUIT`` bodies are expanded with
   formal-argument substitution. When a circuit invocation matches a

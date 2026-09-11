@@ -58,7 +58,7 @@ from pyquil.noise._channels import (
 )
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
+from pyquil.quilatom import MemoryReference, quil_cis
 from pyquil.quilbase import Declare, Gate, ResetQubit
 from pyquil.simulation._reference import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
 from pyquil.simulation._simulator import DensityMatrixSimulator
@@ -684,10 +684,10 @@ class TestErrorHandling:
         with pytest.raises(ValueError, match=f"modifiers are not supported.*{modifier}"):
             _dm(program)
 
-    def test_non_affine_parameter_reports_clearly(self):
+    def test_complex_valued_parameter_for_builtin_gate_reports_clearly(self):
         theta = MemoryReference("theta", 0)
-        program = Program(Declare("theta", "REAL", 1), RX(theta * theta, 0))
-        with pytest.raises(ValueError, match="not an affine expression"):
+        program = Program(Declare("theta", "REAL", 1), RX(quil_cis(theta), 0))
+        with pytest.raises(ValueError, match="complex-valued"):
             DensityMatrixSimulator(program, qubits=[0])
 
     def test_feed_forward_parameter_reports_clearly(self):

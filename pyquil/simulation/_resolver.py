@@ -54,7 +54,20 @@ from pyquil.noise._noise_model import (
     NoiseModelLike,
 )
 from pyquil.quil import Program
-from pyquil.quilatom import Add, Div, MemoryReference, Mul, Qubit, Sub, _contained_mrefs, substitute
+from pyquil.quilatom import (
+    Add,
+    BinaryExp,
+    Div,
+    Function,
+    MemoryReference,
+    Mul,
+    Parameter,
+    Pow,
+    Qubit,
+    Sub,
+    _contained_mrefs,
+    substitute,
+)
 from pyquil.quilbase import (
     AbstractInstruction,
     ArithmeticBinaryOp,
@@ -85,48 +98,104 @@ from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
 ParameterRef: TypeAlias = tuple[str, int]
 
 
-#: ``(reference, scale, offset)``: the value ``scale * reference + offset``, or a constant when
-#: ``reference`` is ``None``.
-_AffineForm: TypeAlias = tuple[MemoryReference | None, float, float]
+#: The Quil arithmetic functions, as JAX functions.  ``CIS(x)`` is ``exp(i x)``.
+_FUNCTIONS: dict[str, Callable[[Array], Array]] = {
+    "SIN": jnp.sin,
+    "COS": jnp.cos,
+    "SQRT": jnp.sqrt,
+    "EXP": jnp.exp,
+    "CIS": lambda x: jnp.exp(1j * x),
+}
+_BINARY_OPERATORS: dict[type[BinaryExp], Callable[[Array, Array], Array]] = {
+    Add: jnp.add,
+    Sub: jnp.subtract,
+    Mul: jnp.multiply,
+    Div: jnp.divide,
+    Pow: jnp.power,
+}
 
 
-def _affine_form(expression: Any) -> _AffineForm | None:
-    """Write a gate parameter as ``scale * theta + offset`` in one memory reference.
+@dataclass(frozen=True, slots=True)
+class ParameterExpression:
+    """A gate argument given as a Quil arithmetic expression over memory references.
 
-    Returns ``None`` when the expression is not of that form: a product or quotient of two
-    references, a power, a function such as ``SIN``, or two *different* references.
+    Any expression Quil allows is supported: ``+ - * / ^``, the functions ``SIN``, ``COS``,
+    ``SQRT``, ``EXP`` and ``CIS``, and real or complex literals -- for example
+    ``RX(theta[0]/2 + pi)``, ``RZ(2*SIN(phi[1]))`` or ``CPHASE(CIS(theta[0])) 0 1`` for a
+    ``DEFGATE`` taking a complex parameter.  Calling an instance with the flat parameter
+    vector evaluates it with JAX, so it can be jitted and differentiated through.
 
-    :param expression: A number, a :class:`~pyquil.quilatom.MemoryReference`, or an
-        arithmetic expression over them.
+    :param slot_indices: Slots of the parameter vector the expression reads, in order of first
+        appearance.
+    :param key: The expression with its references replaced by ``%0``, ``%1``, ... in that
+        order.  Two expressions with the same key have the same shape and constants and differ
+        only in which slots they read, which is what lets the simulator evaluate them together
+        in one vectorised operation.
+    :param is_complex: Whether the value may be complex (the expression contains ``CIS`` or a
+        complex literal).  Everything else is evaluated in real arithmetic; note that Quil
+        would evaluate ``SQRT`` of a negative number or a fractional power of one as complex,
+        which real arithmetic reports as ``nan``.
     """
-    if isinstance(expression, MemoryReference):
-        return expression, 1.0, 0.0
-    if not _contained_mrefs(expression):
-        return None, 0.0, float(np.real(expression))
-    if isinstance(expression, (Add, Sub)):
-        left, right = _affine_form(expression.op1), _affine_form(expression.op2)
-        if left is None or right is None:
-            return None
-        (ref_l, a_l, b_l), (ref_r, a_r, b_r) = left, right
-        if ref_l is not None and ref_r is not None and ref_l != ref_r:
-            return None
-        sign = 1.0 if isinstance(expression, Add) else -1.0
-        return ref_l if ref_l is not None else ref_r, a_l + sign * a_r, b_l + sign * b_r
-    if isinstance(expression, (Mul, Div)):
-        left, right = _affine_form(expression.op1), _affine_form(expression.op2)
-        if left is None or right is None:
-            return None
-        (ref_l, a_l, b_l), (ref_r, a_r, b_r) = left, right
-        if isinstance(expression, Div):
-            if ref_r is not None or b_r == 0:
-                return None
-            return ref_l, a_l / b_r, b_l / b_r
-        if ref_l is not None and ref_r is not None:
-            return None
-        if ref_l is None:
-            return ref_r, b_l * a_r, b_l * b_r
-        return ref_l, a_l * b_r, b_l * b_r
-    return None
+
+    slot_indices: tuple[int, ...]
+    key: str
+    is_complex: bool
+    _fn: Callable[[Array], Array]
+
+    def evaluate(self, values: Array) -> Array:
+        """Evaluate the expression given the values of its slots, in :attr:`slot_indices` order."""
+        return self._fn(values)
+
+    def __call__(self, params: Array) -> Array:
+        """Evaluate the expression for one parameter vector."""
+        return self.evaluate(params[jnp.asarray(self.slot_indices)])
+
+
+def _literal_value(expression: Any) -> float | complex:
+    """Evaluate a parameter-free expression (a number, ``pi/2``, ``SIN(pi/4)``, ``1i``) to a scalar."""
+    value = complex(np.asarray(expression, dtype=complex).item()) if not isinstance(expression, complex) else expression
+    return value.real if value.imag == 0 else value
+
+
+def _compile_expression(expression: Any, slot_of: Callable[[MemoryReference], int]) -> ParameterExpression:
+    """Compile a Quil expression over memory references into a :class:`ParameterExpression`.
+
+    :param expression: The gate parameter; must contain at least one memory reference.
+    :param slot_of: Maps a memory reference to its slot in the parameter vector.
+    :raises ValueError: If the expression contains an unbound ``DEFGATE`` parameter.
+    """
+    references: list[MemoryReference] = []
+    is_complex = False
+
+    def build(node: Any) -> tuple[Callable[[Array], Array], str]:
+        nonlocal is_complex
+        if isinstance(node, MemoryReference):
+            if node not in references:
+                references.append(node)
+            index = references.index(node)
+            return (lambda values, index=index: values[index]), f"%{index}"
+        if isinstance(node, Parameter):
+            raise ValueError(f"Unbound DEFGATE parameter {node} in gate argument {expression}.")
+        if isinstance(node, BinaryExp):
+            left, left_key = build(node.op1)
+            right, right_key = build(node.op2)
+            operator = _BINARY_OPERATORS[type(node)]
+            return (
+                lambda values: operator(left(values), right(values))
+            ), f"({left_key}{node.operator.strip()}{right_key})"
+        if isinstance(node, Function):
+            inner, inner_key = build(node.expression)
+            if node.name not in _FUNCTIONS:
+                raise ValueError(f"Unknown Quil function {node.name!r} in gate argument {expression}.")
+            function = _FUNCTIONS[node.name]
+            is_complex = is_complex or node.name == "CIS"
+            return (lambda values: function(inner(values))), f"{node.name}({inner_key})"
+        literal = _literal_value(node)
+        is_complex = is_complex or isinstance(literal, complex)
+        return (lambda values, literal=literal: jnp.asarray(literal)), repr(literal)
+
+    fn, key = build(expression)
+    return ParameterExpression(tuple(slot_of(ref) for ref in references), key, is_complex, fn)
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,40 +203,22 @@ class ParametricGate:
     """A parametric gate whose matrix depends on runtime parameters.
 
     Calling an instance with the flat parameter vector returns the gate's ``qx.Unitary``.  The
-    constructor and parameter layout are exposed so that gates of the same kind can be built
+    constructor and argument layout are exposed so that gates of the same kind can be built
     together in one vectorised operation.
-
-    A gate argument is either a literal number or an affine function ``scale * theta + offset``
-    of one slot of the parameter vector -- which covers a bare memory reference (``RX(theta[0])``)
-    as well as the arithmetic quilc emits when it compiles parametric programs
-    (``RX(theta[0]/2 + pi)``).
 
     :param gate_fn: The quax gate constructor (e.g. ``qx.gates.RX``), or a parametric
         ``DEFGATE`` callable.
-    :param param_indices: For each gate argument, its slot in the flat parameter vector, or
-        ``-1`` when the argument is a literal number.  Gates that read the same memory
-        reference share a slot; see :func:`expand_program`.
-    :param concrete_values: For each gate argument, its literal value (``nan`` for a slot).
-    :param scales: For each gate argument, the factor multiplying the slot value (``1`` for a
-        bare reference; unused for a literal).
-    :param offsets: For each gate argument, the constant added to the scaled slot value (``0``
-        for a bare reference; unused for a literal).
+    :param arguments: One entry per gate argument: a literal number, or a
+        :class:`ParameterExpression` reading the parameter vector.  Gates that read the same
+        memory reference share a slot; see :func:`expand_program`.
     """
 
     gate_fn: Callable[..., qx.Operator]
-    param_indices: tuple[int, ...]
-    concrete_values: tuple[float, ...]
-    scales: tuple[float, ...]
-    offsets: tuple[float, ...]
+    arguments: tuple[float | complex | ParameterExpression, ...]
 
     def __call__(self, params: Array) -> qx.Unitary:
         """Build the gate for one parameter vector."""
-        resolved: list[Any] = [
-            params[pi] * scale + offset if pi >= 0 else cv
-            for pi, cv, scale, offset in zip(
-                self.param_indices, self.concrete_values, self.scales, self.offsets, strict=True
-            )
-        ]
+        resolved: list[Any] = [arg(params) if isinstance(arg, ParameterExpression) else arg for arg in self.arguments]
         result = self.gate_fn(*resolved)
         if not isinstance(result, qx.Unitary):
             result = qx.Unitary.from_matrix(result.matrix, result.dims)
@@ -393,48 +444,34 @@ def expand_program(
             if isinstance(gate_def, qx.Unitary):
                 raise ValueError(f"Gate '{gate_name}' is not parametric but {inst.out()!r} passes parameters.")
 
-            param_indices: list[int] = []
-            concrete_values: list[float] = []
-            scales: list[float] = []
-            offsets: list[float] = []
+            arguments: list[float | complex | ParameterExpression] = []
             for p in inst.params:
-                form = _affine_form(p)
-                if form is None:
-                    # Each ParametricGate argument is an affine function of a single slot of the
-                    # parameter vector; that is what lets the simulator batch same-shaped gates
-                    # under one ``jax.vmap`` with per-gate scale and offset arrays.  Anything
-                    # else -- a product of two references, SIN(theta), theta^2 -- would need
-                    # its own traced graph.
-                    mrefs = _contained_mrefs(p)  # type: ignore[arg-type]
-                    raise ValueError(
-                        f"Gate parameter {p} in {inst.out()!r} is not an affine expression "
-                        f"(a * theta + b) in a single memory reference; it involves "
-                        f"{sorted(str(m) for m in mrefs)}. Only such expressions are supported: "
-                        "rewrite the program, or substitute concrete values before simulating."
-                    )
-                ref, scale, offset = form
-                if ref is None:
-                    # A concrete number: a compile-time constant for this gate.
-                    param_indices.append(-1)
-                    concrete_values.append(offset)
-                    scales.append(1.0)
-                    offsets.append(0.0)
-                elif ref.name in measure_regs:
+                if not _contained_mrefs(p):  # type: ignore[arg-type]
+                    # A literal: a compile-time constant for this gate.
+                    arguments.append(_literal_value(p))
+                    continue
+                feed_forward = [m for m in _contained_mrefs(p) if m.name in measure_regs]  # type: ignore[arg-type]
+                if feed_forward:
                     # Classically-conditioned angle: the value is only known mid-circuit.
                     raise ValueError(
                         f"Gate parameter {p} in {inst.out()!r} reads memory region "
-                        f"'{ref.name}', which is written by a MEASURE in this program. "
+                        f"'{feed_forward[0].name}', which is written by a MEASURE in this program. "
                         "Feed-forward (classically-conditioned) parameters are not supported."
                     )
-                else:
-                    param_indices.append(slots.setdefault((ref.name, ref.offset), len(slots)))
-                    concrete_values.append(float("nan"))
-                    scales.append(scale)
-                    offsets.append(offset)
+                expression = _compile_expression(p, lambda ref: slots.setdefault((ref.name, ref.offset), len(slots)))
+                if (
+                    expression.is_complex
+                    and gate_name in qx.gates.QUANTUM_GATES
+                    and gate_name not in (custom_gates or {})
+                ):
+                    raise ValueError(
+                        f"Gate parameter {p} in {inst.out()!r} is complex-valued (it contains CIS or a complex "
+                        f"literal), but the built-in gate {gate_name} takes real angles. Complex arguments are "
+                        "only supported for DEFGATE gates."
+                    )
+                arguments.append(expression)
 
-            return ParametricGate(
-                gate_def, tuple(param_indices), tuple(concrete_values), tuple(scales), tuple(offsets)
-            ), qubits
+            return ParametricGate(gate_def, tuple(arguments)), qubits
 
         # Fixed gate → resolve to Unitary now.
         unitary = get_instruction_unitary(inst, custom_gates=custom_gates)
