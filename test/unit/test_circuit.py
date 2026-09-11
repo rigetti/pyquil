@@ -28,6 +28,7 @@ costs and catch very different bugs:
 """
 
 import itertools
+import warnings
 from typing import Any, cast
 
 import jax
@@ -316,6 +317,24 @@ class TestToKrausMaps:
     def test_preserves_the_channel(self):
         circuit = random_circuit((2, 2), 8, jax.random.key(5), channel_probability=1.0)
         assert_same_channel(circuit.to_kraus_maps().full_operator(), circuit.full_operator())
+
+    def test_warns_when_decomposing_at_32_bit_precision(self):
+        circuit = Circuit.from_ops([(qx.gates.H, (0,))]).to_superops()
+        jax.config.update("jax_enable_x64", False)
+        try:
+            with pytest.warns(UserWarning, match="32-bit"):
+                circuit.to_kraus_maps()
+        finally:
+            jax.config.update("jax_enable_x64", True)
+        # At 64 bits, and for a circuit with nothing to decompose, no warning is issued.
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            circuit.to_kraus_maps()
+            jax.config.update("jax_enable_x64", False)
+            try:
+                Circuit.from_ops([(qx.gates.H, (0,))]).to_kraus_maps()
+            finally:
+                jax.config.update("jax_enable_x64", True)
 
     def test_truncation_drops_negligible_kraus_operators(self):
         unitary_channel = Circuit.from_ops([(qx.gates.H, (0,))]).to_superops()

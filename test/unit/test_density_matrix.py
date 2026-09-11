@@ -40,6 +40,9 @@ Three independent yardsticks are used, in decreasing order of preference:
     ``X 0`` on a two-qubit register gives ``|10>``. The rest of pyQuil is little-endian.
 """
 
+import warnings
+
+import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
@@ -416,6 +419,110 @@ class TestMeasurementAndReset:
         channel = SuperopResetChannel.from_reset_fidelity(ResetQubit(0), fidelity=0.5)
         rho = _dm(Program(X(0)) + Program(reset), qubits=[0], noise_model=NoiseModel.from_channels([channel]))
         np.testing.assert_allclose(rho, np.eye(2) / 2, atol=1e-9)
+
+
+class TestOutcomeProbabilities:
+    """``outcome_probabilities`` reads the terminal measurements, readout error included."""
+
+    @staticmethod
+    def _measured(*instructions, qubits=(0,)):
+        program = Program()
+        program += Declare("ro", "BIT", len(qubits))
+        for inst in instructions:
+            program += inst
+        for i, q in enumerate(qubits):
+            program += MEASURE(q, ("ro", i))
+        return program
+
+    def test_ideal_single_qubit_measurement(self):
+        sim = DensityMatrixSimulator(self._measured(H(0)))
+        np.testing.assert_allclose(sim.outcome_probabilities(), [0.5, 0.5], atol=1e-10)
+        assert sim.measured_qubits == (0,)
+
+    def test_joint_distribution_of_a_bell_pair(self):
+        sim = DensityMatrixSimulator(self._measured(H(0), CNOT(0, 1), qubits=(0, 1)))
+        probs = sim.outcome_probabilities()
+        assert probs.shape == (2, 2)
+        np.testing.assert_allclose(probs, [[0.5, 0.0], [0.0, 0.5]], atol=1e-10)
+        assert sim.measured_qubits == (0, 1)
+
+    def test_axes_follow_measurement_order_not_qubit_order(self):
+        program = Program()
+        program += Declare("ro", "BIT", 2)
+        program += X(1)
+        program += MEASURE(1, ("ro", 0))
+        program += MEASURE(0, ("ro", 1))
+        sim = DensityMatrixSimulator(program)
+        assert sim.measured_qubits == (1, 0)
+        np.testing.assert_allclose(sim.outcome_probabilities(), [[0.0, 0.0], [1.0, 0.0]], atol=1e-10)
+
+    def test_unmeasured_qubits_are_traced_out(self):
+        sim = DensityMatrixSimulator(self._measured(H(0), CNOT(0, 1), RY(0.4, 2), qubits=(1,)))
+        np.testing.assert_allclose(sim.outcome_probabilities(), [0.5, 0.5], atol=1e-10)
+
+    def test_readout_error_is_included(self):
+        channel = MeasurementChannel.from_readout_fidelity(MEASURE(0, None), fidelity=0.8, asymmetry=0.5)
+        sim = DensityMatrixSimulator(self._measured(RX(0.7, 0)), noise_model=NoiseModel.from_channels([channel]))
+        populations = np.array([np.cos(0.35) ** 2, np.sin(0.35) ** 2])
+        expected = np.asarray(channel.process.confusion_matrix) @ populations
+        np.testing.assert_allclose(sim.outcome_probabilities(), expected, atol=1e-10)
+        # The state itself is unaffected by classification error: the populations are exact.
+        np.testing.assert_allclose(np.real(np.diag(sim.compute().matrix)), populations, atol=1e-10)
+
+    def test_mid_circuit_measurement_is_not_read_out(self):
+        program = Program()
+        program += Declare("ro", "BIT", 1)
+        program += H(0)
+        program += MEASURE(0, ("ro", 0))
+        program += X(0)
+        program += MEASURE(0, ("ro", 0))
+        sim = DensityMatrixSimulator(program)
+        assert sim.measured_qubits == (0,)
+        np.testing.assert_allclose(sim.outcome_probabilities(), [0.5, 0.5], atol=1e-10)
+
+    def test_compute_is_unchanged_by_holding_measurements_back(self):
+        channel = MeasurementChannel.from_readout_fidelity(MEASURE(0, None), fidelity=0.8, asymmetry=0.5)
+        noise_model = NoiseModel.from_channels([channel])
+        program = self._measured(RX(0.7, 0), CNOT(0, 1), qubits=(0,))
+        rho = _dm(program, noise_model=noise_model)
+        # Terminal MEASURE held back and re-applied == collapsed inline (via a total channel).
+        collapsed = program.copy()
+        collapsed += I(0)  # a later operation on qubit 0 makes the measurement non-terminal
+        np.testing.assert_allclose(rho, _dm(collapsed, noise_model=noise_model), atol=1e-12)
+
+    def test_jit_and_grad(self):
+        program = Program()
+        program += Declare("ro", "BIT", 1)
+        program += Declare("theta", "REAL", 1)
+        program += RX(MemoryReference("theta", 0), 0)
+        program += MEASURE(0, ("ro", 0))
+        sim = DensityMatrixSimulator(program)
+        theta = 0.3
+        params = jnp.array([theta])
+        np.testing.assert_allclose(jax.jit(sim.outcome_probabilities)(params), sim.outcome_probabilities(params))
+        grad = jax.grad(lambda p: sim.outcome_probabilities(p)[1])(params)
+        np.testing.assert_allclose(grad, [np.sin(theta) / 2], atol=1e-10)
+
+    def test_program_without_measurement_reports_clearly(self):
+        sim = DensityMatrixSimulator(Program(H(0)))
+        with pytest.raises(ValueError, match="no terminal measurement"):
+            sim.outcome_probabilities()
+
+
+class TestPrecisionWarnings:
+    def test_warns_about_reduced_matmul_precision_on_accelerators(self, monkeypatch):
+        monkeypatch.setattr(jax, "default_backend", lambda: "gpu")
+        with pytest.warns(UserWarning, match="matmul precision"):
+            DensityMatrixSimulator(Program(H(0)))
+        with jax.default_matmul_precision("highest"), warnings.catch_warnings():
+            warnings.simplefilter("error")
+            DensityMatrixSimulator(Program(H(0)))
+
+    def test_no_matmul_warning_on_cpu(self, monkeypatch):
+        monkeypatch.setattr(jax, "default_backend", lambda: "cpu")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            DensityMatrixSimulator(Program(H(0)))
 
 
 class TestQutritsAndLeakage:

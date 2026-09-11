@@ -42,6 +42,7 @@ each operation touches, one plan serves every parameter value of a parametric ci
 from __future__ import annotations
 
 import heapq
+import warnings
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from functools import cached_property, reduce
@@ -291,12 +292,28 @@ class Circuit:
         a state vector, deterministically or by sampling, so lifting them would only cost
         precision and memory.
 
+        The decomposition diagonalises each channel's Choi matrix and keeps the eigenvectors
+        whose eigenvalues exceed ``atol``.  At JAX's default 32-bit precision that threshold
+        sits at the resolution of the arithmetic itself, so a warning is issued when a channel
+        is decomposed with ``jax_enable_x64`` off; enable 64-bit mode before building or
+        converting noise models.
+
         :param atol: Kraus operators with smaller norm are discarded.
         :return: A circuit with no dense superoperators.
         """
         converted: list[Placement] = []
+        decomposed = False
         for op, subsystem in self.ops:
             if isinstance(op, qx.SuperOperator) and not isinstance(op, qx.KrausMap):
+                if not decomposed and not jax.config.jax_enable_x64:
+                    warnings.warn(
+                        "Kraus decomposition at 32-bit precision: JAX's jax_enable_x64 flag is off, so the "
+                        f"eigendecomposition and the atol={atol} truncation run at float32 resolution. "
+                        "Enable 64-bit mode (jax.config.update('jax_enable_x64', True), or JAX_ENABLE_X64=1) "
+                        "before building or converting noise models.",
+                        stacklevel=2,
+                    )
+                decomposed = True
                 converted.append((qx.truncate_kraus(qx.to_kraus(op), atol=atol), subsystem))
             else:
                 converted.append((op, subsystem))

@@ -379,7 +379,13 @@ def expand_program(
     def _resolve_measurement(inst: Measurement) -> tuple[CircuitOp, tuple[int, ...]]:
         """Resolve a measurement instruction to a ``QuantumInstrument``."""
         qubits = tuple(inst.get_qubit_indices())
-        channel = noise_model.get_channel(inst) if noise_model is not None else None
+        channel = None
+        if noise_model is not None:
+            # Readout channels are keyed by the measured qubit, not by where the bit is stored:
+            # ``MEASURE 0 ro[3]`` and ``MEASURE 0`` read the same qubit with the same error.
+            channel = noise_model.get_channel(inst)
+            if channel is None and inst.classical_reg is not None:
+                channel = noise_model.get_channel(Measurement(inst.qubit, None))
         instrument = (
             channel.process
             if isinstance(channel, MeasurementChannel)

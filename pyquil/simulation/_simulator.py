@@ -56,6 +56,7 @@ metric can be evaluated inside the same transformation::
 from __future__ import annotations
 
 import math
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
@@ -87,6 +88,28 @@ StateT = TypeVar("StateT", qx.StateVector, qx.DensityMatrix)
 # ══════════════════════════════════════════════════════════
 # Base class
 # ══════════════════════════════════════════════════════════
+
+
+def _warn_if_matmul_precision_reduced() -> None:
+    """Warn when an accelerator backend would run matrix products at reduced precision.
+
+    On GPUs and TPUs JAX defaults to fast, reduced-precision matrix multiplication (TF32 or
+    bfloat16 passes) unless ``jax_default_matmul_precision`` is ``"highest"``.  That is a poor
+    fit for simulating quantum circuits, where errors compound over every operator applied.
+    CPUs always multiply at full precision, so the flag is irrelevant there.
+    """
+    if jax.default_backend() == "cpu":
+        return
+    precision = jax.config.jax_default_matmul_precision
+    if precision in ("highest", "float32"):
+        return
+    warnings.warn(
+        f"JAX's default matmul precision is {precision!r} on the {jax.default_backend()!r} backend, which "
+        "lets matrix products run at reduced (TF32/bfloat16) precision. Set "
+        "jax.config.update('jax_default_matmul_precision', 'highest') (or JAX_DEFAULT_MATMUL_PRECISION=highest) "
+        "before simulating.",
+        stacklevel=3,
+    )
 
 
 class ProgramSimulator(ABC):
@@ -130,6 +153,7 @@ class ProgramSimulator(ABC):
             qubit set, or if the program contains an instruction the simulator does not
             support.
         """
+        _warn_if_matmul_precision_reduced()
         self._validate(program)
         self.qubits: tuple[int, ...] = self._register(program, qubits)
 
@@ -137,7 +161,7 @@ class ProgramSimulator(ABC):
         # backend-agnostic: a MEASURE always arrives as a QuantumInstrument, and a backend that
         # does not branch on outcomes collapses it in ``_prepare_ops``.
         resolution = resolve_program(program, noise_model, list(self.qubits))
-        resolution = replace(resolution, ops=self._prepare_ops(resolution.ops))
+        resolution = replace(resolution, ops=self._prepare_ops(resolution.ops, resolution.subsystems))
         self._validate_ops(resolution.ops, resolution.subsystems)
         self._resolution = resolution
         self.dims: tuple[int, ...] = resolution.dims
@@ -197,12 +221,18 @@ class ProgramSimulator(ABC):
         accepts.  Override to narrow, e.g. a unitary-only backend rejecting ``MEASURE``.
         """
 
-    def _prepare_ops(self, ops: tuple[ExpandedOp, ...]) -> tuple[ExpandedOp, ...]:
+    def _prepare_ops(
+        self, ops: tuple[ExpandedOp, ...], subsystems: tuple[tuple[int, ...], ...]
+    ) -> tuple[ExpandedOp, ...]:
         """Adapt the expanded operators to what this backend evolves.
 
         The default keeps them as expanded, which retains a ``MEASURE`` as a sampleable
         ``QuantumInstrument``.  Override to convert; see
-        :meth:`_DifferentiableSimulator._prepare_ops`.
+        :meth:`_DifferentiableSimulator._prepare_ops`.  The returned tuple must have one entry
+        per input operation, so that ``subsystems`` still lines up with it.
+
+        :param ops: The expanded operators, in program order.
+        :param subsystems: The register indices each operator acts on.
         """
         return ops
 
@@ -354,8 +384,12 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
     the initial state (:meth:`_initial_state`) and how one operator is applied
     (:meth:`_make_branch`).
 
-    Measurements are replaced by their dephasing channel (:meth:`_prepare_ops`), so they merge
-    with neighbouring operations like any other channel.
+    A measurement followed by further operations on its qudits is replaced by its total
+    channel (:meth:`_prepare_ops`), so it merges with neighbouring operations like any other
+    channel.  A *terminal* measurement -- one nothing acts on afterwards -- is held back
+    instead: :meth:`compute` applies its total channel last, and the density-matrix backend
+    reads the outcome distribution off the pre-measurement state in
+    :meth:`DensityMatrixSimulator.outcome_probabilities`.
     """
 
     def __init__(
@@ -430,15 +464,47 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
     # -- final implementation -----------------------------
 
     @final
-    def _prepare_ops(self, ops: tuple[ExpandedOp, ...]) -> tuple[ExpandedOp, ...]:
-        """Replace every measurement instrument by its total channel.
+    def _prepare_ops(
+        self, ops: tuple[ExpandedOp, ...], subsystems: tuple[tuple[int, ...], ...]
+    ) -> tuple[ExpandedOp, ...]:
+        """Collapse mid-circuit measurements to their total channel; hold terminal ones back.
 
-        Neither simulator in this family records measurement outcomes, so a ``MEASURE`` is
-        evolved as the dephasing channel obtained by summing over its outcomes.  The resulting
-        state is the outcome-averaged density matrix; the classical register the measurement
-        writes is not simulated.
+        This family evolves the state deterministically, so a measurement whose qudits are
+        acted on again later can only enter as the dephasing channel obtained by summing over
+        its outcomes.  A terminal measurement -- one whose qudits nothing touches afterwards --
+        is taken out of the operator stack (its slot becomes the identity, which the merge plan
+        absorbs) and remembered in ``_terminal``.  :meth:`compute` applies its total channel
+        after the stack, so the returned state is the same outcome-averaged state either way,
+        while :meth:`DensityMatrixSimulator.outcome_probabilities` can still read the joint
+        outcome distribution off the state just before the measurements.
         """
-        return tuple(qx.to_superop(op.total_channel()) if isinstance(op, qx.QuantumInstrument) else op for op in ops)
+        prepared = list(ops)
+        terminal: list[tuple[int, qx.QuantumInstrument, tuple[int, ...]]] = []
+        for index, (op, subsystem) in enumerate(zip(ops, subsystems, strict=True)):
+            if not isinstance(op, qx.QuantumInstrument):
+                continue
+            touched_later = any(set(subsystem) & set(later) for later in subsystems[index + 1 :])
+            if touched_later:
+                prepared[index] = qx.to_superop(op.total_channel())
+            else:
+                terminal.append((index, op, subsystem))
+                in_dims = op.dims[1]
+                identity = jnp.eye(math.prod(in_dims), dtype=complex)
+                prepared[index] = qx.to_superop(qx.Unitary.from_matrix(identity, (in_dims, in_dims)))
+        self._terminal: tuple[tuple[int, qx.QuantumInstrument, tuple[int, ...]], ...] = tuple(terminal)
+        self._terminal_channels: tuple[tuple[qx.SuperOp, tuple[int, ...]], ...] = tuple(
+            (qx.to_superop(op.total_channel()), subsystem) for _, op, subsystem in terminal
+        )
+        return tuple(prepared)
+
+    @final
+    def _pre_measurement_state(self, params: Array | None) -> StateT:
+        """Evolve the initial state through the operator stack, terminal measurements excluded."""
+        # No operations (e.g. empty program): the initial state is the result, and
+        # ``lax.switch`` cannot be given zero branches.
+        if not self._branches:
+            return self._state0
+        return self._apply(self._state0, self._build_stack(self._default_params(params)))
 
     @final
     def compute(self, params: Array | None = None) -> StateT:  # type: ignore[override]
@@ -447,15 +513,20 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
         Builds the merged operators for *params* and applies them to the initial state.  The
         call can be wrapped in ``jax.jit``, ``jax.grad`` or ``jax.vmap``.
 
+        A ``MEASURE`` contributes its total channel, so the returned density matrix is the
+        state averaged over measurement outcomes; the outcome distribution itself is available
+        from :meth:`DensityMatrixSimulator.outcome_probabilities`.
+
         :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
             pass ``None``) for a parameter-free program.
         :return: The final state: a ``StateVector`` or a ``DensityMatrix``.
         """
-        # No operations (e.g. empty program): the initial state is the result, and
-        # ``lax.switch`` cannot be given zero branches.
-        if not self._branches:
-            return self._state0
-        return self._apply(self._state0, self._build_stack(self._default_params(params)))
+        state = self._pre_measurement_state(params)
+        for channel, subsystem in self._terminal_channels:
+            # Only the density-matrix backend can hold an instrument, so ``state`` is a
+            # ``DensityMatrix`` whenever this loop runs.
+            state = cast(StateT, qx.targeted_apply_superop(channel, cast(qx.DensityMatrix, state), subsystem))
+        return state
 
     @final
     def __call__(self, params: Array | None = None) -> StateT:
@@ -815,11 +886,42 @@ class DensityMatrixSimulator(_DifferentiableSimulator[qx.DensityMatrix]):
         params = sim.linearize(memory_map)
         rho = jax.jit(sim.compute)(params)
 
-    ``MEASURE`` is applied as a dephasing channel: the resulting state is the correct
-    *reduced* density matrix averaged over outcomes, but no classical outcome is recorded, so
-    the register written by the measurement is not simulated.  Arguments are as
-    :meth:`ProgramSimulator.__init__`.
+    :meth:`compute` returns the density matrix averaged over measurement outcomes: a
+    ``MEASURE`` enters as its total channel and no classical register is simulated.  The
+    outcome statistics of the program's *terminal* measurements -- those nothing acts on
+    afterwards, which is where a program normally reads out -- come from
+    :meth:`outcome_probabilities`, which includes any readout error the noise model assigns
+    to them::
+
+        probs = jax.jit(sim.outcome_probabilities)(params)  # shape (2, 2) for two measured qubits
+        probs[1, 0]  # P(qubit A -> 1, qubit B -> 0)
+
+    Arguments are as :meth:`ProgramSimulator.__init__`.
     """
+
+    def __init__(
+        self,
+        program: Program,
+        qubits: Sequence[int] | None = None,
+        *,
+        noise_model: NoiseModelLike | None = None,
+        max_subsystem_size: int = 2,
+    ) -> None:
+        """Prepare a density-matrix simulator.
+
+        Arguments are as :meth:`ProgramSimulator.__init__`.
+        """
+        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
+        for _, _, subsystem in self._terminal:
+            if len(subsystem) != 1:
+                raise NotImplementedError(
+                    f"A measurement instrument on {len(subsystem)} qudits (register indices {subsystem}) is not "
+                    "supported; outcome probabilities are only computed for single-qudit measurements."
+                )
+        # POVM element of each terminal measurement, ``E[k, b, a] = Tr[S_k(|a><b|)]``, so that
+        # ``P(k) = sum_ab E[k, b, a] rho[a, b] = Tr[E_k rho]``.  Built by applying each
+        # outcome's map to the matrix units, which needs no Kraus decomposition.
+        self._povms: tuple[Array, ...] = tuple(_povm_elements(instrument) for _, instrument, _ in self._terminal)
 
     @property
     def _as_superop(self) -> bool:
@@ -827,6 +929,56 @@ class DensityMatrixSimulator(_DifferentiableSimulator[qx.DensityMatrix]):
 
     def _initial_state(self) -> qx.DensityMatrix:
         return qx.zero_state_matrix(dims=self.dims)
+
+    @property
+    def measured_qubits(self) -> tuple[int, ...]:
+        """The qubit each axis of :meth:`outcome_probabilities` refers to, in program order."""
+        return tuple(self.qubits[subsystem[0]] for _, _, subsystem in self._terminal)
+
+    def outcome_probabilities(self, params: Array | None = None) -> Array:
+        """Compute the joint distribution of the program's terminal measurement outcomes.
+
+        Axis ``j`` of the result runs over the outcomes of the ``j``-th terminal measurement in
+        program order, on qubit ``measured_qubits[j]``; ``probs[1, 0]`` is the probability that
+        the first measured qubit reads ``1`` and the second ``0``.  Readout error assigned by
+        the noise model is included, so on a noiseless ``|0>`` a measurement with 90% readout
+        fidelity gives ``[0.9, 0.1]`` even though :meth:`compute` returns ``|0><0|``.
+
+        Only terminal measurements count: a ``MEASURE`` followed by another operation on the
+        same qubit is applied as its total channel and does not appear here.  Like
+        :meth:`compute`, this is a pure JAX function of ``params``.
+
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or pass ``None``)
+            for a parameter-free program.
+        :return: Real array of shape ``(n_1, ..., n_m)``, ``n_j`` being the number of outcomes
+            of the ``j``-th terminal measurement.  The entries sum to one.
+        :raises ValueError: If the program has no terminal measurement.
+        """
+        if not self._terminal:
+            raise ValueError(
+                "The program has no terminal measurement to read out. Add a MEASURE that is not followed by "
+                "another operation on the same qubit, or use compute() for the state itself."
+            )
+        rho = self._pre_measurement_state(params).matrix
+        n = len(self.dims)
+        tensor = jnp.reshape(rho, self.dims + self.dims)
+        # Label the row axis of qudit q as q and its column axis as n + q; a measured qudit's pair
+        # is contracted with its POVM tensor, an unmeasured one is traced out by sharing a label.
+        row_labels = list(range(n))
+        col_labels = list(range(n, 2 * n))
+        operands: list[Any] = []
+        outcome_labels: list[int] = []
+        for j, ((_, _, subsystem), povm) in enumerate(zip(self._terminal, self._povms, strict=True)):
+            (qudit,) = subsystem
+            label = 2 * n + j
+            outcome_labels.append(label)
+            operands += [povm, [label, col_labels[qudit], row_labels[qudit]]]
+        measured = {subsystem[0] for _, _, subsystem in self._terminal}
+        for qudit in range(n):
+            if qudit not in measured:
+                col_labels[qudit] = row_labels[qudit]
+        probabilities = jnp.einsum(tensor, row_labels + col_labels, *operands, outcome_labels)
+        return jnp.real(probabilities)
 
     def _make_branch(
         self, base: tuple[int, ...], base_dims: tuple[int, ...], total_dim: int
@@ -838,6 +990,30 @@ class DensityMatrixSimulator(_DifferentiableSimulator[qx.DensityMatrix]):
             return qx.targeted_apply_superop(superop, rho, base)
 
         return branch
+
+
+def _povm_elements(instrument: qx.QuantumInstrument) -> Array:
+    """Return the POVM elements of *instrument* as an array ``E[k, b, a] = (E_k)_{ba}``.
+
+    ``(E_k)_{ba} = Tr[S_k(|a><b|)]`` for the outcome-``k`` map ``S_k``, so ``Tr[E_k rho]`` is the
+    probability of outcome ``k`` on ``rho``.  Each map is applied to the matrix units directly;
+    no Kraus decomposition (and hence no eigendecomposition) is involved.
+    """
+    in_dims = instrument.dims[1]
+    d = math.prod(in_dims)
+    units = jnp.eye(d * d, dtype=complex).reshape(d * d, d, d)  # unit (a, b) at flat index a * d + b
+    elements = []
+    for k in range(instrument.num_outcomes):
+        superop, _ = instrument.outcome_superop(k)
+
+        def trace_after(unit: Array, superop: qx.SuperOp = superop) -> Array:
+            return jnp.trace(
+                qx.apply_superop_to_density_matrix(superop, qx.DensityMatrix.from_matrix(unit, in_dims)).matrix
+            )
+
+        traces = jax.vmap(trace_after)(units).reshape(d, d)  # traces[a, b] = Tr[S_k(|a><b|)]
+        elements.append(traces.T)  # E[b, a]
+    return jnp.stack(elements)
 
 
 __all__ = [

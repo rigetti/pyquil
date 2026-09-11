@@ -202,7 +202,9 @@ Expansion does several things at once:
   no channel resolve to their ideal operator. The lookup is by instruction
   *equality* — gate name, parameters, qubits and modifiers together — so
   ``RX(pi/2) 0`` and ``RX(pi/2) 1`` are distinct keys, and a channel attached to
-  ``RX(pi/2) 0`` does not apply to ``RX(pi/4) 0``.
+  ``RX(pi/2) 0`` does not apply to ``RX(pi/4) 0``. Measurements are the one exception:
+  readout error belongs to the qubit, not to the bit it is stored in, so ``MEASURE 0 ro[3]``
+  falls back to the channel keyed by ``MEASURE 0``.
 
 * **Most-specific typing.** Operators are kept in their tightest native type —
   ideal gates as ``Unitary``, channels as ``SuperOp``, measurements as
@@ -365,8 +367,10 @@ type. Each simulator then converts the merged circuit to the representation it
 evolves, using the methods on :class:`~pyquil.simulation._circuit.Circuit`:
 
 * **Density matrix** (:meth:`~pyquil.simulation._circuit.Circuit.to_superops`): everything becomes a
-  ``SuperOp`` (a ``QuantumInstrument`` is collapsed to its total channel, since
-  the density-matrix backend does not branch on outcomes).
+  ``SuperOp``. A ``QuantumInstrument`` is collapsed to its total channel, since the
+  density-matrix backend does not branch on outcomes -- except that a *terminal* measurement
+  (one nothing acts on afterwards) is held back so that its outcome distribution can be read
+  off the pre-measurement state; see `Density matrix`_.
 
 * **Trajectory** (:meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`): a ``SuperOp`` is
   converted to a (truncated) ``KrausMap``; ``Unitary``, ``KrausMap``, and
@@ -456,8 +460,10 @@ Cirq, Qiskit and PennyLane where the design allows it:
   and ``plan`` the :class:`~pyquil.simulation._circuit.MergePlan` behind it.
 * **Evaluation**: ``compute(params)`` is the entry point and returns a quax state
   (``StateVector`` or ``DensityMatrix``); ``params`` may be omitted for a program
-  with no runtime parameters. The trajectory simulator adds a PRNG key and returns
-  the sampled outcomes alongside the state, and offers ``sample`` for outcomes
+  with no runtime parameters. The density-matrix simulator adds
+  ``outcome_probabilities(params)``, the joint distribution of the program's terminal
+  measurements with readout error included. The trajectory simulator adds a PRNG key and
+  returns the sampled outcomes alongside the state, and offers ``sample`` for outcomes
   alone.
 
 Samples are not the only thing worth computing. Because ``compute`` returns a
@@ -588,14 +594,25 @@ Density matrix
 For noisy, deterministic evolution, propagate the density matrix
 :math:`\rho \mapsto \mathcal{E}_D \circ \cdots \circ \mathcal{E}_1 (\rho)` exactly.
 This is the backend to use for expectation values and process metrics under
-noise, since it tracks the full mixed state without sampling. Measurements are
-applied as their total (outcome-averaged) channel.
+noise, since it tracks the full mixed state without sampling. ``compute`` applies each
+measurement as its total (outcome-averaged) channel, so the returned state carries no
+classical record. The outcome statistics come from ``outcome_probabilities`` instead: for the
+program's *terminal* measurements -- those with no later operation on the same qubit, which
+is where a program normally reads out -- it returns the joint distribution
+:math:`P(k_1, \ldots, k_m) = \mathrm{Tr}[(E_{k_1} \otimes \cdots \otimes E_{k_m})\, \rho]`
+over the POVM elements :math:`E_k` of each measurement instrument, contracted against the
+state just before the measurements. A readout-error instrument's POVM is not projective, so
+the distribution includes the classification error even though the populations of the
+returned state do not -- which is what makes this backend a differentiable stand-in for a
+sampler. Axis ``j`` of the result belongs to ``measured_qubits[j]``, in program order. A
+measurement that is followed by other operations on its qubit is mid-circuit, enters only as
+its total channel, and is not read out.
 
 .. code-block:: python
 
    import jax.numpy as jnp
    from pyquil import Program
-   from pyquil.gates import RX
+   from pyquil.gates import MEASURE, RX
    from pyquil.noise._channels import Channel
    from pyquil.noise._noise_model import NoiseModel
    from pyquil.simulation._simulator import DensityMatrixSimulator
@@ -607,6 +624,11 @@ applied as their total (outcome-averaged) channel.
 
    sim = DensityMatrixSimulator(Program(gate), noise_model=noise)
    rho = sim.compute()                        # final density matrix (a quax DensityMatrix)
+
+   program = Program(gate)
+   program += MEASURE(0, None)
+   sim = DensityMatrixSimulator(program, noise_model=noise)
+   probs = sim.outcome_probabilities()        # P(0), P(1) for the terminal MEASURE
 
 A device-realistic model can be built directly from an instruction set
 architecture with :meth:`NoiseModel.from_isa <pyquil.noise._noise_model.NoiseModel.from_isa>`,
@@ -671,6 +693,25 @@ device**, so ``n`` devices run ``n * batch_size`` trajectories per batch and
 each device's memory footprint matches a single-device run.
 
 
+Numerical precision
+===================
+
+The simulators never change JAX's global precision settings; two of them matter here.
+
+* **64-bit arithmetic.** JAX computes in 32 bits unless ``jax_enable_x64`` is set
+  (``jax.config.update("jax_enable_x64", True)`` or ``JAX_ENABLE_X64=1``). State evolution
+  at 32 bits is usually adequate, but Kraus decomposition is not: :meth:`Circuit.to_kraus_maps
+  <pyquil.simulation._circuit.Circuit.to_kraus_maps>` diagonalises each channel's Choi matrix and
+  drops eigenvalues below ``atol=1e-6``, which is the resolution of float32 arithmetic itself.
+  It therefore warns when it decomposes a channel with 64-bit mode off. Build and convert
+  noise models at 64 bits; the trajectory path depends on it.
+
+* **Matrix-multiplication precision.** On GPUs and TPUs, JAX's default matmul precision
+  allows reduced-precision passes (TF32 or bfloat16) unless ``jax_default_matmul_precision``
+  is ``"highest"``. Errors of that size compound over every operator a simulation applies,
+  so a simulator warns at construction when it finds an accelerator backend with a lower
+  setting. CPUs always multiply at full precision and are not affected.
+
 Choosing a simulator
 ====================
 
@@ -678,9 +719,10 @@ Choosing a simulator
   variational ansätze, unitary verification, gradient-based optimization. It is
   the fastest and supports ``jax.grad`` and the full-unitary readout.
 
-* Use **``DensityMatrixSimulator``** when you need the *exact* noisy state or a
-  noise-averaged expectation value at modest qubit count (:math:`\lesssim 13`),
-  with no sampling noise. It is also differentiable.
+* Use **``DensityMatrixSimulator``** when you need the *exact* noisy state, a
+  noise-averaged expectation value, or exact readout statistics
+  (``outcome_probabilities``) at modest qubit count (:math:`\lesssim 13`), with no sampling
+  noise. It is also differentiable.
 
 * Use **``TrajectorySimulator``** when the program contains mid-circuit
   measurements or resets, when you want sampled bitstrings rather than a state,
