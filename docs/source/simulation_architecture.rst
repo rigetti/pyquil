@@ -225,7 +225,7 @@ Expansion does several things at once:
   replaced by the channel's constituent operators directly.
 
   A body must reference **only its own formal arguments**. Quil allows a literal qubit in a
-  body (``DEFCIRCUIT C q: X q; X 3``), but such a qubit is invisible to
+  body (``DEFCIRCUIT GADGET q: X q; X 3``), but such a qubit is invisible to
   ``Program.get_qubit_indices`` (`pyQuil issue #1868
   <https://github.com/rigetti/pyquil/issues/1868>`_), so it escapes the register the simulator
   sizes itself for. It is rejected rather than silently mis-simulated; the check is a stopgap
