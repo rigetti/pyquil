@@ -54,7 +54,7 @@ from pyquil.noise._noise_model import (
     NoiseModelLike,
 )
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, Qubit, _contained_mrefs, substitute
+from pyquil.quilatom import Add, Div, MemoryReference, Mul, Qubit, Sub, _contained_mrefs, substitute
 from pyquil.quilbase import (
     AbstractInstruction,
     ArithmeticBinaryOp,
@@ -85,6 +85,50 @@ from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
 ParameterRef: TypeAlias = tuple[str, int]
 
 
+#: ``(reference, scale, offset)``: the value ``scale * reference + offset``, or a constant when
+#: ``reference`` is ``None``.
+_AffineForm: TypeAlias = tuple[MemoryReference | None, float, float]
+
+
+def _affine_form(expression: Any) -> _AffineForm | None:
+    """Write a gate parameter as ``scale * theta + offset`` in one memory reference.
+
+    Returns ``None`` when the expression is not of that form: a product or quotient of two
+    references, a power, a function such as ``SIN``, or two *different* references.
+
+    :param expression: A number, a :class:`~pyquil.quilatom.MemoryReference`, or an
+        arithmetic expression over them.
+    """
+    if isinstance(expression, MemoryReference):
+        return expression, 1.0, 0.0
+    if not _contained_mrefs(expression):
+        return None, 0.0, float(np.real(expression))
+    if isinstance(expression, (Add, Sub)):
+        left, right = _affine_form(expression.op1), _affine_form(expression.op2)
+        if left is None or right is None:
+            return None
+        (ref_l, a_l, b_l), (ref_r, a_r, b_r) = left, right
+        if ref_l is not None and ref_r is not None and ref_l != ref_r:
+            return None
+        sign = 1.0 if isinstance(expression, Add) else -1.0
+        return ref_l if ref_l is not None else ref_r, a_l + sign * a_r, b_l + sign * b_r
+    if isinstance(expression, (Mul, Div)):
+        left, right = _affine_form(expression.op1), _affine_form(expression.op2)
+        if left is None or right is None:
+            return None
+        (ref_l, a_l, b_l), (ref_r, a_r, b_r) = left, right
+        if isinstance(expression, Div):
+            if ref_r is not None or b_r == 0:
+                return None
+            return ref_l, a_l / b_r, b_l / b_r
+        if ref_l is not None and ref_r is not None:
+            return None
+        if ref_l is None:
+            return ref_r, b_l * a_r, b_l * b_r
+        return ref_l, a_l * b_r, b_l * b_r
+    return None
+
+
 @dataclass(frozen=True, slots=True)
 class ParametricGate:
     """A parametric gate whose matrix depends on runtime parameters.
@@ -93,22 +137,36 @@ class ParametricGate:
     constructor and parameter layout are exposed so that gates of the same kind can be built
     together in one vectorised operation.
 
+    A gate argument is either a literal number or an affine function ``scale * theta + offset``
+    of one slot of the parameter vector -- which covers a bare memory reference (``RX(theta[0])``)
+    as well as the arithmetic quilc emits when it compiles parametric programs
+    (``RX(theta[0]/2 + pi)``).
+
     :param gate_fn: The quax gate constructor (e.g. ``qx.gates.RX``), or a parametric
         ``DEFGATE`` callable.
     :param param_indices: For each gate argument, its slot in the flat parameter vector, or
         ``-1`` when the argument is a literal number.  Gates that read the same memory
         reference share a slot; see :func:`expand_program`.
     :param concrete_values: For each gate argument, its literal value (``nan`` for a slot).
+    :param scales: For each gate argument, the factor multiplying the slot value (``1`` for a
+        bare reference; unused for a literal).
+    :param offsets: For each gate argument, the constant added to the scaled slot value (``0``
+        for a bare reference; unused for a literal).
     """
 
     gate_fn: Callable[..., qx.Operator]
     param_indices: tuple[int, ...]
     concrete_values: tuple[float, ...]
+    scales: tuple[float, ...]
+    offsets: tuple[float, ...]
 
     def __call__(self, params: Array) -> qx.Unitary:
         """Build the gate for one parameter vector."""
         resolved: list[Any] = [
-            params[pi] if pi >= 0 else cv for pi, cv in zip(self.param_indices, self.concrete_values, strict=True)
+            params[pi] * scale + offset if pi >= 0 else cv
+            for pi, cv, scale, offset in zip(
+                self.param_indices, self.concrete_values, self.scales, self.offsets, strict=True
+            )
         ]
         result = self.gate_fn(*resolved)
         if not isinstance(result, qx.Unitary):
@@ -337,37 +395,46 @@ def expand_program(
 
             param_indices: list[int] = []
             concrete_values: list[float] = []
+            scales: list[float] = []
+            offsets: list[float] = []
             for p in inst.params:
-                mrefs = _contained_mrefs(p)  # type: ignore[arg-type]
-                if not mrefs:
+                form = _affine_form(p)
+                if form is None:
+                    # Each ParametricGate argument is an affine function of a single slot of the
+                    # parameter vector; that is what lets the simulator batch same-shaped gates
+                    # under one ``jax.vmap`` with per-gate scale and offset arrays.  Anything
+                    # else -- a product of two references, SIN(theta), theta^2 -- would need
+                    # its own traced graph.
+                    mrefs = _contained_mrefs(p)  # type: ignore[arg-type]
+                    raise ValueError(
+                        f"Gate parameter {p} in {inst.out()!r} is not an affine expression "
+                        f"(a * theta + b) in a single memory reference; it involves "
+                        f"{sorted(str(m) for m in mrefs)}. Only such expressions are supported: "
+                        "rewrite the program, or substitute concrete values before simulating."
+                    )
+                ref, scale, offset = form
+                if ref is None:
                     # A concrete number: a compile-time constant for this gate.
                     param_indices.append(-1)
-                    concrete_values.append(float(np.real(p)))
-                elif not isinstance(p, MemoryReference):
-                    # An arithmetic expression over one or more memory regions, e.g.
-                    # ``RX(theta[0] / 2) 0``. Each ParametricGate argument maps to a single
-                    # slot of the flat parameter vector, which is what lets the simulator
-                    # batch same-shaped gates under one ``jax.vmap``; an arbitrary
-                    # expression would have to become part of that batching key.
-                    raise ValueError(
-                        f"Gate parameter {p} in {inst.out()!r} is an expression over memory "
-                        f"region(s) {sorted(m.name for m in mrefs)}, which is not supported. "
-                        "Pass the parameter directly (e.g. RX(theta[0]) with the division folded "
-                        "into the value you bind), or substitute concrete values into the program "
-                        "before simulating."
-                    )
-                elif p.name in measure_regs:
+                    concrete_values.append(offset)
+                    scales.append(1.0)
+                    offsets.append(0.0)
+                elif ref.name in measure_regs:
                     # Classically-conditioned angle: the value is only known mid-circuit.
                     raise ValueError(
                         f"Gate parameter {p} in {inst.out()!r} reads memory region "
-                        f"'{p.name}', which is written by a MEASURE in this program. "
+                        f"'{ref.name}', which is written by a MEASURE in this program. "
                         "Feed-forward (classically-conditioned) parameters are not supported."
                     )
                 else:
-                    param_indices.append(slots.setdefault((p.name, p.offset), len(slots)))
+                    param_indices.append(slots.setdefault((ref.name, ref.offset), len(slots)))
                     concrete_values.append(float("nan"))
+                    scales.append(scale)
+                    offsets.append(offset)
 
-            return ParametricGate(gate_def, tuple(param_indices), tuple(concrete_values)), qubits
+            return ParametricGate(
+                gate_def, tuple(param_indices), tuple(concrete_values), tuple(scales), tuple(offsets)
+            ), qubits
 
         # Fixed gate → resolve to Unitary now.
         unitary = get_instruction_unitary(inst, custom_gates=custom_gates)

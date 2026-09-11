@@ -684,9 +684,10 @@ class TestErrorHandling:
         with pytest.raises(ValueError, match=f"modifiers are not supported.*{modifier}"):
             _dm(program)
 
-    def test_expression_valued_parameter_reports_clearly(self):
-        program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0) / 2, 0))
-        with pytest.raises(ValueError, match="expression over memory"):
+    def test_non_affine_parameter_reports_clearly(self):
+        theta = MemoryReference("theta", 0)
+        program = Program(Declare("theta", "REAL", 1), RX(theta * theta, 0))
+        with pytest.raises(ValueError, match="not an affine expression"):
             DensityMatrixSimulator(program, qubits=[0])
 
     def test_feed_forward_parameter_reports_clearly(self):

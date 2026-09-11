@@ -626,6 +626,11 @@ class _GateBatch:
     positions: list[int] = field(default_factory=list)
     #: Parameter-vector index for each free argument, one list per member.
     param_indices: list[list[int]] = field(default_factory=list)
+    #: Affine coefficients of each free argument (``scale * params[index] + offset``), one list
+    #: per member.  They are per-member data rather than part of the batch key, so
+    #: ``RX(theta[0] / 2)`` and ``RX(theta[1])`` share one vmap.
+    param_scales: list[list[float]] = field(default_factory=list)
+    param_offsets: list[list[float]] = field(default_factory=list)
 
     def builder(self) -> Callable[[Array], Array]:
         """Return ``params -> (n_members, width, width)`` embedded gate matrices."""
@@ -635,6 +640,8 @@ class _GateBatch:
         target_dims, group_positions = self.target_dims, self.group_positions
         width, as_superop = self.width, self.as_superop
         param_indices = jnp.asarray(self.param_indices)  # (n_members, n_free)
+        scales = jnp.asarray(self.param_scales, dtype=float)
+        offsets = jnp.asarray(self.param_offsets, dtype=float)
 
         def single(free_values: Array) -> Array:
             args: list[Any] = [None] * n_args
@@ -648,7 +655,7 @@ class _GateBatch:
             return _embed_op_to_group(gate, target_dims, group_positions, width, as_superop=as_superop)
 
         batched = jax.vmap(single)
-        return lambda params: batched(params[param_indices])
+        return lambda params: batched(params[param_indices] * scales + offsets)
 
 
 def _make_group_fold(group_start: list[int], n_ops: int, width: int) -> Callable[[Array], Array]:
@@ -763,7 +770,10 @@ def _build_vectorized_operator_constructor(
                 )
                 batches[key] = batch
             batch.positions.append(pos)
-            batch.param_indices.append([pi for pi in op.param_indices if pi >= 0])
+            free = [j for j, pi in enumerate(op.param_indices) if pi >= 0]
+            batch.param_indices.append([op.param_indices[j] for j in free])
+            batch.param_scales.append([op.scales[j] for j in free])
+            batch.param_offsets.append([op.offsets[j] for j in free])
         else:
             # Constant operations are embedded once, eagerly. In superoperator mode this
             # also covers the non-unitary ops a noise model contributes (channel SuperOps,
