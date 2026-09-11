@@ -348,14 +348,15 @@ class ProgramSimulator(ABC):
         return params
 
     @final
-    def resolve(self, params: Array) -> Circuit:
+    def resolve(self, params: Array | None = None) -> Circuit:
         """Resolve parameters into the program's circuit.
 
-        :param params: Flat parameter vector from :meth:`linearize`.
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or pass ``None``)
+            for a parameter-free program.
         :return: A :class:`~pyquil.simulation._circuit.Circuit` with one operation per
             expanded operation, in program order.
         """
-        return self._resolution.resolve(params)
+        return self._resolution.resolve(self._default_params(params))
 
     @final
     def compress(self, resolved: Circuit) -> Circuit:
