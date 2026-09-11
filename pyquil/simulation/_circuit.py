@@ -368,7 +368,7 @@ def _contraction_creates_cycle(quotient: nx.DiGraph, a: int, b: int) -> bool:
     direct = [(u, v) for u, v in ((a, b), (b, a)) if quotient.has_edge(u, v)]
     quotient.remove_edges_from(direct)
     try:
-        return nx.has_path(quotient, a, b) or nx.has_path(quotient, b, a)
+        return bool(nx.has_path(quotient, a, b) or nx.has_path(quotient, b, a))
     finally:
         quotient.add_edges_from(direct)
 
