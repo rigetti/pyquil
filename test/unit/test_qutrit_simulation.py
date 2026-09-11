@@ -16,9 +16,6 @@ from pyquil.simulation._simulator import (
 )
 from test.unit.simulation_programs import simulate_density_matrix, simulate_state_vector
 
-_EMPTY_PARAMS = jnp.array([], dtype=float)
-
-
 _sv = simulate_state_vector
 _dm = simulate_density_matrix
 
@@ -184,7 +181,8 @@ class TestAllQutritGates:
     @pytest.mark.parametrize("name", SINGLE_FIXED)
     def test_single_qutrit_fixed_gate(self, name):
         """Each fixed single-qutrit gate produces the expected |0> column."""
-        p = Program(Gate(name, [], [0]))
+        p = Program()
+        p += Gate(name, [], [0])
         psi = _sv(p, qubits=[0])
         assert psi.dims == (3,)
         # The output equals the gate's first column (its action on |0>).
@@ -197,7 +195,8 @@ class TestAllQutritGates:
     def test_single_qutrit_parametric_gate(self, name):
         """Each parametric single-qutrit rotation simulates and is unitary."""
         angle = np.pi / 3
-        p = Program(Gate(name, [angle], [0]))
+        p = Program()
+        p += Gate(name, [angle], [0])
         sim = PureStateVectorSimulator(p, qubits=[0])
         psi = sim.compute(jnp.array([], dtype=float))
         assert psi.dims == (3,)
@@ -366,7 +365,8 @@ class TestDimensionInference:
 
     def test_single_qutrit_program(self):
         """A program with a single qutrit gate infers dims=(3,)."""
-        p = Program(Gate("TX", [], [0]))
+        p = Program()
+        p += Gate("TX", [], [0])
         sim = PureStateVectorSimulator(p, qubits=[0])
         assert sim.dims == (3,)
 
@@ -408,7 +408,8 @@ class TestDimensionInference:
 
     def test_two_qutrit_gate_infers_both_slots(self):
         """A two-qutrit gate (TSWAP) upgrades both slots to dim=3."""
-        p = Program(Gate("TSWAP", [], [0, 1]))
+        p = Program()
+        p += Gate("TSWAP", [], [0, 1])
         sim = PureStateVectorSimulator(p, qubits=[0, 1])
         assert sim.dims == (3, 3)
 
@@ -420,7 +421,8 @@ class TestDimensionInference:
         assert dg.num_args() == 1
 
         # Built-in qutrit gates also work and infer dim=3
-        p = Program(Gate("TX", [], [0]))
+        p = Program()
+        p += Gate("TX", [], [0])
         psi = _sv(p, qubits=[0])
         assert psi.dims == (3,)
 
@@ -431,7 +433,8 @@ class TestDimensionInference:
         assert dg.num_args() == 2
 
         # Built-in TSWAP also works for two-qutrit systems
-        p = Program(Gate("TSWAP", [], [0, 1]))
+        p = Program()
+        p += Gate("TSWAP", [], [0, 1])
         psi = _sv(p, qubits=[0, 1])
         assert psi.matrix.shape[-1] == 9
         assert psi.dims == (3, 3)

@@ -38,7 +38,7 @@ is designed to solve two problems with the existing simulators simultaneously:
   explicit per-qudit dimensions, so a program may act on qutrits, on a mixed register (say
   ``(3, 3, 2)``), or on any other combination, and an operator may move population *out* of
   the computational subspace. This is the primary motivation for the module: leakage is a
-  dominant error mechanism on real hardware, and it cannot be represented at all in a
+  significant error mechanism on real hardware, and it cannot be represented at all in a
   simulator whose state is a tensor of two-level systems. Dimensions are inferred from the
   program (see `Resolver`_), so qubit-only programs need no extra ceremony.
 

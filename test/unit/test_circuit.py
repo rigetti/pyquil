@@ -241,7 +241,7 @@ class TestCircuitValidation:
     def test_allows_an_operator_smaller_than_its_register_slot(self):
         """A qubit gate in a qutrit register is legal; embed promotes it."""
         circuit = Circuit(dims=(3, 3), ops=((qx.gates.H, (0,)),))
-        composed = circuit.compose()
+        composed = circuit.full_operator()
         assert composed.dims == ((3, 3), (3, 3))
 
 
@@ -254,13 +254,13 @@ class TestCircuitPytree:
         restored = jax.tree_util.tree_unflatten(treedef, leaves)
         assert restored.dims == circuit.dims
         assert restored.subsystems == circuit.subsystems
-        assert_same_channel(restored.compose(), circuit.compose())
+        assert_same_channel(restored.full_operator(), circuit.full_operator())
 
     def test_structure_is_static_and_operators_are_traced(self):
         """A circuit can be closed over by ``jit``, with its operators as traced values."""
 
         def composed_matrix(circuit):
-            return circuit.compose().matrix
+            return circuit.full_operator().matrix
 
         circuit = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
         eager = composed_matrix(circuit)
@@ -295,11 +295,11 @@ class TestToSuperops:
 
     def test_is_idempotent(self):
         once = Circuit.from_ops([(qx.gates.H, (0,))]).to_superops()
-        assert_same_channel(once.to_superops().compose(), once.compose())
+        assert_same_channel(once.to_superops().full_operator(), once.full_operator())
 
     def test_preserves_the_whole_channel(self):
         circuit = random_circuit((2, 2), 8, jax.random.key(3), channel_probability=0.5)
-        assert_same_channel(circuit.to_superops().compose(), circuit.compose())
+        assert_same_channel(circuit.to_superops().full_operator(), circuit.full_operator())
 
 
 class TestToKrausMaps:
@@ -315,7 +315,7 @@ class TestToKrausMaps:
 
     def test_preserves_the_channel(self):
         circuit = random_circuit((2, 2), 8, jax.random.key(5), channel_probability=1.0)
-        assert_same_channel(circuit.to_kraus_maps().compose(), circuit.compose())
+        assert_same_channel(circuit.to_kraus_maps().full_operator(), circuit.full_operator())
 
     def test_truncation_drops_negligible_kraus_operators(self):
         unitary_channel = Circuit.from_ops([(qx.gates.H, (0,))]).to_superops()
@@ -329,34 +329,34 @@ class TestCompose:
     def test_matches_a_hand_composed_product(self):
         circuit = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.X, (0,))])
         expected = qx.gates.X @ qx.gates.H
-        assert_same_channel(circuit.compose(), expected)
+        assert_same_channel(circuit.full_operator(), expected)
 
     def test_applies_operations_in_order(self):
         """H then X differs from X then H, so composition order is observable."""
-        forwards = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.X, (0,))]).compose()
-        backwards = Circuit.from_ops([(qx.gates.X, (0,)), (qx.gates.H, (0,))]).compose()
+        forwards = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.X, (0,))]).full_operator()
+        backwards = Circuit.from_ops([(qx.gates.X, (0,)), (qx.gates.H, (0,))]).full_operator()
         assert not jnp.allclose(forwards.matrix, backwards.matrix)
 
     def test_stays_unitary_for_unitary_circuits(self):
         circuit = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
-        assert isinstance(circuit.compose(), qx.Unitary)
+        assert isinstance(circuit.full_operator(), qx.Unitary)
 
     def test_promotes_to_a_superoperator_when_any_operation_is_a_channel(self):
         circuit = Circuit.from_ops([(qx.gates.H, (0,))]).to_superops()
-        assert isinstance(circuit.compose(), qx.SuperOperator)
+        assert isinstance(circuit.full_operator(), qx.SuperOperator)
 
     def test_spans_the_whole_register_including_idle_qudits(self):
         circuit = Circuit(dims=(2, 2, 2), ops=((qx.gates.H, (0,)),))
-        assert circuit.compose().dims == ((2, 2, 2), (2, 2, 2))
+        assert circuit.full_operator().dims == ((2, 2, 2), (2, 2, 2))
 
     def test_rejects_an_empty_circuit(self):
         with pytest.raises(ValueError, match="empty circuit"):
-            Circuit(dims=(2,), ops=()).compose()
+            Circuit(dims=(2,), ops=()).full_operator()
 
     def test_rejects_instruments_and_says_what_to_do(self):
         circuit = Circuit.from_ops([(qx.gates.MEASURE(dim=2), (0,))])
         with pytest.raises(TypeError, match="to_superops"):
-            circuit.compose()
+            circuit.full_operator()
 
 
 # ══════════════════════════════════════════════════════════
@@ -631,26 +631,26 @@ class TestMergePreservesTheChannel:
         circuit = random_circuit(dims, 12, jax.random.key(11))
         plan = MergePlan.greedy(circuit.subsystems, max_subsystem_size)
         assert_plan_is_well_formed(plan, circuit.subsystems, max_subsystem_size)
-        assert_same_channel(plan.apply(circuit).compose(), circuit.compose())
+        assert_same_channel(plan.apply(circuit).full_operator(), circuit.full_operator())
 
     @pytest.mark.parametrize("dims", DIMS)
     @pytest.mark.parametrize("max_subsystem_size", [0, 2, 3])
     def test_noisy_circuits(self, dims, max_subsystem_size):
         circuit = random_circuit(dims, 12, jax.random.key(13), channel_probability=0.5)
         plan = MergePlan.greedy(circuit.subsystems, max_subsystem_size)
-        assert_same_channel(plan.apply(circuit).compose(), circuit.compose())
+        assert_same_channel(plan.apply(circuit).full_operator(), circuit.full_operator())
 
     @pytest.mark.parametrize("max_subsystem_size", [2, 3])
     def test_channel_only_circuits(self, max_subsystem_size):
         circuit = random_circuit((2, 2, 2), 10, jax.random.key(17), channel_probability=1.0)
         plan = MergePlan.greedy(circuit.subsystems, max_subsystem_size)
-        assert_same_channel(plan.apply(circuit).compose(), circuit.compose())
+        assert_same_channel(plan.apply(circuit).full_operator(), circuit.full_operator())
 
     @pytest.mark.parametrize("max_subsystem_size", [2, 3])
     def test_mixed_arity_circuits(self, max_subsystem_size):
         circuit = random_circuit((2, 2, 2, 2), 16, jax.random.key(19), max_arity=3)
         plan = MergePlan.greedy(circuit.subsystems, max_subsystem_size)
-        assert_same_channel(plan.apply(circuit).compose(), circuit.compose())
+        assert_same_channel(plan.apply(circuit).full_operator(), circuit.full_operator())
 
     def test_merging_actually_happens_in_these_cases(self):
         """Guard against the invariant passing because nothing was ever merged."""
@@ -665,11 +665,11 @@ class TestMergePreservesTheChannel:
         backwards = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (1, 0))])
         merged_forwards = MergePlan.greedy(forwards.subsystems, 2).apply(forwards)
         merged_backwards = MergePlan.greedy(backwards.subsystems, 2).apply(backwards)
-        assert_same_channel(merged_forwards.compose(), forwards.compose())
-        assert_same_channel(merged_backwards.compose(), backwards.compose())
+        assert_same_channel(merged_forwards.full_operator(), forwards.full_operator())
+        assert_same_channel(merged_backwards.full_operator(), backwards.full_operator())
         assert not jnp.allclose(
-            merged_forwards.compose().matrix,
-            merged_backwards.compose().matrix,
+            merged_forwards.full_operator().matrix,
+            merged_backwards.full_operator().matrix,
         )
 
     def test_a_merged_group_of_unitaries_stays_unitary(self):
@@ -697,7 +697,7 @@ class TestMergeWithInstruments:
         merged = plan.apply(circuit)
         assert merged.num_ops == 3
         assert isinstance(merged.operators[1], qx.QuantumInstrument)
-        assert_same_channel(merged.to_superops().compose(), circuit.to_superops().compose())
+        assert_same_channel(merged.to_superops().full_operator(), circuit.to_superops().full_operator())
 
     def test_merging_an_instrument_is_refused_with_a_pointer_to_atomic(self):
         circuit = Circuit.from_ops([(qx.gates.MEASURE(dim=2), (0,)), (qx.gates.X, (0,))])
@@ -713,7 +713,7 @@ class TestMergeWithInstruments:
         )
         plan = MergePlan.greedy(with_measurement.subsystems, 2, atomic=[4])
         merged = plan.apply(with_measurement)
-        assert_same_channel(merged.to_superops().compose(), with_measurement.to_superops().compose())
+        assert_same_channel(merged.to_superops().full_operator(), with_measurement.to_superops().full_operator())
 
 
 class TestApplyValidation:

@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2026 Rigetti Computing
+# Copyright 2026 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -71,10 +71,9 @@ from pyquil.api import MemoryMap
 from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
-from pyquil.simulation._circuit import Circuit, Group, MergePlan
+from pyquil.simulation._circuit import Circuit, CircuitOp, Group, MergePlan
 from pyquil.simulation._resolver import (
     ExpandedOp,
-    FixedOp,
     ParameterRef,
     ParametricGate,
     Resolution,
@@ -488,7 +487,7 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
 
 
 def _embed_op_to_group(
-    op: FixedOp,
+    op: CircuitOp,
     target_dims: tuple[int, ...],
     positions: tuple[int, ...],
     width: int,
@@ -508,7 +507,7 @@ def _embed_op_to_group(
     This is traceable, so it serves both the eager constant path and the vmapped parametric
     path.
     """
-    embedded: FixedOp = qx.embed(op, target_dims=target_dims, positions=positions)
+    embedded: CircuitOp = qx.embed(op, target_dims=target_dims, positions=positions)
     if as_superop:
         embedded = qx.to_superop(embedded)
     matrix = embedded.matrix
@@ -788,7 +787,7 @@ class PureStateVectorSimulator(_DifferentiableSimulator[qx.StateVector]):
     def unitary(self, params: Array | None = None) -> qx.Unitary:
         """Compute the full program unitary.
 
-        This composes the merged circuit eagerly on the whole register and is exponentially
+        This folds the merged circuit eagerly into one operator on the whole register and is exponentially
         expensive in the register size; it is meant for verification, not simulation.
 
         :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
@@ -799,7 +798,7 @@ class PureStateVectorSimulator(_DifferentiableSimulator[qx.StateVector]):
         if circuit.num_ops == 0:
             d = math.prod(self.dims)
             return qx.Unitary.from_matrix(jnp.eye(d, dtype=complex), (self.dims, self.dims))
-        return cast(qx.Unitary, circuit.compose())
+        return cast(qx.Unitary, circuit.full_operator())
 
 
 # ══════════════════════════════════════════════════════════

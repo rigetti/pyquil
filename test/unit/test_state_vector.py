@@ -17,9 +17,6 @@ from pyquil.quilbase import (
 )
 from test.unit.simulation_programs import simulate_state_vector
 
-_EMPTY_PARAMS = jnp.array([], dtype=float)
-
-
 _sv = simulate_state_vector
 
 

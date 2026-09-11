@@ -59,9 +59,6 @@ from pyquil.simulation._resolver import (
     resolve_program,
 )
 
-_EMPTY_PARAMS = jnp.array([], dtype=float)
-
-
 # ──────────────────────────────────────────────────────────
 # expand_program
 # ──────────────────────────────────────────────────────────
@@ -209,7 +206,7 @@ class TestResolveProgram:
     def test_basic_roundtrip(self):
         p = Program(H(0), CNOT(0, 1), X(1))
         res = resolve_program(p)
-        ops = res.resolve(_EMPTY_PARAMS)
+        ops = res.resolve()
         assert len(ops) == 3
         assert all(isinstance(op, qx.Unitary) for op, _ in ops)
         assert res.dims == (2, 2)
@@ -219,7 +216,7 @@ class TestResolveProgram:
         ch = Channel.from_gate_fidelity(inst=X(0), fidelity=0.99)
         nm = NoiseModel.from_channels([ch])
         res = resolve_program(p, nm)
-        ops = res.resolve(_EMPTY_PARAMS)
+        ops = res.resolve()
         assert len(ops) == 2
         assert isinstance(ops[0][0], qx.SuperOp)
         assert isinstance(ops[1][0], qx.Unitary)
@@ -240,7 +237,7 @@ class TestResolveProgram:
 
     def test_resolve_returns_a_circuit_on_the_program_register(self):
         p = Program(H(0), CNOT(0, 1))
-        circuit = resolve_program(p).resolve(_EMPTY_PARAMS)
+        circuit = resolve_program(p).resolve()
         assert isinstance(circuit, Circuit)
         assert circuit.dims == (2, 2)
         assert circuit.subsystems == ((0,), (0, 1))
@@ -248,7 +245,7 @@ class TestResolveProgram:
     def test_measurement_and_reset(self):
         p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
         res = resolve_program(p)
-        ops = res.resolve(_EMPTY_PARAMS)
+        ops = res.resolve()
         assert len(ops) == 2
         assert isinstance(ops[0][0], qx.Unitary)
         assert isinstance(ops[1][0], qx.QuantumInstrument)
@@ -256,7 +253,7 @@ class TestResolveProgram:
     def test_qutrit_measurement_dimensions(self):
         p = Program(Gate("TX", [], [0]), Measurement(Qubit(0), None))
         res = resolve_program(p)
-        ops = res.resolve(_EMPTY_PARAMS)
+        ops = res.resolve()
         assert res.dims == (3,)
         assert isinstance(ops[1][0], qx.QuantumInstrument)
         assert ops[1][0].dims == ((3,), (3,))
@@ -351,7 +348,7 @@ class TestMeasurementRepresentation:
         inst = MEASURE(0, None)
         readout = MeasurementChannel.from_readout_fidelity(inst, fidelity=fidelity, asymmetry=asymmetry)
         noise_model = NoiseModel.from_channels([readout])
-        circuit = resolve_program(Program(H(0), inst), noise_model).resolve(_EMPTY_PARAMS)
+        circuit = resolve_program(Program(H(0), inst), noise_model).resolve()
 
         assert isinstance(circuit[1][0], qx.QuantumInstrument)
         collapsed = circuit.to_superops()

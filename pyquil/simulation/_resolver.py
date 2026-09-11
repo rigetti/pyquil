@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2026 Rigetti Computing
+# Copyright 2026 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -81,9 +81,6 @@ from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
 # Type aliases
 # ──────────────────────────────────────────────────────────
 
-#: A fixed (non-parameterized) operator — the most specific native quax type.
-FixedOp: TypeAlias = CircuitOp
-
 #: A ``(register_name, offset)`` pair naming one scalar of classical memory, e.g. ``("theta", 0)``.
 ParameterRef: TypeAlias = tuple[str, int]
 
@@ -119,12 +116,9 @@ class ParametricGate:
         return result
 
 
-#: An expanded item is either a fixed operator or a ParametricGate that resolves parameters
+#: An expanded item is either a concrete operator or a ParametricGate that resolves parameters
 #: into a Unitary.
-ExpandedOp: TypeAlias = FixedOp | ParametricGate
-
-#: One resolved operation: a concrete operator and the register indices it acts on.
-ResolvedOp: TypeAlias = Placement
+ExpandedOp: TypeAlias = CircuitOp | ParametricGate
 
 
 # ──────────────────────────────────────────────────────────
@@ -382,7 +376,7 @@ def expand_program(
     def _dimension_for(qubit: int) -> int:
         return qubit_dimensions.get(qubit, 2) if qubit_dimensions is not None else 2
 
-    def _resolve_measurement(inst: Measurement) -> tuple[FixedOp, tuple[int, ...]]:
+    def _resolve_measurement(inst: Measurement) -> tuple[CircuitOp, tuple[int, ...]]:
         """Resolve a measurement instruction to a ``QuantumInstrument``."""
         qubits = tuple(inst.get_qubit_indices())
         channel = noise_model.get_channel(inst) if noise_model is not None else None
@@ -393,7 +387,7 @@ def expand_program(
         )
         return instrument, qubits
 
-    def _resolve_reset_qubit(inst: ResetQubit) -> tuple[FixedOp, tuple[int, ...]]:
+    def _resolve_reset_qubit(inst: ResetQubit) -> tuple[CircuitOp, tuple[int, ...]]:
         """Resolve a targeted reset instruction."""
         qubits = tuple(inst.get_qubit_indices())  # type: ignore[arg-type]
         channel = noise_model.get_channel(inst) if noise_model is not None else None
@@ -523,27 +517,31 @@ class Resolution:
         """The length of the parameter vector :meth:`resolve` expects."""
         return len(self.parameters)
 
-    def placements(self, params: Array) -> tuple[Placement, ...]:
+    def placements(self, params: Array | None = None) -> tuple[Placement, ...]:
         """Bind *params* to produce one concrete operator per expanded operation.
 
         Fixed operators pass straight through; :class:`ParametricGate` entries are called with
         the parameter vector to build their ``Unitary``.
 
-        :param params: Flat parameter vector, laid out as :attr:`parameters`.
+        :param params: Flat parameter vector, laid out as :attr:`parameters`.  Omit for a
+            parameter-free program.
         :return: ``(operator, subsystem)`` pairs in program order.
         """
+        if params is None:
+            params = jnp.zeros(self.num_parameters, dtype=float)
         return tuple(
             (op(params) if isinstance(op, ParametricGate) else op, subsystem)
             for op, subsystem in zip(self.ops, self.subsystems, strict=True)
         )
 
-    def resolve(self, params: Array) -> Circuit:
+    def resolve(self, params: Array | None = None) -> Circuit:
         """Bind *params* to produce the program's :class:`~pyquil.simulation._circuit.Circuit`.
 
         This is the hand-off out of Quil: past this point there are no gate names, no memory
         references and no instructions, only operators placed on a register.
 
-        :param params: Flat parameter vector, laid out as :attr:`parameters`.
+        :param params: Flat parameter vector, laid out as :attr:`parameters`.  Omit for a
+            parameter-free program.
         :return: The circuit, on a register of ``dims``.
         """
         return Circuit(dims=self.dims, ops=self.placements(params))

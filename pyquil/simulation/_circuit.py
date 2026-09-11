@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2026 Rigetti Computing
+# Copyright 2026 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ each operation touches, one plan serves every parameter value of a parametric ci
     1
 """
 
-# Nothing in this module is specific to Quil, and it is staged to move into quax: it mirrors the
-# ``Circuit`` and ``MergePlan`` of quax merge request !41 name for name.  It lives in pyQuil for
-# now so the simulator API can settle against real use before the seam is fixed.  One deliberate
-# difference: quax carries no graph dependency and reimplements a small DAG for planning, whereas
-# pyQuil already depends on networkx and uses it for the dependency graph, the contracted
+# Nothing in this module is specific to Quil, and it is staged to move into quax: ``Circuit`` and
+# ``MergePlan`` are the shape proposed for quax's own circuit type.  They live in pyQuil for now so
+# the simulator API can settle against real use before the seam is fixed.  One deliberate
+# difference: quax carries no graph dependency and would reimplement a small DAG for planning,
+# whereas pyQuil already depends on networkx and uses it for the dependency graph, the contracted
 # quotient graph, the union-find and the topological sort.
 
 from __future__ import annotations
@@ -304,28 +304,28 @@ class Circuit:
 
     # ----- algebra -----
 
-    def compose(self) -> CircuitOp:
+    def full_operator(self) -> CircuitOp:
         """Fold the whole circuit into a single operator on the full register.
 
-        Each operation is embedded into the register's Hilbert space and composed in
-        application order.  The result is a ``Unitary`` when every operation is unitary and a
-        superoperator as soon as one is not.
+        Each operation is embedded into the register's Hilbert space and the embedded operators
+        are multiplied in application order.  The result is a ``Unitary`` when every operation
+        is unitary and a superoperator as soon as one is not.
 
         This is exponentially expensive in the register size and is intended for verification
         and analysis, not for simulation.
 
-        :return: The composed operator, acting on all ``num_qudits`` qudits.
+        :return: The operator of the whole circuit, acting on all ``num_qudits`` qudits.
         :raises ValueError: If the circuit is empty.
-        :raises TypeError: If any operation is a ``QuantumInstrument``, which has no
-            composition — call :meth:`to_superops` first to compose the total channel.
+        :raises TypeError: If any operation is a ``QuantumInstrument``, which has no single
+            operator — call :meth:`to_superops` first to use the total channel instead.
         """
         if not self.ops:
-            raise ValueError("Cannot compose an empty circuit.")
+            raise ValueError("An empty circuit has no operator.")
         instruments = [i for i, (op, _) in enumerate(self.ops) if isinstance(op, qx.QuantumInstrument)]
         if instruments:
             raise TypeError(
-                f"Operation(s) {instruments} are QuantumInstruments, which do not compose. "
-                "Call to_superops() first to compose their total channels instead."
+                f"Operation(s) {instruments} are QuantumInstruments, which have no single operator. "
+                "Call to_superops() first to use their total channels instead."
             )
         return _merge(self.ops, tuple(range(self.num_qudits)), self.dims)
 

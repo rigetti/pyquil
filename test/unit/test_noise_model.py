@@ -26,13 +26,13 @@ from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, RZ, X
 from pyquil.noise._channels import (
     Channel,
+    ChannelBase,
     CycleChannel,
     MeasurementChannel,
     ResetChannel,
     SuperopChannel,
     SuperopResetChannel,
     _build_cycle_channel,
-    ChannelBase,
     _evaluate_parameter_designators,
     _operator_dims_from_dimension,
     get_custom_gates_from_program,
@@ -44,13 +44,11 @@ from pyquil.quilatom import FormalArgument, Qubit
 from pyquil.quilbase import DefCircuit, Gate, Measurement, ResetQubit
 from pyquil.simulation._simulator import DensityMatrixSimulator
 
-_EMPTY_PARAMS = jnp.array([], dtype=float)
-
 
 def _dm(program, noise_model=None, qubits=None):
     """Compute density matrix."""
     sim = DensityMatrixSimulator(program, qubits=qubits, noise_model=noise_model)
-    return sim.compute(_EMPTY_PARAMS)
+    return sim.compute()
 
 
 # ──────────────────────────────────────────────────────────

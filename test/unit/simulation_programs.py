@@ -19,42 +19,157 @@
 exercise the same simulators; this module holds what they share so a new case is added once
 and checked by every backend.
 
+Three collections are exported:
+
+* :data:`PROGRAMS` -- gate-only programs every backend must agree on.  They deliberately include
+  gates whose operands are *not* in ascending order (an unmerged operation keeps its own operand
+  order, and getting that wrong silently permutes qudits in the density-matrix path only),
+  parametric two-qubit gates, three-qubit gates, and registers whose qubit indices are not
+  ``0..n-1``.
+* :data:`COMPARABLE` -- the subset of :data:`PROGRAMS` also cross-checked against pyQuil's NumPy
+  reference simulators.  Those take a contiguous register, so a sparse program is relabelled with
+  :func:`relabel_contiguous` first; the two-qubit ``SWAP`` and ``I`` cases are left out only
+  because the reference simulators do not accept them.
+* :data:`DM_ONLY_PROGRAMS` -- programs with mid-circuit ``MEASURE`` / ``RESET``, which only the
+  density-matrix backend can run, with their analytic final states in :data:`DM_ONLY_EXPECTED`.
+
 .. note::
     The simulators are **big-endian**: ``qubits[0]`` is the most significant subsystem, so
     ``X 0`` on a two-qubit register gives ``|10>``. The rest of pyQuil is little-endian; use
     :func:`reverse_endianness` before comparing against the reference simulators.
 """
 
-import jax.numpy as jnp
 import numpy as np
 
-from pyquil.gates import CCNOT, CNOT, CSWAP, CZ, RX, RY, RZ, SWAP, H, I, S, T, X, Y, Z
+from pyquil.gates import CCNOT, CNOT, CPHASE, CSWAP, CZ, FSIM, MEASURE, RESET, RX, RY, RZ, SWAP, XY, H, I, S, T, X, Y, Z
 from pyquil.quil import Program
+from pyquil.quilatom import Qubit
+from pyquil.quilbase import Declare, Gate, Measurement, ResetQubit
 from pyquil.simulation._simulator import DensityMatrixSimulator, PureStateVectorSimulator
 
-EMPTY_PARAMS = jnp.array([], dtype=float)
+PROGRAMS: dict[str, Program] = {}
 
-# Gate-only programs reused across the noiseless equivalence tests. Deliberately includes gates
-# whose operands are *not* in ascending order -- the compressor advertises a sorted subsystem for
-# merged groups but an unmerged operation keeps its own operand order, and getting that wrong
-# silently permutes qudits in the density-matrix path only.
-PROGRAMS = {
-    "empty": Program(),
-    "single_x": Program(X(0)),
-    "hadamard": Program(H(0)),
-    "bell": Program(H(0), CNOT(0, 1)),
-    "ghz3": Program(H(0), CNOT(0, 1), CNOT(1, 2)),
-    "clifford_chain": Program(H(0), S(0), T(0), H(0), Z(0), Y(0)),
-    "rotations": Program(RX(0.3, 0), RY(0.7, 0), RZ(1.1, 0)),
-    "two_qubit_mixed": Program(RX(0.4, 0), RY(0.9, 1), CNOT(0, 1), RZ(1.1, 0), CZ(0, 1)),
-    "ccnot_sorted": Program(H(0), H(1), CCNOT(0, 1, 2)),
-    "ccnot_reversed": Program(X(1), X(2), CCNOT(2, 1, 0)),
-    "cnot_reversed": Program(X(1), CNOT(1, 0)),
-    "cswap_reversed": Program(X(0), X(2), CSWAP(2, 1, 0)),
-    "swap_reversed": Program(X(1), SWAP(2, 0)),
-    "deep": Program(RX(0.4, 0), RY(0.9, 1), CNOT(0, 1), RZ(1.1, 0), CZ(1, 2), RX(0.2, 2), SWAP(0, 2)),
-    "idle_qubit": Program(X(0), I(1)),
-}
+PROGRAMS["empty"] = Program()
+
+program = Program()
+program += X(0)
+PROGRAMS["single_x"] = program
+
+program = Program()
+program += H(0)
+PROGRAMS["hadamard"] = program
+
+program = Program()
+program += H(0)
+program += CNOT(0, 1)
+PROGRAMS["bell"] = program
+
+program = Program()
+program += H(0)
+program += CNOT(0, 1)
+program += CNOT(1, 2)
+PROGRAMS["ghz3"] = program
+
+program = Program()
+program += H(0)
+program += S(0)
+program += T(0)
+program += H(0)
+program += Z(0)
+program += Y(0)
+PROGRAMS["clifford_chain"] = program
+
+program = Program()
+program += RX(0.3, 0)
+program += RY(0.7, 0)
+program += RZ(1.1, 0)
+PROGRAMS["rotations"] = program
+
+program = Program()
+program += RX(0.4, 0)
+program += RY(0.9, 1)
+program += CNOT(0, 1)
+program += RZ(1.1, 0)
+program += CZ(0, 1)
+PROGRAMS["two_qubit_mixed"] = program
+
+# Parametric two-qubit gates.
+program = Program()
+program += RX(0.4, 0)
+program += RY(0.9, 1)
+program += XY(0.7, 0, 1)
+PROGRAMS["xy"] = program
+
+program = Program()
+program += H(0)
+program += RX(0.3, 1)
+program += FSIM(0.4, 1.3, 0, 1)
+program += RZ(0.5, 0)
+PROGRAMS["fsim"] = program
+
+program = Program()
+program += H(0)
+program += H(1)
+program += CPHASE(0.9, 1, 0)
+PROGRAMS["cphase_reversed"] = program
+
+# Three-qubit gates, with operands both ascending and descending.
+program = Program()
+program += H(0)
+program += H(1)
+program += CCNOT(0, 1, 2)
+PROGRAMS["ccnot_sorted"] = program
+
+program = Program()
+program += X(1)
+program += X(2)
+program += CCNOT(2, 1, 0)
+PROGRAMS["ccnot_reversed"] = program
+
+program = Program()
+program += X(1)
+program += CNOT(1, 0)
+PROGRAMS["cnot_reversed"] = program
+
+program = Program()
+program += X(0)
+program += X(2)
+program += CSWAP(2, 1, 0)
+PROGRAMS["cswap_reversed"] = program
+
+program = Program()
+program += X(1)
+program += SWAP(2, 0)
+PROGRAMS["swap_reversed"] = program
+
+program = Program()
+program += RX(0.4, 0)
+program += RY(0.9, 1)
+program += CNOT(0, 1)
+program += RZ(1.1, 0)
+program += CZ(1, 2)
+program += RX(0.2, 2)
+program += SWAP(0, 2)
+PROGRAMS["deep"] = program
+
+program = Program()
+program += X(0)
+program += I(1)
+PROGRAMS["idle_qubit"] = program
+
+# Registers whose qubit indices are not 0..n-1: the simulator numbers subsystems by sorted
+# program qubit, so index 0 is qubit 2 here, not qubit 0.
+program = Program()
+program += H(2)
+program += CNOT(2, 5)
+program += RZ(0.3, 5)
+PROGRAMS["sparse_register"] = program
+
+program = Program()
+program += X(7)
+program += RY(0.6, 3)
+program += CNOT(7, 3)
+PROGRAMS["sparse_reversed"] = program
 
 # The subset of PROGRAMS cross-checked against pyQuil's NumPy reference simulators.
 COMPARABLE = [
@@ -65,26 +180,95 @@ COMPARABLE = [
     "clifford_chain",
     "rotations",
     "two_qubit_mixed",
+    "xy",
+    "fsim",
+    "cphase_reversed",
     "ccnot_sorted",
     "ccnot_reversed",
     "cnot_reversed",
     "cswap_reversed",
     "deep",
+    "sparse_register",
+    "sparse_reversed",
 ]
+
+# Programs with mid-circuit measurement or reset, and the density matrix they must produce.
+DM_ONLY_PROGRAMS: dict[str, Program] = {}
+DM_ONLY_EXPECTED: dict[str, np.ndarray] = {}
+
+_plus = np.array([1, 1], dtype=complex) / np.sqrt(2)
+
+program = Program()
+program += Declare("ro", "BIT", 1)
+program += H(0)
+program += MEASURE(0, ("ro", 0))
+program += H(0)
+DM_ONLY_PROGRAMS["measure_then_hadamard"] = program
+DM_ONLY_EXPECTED["measure_then_hadamard"] = np.eye(2, dtype=complex) / 2
+
+program = Program()
+program += X(0)
+program += RESET(0)
+program += H(0)
+DM_ONLY_PROGRAMS["reset_midcircuit"] = program
+DM_ONLY_EXPECTED["reset_midcircuit"] = np.outer(_plus, _plus.conj())
+
+program = Program()
+program += Declare("ro", "BIT", 1)
+program += H(0)
+program += CNOT(0, 1)
+program += MEASURE(0, ("ro", 0))
+DM_ONLY_PROGRAMS["bell_measure_one"] = program
+DM_ONLY_EXPECTED["bell_measure_one"] = np.diag([0.5, 0.0, 0.0, 0.5]).astype(complex)
+
+program = Program()
+program += Declare("ro", "BIT", 1)
+program += H(0)
+program += MEASURE(0, ("ro", 0))
+program += RESET(0)
+program += X(0)
+program += CNOT(0, 1)
+DM_ONLY_PROGRAMS["measure_reset_reuse"] = program
+DM_ONLY_EXPECTED["measure_reset_reuse"] = np.diag([0.0, 0.0, 0.0, 1.0]).astype(complex)
+
+del program
+
+
+def relabel_contiguous(program: Program) -> Program:
+    """Relabel a program's qubits so that its sorted qubits become ``0..n-1``.
+
+    The simulators number subsystems by sorted program qubit, so the relabelled program's qubit
+    ``i`` is exactly the simulator's subsystem ``i``; this is what lets a sparse program be
+    compared with a reference simulator that only accepts a contiguous register.
+    """
+    mapping = {q: i for i, q in enumerate(sorted(program.get_qubit_indices()))}
+
+    def relabel(qubit) -> Qubit:
+        return Qubit(mapping[qubit.index if isinstance(qubit, Qubit) else int(qubit)])
+
+    relabelled = Program()
+    for inst in program.instructions:
+        if isinstance(inst, Gate):
+            relabelled += Gate(inst.name, inst.params, [relabel(q) for q in inst.qubits])
+        elif isinstance(inst, Measurement):
+            relabelled += Measurement(relabel(inst.qubit), inst.classical_reg)
+        elif isinstance(inst, ResetQubit):
+            relabelled += ResetQubit(relabel(inst.qubit))
+        else:
+            relabelled += inst
+    return relabelled
 
 
 def simulate_state_vector(program, qubits=None, memory_map=None, **kwargs):
     """Run ``PureStateVectorSimulator`` and return the final ``qx.StateVector``."""
     sim = PureStateVectorSimulator(program, qubits=qubits, **kwargs)
-    params = sim.linearize(memory_map) if memory_map else EMPTY_PARAMS
-    return sim.compute(params)
+    return sim.compute(sim.linearize(memory_map) if memory_map else None)
 
 
 def simulate_density_matrix(program, qubits=None, noise_model=None, memory_map=None, **kwargs):
     """Run ``DensityMatrixSimulator`` and return the final ``qx.DensityMatrix``."""
     sim = DensityMatrixSimulator(program, qubits=qubits, noise_model=noise_model, **kwargs)
-    params = sim.linearize(memory_map) if memory_map else EMPTY_PARAMS
-    return sim.compute(params)
+    return sim.compute(sim.linearize(memory_map) if memory_map else None)
 
 
 def reverse_endianness(array, n_qubits):
