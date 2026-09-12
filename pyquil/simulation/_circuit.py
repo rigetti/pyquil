@@ -50,7 +50,6 @@ from operator import mul
 from typing import TypeAlias
 
 import jax
-import jax.numpy as jnp
 import networkx as nx
 import quax as qx
 from jax import Array
@@ -104,22 +103,8 @@ def dependency_graph(subsystems: Sequence[tuple[int, ...]]) -> nx.DiGraph:
     return dag
 
 
-def _operators_equal(a: CircuitOp, b: CircuitOp) -> bool:
-    """Structural, tolerant operator equality: same kind and dims, matrices equal to ``allclose``.
-
-    "Same kind" means one operator's class is a subclass of the other's, so a gate such as
-    ``qx.gates.H`` (an ``Involution``) equals a plain ``Unitary`` with the same matrix, while a
-    ``Unitary`` never equals the ``SuperOp`` of the same channel.
-    """
-    if not (isinstance(a, type(b)) or isinstance(b, type(a))):
-        return False
-    if a.dims != b.dims or a.matrix.shape != b.matrix.shape:
-        return False
-    return bool(jnp.allclose(a.matrix, b.matrix))
-
-
 @jax.tree_util.register_pytree_node_class
-@dataclass(frozen=True, eq=False)  # ``__eq__`` and ``__hash__`` are defined explicitly below.
+@dataclass(frozen=True)
 class Circuit:
     """An ordered sequence of concrete operators placed on a qudit register.
 
@@ -142,20 +127,12 @@ class Circuit:
     dims: tuple[int, ...]
     ops: tuple[Placement, ...]
 
-    # Equality is structural and *tolerant*: same register, same subsystems, and operators of the
-    # same type whose matrices agree to ``jnp.allclose``.  Objects equal within a tolerance cannot
-    # share a value hash, so a circuit is unhashable -- like an array -- rather than inheriting a
-    # dataclass hash that would only fail later with an error from inside a quax operator.  (The
-    # comparison is written out rather than left to the dataclass because quax's own dataclass
-    # subclasses regenerate ``__eq__`` field-wise over arrays; see quax issue 43.)
+    # Equality is the dataclass one: same register and, pairwise, equal ``(operator, subsystem)``
+    # entries, so it delegates to the quax operators' own ``__eq__`` (tolerant, by ``allclose``,
+    # once quax issue 43 stops its dataclass subclasses shadowing it).  Objects equal within a
+    # tolerance cannot share a value hash, so a circuit is unhashable -- like an array -- rather
+    # than inheriting a dataclass hash that would only fail later from inside a quax operator.
     __hash__ = None  # type: ignore[assignment]
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Circuit):
-            return NotImplemented
-        if self.dims != other.dims or self.subsystems != other.subsystems:
-            return False
-        return all(_operators_equal(a, b) for a, b in zip(self.operators, other.operators, strict=True))
 
     def __post_init__(self) -> None:
         self._coerce_fields()
