@@ -29,6 +29,7 @@ costs and catch very different bugs:
 
 import itertools
 import warnings
+from functools import cached_property
 from typing import Any, cast
 
 import jax
@@ -301,6 +302,88 @@ class TestToSuperops:
     def test_preserves_the_whole_channel(self):
         circuit = random_circuit((2, 2), 8, jax.random.key(3), channel_probability=0.5)
         assert_same_channel(circuit.to_superops().full_operator(), circuit.full_operator())
+
+
+def _cached_property_names(cls) -> tuple[str, ...]:
+    return tuple(n for k in cls.__mro__ for n, a in vars(k).items() if isinstance(a, cached_property))
+
+
+class TestEqualityAndHashing:
+    """Circuits compare structurally with quax's tolerant operator equality, and do not hash."""
+
+    @pytest.fixture
+    def circuit(self):
+        return Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
+
+    def test_structurally_equal_circuits_compare_equal(self, circuit):
+        assert circuit == Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
+        assert circuit != Circuit.from_ops([(qx.gates.X, (0,)), (qx.gates.CNOT, (0, 1))])
+        assert circuit != Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (1, 0))])
+
+    def test_equality_is_tolerant_and_type_aware(self, circuit):
+        nudged = qx.Unitary.from_matrix(qx.gates.H.matrix * (1 + 1e-12), qx.gates.H.dims)
+        assert circuit == Circuit.from_ops([(nudged, (0,)), (qx.gates.CNOT, (0, 1))])
+        # A fresh Unitary with the same matrix is equal; the same channel as a SuperOp is not.
+        fresh = qx.Unitary.from_matrix(jnp.array(qx.gates.H.matrix), qx.gates.H.dims)
+        assert circuit == Circuit.from_ops([(fresh, (0,)), (qx.gates.CNOT, (0, 1))])
+        assert circuit != circuit.to_superops()
+        assert circuit != Circuit(dims=(2, 3), ops=circuit.ops)
+
+    def test_circuit_is_unhashable(self, circuit):
+        with pytest.raises(TypeError, match="unhashable type: 'Circuit'"):
+            hash(circuit)
+        with pytest.raises(TypeError, match="unhashable"):
+            _ = {circuit: 1}
+
+    def test_circuit_cannot_be_a_static_argument(self, circuit):
+        with pytest.raises(ValueError, match="Non-hashable static arguments"):
+            jax.jit(lambda c, x: x.sum(), static_argnums=0)(circuit, jnp.ones(2))
+
+    def test_merge_plan_is_hashable_and_value_comparable(self, circuit):
+        plan = MergePlan.greedy(circuit.subsystems, max_subsystem_size=2)
+        assert plan == MergePlan.greedy(circuit.subsystems, max_subsystem_size=2)
+        assert {plan: 1}[MergePlan.greedy(circuit.subsystems, max_subsystem_size=2)] == 1
+
+
+class TestTraceSafety:
+    """Guards for the construction rules a pytree with cached properties must follow."""
+
+    @pytest.fixture
+    def circuit(self):
+        return Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
+
+    def test_no_cached_property_caches_a_tracer(self, circuit):
+        """Every cached property, touched first inside a trace, must cache concrete values."""
+        names = _cached_property_names(Circuit)
+        assert names, "guard is vacuous if there are none"
+        jax.jit(lambda x: [getattr(circuit, n) for n in names] and x.sum())(jnp.ones(1))
+        leaked = [
+            n
+            for n in names
+            for leaf in jax.tree_util.tree_leaves(circuit.__dict__[n])
+            if isinstance(leaf, jax.core.Tracer)
+        ]
+        assert not leaked, f"cached a tracer: {leaked}"
+
+    def test_unflatten_does_not_rerun_post_init(self, monkeypatch):
+        calls: list[int] = []
+        original = Circuit.__post_init__
+        monkeypatch.setattr(Circuit, "__post_init__", lambda self: (calls.append(1), original(self))[1])
+        circuit = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
+        assert len(calls) == 1  # construction
+        calls.clear()
+        jax.jit(lambda c, x: c.full_operator().matrix @ x)(circuit, jnp.ones(4))
+        assert calls == []  # unflatten bypassed it
+
+    def test_construction_inside_a_trace_validates_shapes_only(self):
+        """Validation reads operator shapes, never values, so a circuit can be built under jit."""
+
+        def build(theta):
+            return Circuit.from_ops([(qx.gates.RX(theta), (0,)), (qx.gates.CNOT, (0, 1))]).full_operator().matrix
+
+        assert jax.jit(build)(0.3).shape == (4, 4)
+        with pytest.raises(ValueError, match="does not fit the register"):
+            jax.jit(lambda t: Circuit(dims=(2, 2), ops=[(qx.gates.TRX01(t), (0,))]).num_ops)(0.3)
 
 
 class TestToKrausMaps:

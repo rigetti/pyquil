@@ -128,6 +128,14 @@ class ProgramSimulator(ABC):
     Instances are immutable after construction.
     """
 
+    # Style note: this hierarchy uses explicit ``__init__`` methods rather than the frozen
+    # dataclass + ``cached_property`` pattern used elsewhere in pyQuil's noise code.  The two are
+    # equivalent provided every cached property is touched eagerly in ``__post_init__``: derived
+    # JAX values (the operator stack, the vmapped builders) must be materialised outside any
+    # ``jax.jit`` trace, or the first trace that touches them caches a tracer on the instance.
+    # The explicit form was kept because the derived state depends on hooks the concrete classes
+    # supply (``_as_superop``, ``_make_branch``), which reads more plainly as ordered construction
+    # than as a dependency graph of cached properties.  Either is acceptable; do not mix them.
     def __init__(
         self,
         program: Program,
