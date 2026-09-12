@@ -100,7 +100,9 @@ def _warn_if_matmul_precision_reduced() -> None:
     """
     if jax.default_backend() == "cpu":
         return
-    precision = jax.config.jax_default_matmul_precision  # type: ignore
+    # JAX defines its flags dynamically, so they are read through ``config.values``: attribute
+    # access works at runtime but is invisible to type checkers.
+    precision = jax.config.values["jax_default_matmul_precision"]
     if precision in ("highest", "float32"):
         return
     warnings.warn(
