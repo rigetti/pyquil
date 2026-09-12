@@ -128,12 +128,32 @@ class Circuit:
     ops: tuple[Placement, ...]
 
     def __post_init__(self) -> None:
+        self._coerce_fields()
+        self._validate_register()
+        self._validate_placements()
+
+    def _coerce_fields(self) -> None:
+        """Store ``dims`` and every subsystem as tuples of plain ``int``.
+
+        Callers pass lists, NumPy integers and ranges; normalising once here is what lets
+        ``dims`` and ``subsystems`` serve as hashable pytree auxiliary data and compare by value.
+        """
         object.__setattr__(self, "dims", tuple(int(d) for d in self.dims))
         object.__setattr__(self, "ops", tuple((op, tuple(int(q) for q in sub)) for op, sub in self.ops))
 
+    def _validate_register(self) -> None:
+        """Reject a register with a non-positive dimension."""
         if any(d < 1 for d in self.dims):
             raise ValueError(f"Register dimensions must be positive, got {self.dims}.")
 
+    def _validate_placements(self) -> None:
+        """Check that every operation fits where it is placed.
+
+        Each subsystem must name distinct register positions inside the register, one per
+        qudit the operator acts on, and the operator's dimension on each qudit may not exceed
+        the register's there.  Only shapes are inspected, never array values, so this is safe
+        to run on traced operators inside ``jax.jit``.
+        """
         num_qudits = len(self.dims)
         for index, (op, subsystem) in enumerate(self.ops):
             out_of_range = [q for q in subsystem if not 0 <= q < num_qudits]
