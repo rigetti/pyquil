@@ -20,7 +20,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from pyquil.gates import PHASE, RX, RY, RZ, H
+from pyquil.gates import FSIM, PHASE, RX, RY, RZ, H
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Parameter, quil_cis, quil_cos, quil_exp, quil_sin, quil_sqrt
 from pyquil.quilbase import Declare, DefGate, Gate
@@ -183,6 +183,15 @@ class TestSimulation:
             PureStateVectorSimulator(_program(RX(quil_cis(THETA), 0)))
         with pytest.raises(ValueError, match="complex-valued"):
             PureStateVectorSimulator(_program(RX(1j * THETA, 0)))
+
+    def test_complex_literal_beside_an_expression_argument_reports_clearly(self):
+        """A complex *literal* is rejected too, not only a complex expression."""
+        with pytest.raises(ValueError, match="complex-valued"):
+            PureStateVectorSimulator(_program(FSIM(THETA, 1j, 0, 1)))
+
+    def test_unbound_defgate_parameter_names_the_instruction(self):
+        with pytest.raises(ValueError, match=r"RX\(.*\) 0'?: Unbound DEFGATE parameter"):
+            PureStateVectorSimulator(_program(RX(THETA + Parameter("p"), 0)))
 
     def test_feed_forward_parameter_still_rejected(self):
         from pyquil.gates import MEASURE

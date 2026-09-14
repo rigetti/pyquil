@@ -617,7 +617,7 @@ class _GateBatch:
     literal_args: tuple[tuple[int, float | complex], ...]
     #: ``(position, expression)`` for each expression-valued argument.  Every member's
     #: expressions have the same keys, so the first member's serve as the template: they are
-    #: evaluated on each member's own slot values.
+    #: evaluated on the narrowed vector of slot values gathered for each member.
     expression_args: tuple[tuple[int, ParameterExpression], ...]
     #: Per-qudit dimensions of the merge group each member embeds into.
     target_dims: tuple[int, ...]
@@ -645,14 +645,15 @@ class _GateBatch:
         width, as_superop = self.width, self.as_superop
         slot_indices = jnp.asarray(self.slot_indices, dtype=jnp.int32)  # (n_members, n_slots)
 
-        def single(values: Array) -> Array:
+        def single(slot_values: Array) -> Array:
+            """Build one member's embedded matrix from the slot values it reads, in order."""
             args: list[Any] = [None] * n_args
             for position, value in literal_args:
                 args[position] = value
             offset = 0
             for position, expression in expression_args:
                 count = len(expression.slot_indices)
-                args[position] = expression.evaluate(values[offset : offset + count])
+                args[position] = expression.evaluate(slot_values[offset : offset + count])
                 offset += count
             gate = gate_fn(*args)
             if not isinstance(gate, qx.Unitary):

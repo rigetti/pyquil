@@ -121,9 +121,13 @@ class ParameterExpression:
 
     Any expression Quil allows is supported: ``+ - * / ^``, the functions ``SIN``, ``COS``,
     ``SQRT``, ``EXP`` and ``CIS``, and real or complex literals -- for example
-    ``RX(theta[0]/2 + pi)``, ``RZ(2*SIN(phi[1]))`` or ``CPHASE(CIS(theta[0])) 0 1`` for a
-    ``DEFGATE`` taking a complex parameter.  Calling an instance with the flat parameter
-    vector evaluates it with JAX, so it can be jitted and differentiated through.
+    ``RX(theta[0]/2 + pi)``, ``RZ(2*SIN(phi[1]))``, or ``CPH(CIS(theta[0])) 0`` for a
+    ``DEFGATE CPH(%z)`` taking a complex parameter.  Evaluation goes through JAX, so an
+    expression can be jitted and differentiated through.
+
+    There are two ways in.  :attr:`evaluate` takes the *narrowed* vector of only the values this
+    expression reads, which is what the simulator gathers once per vectorised batch; calling the
+    instance takes the whole circuit-wide parameter vector and gathers from it first.
 
     :param slot_indices: Slots of the parameter vector the expression reads, in order of first
         appearance.
@@ -135,19 +139,21 @@ class ParameterExpression:
         complex literal).  Everything else is evaluated in real arithmetic; note that Quil
         would evaluate ``SQRT`` of a negative number or a fractional power of one as complex,
         which real arithmetic reports as ``nan``.
+    :param evaluate: Evaluates the expression from the values of :attr:`slot_indices`, in that
+        order.
     """
 
     slot_indices: tuple[int, ...]
     key: str
     is_complex: bool
-    _fn: Callable[[Array], Array]
-
-    def evaluate(self, values: Array) -> Array:
-        """Evaluate the expression given the values of its slots, in :attr:`slot_indices` order."""
-        return self._fn(values)
+    evaluate: Callable[[Array], Array]
 
     def __call__(self, params: Array) -> Array:
-        """Evaluate the expression for one parameter vector."""
+        """Evaluate the expression from the whole circuit-wide parameter vector.
+
+        Gathers :attr:`slot_indices` out of ``params`` and hands the narrowed vector to
+        :attr:`evaluate`.
+        """
         return self.evaluate(params[jnp.asarray(self.slot_indices)])
 
 
@@ -157,45 +163,58 @@ def _literal_value(expression: Any) -> float | complex:
     return value.real if value.imag == 0 else value
 
 
+def _build_expression(node: Any, references: list[MemoryReference]) -> tuple[Callable[[Array], Array], str, bool]:
+    """Compile one node of a Quil expression tree.
+
+    :param node: The node to compile; recursion handles its operands.
+    :param references: The memory references seen so far, in first-appearance order.  New ones are
+        appended, and a reference's position here is the index into the narrowed value vector that
+        the compiled closure reads.
+    :returns: The closure, the shape key, and whether the value may be complex.
+    :raises ValueError: If the node is an unbound ``DEFGATE`` parameter or an unknown function.
+        The message names only the offending node; :func:`expand_program` adds the instruction.
+    """
+    if isinstance(node, MemoryReference):
+        if node not in references:
+            references.append(node)
+        index = references.index(node)
+        return (lambda slot_values, index=index: slot_values[index]), f"%{index}", False
+    if isinstance(node, Parameter):
+        raise ValueError(f"Unbound DEFGATE parameter {node}.")
+    if isinstance(node, BinaryExp):
+        left, left_key, left_complex = _build_expression(node.op1, references)
+        right, right_key, right_complex = _build_expression(node.op2, references)
+        operator = _BINARY_OPERATORS[type(node)]
+        return (
+            (lambda slot_values: operator(left(slot_values), right(slot_values))),
+            f"({left_key}{node.operator.strip()}{right_key})",
+            left_complex or right_complex,
+        )
+    if isinstance(node, Function):
+        if node.name not in _FUNCTIONS:
+            raise ValueError(f"Unknown Quil function {node.name!r}.")
+        function = _FUNCTIONS[node.name]
+        inner, inner_key, inner_complex = _build_expression(node.expression, references)
+        return (
+            (lambda slot_values: function(inner(slot_values))),
+            f"{node.name}({inner_key})",
+            inner_complex or node.name == "CIS",
+        )
+    literal = _literal_value(node)
+    return (lambda slot_values, literal=literal: jnp.asarray(literal)), repr(literal), isinstance(literal, complex)
+
+
 def _compile_expression(expression: Any, slot_of: Callable[[MemoryReference], int]) -> ParameterExpression:
     """Compile a Quil expression over memory references into a :class:`ParameterExpression`.
 
     :param expression: The gate parameter; must contain at least one memory reference.
     :param slot_of: Maps a memory reference to its slot in the parameter vector.
-    :raises ValueError: If the expression contains an unbound ``DEFGATE`` parameter.
+    :raises ValueError: If the expression contains an unbound ``DEFGATE`` parameter or an unknown
+        function.
     """
     references: list[MemoryReference] = []
-    is_complex = False
-
-    def build(node: Any) -> tuple[Callable[[Array], Array], str]:
-        nonlocal is_complex
-        if isinstance(node, MemoryReference):
-            if node not in references:
-                references.append(node)
-            index = references.index(node)
-            return (lambda values, index=index: values[index]), f"%{index}"
-        if isinstance(node, Parameter):
-            raise ValueError(f"Unbound DEFGATE parameter {node} in gate argument {expression}.")
-        if isinstance(node, BinaryExp):
-            left, left_key = build(node.op1)
-            right, right_key = build(node.op2)
-            operator = _BINARY_OPERATORS[type(node)]
-            return (
-                lambda values: operator(left(values), right(values))
-            ), f"({left_key}{node.operator.strip()}{right_key})"
-        if isinstance(node, Function):
-            inner, inner_key = build(node.expression)
-            if node.name not in _FUNCTIONS:
-                raise ValueError(f"Unknown Quil function {node.name!r} in gate argument {expression}.")
-            function = _FUNCTIONS[node.name]
-            is_complex = is_complex or node.name == "CIS"
-            return (lambda values: function(inner(values))), f"{node.name}({inner_key})"
-        literal = _literal_value(node)
-        is_complex = is_complex or isinstance(literal, complex)
-        return (lambda values, literal=literal: jnp.asarray(literal)), repr(literal)
-
-    fn, key = build(expression)
-    return ParameterExpression(tuple(slot_of(ref) for ref in references), key, is_complex, fn)
+    evaluate, key, is_complex = _build_expression(expression, references)
+    return ParameterExpression(tuple(slot_of(ref) for ref in references), key, is_complex, evaluate)
 
 
 @dataclass(frozen=True, slots=True)
@@ -436,9 +455,9 @@ def expand_program(
         if any(_contained_mrefs(p) for p in inst.params):  # type: ignore[arg-type]
             gate_name = inst.name
             if custom_gates is not None and gate_name in custom_gates:
-                gate_def = custom_gates[gate_name]
+                gate_def, is_builtin = custom_gates[gate_name], False
             elif gate_name in qx.gates.QUANTUM_GATES:
-                gate_def = qx.gates.QUANTUM_GATES[gate_name]
+                gate_def, is_builtin = qx.gates.QUANTUM_GATES[gate_name], True
             else:
                 raise KeyError(f"Unknown gate '{gate_name}'.")
             if isinstance(gate_def, qx.Unitary):
@@ -446,30 +465,37 @@ def expand_program(
 
             arguments: list[float | complex | ParameterExpression] = []
             for p in inst.params:
+                argument: float | complex | ParameterExpression
                 if not _contained_mrefs(p):  # type: ignore[arg-type]
                     # A literal: a compile-time constant for this gate.
-                    arguments.append(_literal_value(p))
-                    continue
-                feed_forward = [m for m in _contained_mrefs(p) if m.name in measure_regs]  # type: ignore[arg-type]
-                if feed_forward:
-                    # Classically-conditioned angle: the value is only known mid-circuit.
-                    raise ValueError(
-                        f"Gate parameter {p} in {inst.out()!r} reads memory region "
-                        f"'{feed_forward[0].name}', which is written by a MEASURE in this program. "
-                        "Feed-forward (classically-conditioned) parameters are not supported."
-                    )
-                expression = _compile_expression(p, lambda ref: slots.setdefault((ref.name, ref.offset), len(slots)))
-                if (
-                    expression.is_complex
-                    and gate_name in qx.gates.QUANTUM_GATES
-                    and gate_name not in (custom_gates or {})
-                ):
+                    argument = _literal_value(p)
+                    is_complex = isinstance(argument, complex)
+                else:
+                    feed_forward = [m for m in _contained_mrefs(p) if m.name in measure_regs]  # type: ignore[arg-type]
+                    if feed_forward:
+                        # Classically-conditioned angle: the value is only known mid-circuit.
+                        raise ValueError(
+                            f"Gate parameter {p} in {inst.out()!r} reads memory region "
+                            f"'{feed_forward[0].name}', which is written by a MEASURE in this program. "
+                            "Feed-forward (classically-conditioned) parameters are not supported."
+                        )
+                    try:
+                        argument = _compile_expression(
+                            p, lambda ref: slots.setdefault((ref.name, ref.offset), len(slots))
+                        )
+                    except ValueError as error:
+                        # The compiler sees one expression; name the instruction it came from.
+                        raise ValueError(f"Gate parameter {p} in {inst.out()!r}: {error}") from error
+                    is_complex = argument.is_complex
+                # Checked for literals too: quax's built-in constructors take real angles, and a
+                # complex one otherwise surfaces much later as an opaque error from deep in quax.
+                if is_complex and is_builtin:
                     raise ValueError(
                         f"Gate parameter {p} in {inst.out()!r} is complex-valued (it contains CIS or a complex "
                         f"literal), but the built-in gate {gate_name} takes real angles. Complex arguments are "
                         "only supported for DEFGATE gates."
                     )
-                arguments.append(expression)
+                arguments.append(argument)
 
             return ParametricGate(gate_def, tuple(arguments)), qubits
 
