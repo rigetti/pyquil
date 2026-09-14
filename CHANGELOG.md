@@ -1,8 +1,14 @@
 # Changelog
 
-All notable changes to pyQuil are recorded here.  Entries are written by hand: a pull
-request that changes behaviour adds a file under `changelog.d/`, and the release rolls
-them into a new section here.  See CONTRIBUTING.md.
+All notable changes to pyQuil are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+There is no "Unreleased" section: a pull request that changes behaviour adds a file under
+[`changelog.d/`](https://github.com/rigetti/pyquil/blob/master/changelog.d/README.md)
+instead, and the release rolls those into a new section here.  See
+[CONTRIBUTING.md](https://github.com/rigetti/pyquil/blob/master/CONTRIBUTING.md#release-process).
 
 <!-- towncrier release notes start -->
 
