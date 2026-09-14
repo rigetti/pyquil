@@ -25,6 +25,8 @@ to uphold this code. Please report unacceptable behavior by contacting support@r
 
 - [Making a Pull Request](#making-a-pull-request)
 
+- [Updating the Changelog](#updating-the-changelog)
+
 - [Adding a Tutorial Notebook](#adding-a-tutorial-notebook)
 
 [Developer How-Tos](#developer-how-tos)
@@ -81,6 +83,28 @@ see completed, but that we don't currently have the bandwidth for.
 ### Making a Pull Request
 
 Once you've selected an issue to tackle, [forked the repository](https://github.com/rigetti/pyquil/fork), and made your changes, the next step is to [open a pull request](https://github.com/rigetti/pyquil/compare)! We've made opening one easy by providing a [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md) that includes a checklist of things to complete before asking for code review. Additionally, all CI checks must pass before the PR will be merged. We look forward to reviewing your work! 🙂
+
+### Updating the Changelog
+
+If your change is one a user would notice -- a new feature, a bug fix, a behaviour change,
+a removal -- add a bullet for it to [`CHANGELOG.md`](CHANGELOG.md), under the "Unreleased"
+heading at the top. Put it under `### Features`, `### Fixes`, `### Breaking Changes` or
+`### Documentation`, adding that subheading if it isn't there yet, and link your pull
+request at the end:
+
+```markdown
+## Unreleased
+
+### Features
+
+- A gate angle may be any Quil arithmetic expression over declared memory, so the
+  parametric programs `quilc` emits simulate without rewriting.
+  ([#1869](https://github.com/rigetti/pyquil/pull/1869))
+```
+
+Write a sentence or two in the present tense, for someone reading the release notes rather
+than the diff. A pull request that changes no behaviour -- a refactor, a test, a CI tweak
+-- doesn't need an entry.
 
 ### Adding a Tutorial Notebook
 
@@ -372,7 +396,7 @@ version in all builds going forward.
 When merging PRs, we have a couple of guidelines:
 
 1. Double-check that the PR author has completed everything in the PR checklist that is applicable to the changes.
-2. If the PR changes anything a user would notice, check that it adds a file under [`changelog.d/`](changelog.d/README.md). That file, not the commit message, is what ends up in the release notes.
+2. If the PR changes anything a user would notice, check that it adds a bullet under "Unreleased" in [`CHANGELOG.md`](CHANGELOG.md). That bullet, not the commit message, is what ends up in the release notes.
 3. Always use the "squash and merge" option so that every PR corresponds to one commit. This keeps the git history clean and encourages many small (quickly reviewable) PRs rather than behemoth ones with lots of commits.
 4. When pressing the merge button, each commit message will be turned into a bullet point below the title of the issue. Make sure to truncate the PR title to ~50 characters (unless completely impossible) so it fits on one line in the commit history, and delete any spurious bullet points that add no meaningful content.
 
@@ -394,16 +418,10 @@ A release is a pull request and a tag. Nothing infers the version and nothing wr
 feel the need to "wait for more content" before releasing!
 
 1. **Open a release PR.** Pick the next version according to [semantic versioning][semver]
-   and set it in `pyproject.toml` (`poetry version 4.19.0`), then roll the pending
-   changelog fragments into a new section:
-
-   ```bash
-   poetry run towncrier build --version 4.19.0
-   ```
-
-   That writes `CHANGELOG.md` and deletes the files under `changelog.d/`. Read what it
-   produced and edit it -- these are the release notes, and this is the moment to make
-   them read well. Use `make changelog-preview VERSION=4.19.0` to see the result first.
+   and set it in `pyproject.toml` (`poetry version 4.19.0`). In `CHANGELOG.md`, rename the
+   "Unreleased" heading to `## 4.19.0 (2026-09-14)` and leave a fresh, empty `## Unreleased`
+   above it. Read the entries while you are there -- these are the release notes, and this
+   is the moment to make them read well.
 
 2. **Merge it**, once CI is green.
 

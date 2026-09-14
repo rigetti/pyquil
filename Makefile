@@ -33,14 +33,6 @@ check-types: ## Run static type checking with mypy
 check-style: ## Lint the code with ruff
 	ruff check pyquil
 
-.PHONY: changelog-fragment
-changelog-fragment: ## Add a changelog entry for this PR (see changelog.d/README.md)
-	poetry run towncrier create --edit
-
-.PHONY: changelog-preview
-changelog-preview: ## Show what the next release's changelog section would say
-	poetry run towncrier build --draft --version $(or $(VERSION),UNRELEASED)
-
 .PHONY: clean
 clean: ## Remove build artifacts and caches
 	rm -rf dist
