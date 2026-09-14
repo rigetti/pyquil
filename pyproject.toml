@@ -66,7 +66,42 @@ respx = "^0.21.1"
 syrupy = "^5.3.3"
 jinja2 = {version = ">=3.1.6", optional = true} # see: https://osv.dev/vulnerability/GHSA-gmj6-6f8f-6699 and https://osv.dev/vulnerability/GHSA-q2x7-8rv6-6q7h and https://osv.dev/GHSA-cpwx-vrp4-4pq7
 h11 = {version = ">=0.16.0", optional = true} # see: https://osv.dev/vulnerability/GHSA-vqfr-h8mv-ghfj
+towncrier = "^24.8.0"
 
+
+[tool.towncrier]
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+title_format = "## {version} ({project_date})"
+issue_format = "[#{issue}](https://github.com/rigetti/pyquil/pull/{issue})"
+# Markdown output: towncrier's reST underlines must be suppressed.
+underlines = ["", "", ""]
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fix"
+name = "Fixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "doc"
+name = "Documentation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Other Changes"
+showcontent = true
 
 [tool.ruff]
 exclude = [
