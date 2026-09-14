@@ -75,6 +75,7 @@ from pyquil.quilbase import Measurement, Reset, ResetQubit
 from pyquil.simulation._circuit import Circuit, CircuitOp, Group, MergePlan
 from pyquil.simulation._resolver import (
     ExpandedOp,
+    ParameterExpression,
     ParameterRef,
     ParametricGate,
     Resolution,
@@ -598,10 +599,10 @@ def _embed_op_to_group(
 
 @dataclass
 class _GateBatch:
-    """A set of gates sharing one constructor, concrete layout, and embedding.
+    """A set of gates sharing one constructor, argument layout, and embedding.
 
     Members differ only in which entries of the parameter vector feed their
-    free arguments, so all of them are built with a single ``jax.vmap``.  This
+    expression-valued arguments, so all of them are built with a single ``jax.vmap``.  This
     keeps the traced graph proportional to the number of distinct gate *kinds*
     rather than the number of gates.
 
@@ -612,8 +613,12 @@ class _GateBatch:
 
     gate_fn: Callable[..., qx.Operator]
     n_args: int
-    #: ``(slot, value)`` for each compile-time-constant argument.
-    concrete_args: tuple[tuple[int, float], ...]
+    #: ``(position, value)`` for each literal argument.
+    literal_args: tuple[tuple[int, float | complex], ...]
+    #: ``(position, expression)`` for each expression-valued argument.  Every member's
+    #: expressions have the same keys, so the first member's serve as the template: they are
+    #: evaluated on the narrowed vector of slot values gathered for each member.
+    expression_args: tuple[tuple[int, ParameterExpression], ...]
     #: Per-qudit dimensions of the merge group each member embeds into.
     target_dims: tuple[int, ...]
     #: Positions within the group occupied by the gate's qudits.
@@ -624,31 +629,39 @@ class _GateBatch:
     as_superop: bool
     #: Sorted-array positions this batch fills, one per member.
     positions: list[int] = field(default_factory=list)
-    #: Parameter-vector index for each free argument, one list per member.
-    param_indices: list[list[int]] = field(default_factory=list)
+    #: Parameter-vector slots read by each member: the slot indices of its expression
+    #: arguments, concatenated in argument order.
+    slot_indices: list[list[int]] = field(default_factory=list)
 
     def builder(self) -> Callable[[Array], Array]:
         """Return ``params -> (n_members, width, width)`` embedded gate matrices."""
-        concrete = {slot for slot, _ in self.concrete_args}
-        free_slots = [j for j in range(self.n_args) if j not in concrete]
-        gate_fn, n_args, concrete_args = self.gate_fn, self.n_args, self.concrete_args
+        gate_fn, n_args, literal_args, expression_args = (
+            self.gate_fn,
+            self.n_args,
+            self.literal_args,
+            self.expression_args,
+        )
         target_dims, group_positions = self.target_dims, self.group_positions
         width, as_superop = self.width, self.as_superop
-        param_indices = jnp.asarray(self.param_indices)  # (n_members, n_free)
+        slot_indices = jnp.asarray(self.slot_indices, dtype=jnp.int32)  # (n_members, n_slots)
 
-        def single(free_values: Array) -> Array:
+        def single(slot_values: Array) -> Array:
+            """Build one member's embedded matrix from the slot values it reads, in order."""
             args: list[Any] = [None] * n_args
-            for slot, val in concrete_args:
-                args[slot] = val
-            for k, slot in enumerate(free_slots):
-                args[slot] = free_values[k]
+            for position, value in literal_args:
+                args[position] = value
+            offset = 0
+            for position, expression in expression_args:
+                count = len(expression.slot_indices)
+                args[position] = expression.evaluate(slot_values[offset : offset + count])
+                offset += count
             gate = gate_fn(*args)
             if not isinstance(gate, qx.Unitary):
                 gate = qx.Unitary.from_matrix(gate.matrix, gate.dims)
             return _embed_op_to_group(gate, target_dims, group_positions, width, as_superop=as_superop)
 
         batched = jax.vmap(single)
-        return lambda params: batched(params[param_indices])
+        return lambda params: batched(params[slot_indices])
 
 
 def _make_group_fold(group_start: list[int], n_ops: int, width: int) -> Callable[[Array], Array]:
@@ -748,14 +761,22 @@ def _build_vectorized_operator_constructor(
             # Key by embedding *type* (op dims + group dims + positions), not
             # physical qubits: embeddings that trace to the same graph share a vmap.
             embed_key = (tuple(dims[q] for q in op_sub), target_dims, group_positions)
-            concrete_args = tuple((j, op.concrete_values[j]) for j, pi in enumerate(op.param_indices) if pi < 0)
-            key = (id(op.gate_fn), concrete_args, embed_key)
+            literal_args = tuple(
+                (j, arg) for j, arg in enumerate(op.arguments) if not isinstance(arg, ParameterExpression)
+            )
+            expression_args = tuple(
+                (j, arg) for j, arg in enumerate(op.arguments) if isinstance(arg, ParameterExpression)
+            )
+            # Expressions enter the key by *shape* only, so ``SIN(theta[0])`` and ``SIN(theta[1])``
+            # share a batch and differ in the slots they read.
+            key = (id(op.gate_fn), literal_args, tuple((j, arg.key) for j, arg in expression_args), embed_key)
             batch = batches.get(key)
             if batch is None:
                 batch = _GateBatch(
                     gate_fn=op.gate_fn,
-                    n_args=len(op.param_indices),
-                    concrete_args=concrete_args,
+                    n_args=len(op.arguments),
+                    literal_args=literal_args,
+                    expression_args=expression_args,
                     target_dims=target_dims,
                     group_positions=group_positions,
                     width=width,
@@ -763,7 +784,7 @@ def _build_vectorized_operator_constructor(
                 )
                 batches[key] = batch
             batch.positions.append(pos)
-            batch.param_indices.append([pi for pi in op.param_indices if pi >= 0])
+            batch.slot_indices.append([slot for _, arg in expression_args for slot in arg.slot_indices])
         else:
             # Constant operations are embedded once, eagerly. In superoperator mode this
             # also covers the non-unitary ops a noise model contributes (channel SuperOps,
