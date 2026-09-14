@@ -22,21 +22,26 @@
     design settled against that experience.
 
 All simulators share the preprocessing in :class:`ProgramSimulator` (expansion, dimension
-inference, ``linearize``/``resolve``/``compress``).  This module provides the
-**differentiable** family (:class:`_DifferentiableSimulator`) — jit/grad-friendly evolution of
-a compressed ``Unitary``/``SuperOp`` stack, with measurements collapsed to dephasing SuperOps:
+inference, ``linearize``/``resolve``/``compress``).  Two families build on it:
 
-* :class:`PureStateVectorSimulator` — gate-only programs (no noise, measurements,
-  or resets).
-* :class:`DensityMatrixSimulator` — any program, optionally with noise.
+* The **differentiable** family (:class:`_DifferentiableSimulator`) — jit/grad-friendly
+  evolution of a compressed ``Unitary``/``SuperOp`` stack, with measurements collapsed to
+  dephasing SuperOps: :class:`PureStateVectorSimulator` for gate-only programs and
+  :class:`DensityMatrixSimulator` for any program, optionally with noise.
+* The **trajectory** family (:class:`_TrajectorySimulator`) — Monte-Carlo sampling of pure
+  state vectors, with measurements kept as sampled instruments:
+  :class:`TrajectorySimulator`.
 
-The ``compute`` method is the main entry point; for the differentiable family it can be
+The ``compute`` method is the main entry point.  For the differentiable family it can be
 passed directly to ``jax.jit`` or ``jax.grad``, and returns a quax state on which any quax
 metric can be evaluated inside the same transformation::
 
     sim = DensityMatrixSimulator(program, noise_model=noise_model)
     loss = lambda params: 1 - qx.fidelity(target, sim.compute(params))
     jax.grad(loss)(sim.linearize(memory_map))
+
+For the trajectory family it takes a PRNG key as well and returns the sampled measurement
+outcomes alongside the state; ``sample`` returns outcomes alone, in batches.
 
 .. warning::
     **Qubit ordering is big-endian here, unlike the rest of pyQuil.**  The first entry of
@@ -60,7 +65,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any, Generic, TypeVar, cast, final
+from typing import Any, Generic, TypeAlias, TypeVar, cast, final
 
 import jax
 import jax.numpy as jnp
@@ -68,11 +73,16 @@ import numpy as np
 import quax as qx
 from jax import Array
 
+# quax exports ``targeted_apply_kraus_map_trajectory``, which discards the sampled Kraus index; the
+# trajectory kernel needs that index to decode measurement outcomes, so it uses the underlying
+# sampler directly.  Exporting a variant that returns the index is an open request against quax.
+from quax._apply import _sample_kraus_map_trajectory
+
 from pyquil.api import MemoryMap
 from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Reset, ResetQubit
-from pyquil.simulation._circuit import Circuit, CircuitOp, Group, MergePlan
+from pyquil.simulation._circuit import Circuit, CircuitOp, Group, MergePlan, Placement
 from pyquil.simulation._resolver import (
     ExpandedOp,
     ParameterExpression,
@@ -1048,9 +1058,565 @@ def _povm_elements(instrument: qx.QuantumInstrument) -> Array:
     return jnp.stack(elements)
 
 
+# ══════════════════════════════════════════════════════════
+# Trajectory family base
+# ══════════════════════════════════════════════════════════
+
+
+class _TrajectorySimulator(ProgramSimulator):
+    """Base for the Monte-Carlo trajectory simulators.
+
+    Keeps every ``MEASURE`` as a sampleable ``QuantumInstrument`` (the default
+    :meth:`~ProgramSimulator._prepare_ops`), which the merge plan therefore pins as ``atomic``,
+    and adapts the merged circuit to the trajectory-native ``Unitary`` / ``KrausMap`` /
+    ``QuantumInstrument`` representation with
+    :meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`.  Unlike the differentiable
+    family it evolves no dense operator stack; each concrete simulator owns a sampling kernel.
+    """
+
+    def __init__(
+        self,
+        program: Program,
+        qubits: Sequence[int] | None = None,
+        *,
+        noise_model: NoiseModelLike | None = None,
+        max_subsystem_size: int = 2,
+        kraus_truncation_threshold: float = 1e-6,
+    ) -> None:
+        """Prepare a trajectory simulator.
+
+        :param program: Any Quil program, including measurements and resets.
+        :param qubits: Register order; see :meth:`ProgramSimulator.__init__`.
+        :param noise_model: Optional noise model. Instructions with no channel are ideal.
+        :param max_subsystem_size: Compressor merge budget; performance only. Measurements are
+            never merged, whatever the budget.
+        :param kraus_truncation_threshold: Kraus operators of a merged channel with norm below
+            this are dropped when the channel is converted for sampling.
+        """
+        super().__init__(program, qubits, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
+        self.kraus_truncation_threshold = kraus_truncation_threshold
+
+    @final
+    def adapt(self, compressed: Circuit) -> Circuit:
+        """Convert a merged circuit to the representation the trajectory kernel samples from.
+
+        Dense superoperators become truncated ``KrausMap`` operators; unitaries, Kraus maps and
+        instruments pass through.  See
+        :meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`.
+        """
+        return compressed.to_kraus_maps(atol=self.kraus_truncation_threshold)
+
+    @final
+    def _operations(self, params: Array | None) -> Circuit:
+        """Resolve, merge and adapt the program for *params*."""
+        return self.adapt(self.compress(self.resolve(self._default_params(params))))
+
+
+# ══════════════════════════════════════════════════════════
+# Trajectory simulator
+# ══════════════════════════════════════════════════════════
+
+
+class TrajectorySimulator(_TrajectorySimulator):
+    """Monte Carlo trajectory simulator for programs with measurements and resets.
+
+    ``compute`` requires a JAX PRNG key.  The number of trajectories is determined by the key
+    shape: a scalar key runs one trajectory; a batch of keys ``jax.random.split(key, n)`` runs
+    *n* trajectories in parallel::
+
+        sim = TrajectorySimulator(program, noise_model=noise_model)
+        params = sim.linearize(memory_map)
+
+        # Single trajectory
+        psi, outcomes = sim.compute(params, jax.random.key(0))
+
+        # Batched trajectories
+        keys = jax.random.split(jax.random.key(0), 100)
+        psi_batch, outcomes_batch = sim.compute(params, keys)
+
+    ``sample`` runs trajectories in batches and discards the state vectors, returning only the
+    measurement outcomes.
+
+    The sampling kernel is compiled once, at construction: its *layout* (which subsystem each
+    merged operation acts on, which operations are measurements, the Kraus counts) depends only
+    on the program's structure, so every ``compute`` and ``sample`` call rebuilds just the Kraus
+    stack for its parameters and reuses the compiled kernel.
+    """
+
+    def __init__(
+        self,
+        program: Program,
+        qubits: Sequence[int] | None = None,
+        *,
+        noise_model: NoiseModelLike | None = None,
+        max_subsystem_size: int = 2,
+        kraus_truncation_threshold: float = 1e-6,
+        devices: Sequence[Any] | None = None,
+    ) -> None:
+        """Prepare a trajectory simulator.
+
+        Arguments are as :meth:`_TrajectorySimulator.__init__`, plus:
+
+        :param devices: Devices :meth:`sample` runs data-parallel across, one independent
+            replica each. Defaults to ``jax.devices()``.
+        """
+        super().__init__(
+            program,
+            qubits,
+            noise_model=noise_model,
+            max_subsystem_size=max_subsystem_size,
+            kraus_truncation_threshold=kraus_truncation_threshold,
+        )
+        self._devices = tuple(devices) if devices is not None else tuple(jax.devices())
+
+        # The kernel layout is structural.  Kraus counts are included: composing a channel with
+        # unitaries conjugates its Choi matrix, which leaves the eigenvalues -- and hence the
+        # truncated Kraus count -- unchanged, so a probe at any parameter value is representative.
+        # Outcome columns must follow the MEASURE instructions in *program* order.  The plan may
+        # emit two independent measurements in either order (see the warning on ``MergePlan``),
+        # so each merged position is labelled by the operation index its group carries.
+        self._layout = _KrausStackLayout.from_operations(
+            self._operations(jnp.zeros(self.num_parameters)),
+            self.dims,
+            operation_index=tuple(nodes[0] for nodes, _ in self.plan.groups),
+        )
+        self._kernel = _build_trajectory_kernel(self._layout)
+        self._batched_kernels: dict[tuple[int, bool], Callable[..., Any]] = {}
+
+    def compute(  # type: ignore[override]
+        self,
+        params: Array | None = None,
+        key: Array | None = None,
+    ) -> tuple[qx.StateVector, Array]:
+        """Run trajectory simulation.
+
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
+        :param key: JAX PRNG key (required).  Scalar key → single trajectory.
+            Batch of keys (from ``jax.random.split``) → batched trajectories.
+        :return: Tuple of ``(state_vector, measurement_outcomes)``.  Outcome columns follow the
+            ``MEASURE`` instructions in program order.
+        """
+        if key is None:
+            raise ValueError("TrajectorySimulator.compute requires a JAX PRNG key.")
+        op_stack = self._layout.stack(self._operations(params))
+        ensemble_size = () if key.ndim == 0 else (key.shape[0],)
+        psi = qx.zero_state_vector(dims=self.dims, ensemble_size=ensemble_size)
+        return self._kernel(op_stack, psi, key)
+
+    def __call__(self, params: Array | None = None, key: Array | None = None) -> tuple[qx.StateVector, Array]:
+        """Alias for :meth:`compute`."""
+        return self.compute(params, key)
+
+    def sample(
+        self,
+        params: Array | None = None,
+        num_trajectories: int = 1000,
+        batch_size: int = 250,
+        random_seed: int = 0,
+    ) -> Array:
+        """Run trajectory simulation in batches, returning only measurement outcomes.
+
+        State vectors are discarded after each batch, making this scalable to arbitrarily many
+        trajectories.  When multiple devices are available the batch is run **data-parallel**
+        via :func:`jax.pmap`: each device runs an independent replica of the trajectory kernel
+        on its own slice of trajectories, with no cross-device communication.
+
+        :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
+            pass ``None``) for a parameter-free program.
+        :param num_trajectories: Total number of trajectories to simulate.
+        :param batch_size: Trajectories per device per batch.  With ``n`` devices
+            each batch runs ``n * batch_size`` trajectories concurrently; on a
+            single device this is simply the batch size.
+        :param random_seed: Seed for the JAX PRNG.
+        :return: Measurement outcomes with shape ``(num_trajectories, n_measurements)``.
+        """
+        op_stack = self._layout.stack(self._operations(params))
+        cache_key = (batch_size, False)
+        if cache_key not in self._batched_kernels:
+            self._batched_kernels[cache_key] = _batched_trajectory_kernel(
+                self._kernel, self.dims, batch_size, keep_states=False, devices=self._devices
+            )
+        _, all_outcomes = _run_batched_kernel(
+            self._batched_kernels[cache_key], op_stack, num_trajectories, batch_size, random_seed, len(self._devices)
+        )
+        if len(all_outcomes) == 1:
+            return all_outcomes[0]
+        return jnp.concatenate(all_outcomes, axis=0)
+
+
+# ══════════════════════════════════════════════════════════
+# Trajectory simulation internals
+# ══════════════════════════════════════════════════════════
+
+
+def _pad_matrix(mat: Array, *target: int) -> Array:
+    """Zero-pad the trailing dimensions of *mat* up to *target* sizes.
+
+    Only the last ``len(target)`` axes are padded (top-left aligned); any
+    leading (ensemble/stack) axes are left untouched.
+    """
+    if all(mat.shape[-len(target) + i] == t for i, t in enumerate(target)):
+        return mat
+    pad = [(0, 0)] * (mat.ndim - len(target)) + [
+        (0, t - mat.shape[mat.ndim - len(target) + i]) for i, t in enumerate(target)
+    ]
+    return jnp.pad(mat, pad)
+
+
+def _op_to_kraus_matrix(op: CircuitOp) -> tuple[Array, int, bool]:
+    """Convert a single trajectory operator to a Kraus matrix.
+
+    Every trajectory operator is expressed as a Kraus map so that a single, uniform
+    ``jax.lax.switch`` branch (Kraus trajectory sampling) can handle all operation types:
+
+    - ``qx.Unitary`` → a one-operator Kraus map.
+    - ``qx.KrausMap`` → itself.
+    - ``qx.QuantumInstrument`` → its outcome and Kraus axes are merged into a single Kraus axis
+      (replicating the flattening in :func:`quax.targeted_apply_instrument_to_state_vector`).
+      The returned *divisor* is the number of Kraus operators per outcome, so the sampled Kraus
+      index ``k`` decodes to the measurement outcome ``k // divisor``.
+
+    :param op: The operator (already acting on its base subsystem).
+    :return: ``(matrix, divisor, is_measurement)`` where ``matrix`` has shape
+        ``(n_kraus, d, d)``.
+    :raises TypeError: For any other operator type, which :meth:`Circuit.to_kraus_maps` should
+        already have converted.
+    """
+    match op:
+        case qx.Unitary():
+            return qx.to_kraus(op).matrix, 1, False
+        case qx.KrausMap():
+            return op.matrix, 1, False
+        case qx.QuantumInstrument():
+            kraus_mats = [qx.superop_to_kraus(op.outcome_superop(i)[0]).matrix for i in range(op.num_outcomes)]
+            n_kraus_per_outcome = kraus_mats[0].shape[-3]
+            merged = jnp.concatenate(kraus_mats, axis=-3)
+            return merged, n_kraus_per_outcome, True
+        case _:
+            raise TypeError(f"Unsupported operator type for trajectory sampling: {type(op).__name__}")
+
+
+def _promote_to_register(op: CircuitOp, subsystem: tuple[int, ...], dims: tuple[int, ...]) -> CircuitOp:
+    """Promote *op* to the register dimension on its subsystem (identity on the higher levels).
+
+    Without this, an op authored at a lower dimension than the register (e.g. a qubit-dimension
+    channel on a register promoted to qutrits by a leakage model) would be zero-padded to
+    ``d_max`` instead — silently wrong on the high levels, and a reshape error when ``d_max``
+    is below the branch's dimension.
+    """
+    target_dims = tuple(dims[q] for q in subsystem)
+    return op if op.dims[0] == target_dims else qx.promote(op, target_dims)
+
+
+#: An operation sequence the trajectory kernel accepts: a circuit, or bare placements.
+Operations: TypeAlias = Circuit | Sequence[Placement]
+
+#: A ``run(op_stack, psi, key) -> (psi, outcomes)`` trajectory kernel.
+TrajectoryRun: TypeAlias = Callable[[Array, qx.StateVector, Array], tuple[qx.StateVector, Array]]
+
+#: A ``branch(op_mat, psi, key) -> (psi, sampled_index)`` switch branch for one subsystem.
+KrausBranch: TypeAlias = Callable[[Array, qx.StateVector, Array], tuple[qx.StateVector, Array]]
+
+
+@dataclass(frozen=True)
+class _KrausStackLayout:
+    """The structural, parameter-independent shape of a trajectory operation sequence.
+
+    Every operation is expressed as a zero-padded Kraus matrix so the scan can index a single
+    homogeneous ``(n_ops, max_k, d_max, d_max)`` stack (operators live on different subsystems
+    with different Kraus counts, and there is no ragged stacking).  Zero-padded Kraus operators
+    carry zero Born probability and are never sampled; each branch re-slices ``[:, :db, :db]``
+    back to its subsystem before rebuilding a ``KrausMap``.
+
+    The layout is what the compiled kernel closes over.  :meth:`stack` produces the matching
+    stack for one concrete operation sequence, and is the only per-parameter work.
+
+    :param dims: Per-qudit register dimensions.
+    :param subsystems: The subsystem each operation acts on, in application order.
+    :param bases: The distinct subsystems, in first-seen order (one switch branch each).
+    :param branch_index: For each operation, its index into ``bases``.
+    :param divisors: Per-operation Kraus-count divisor; measurement outcome = ``index // divisor``.
+    :param measure_positions: Indices of the measurement operations, in outcome-column order.
+    :param max_k: Kraus operators per stack row.
+    :param d_max: Matrix dimension per stack row.
+    """
+
+    dims: tuple[int, ...]
+    subsystems: tuple[tuple[int, ...], ...]
+    bases: tuple[tuple[int, ...], ...]
+    branch_index: tuple[int, ...]
+    divisors: tuple[int, ...]
+    measure_positions: tuple[int, ...]
+    max_k: int
+    d_max: int
+
+    @property
+    def n_ops(self) -> int:
+        return len(self.subsystems)
+
+    @classmethod
+    def from_operations(
+        cls,
+        operations: Operations,
+        dims: tuple[int, ...],
+        operation_index: Sequence[int] | None = None,
+    ) -> _KrausStackLayout:
+        """Read the layout off one representative operation sequence.
+
+        :param operations: The operations, in application order.
+        :param dims: Per-qudit register dimensions.
+        :param operation_index: For each operation, the index that orders measurement outcome
+            columns -- typically the original program index of the group's operation, so that
+            columns follow ``MEASURE`` instructions in program order even when the merge plan
+            emitted independent measurements in a different order. Defaults to application
+            order.
+        """
+        dims = tuple(dims)
+        subsystems: list[tuple[int, ...]] = []
+        bases: dict[tuple[int, ...], int] = {}
+        branch_index: list[int] = []
+        divisors: list[int] = []
+        measure_positions: list[int] = []
+        max_k, d_max = 1, 1
+        for i, (op, subsystem) in enumerate(operations):
+            subsystem = tuple(subsystem)
+            mat, divisor, is_measure = _op_to_kraus_matrix(_promote_to_register(op, subsystem, dims))
+            subsystems.append(subsystem)
+            branch_index.append(bases.setdefault(subsystem, len(bases)))
+            divisors.append(divisor)
+            if is_measure:
+                measure_positions.append(i)
+            max_k = max(max_k, mat.shape[0])
+            d_max = max(d_max, mat.shape[-1])
+        if operation_index is not None:
+            if len(operation_index) != len(subsystems):
+                raise ValueError(
+                    f"operation_index has {len(operation_index)} entries for {len(subsystems)} operation(s)."
+                )
+            measure_positions.sort(key=lambda position: operation_index[position])
+        return cls(
+            dims=dims,
+            subsystems=tuple(subsystems),
+            bases=tuple(bases),
+            branch_index=tuple(branch_index),
+            divisors=tuple(divisors),
+            measure_positions=tuple(measure_positions),
+            max_k=max_k,
+            d_max=d_max,
+        )
+
+    def stack(self, operations: Operations) -> Array:
+        """Build the ``(n_ops, max_k, d_max, d_max)`` Kraus stack for one operation sequence.
+
+        :raises ValueError: If *operations* does not fit this layout, which means it was not
+            produced from the same program.
+        """
+        if len(operations) != self.n_ops:
+            raise ValueError(f"Layout covers {self.n_ops} operation(s) but {len(operations)} were given.")
+        mats: list[Array] = []
+        for i, (op, subsystem) in enumerate(operations):
+            if tuple(subsystem) != self.subsystems[i]:
+                raise ValueError(f"Operation {i} acts on {tuple(subsystem)}; the layout expects {self.subsystems[i]}.")
+            mat, _, _ = _op_to_kraus_matrix(_promote_to_register(op, self.subsystems[i], self.dims))
+            if mat.shape[0] > self.max_k or mat.shape[-1] > self.d_max:
+                raise ValueError(
+                    f"Operation {i} has {mat.shape[0]} Kraus operator(s) of dimension {mat.shape[-1]}, "
+                    f"but the layout allows {self.max_k} of dimension {self.d_max}."
+                )
+            mats.append(_pad_matrix(mat, self.max_k, self.d_max, self.d_max))
+        return jnp.stack(mats, axis=0)
+
+
+def _build_trajectory_kernel(layout: _KrausStackLayout) -> TrajectoryRun:
+    """Build the jitted trajectory kernel for a layout.
+
+    The returned ``run(op_stack, psi, key)`` scans the padded Kraus stack with a
+    :func:`jax.lax.switch` per operation dispatching on its base subsystem.  Because the stack
+    is an *argument*, one compilation serves every parameter value (and every batch) with the
+    same ``psi``/``key`` shapes.
+
+    Measurements are handled uniformly by flattening a quantum instrument so that sampling a
+    Kraus index also selects an outcome (``index // divisor``).  Per-operation keys are derived
+    lazily via ``jax.random.fold_in`` so the key array is never materialised in full.
+
+    :return: ``run(op_stack, psi, key) -> (final_state_vector, measurement_outcomes)`` where
+        ``measurement_outcomes`` has shape ``(*ensemble, n_measurements)``, dtype int32.
+        ``key`` is a scalar PRNG key or a per-trajectory key vector.
+    """
+    if layout.n_ops == 0:
+
+        def run_empty(op_stack: Array, psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
+            return psi, jnp.empty((*psi.ensemble_size, 0), dtype=jnp.int32)
+
+        return run_empty
+
+    def make_branch(base: tuple[int, ...]) -> KrausBranch:
+        base_dims = tuple(layout.dims[q] for q in base)
+        db = math.prod(base_dims)
+
+        def branch(op_mat: Array, psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
+            kraus_map = qx.KrausMap.from_matrix(op_mat[:, :db, :db], (base_dims, base_dims))
+            return cast(tuple[qx.StateVector, Array], _sample_kraus_map_trajectory(kraus_map, psi, key, base))
+
+        return branch
+
+    branches = [make_branch(base) for base in layout.bases]
+    branch_arr = jnp.asarray(layout.branch_index, dtype=jnp.int32)
+    op_indices = jnp.arange(layout.n_ops, dtype=jnp.int32)
+    divisors, measure_positions = layout.divisors, layout.measure_positions
+
+    @jax.jit
+    def run(op_stack: Array, psi: qx.StateVector, key: Array) -> tuple[qx.StateVector, Array]:
+        ensemble_size = psi.ensemble_size
+        if ensemble_size:
+            per_traj_keys = key if key.ndim > 0 else jax.random.split(key, ensemble_size[0])
+        else:
+            per_traj_keys = None
+
+        def body(psi_c: qx.StateVector, xs: tuple[Array, Array, Array]) -> tuple[qx.StateVector, Array]:
+            op_mat, bidx, i = xs
+            if per_traj_keys is not None:
+                op_key = jax.vmap(lambda k: jax.random.fold_in(k, i))(per_traj_keys)
+            else:
+                op_key = jax.random.fold_in(key, i)
+            psi_c, sampled_idx = jax.lax.switch(bidx, branches, op_mat, psi_c, op_key)
+            return psi_c, sampled_idx.astype(jnp.int32)
+
+        psi_out, sampled = jax.lax.scan(body, psi, (op_stack, branch_arr, op_indices))
+
+        if measure_positions:
+            outcomes = jnp.stack([sampled[p] // divisors[p] for p in measure_positions], axis=-1)
+        else:
+            outcomes = jnp.empty((*ensemble_size, 0), dtype=jnp.int32)
+        return psi_out, outcomes
+
+    return run
+
+
+def _apply_trajectory_operations(
+    operations: Operations,
+    psi: qx.StateVector,
+    key: Array,
+) -> tuple[qx.StateVector, Array]:
+    """Build a one-off trajectory kernel for *operations* and apply it to *psi*.
+
+    Convenience for callers that run a single (batch of) trajectories from an operation
+    sequence; the simulators build their kernel once at construction instead.
+    """
+    layout = _KrausStackLayout.from_operations(operations, psi.dims)
+    return _build_trajectory_kernel(layout)(layout.stack(operations), psi, key)
+
+
+def _batched_trajectory_kernel(
+    kernel: TrajectoryRun,
+    dims: tuple[int, ...],
+    per_device: int,
+    *,
+    keep_states: bool,
+    devices: Sequence[Any],
+) -> Callable[[Array, Array], Any]:
+    """Wrap a trajectory kernel in a data-parallel :func:`jax.pmap` over *devices*.
+
+    Each device runs an independent replica of the kernel on ``per_device`` trajectories.
+    Trajectories are statistically independent, so no cross-device communication is required:
+    per-device memory equals a single-device run.  The zero state is built *inside* the mapped
+    function so the full ``(n_devices, per_device, hilbert)`` array is never allocated on one
+    device, and with ``keep_states=False`` the final state vectors are freeable intermediates
+    that are never gathered back to the host.
+
+    :return: ``pkernel(op_stack, device_keys)`` taking the Kraus stack (broadcast to every
+        device) and a ``(n_devices, per_device)`` key array.
+    """
+
+    def run_replica(op_stack: Array, device_keys: Array) -> Any:
+        psi = qx.zero_state_vector(dims=dims, ensemble_size=(per_device,))
+        psi_out, outcomes = kernel(op_stack, psi, device_keys)
+        return (psi_out, outcomes) if keep_states else outcomes
+
+    return cast(Callable[[Array, Array], Any], jax.pmap(run_replica, in_axes=(None, 0), devices=list(devices)))
+
+
+def _run_batched_kernel(
+    pkernel: Callable[[Array, Array], Any],
+    op_stack: Array,
+    num_trajectories: int,
+    per_device: int,
+    random_seed: int,
+    n_devices: int,
+    *,
+    keep_states: bool = False,
+    dims: tuple[int, ...] = (),
+) -> tuple[list[qx.StateVector] | None, list[Array]]:
+    """Drive a pmapped kernel over ``num_trajectories`` in fixed-width calls.
+
+    Every call runs at the same width (``n_devices * per_device``) so the compiled kernel is
+    reused; the final short call is padded up to that width and its extra rows are sliced off.
+    """
+    per_call = n_devices * per_device
+    key = jax.random.key(random_seed)
+    all_psis: list[qx.StateVector] = []
+    all_outcomes: list[Array] = []
+
+    remaining = num_trajectories
+    while remaining > 0:
+        this_call = min(remaining, per_call)
+        key, batch_key = jax.random.split(key)
+        batch_keys = jax.random.split(batch_key, per_call).reshape(n_devices, per_device)
+
+        result = pkernel(op_stack, batch_keys)
+        outcomes = result[1] if keep_states else result
+        # pmap re-adds the leading device axis: (n_devices, per_device, n_meas).  Flatten it
+        # back to a 1-D ensemble to preserve the return contract.
+        outcomes = outcomes.reshape(per_call, -1)[:this_call]
+        all_outcomes.append(outcomes)
+
+        if keep_states:
+            mat = result[0].matrix.reshape(per_call, -1)[:this_call]
+            all_psis.append(qx.StateVector.from_matrix(mat, dims))
+
+        remaining -= this_call
+
+    return (all_psis if keep_states else None), all_outcomes
+
+
+def _run_batched_trajectories(
+    operations: Operations,
+    num_trajectories: int,
+    batch_size: int,
+    random_seed: int,
+    keep_states: bool = True,
+    *,
+    dims: tuple[int, ...],
+    devices: Sequence[Any] | None = None,
+) -> tuple[list[qx.StateVector] | None, list[Array]]:
+    """Run trajectories for an operation sequence in batches, data-parallel across devices.
+
+    A convenience over :func:`_batched_trajectory_kernel` and :func:`_run_batched_kernel` that
+    builds the kernel from *operations*; :meth:`TrajectorySimulator.sample` uses those directly
+    with its construction-time kernel.  ``batch_size`` is per device.
+    """
+    devices = tuple(devices) if devices is not None else tuple(jax.devices())
+    layout = _KrausStackLayout.from_operations(operations, dims)
+    pkernel = _batched_trajectory_kernel(
+        _build_trajectory_kernel(layout), tuple(dims), batch_size, keep_states=keep_states, devices=devices
+    )
+    return _run_batched_kernel(
+        pkernel,
+        layout.stack(operations),
+        num_trajectories,
+        batch_size,
+        random_seed,
+        len(devices),
+        keep_states=keep_states,
+        dims=tuple(dims),
+    )
+
+
 __all__ = [
     "DensityMatrixSimulator",
     "ProgramSimulator",
     "PureStateVectorSimulator",
     "Resolution",
+    "TrajectorySimulator",
 ]
