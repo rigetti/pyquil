@@ -40,7 +40,7 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 
 .. note::
 
-    pyQuil requires Python 3.11 or later and supports Python versions earlier than 3.13.
+    pyQuil requires Python >=3.11, <3.13.
 
 .. testcode:: verify-min-version
     :hide:
