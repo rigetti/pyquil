@@ -10,6 +10,9 @@ jobs:
   build-publish:
     name: Build and Publish
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # required for PyPI Trusted Publishing
+      contents: read
     steps:
     - uses: actions/checkout@v7
     - uses: actions/setup-python@v5
@@ -18,17 +21,32 @@ jobs:
     - uses: snok/install-poetry@v1
       with:
         virtualenvs-in-project: true
+    - name: "Check the tag matches the packaged version"
+      if: github.event_name == 'release'
+      env:
+        PYQUIL_VERSION: ${{ github.ref_name }}
+      run: |
+        pip install --quiet packaging
+        python - <<'EOF'
+        import os, subprocess, sys
+        from packaging.version import Version
+
+        tag = os.environ["PYQUIL_VERSION"].removeprefix("v")
+        packaged = subprocess.check_output(["poetry", "version", "--short"], text=True).strip()
+        if Version(tag) != Version(packaged):
+            sys.exit(f"::error::tag {tag} does not match the version in pyproject.toml ({packaged})")
+        EOF
     - name: "Build"
       run: |
         poetry build --no-interaction
+    - name: "Publish"
+      uses: pypa/gh-action-pypi-publish@release/v1
     - id: publish
-      name: "Publish"
+      name: "Compute image tags"
       run: |
-        poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
-        poetry publish
         export PYQUIL_TAG_VERSION=$(poetry version --short)
         export PYQUIL_TAG_LATEST=$([[ "$PYQUIL_TAG_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]] && echo latest || echo)
-        export PYQUIL_TAG_RC=$([[ "$PYQUIL_TAG_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+-rc[.][0-9]+$ ]] && echo rc || echo)
+        export PYQUIL_TAG_RC=$([[ "$PYQUIL_TAG_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+-?rc[.]?[0-9]+$ ]] && echo rc || echo)
         echo "PYQUIL_TAG_VERSION=$PYQUIL_TAG_VERSION" >> "$GITHUB_OUTPUT"
         echo "PYQUIL_TAG_LATEST=$PYQUIL_TAG_LATEST" >> "$GITHUB_OUTPUT"
         echo "PYQUIL_TAG_RC=$PYQUIL_TAG_RC" >> "$GITHUB_OUTPUT"
