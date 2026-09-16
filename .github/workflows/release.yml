@@ -1,0 +1,137 @@
+name: Release
+
+# A release is a pull request. Merging one that changes the version in
+# pyproject.toml is the whole release: this workflow tags it, drafts the GitHub
+# release from CHANGELOG.md, and publishes. Nothing here infers a version and
+# nothing writes to master.
+#
+# Running this workflow by hand instead produces a development build of the
+# selected branch. That path takes no inputs: the version is derived, so there
+# is nowhere to type one and nothing dev-related is ever committed.
+
+on:
+  push:
+    branches: [master]
+    paths: ['pyproject.toml']
+  workflow_dispatch: {}
+
+concurrency:
+  # Releases serialise against each other; dev builds serialise per branch.
+  group: release-${{ github.event_name == 'push' && 'master' || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ------------------------------------------------------------------ release
+  detect-version:
+    name: Detect version change
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      version:       ${{ steps.detect.outputs.version }}
+      changed:       ${{ steps.detect.outputs.changed }}
+      is-prerelease: ${{ steps.detect.outputs.is-prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Two commits to diff pyproject.toml against, and the tags so that the
+          # "already released?" check is meaningful rather than vacuously true.
+          fetch-depth: 2
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet packaging
+      - id: detect
+        run: python scripts/ci_release_version.py detect
+
+  tag-release:
+    name: Tag and draft release
+    needs: detect-version
+    if: needs.detect-version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet packaging
+      - name: Tag and create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.detect-version.outputs.version }}
+          PRERELEASE: ${{ needs.detect-version.outputs.is-prerelease }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "pyquil v$VERSION"
+          git push origin "v$VERSION"
+          python scripts/changelog_section.py "$VERSION" > notes.md
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes-file notes.md \
+            $([ "$PRERELEASE" = "true" ] && echo --prerelease)
+
+  publish-release:
+    name: Publish release
+    needs: [detect-version, tag-release]
+    # Pinned to master on purpose: `./` would resolve the reusable workflow at
+    # the caller's ref, so a branch could supply its own publish logic.
+    uses: rigetti/pyquil/.github/workflows/publish.yml@master
+    with:
+      version:       ${{ needs.detect-version.outputs.version }}
+      is-prerelease: ${{ needs.detect-version.outputs.is-prerelease == 'true' }}
+    secrets: inherit
+
+  # ---------------------------------------------------------------- dev build
+  tag-dev:
+    name: Tag development build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.derive.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet packaging
+      - id: derive
+        run: python scripts/ci_release_version.py dev
+      - name: Tag and create the GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.derive.outputs.version }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          git tag -a "v$VERSION" -m "dev build of $BRANCH @ $GITHUB_SHA"
+          git push origin "v$VERSION"
+          gh release create "v$VERSION" \
+            --prerelease \
+            --title "v$VERSION ($BRANCH, $SHORT_SHA)" \
+            --notes "Development build of \`$BRANCH\` at $GITHUB_SHA.
+
+          \`\`\`
+          pip install pyquil==$VERSION
+          \`\`\`
+
+          Not a release. The version is derived from the run number, so it carries
+          no meaning beyond ordering."
+
+  publish-dev:
+    name: Publish development build
+    needs: tag-dev
+    uses: rigetti/pyquil/.github/workflows/publish.yml@master
+    with:
+      version:          ${{ needs.tag-dev.outputs.version }}
+      is-prerelease:    true
+      dev-build:        true
+      publish-docker:   false
+      publish-grpc-web: false
+    secrets: inherit
