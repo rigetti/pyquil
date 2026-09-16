@@ -1,50 +1,143 @@
 name: Publish pyQuil
 
+# This is the only workflow that uploads to PyPI, and it is always invoked at a
+# pinned `@master` ref so that the checks below come from master rather than
+# from whatever branch dispatched the run.
+#
+# PyPI trusted publishing matches on the *entry-point* workflow (release.yml)
+# and on the environment names used here. Renaming either stops publishing
+# until the publisher is updated:
+#   https://pypi.org/manage/project/pyquil/settings/publishing/
+
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      version:
+        description: "Version being published, without a leading v."
+        required: true
+        type: string
+      is-prerelease:
+        description: "Publish through the ungated environment."
+        required: true
+        type: boolean
+      dev-build:
+        description: >
+          Publish a derived .devN version that is not committed anywhere. The
+          only thing publishable from a branch other than master.
+        required: false
+        type: boolean
+        default: false
+      publish-docker:
+        required: false
+        type: boolean
+        default: true
+      publish-grpc-web:
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
-    description: "Manually publish release"
+    inputs:
+      version:
+        description: "Existing released version to re-publish, without a leading v (e.g. 4.19.0)"
+        required: true
+        type: string
+      is-prerelease:
+        description: "The version being re-published is an rc."
+        required: false
+        type: boolean
+        default: false
+      publish-docker:
+        required: false
+        type: boolean
+        default: true
+      publish-grpc-web:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build-publish:
     name: Build and Publish
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ (inputs.dev-build || inputs.is-prerelease) && 'pypi-rc-or-dev' || 'pypi-release' }}
     permissions:
       id-token: write  # required for PyPI Trusted Publishing
       contents: read
     steps:
     - uses: actions/checkout@v7
+      with:
+        ref: v${{ inputs.version }}
+        fetch-depth: 0
     - uses: actions/setup-python@v5
       with:
         python-version: '3.12'
     - uses: snok/install-poetry@v1
       with:
         virtualenvs-in-project: true
-    - name: "Check the tag matches the packaged version"
-      if: github.event_name == 'release'
+
+    # Inlined rather than delegated to scripts/, because the checked-out tree
+    # belongs to the ref being published and a branch could edit a script. This
+    # file comes from master; the code below cannot be tampered with by a branch.
+    - name: "Verify this version may be published from this ref"
       env:
-        PYQUIL_VERSION: ${{ github.ref_name }}
+        VERSION: ${{ inputs.version }}
+        DEV_BUILD: ${{ inputs.dev-build }}
+        EVENT: ${{ github.event_name }}
+        REF: ${{ github.ref }}
       run: |
         pip install --quiet packaging
         python - <<'EOF'
-        import os, subprocess, sys
+        import os, re, subprocess, sys
         from packaging.version import Version
 
-        tag = os.environ["PYQUIL_VERSION"].removeprefix("v")
-        packaged = subprocess.check_output(["poetry", "version", "--short"], text=True).strip()
-        if Version(tag) != Version(packaged):
-            sys.exit(f"::error::tag {tag} does not match the version in pyproject.toml ({packaged})")
+        version = os.environ["VERSION"]
+        dev_build = os.environ["DEV_BUILD"] == "true"
+        ref = os.environ["REF"]
+
+        def die(message):
+            sys.exit(f"::error::{message}")
+
+        if dev_build:
+            # A dev build is the only thing publishable from a branch, and it may
+            # only ever be a .devN. Anything else is an attempt to release from a
+            # branch and is refused regardless of what the caller asked for.
+            if not re.fullmatch(r"\d+\.\d+\.\d+\.dev\d+", version):
+                die(f"refusing to publish {version!r} as a development build")
+        else:
+            if ref != "refs/heads/master":
+                die(f"refusing to publish release {version} from {ref}; releases come from master")
+            packaged = subprocess.check_output(["poetry", "version", "--short"], text=True).strip()
+            if Version(packaged) != Version(version):
+                die(f"tag v{version} does not match the version in pyproject.toml ({packaged})")
+            if os.environ["EVENT"] == "workflow_dispatch":
+                # Re-publishing an existing tag: make sure it is a tag on master
+                # and not one left behind on a branch.
+                if subprocess.run(
+                    ["git", "merge-base", "--is-ancestor", f"v{version}", "origin/master"]
+                ).returncode != 0:
+                    die(f"v{version} is not an ancestor of master")
+        print(f"ok: publishing {version} from {ref}")
         EOF
+
+    # Dev versions are never committed: the tag points at the branch commit, whose
+    # pyproject.toml still holds the last released version. Applied in the runner's
+    # tree only, after the check above has confirmed the shape.
+    - name: "Apply the derived development version"
+      if: ${{ inputs.dev-build }}
+      run: poetry version "${{ inputs.version }}"
+
     - name: "Build"
       run: |
         poetry build --no-interaction
     - name: "Publish"
       uses: pypa/gh-action-pypi-publish@release/v1
+
     - id: publish
       name: "Compute image tags"
+      env:
+        PYQUIL_TAG_VERSION: ${{ inputs.version }}
       run: |
-        export PYQUIL_TAG_VERSION=$(poetry version --short)
         export PYQUIL_TAG_LATEST=$([[ "$PYQUIL_TAG_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]] && echo latest || echo)
         export PYQUIL_TAG_RC=$([[ "$PYQUIL_TAG_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+-?rc[.]?[0-9]+$ ]] && echo rc || echo)
         echo "PYQUIL_TAG_VERSION=$PYQUIL_TAG_VERSION" >> "$GITHUB_OUTPUT"
@@ -57,12 +150,19 @@ jobs:
 
   build-publish-grpc-web:
     name: Build and Publish (pyquil-grpc-web)
+    if: ${{ inputs.publish-grpc-web }}
     runs-on: ubuntu-latest
+    # Must share the gate with build-publish: without it this job would upload
+    # while the main package is still waiting for approval.
+    environment:
+      name: ${{ (inputs.dev-build || inputs.is-prerelease) && 'pypi-rc-or-dev' || 'pypi-release' }}
     permissions:
       id-token: write
       contents: read
     steps:
     - uses: actions/checkout@v7
+      with:
+        ref: v${{ inputs.version }}
     - uses: actions/setup-python@v5
       with:
         python-version: '3.12'
@@ -77,19 +177,16 @@ jobs:
       run: |
         poetry build --no-interaction
     - name: Upload wheels as artifacts
-      uses: actions/upload-artifact@v4 
-      with: 
+      uses: actions/upload-artifact@v4
+      with:
         name: wheels
         path: dist
-    - name: Mint token
-      id: mint
-      uses: tschm/token-mint-action@v1.0.3
-    - name: Publish the package with poetry
-      run: |
-        poetry publish -u __token__ -p '${{ steps.mint.outputs.api-token }}'
+    - name: Publish
+      uses: pypa/gh-action-pypi-publish@release/v1
 
   docker-publish:
     name: Docker Publish
+    if: ${{ inputs.publish-docker }}
     runs-on: ubuntu-latest
     needs: build-publish
     env:
@@ -111,6 +208,8 @@ jobs:
       # Checkout is needed to use the path context: .
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: v${{ inputs.version }}
       - name: Build and Test
         uses: docker/build-push-action@v6
         with:
