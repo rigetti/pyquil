@@ -33,15 +33,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # Two commits to diff pyproject.toml against, and the tags so that the
-          # "already released?" check is meaningful rather than vacuously true.
-          fetch-depth: 2
-          fetch-tags: true
+          fetch-depth: 2  # to diff pyproject.toml against HEAD^
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install --quiet packaging
       - id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python scripts/ci.py detect-release
 
   tag-release:
@@ -65,13 +64,31 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "v$VERSION" -m "pyquil v$VERSION"
-          git push origin "v$VERSION"
+
+          # Generate the notes before anything irreversible happens. This is the
+          # step most likely to fail -- a release PR that forgot to rename the
+          # changelog heading -- and on its own it has no side effects.
           python scripts/ci.py release-notes "$VERSION" > notes.md
-          gh release create "v$VERSION" \
-            --title "v$VERSION" \
-            --notes-file notes.md \
-            $([ "$PRERELEASE" = "true" ] && echo --prerelease)
+
+          # Both mutations below are skipped if they have already happened, so a
+          # run that died between them resumes cleanly on a re-run. The tag is
+          # checked against the remote rather than the local clone, which is
+          # shallow and has no tags.
+          if [ -z "$(git ls-remote --tags origin "refs/tags/v$VERSION")" ]; then
+            git tag -a "v$VERSION" -m "pyquil v$VERSION"
+            git push origin "v$VERSION"
+          else
+            echo "v$VERSION is already tagged; leaving it alone"
+          fi
+
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "the GitHub release for v$VERSION already exists; leaving it alone"
+          else
+            gh release create "v$VERSION" \
+              --title "v$VERSION" \
+              --notes-file notes.md \
+              $([ "$PRERELEASE" = "true" ] && echo --prerelease)
+          fi
 
   publish-release:
     name: Publish release

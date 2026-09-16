@@ -49,7 +49,7 @@ class TestDetectRelease:
     def test_bump_is_a_release(self, repo):
         write_version("4.19.0")
         commit("release 4.19.0")
-        release, _ = ci.detect_release()
+        release, _ = ci.detect_release(already_released=lambda _: False)
         assert release.changed
         assert str(release.version) == "4.19.0"
         assert not release.is_prerelease
@@ -57,14 +57,14 @@ class TestDetectRelease:
     def test_release_candidate_is_flagged_as_a_prerelease(self, repo):
         write_version("4.19.0rc1")
         commit("release 4.19.0rc1")
-        release, _ = ci.detect_release()
+        release, _ = ci.detect_release(already_released=lambda _: False)
         assert release.changed
         assert release.is_prerelease
 
     def test_unrelated_change_to_pyproject_is_not_a_release(self, repo):
         Path("pyproject.toml").write_text(Path("pyproject.toml").read_text() + '\nfoo = "bar"\n')
         commit("bump a dependency")
-        release, reason = ci.detect_release()
+        release, reason = ci.detect_release(already_released=lambda _: False)
         assert not release.changed
         assert "unchanged" in reason
 
@@ -74,28 +74,49 @@ class TestDetectRelease:
         commit("release 4.19.0rc1")
         write_version("4.19.0-rc.1")
         commit("use the canonical spelling")
-        release, _ = ci.detect_release()
+        release, _ = ci.detect_release(already_released=lambda _: False)
         assert not release.changed
 
-    def test_an_already_tagged_version_is_not_released_again(self, repo):
+    def test_an_already_released_version_is_not_released_again(self, repo):
+        write_version("4.19.0")
+        commit("release 4.19.0")
+        release, reason = ci.detect_release(already_released=lambda _: True)
+        assert not release.changed
+        assert "already been released" in reason
+
+    def test_a_tag_without_a_release_still_releases(self, repo):
+        """A tag with no release behind it is a release that died part way.
+
+        The tag alone must not wedge it: the workflow's tag and release steps
+        are each skipped if already done, so a re-run finishes the job.
+        """
         write_version("4.19.0")
         commit("release 4.19.0")
         subprocess.run(["git", "tag", "-a", "v4.19.0", "-m", "v4.19.0"], check=True)
-        release, reason = ci.detect_release()
-        assert not release.changed
-        assert "already tagged" in reason
+        release, _ = ci.detect_release(already_released=lambda _: False)
+        assert release.changed
+        assert str(release.version) == "4.19.0"
 
     def test_a_committed_dev_version_is_refused(self, repo):
         write_version("4.19.0.dev1")
         commit("oops")
         with pytest.raises(ci.CIError, match="must never be committed"):
-            ci.detect_release()
+            ci.detect_release(already_released=lambda _: False)
+
+    def test_release_exists_reports_false_without_a_release(self, repo, monkeypatch):
+        """The default probe shells out to gh; a non-zero exit means not released."""
+        monkeypatch.setattr(
+            ci.subprocess,
+            "run",
+            lambda *a, **k: subprocess.CompletedProcess(args=a, returncode=1),
+        )
+        assert not ci.release_exists(Version("4.19.0"))
 
     def test_an_unparseable_version_is_refused(self, repo):
         write_version("not-a-version")
         commit("oops")
         with pytest.raises(ci.CIError, match="not a valid PEP 440 version"):
-            ci.detect_release()
+            ci.detect_release(already_released=lambda _: False)
 
 
 class TestDevVersion:

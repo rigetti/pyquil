@@ -474,10 +474,22 @@ thing that can be published from a branch; a real release can only come from `ma
 
 #### When something goes wrong
 
-If the approval is rejected or expires, the tag and the GitHub release already exist but
-nothing reached PyPI. Once the problem is fixed, re-run `publish.yml` directly: Actions →
-**Publish pyQuil** → **Run workflow**, from `master`, with the version. If the version
-itself was wrong, delete the tag and the release and open a corrected release PR.
+Every step is safe to repeat, so the fix for a release that stopped half way is almost
+always to run it again. A tag that already exists is left alone, a GitHub release that
+already exists is left alone, and a version already on PyPI is skipped rather than
+treated as an error. A release is considered done when the **GitHub release** exists, not
+when the tag does -- so a run that tagged and then failed is resumed by re-running
+`release.yml`, not blocked by the tag it left behind.
+
+- **Approval rejected or expired.** The tag and GitHub release exist; nothing reached
+  PyPI. Once the problem is fixed, re-run `publish.yml` directly: Actions → **Publish
+  pyQuil** → **Run workflow**, from `master`, with the version.
+- **One package published and the other failed.** `pyquil` and `pyquil-grpc-web` upload
+  independently. Re-run `publish.yml` as above; the half that already succeeded is
+  skipped.
+- **The version itself was wrong.** This is the one case repeating will not fix, because
+  a version can never be reused on PyPI. Delete the tag and the GitHub release, and open a
+  corrected release PR with a new version.
 
 ### Issue and PR Labels
 

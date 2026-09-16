@@ -19,6 +19,7 @@ import subprocess
 import sys
 import textwrap
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -57,9 +58,9 @@ def emit(**outputs: object) -> None:
             handle.write("\n".join(lines) + "\n")
 
 
-def parse_version(raw: bytes | str) -> Version:
+def parse_version(raw_pyproject_toml: bytes | str) -> Version:
     """The version declared in the given pyproject.toml contents."""
-    text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
+    text = raw_pyproject_toml.decode("utf-8") if isinstance(raw_pyproject_toml, bytes) else raw_pyproject_toml
     data = tomllib.loads(text)
     declared = data.get("project", {}).get("version") or data.get("tool", {}).get("poetry", {}).get("version")
     if not declared:
@@ -85,13 +86,14 @@ def version_at(revision: str) -> Version | None:
     return parse_version(result.stdout)
 
 
-def tag_exists(version: Version) -> bool:
-    """Whether v<version> is already a tag in this clone.
+def release_exists(version: Version) -> bool:
+    """Whether a GitHub release already exists for this version.
 
-    Only meaningful when tags have been fetched; release.yml passes
-    fetch-tags so that this is a real check rather than a vacuous one.
+    This, rather than the git tag, is the "already released" signal.  A tag with
+    no release behind it is a release that failed part way through, and should
+    be resumable; gating on the tag would instead wedge it permanently.
     """
-    return bool(subprocess.check_output(["git", "tag", "--list", f"v{version}"], text=True).strip())
+    return subprocess.run(["gh", "release", "view", f"v{version}"], capture_output=True).returncode == 0
 
 
 @dataclass(frozen=True)
@@ -111,7 +113,7 @@ class Release:
 # --------------------------------------------------------------------------- #
 
 
-def detect_release() -> tuple[Release, str]:
+def detect_release(already_released: Callable[[Version], bool] = release_exists) -> tuple[Release, str]:
     """Decide whether HEAD changed the version, with a reason for the log."""
     head = committed_version()
     if head.is_devrelease:
@@ -124,8 +126,8 @@ def detect_release() -> tuple[Release, str]:
     # 4.18.0-rc.1 -> 4.18.0rc1 is correctly seen as no change at all.
     if head == previous:
         return Release(changed=False), f"version unchanged at {head}"
-    if tag_exists(head):
-        return Release(changed=False), f"v{head} is already tagged"
+    if already_released(head):
+        return Release(changed=False), f"v{head} has already been released"
     return Release(changed=True, version=head), f"version changed {previous} -> {head}"
 
 
@@ -133,12 +135,13 @@ def command_detect_release(_: argparse.Namespace) -> None:
     """Decide whether a push to master should be released.
 
     Invoked by: release.yml, job `detect-version` (push to master).
-    Requires:   a checkout with fetch-depth >= 2 and fetch-tags, to see HEAD^
-                and existing tags.
+    Requires:   a checkout with fetch-depth >= 2, to see HEAD^; $GH_TOKEN, to
+                ask whether the release already exists.
     Outputs:    changed (true/false), version, is-prerelease (true/false).
 
     A release happens when the version in pyproject.toml differs from the
-    previous commit's and is not already tagged, which makes re-runs a no-op.
+    previous commit's and has not already been released, which makes re-runs a
+    no-op while leaving a half-finished release resumable.
     """
     release, reason = detect_release()
     print(reason)

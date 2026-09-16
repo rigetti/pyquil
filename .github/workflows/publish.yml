@@ -132,6 +132,11 @@ jobs:
         poetry build --no-interaction
     - name: "Publish"
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # A version already on the index is not an error: it means an earlier
+        # attempt got this far. Without this, re-running to fix the half that
+        # failed would fail on the half that succeeded.
+        skip-existing: true
 
     - id: publish
       name: "Compute image tags"
@@ -183,6 +188,8 @@ jobs:
         path: dist
     - name: Publish
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: true
 
   docker-publish:
     name: Docker Publish
