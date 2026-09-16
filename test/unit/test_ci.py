@@ -188,3 +188,70 @@ class TestReleaseNotes:
         Path("CHANGELOG.md").write_text("## 4.19.0 (2026-09-14)\n\n## 4.18.0 (2026-08-19)\n\n- Entry.\n")
         with pytest.raises(ci.CIError, match="is empty"):
             ci.release_notes(Version("4.19.0"))
+
+
+class TestPatchGrpcWeb:
+    PYPROJECT = """[tool.poetry]
+name = "pyquil"
+version = "4.18.0"
+description = "A Python library."
+
+[tool.poetry.dependencies]
+python = ">=3.11, <3.13"
+numpy = ">=1.26,<3"
+qcs-sdk-python = ">=0.20.1,<0.22"
+quil = ">=0.15.3,<0.18"
+
+[tool.poetry.extras]
+latex = ["ipython"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+"""
+
+    VERSION_PY = "from importlib.metadata import version\n\npyquil_version = version(__package__)\n"
+
+    @pytest.fixture
+    def root(self, tmp_path):
+        (tmp_path / "pyquil").mkdir()
+        (tmp_path / "pyproject.toml").write_text(self.PYPROJECT)
+        (tmp_path / "pyquil" / "_version.py").write_text(self.VERSION_PY)
+        return tmp_path
+
+    def parsed(self, root):
+        import tomllib
+
+        return tomllib.loads((root / "pyproject.toml").read_text())
+
+    def test_renames_the_published_package(self, root):
+        ci.patch_grpc_web(root)
+        data = self.parsed(root)
+        assert data["tool"]["poetry"]["name"] == "pyquil-grpc-web"
+        assert data["project"]["name"] == "pyquil-grpc-web"
+
+    def test_swaps_the_dependency_keeping_its_constraint(self, root):
+        ci.patch_grpc_web(root)
+        dependencies = self.parsed(root)["tool"]["poetry"]["dependencies"]
+        assert "qcs-sdk-python" not in dependencies
+        assert dependencies["qcs-sdk-python-grpc-web"] == ">=0.20.1,<0.22"
+
+    def test_leaves_everything_else_alone(self, root):
+        ci.patch_grpc_web(root)
+        data = self.parsed(root)
+        dependencies = data["tool"]["poetry"]["dependencies"]
+        assert data["tool"]["poetry"]["version"] == "4.18.0"
+        assert dependencies["numpy"] == ">=1.26,<3"
+        assert dependencies["quil"] == ">=0.15.3,<0.18"
+        assert data["tool"]["poetry"]["extras"] == {"latex": ["ipython"]}
+        assert data["build-system"]["build-backend"] == "poetry.core.masonry.api"
+
+    def test_rewrites_the_package_name_lookup(self, root):
+        ci.patch_grpc_web(root)
+        source = (root / "pyquil" / "_version.py").read_text()
+        assert 'version("pyquil_grpc_web")' in source
+        assert "__package__" not in source
+
+    def test_the_result_is_still_valid_toml(self, root):
+        ci.patch_grpc_web(root)
+        self.parsed(root)  # raises if not
