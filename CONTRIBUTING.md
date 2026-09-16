@@ -413,9 +413,9 @@ directory: checks and tests for PRs, benchmarks, and publishing to PyPI and Dock
 
 ### Release Process
 
-A release is a pull request and a tag. Nothing infers the version and nothing writes to
-`master` on its own, so the whole thing is a diff you can read before it happens. Don't
-feel the need to "wait for more content" before releasing!
+A release is a pull request. Merging it is the release: nothing infers the version, and
+nothing writes to `master` on its own, so the whole thing is a diff you can read before it
+happens. Don't feel the need to "wait for more content" before releasing!
 
 1. **Open a release PR.** Pick the next version according to [semantic versioning][semver]
    and set it in `pyproject.toml` (`poetry version 4.19.0`). In `CHANGELOG.md`, rename the
@@ -423,31 +423,61 @@ feel the need to "wait for more content" before releasing!
    above it. Read the entries while you are there -- these are the release notes, and this
    is the moment to make them read well.
 
-2. **Merge it**, once CI is green.
+2. **Merge it**, once CI is green. That's the whole release.
 
-3. **Tag it** on `master`:
+3. **Approve the PyPI upload.** A final release waits at the `pypi-release` environment for
+   one click from a reviewer. Release candidates and development builds don't.
 
-   ```bash
-   git tag -a v4.19.0 -m "v4.19.0" && git push origin v4.19.0
-   ```
+Merging is what starts it: [`release.yml`](.github/workflows/release.yml) notices that the
+version in `pyproject.toml` changed, tags `v4.19.0`, and drafts the [GitHub
+release][gh-releases] with that `CHANGELOG.md` section as the notes. It then calls
+[`publish.yml`](.github/workflows/publish.yml), which re-checks that the tag matches the
+packaged version and uploads to [PyPI][pypi] and [DockerHub][docker-forest] (image tags
+`latest` and `<version>`). The docs on [Read the Docs][rtd] update on their own.
 
-4. **Draft the [GitHub release][gh-releases]** for that tag, pasting in the new `CHANGELOG.md` section,
-   and publish it.
-
-Publishing the GitHub release runs [`publish.yml`](.github/workflows/publish.yml), which
-checks that the tag matches the version in `pyproject.toml`, then builds and uploads to
-[PyPI][pypi] and [DockerHub][docker-forest] (image tags `latest` and `<version>`). The
-docs on [Read the Docs][rtd] update on their own.
+If the version in `pyproject.toml` doesn't change, nothing is released -- so a dependency
+bump that happens to touch the file is harmless. Re-running the workflow on a version that
+is already tagged does nothing either.
 
 PyPI uploads use [Trusted Publishing][trusted-publishing]: the workflow mints a
 short-lived token via OIDC, so there is no long-lived API token in the repository
-secrets. If you move the workflow or rename the package, the publisher registered on PyPI
-has to be updated to match.
+secrets. The publisher registered on PyPI matches on the workflow filename and the
+environment name, so renaming either stops publishing until PyPI is updated to match.
 
-**Prereleases** are cut by hand, when something specific needs testing before it goes out
-to everyone. They are the same four steps with a [PEP 440][pep-440] prerelease version --
-`4.19.0rc1`, tagged `v4.19.0rc1` -- and "Set as a pre-release" ticked on the GitHub
-release.
+#### Release candidates
+
+Cut one when something specific needs testing before it goes out to everyone. It is the
+same release PR with a [PEP 440][pep-440] prerelease version -- `4.19.0rc1` -- and one
+difference: **leave the changelog entries under "Unreleased"**. An rc bumps the version
+only; the heading is renamed by the PR that ships the final release. The GitHub release is
+marked as a prerelease automatically, and it publishes without waiting for approval.
+
+#### Development builds from a pull request
+
+To get an unmerged branch onto PyPI -- to try it in another project, or to hand someone a
+reproduction -- go to Actions, choose **Release**, click **Run workflow**, and select the
+branch. There are no inputs to fill in.
+
+The version is derived, never typed: the next unreleased version with a `.dev<run number>`
+suffix, for example `4.19.0.dev42`. Run numbers are unique across the repository, so two
+branches can't collide even if they build at the same moment. Find the exact version in the
+run summary or on the [releases page][gh-releases], then:
+
+```bash
+pip install pyquil==4.19.0.dev42
+```
+
+Development builds are invisible to a normal `pip install pyquil`, which only ever resolves
+real releases. They tag the branch commit and publish `pyquil` alone -- no Docker image, no
+`pyquil-grpc-web` -- and nothing is committed to the branch. A development build is the only
+thing that can be published from a branch; a real release can only come from `master`.
+
+#### When something goes wrong
+
+If the approval is rejected or expires, the tag and the GitHub release already exist but
+nothing reached PyPI. Once the problem is fixed, re-run `publish.yml` directly: Actions →
+**Publish pyQuil** → **Run workflow**, from `master`, with the version. If the version
+itself was wrong, delete the tag and the release and open a corrected release PR.
 
 ### Issue and PR Labels
 
