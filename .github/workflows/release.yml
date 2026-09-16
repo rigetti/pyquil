@@ -95,7 +95,8 @@ jobs:
     needs: [detect-version, tag-release]
     # Pinned to master on purpose: `./` would resolve the reusable workflow at
     # the caller's ref, so a branch could supply its own publish logic.
-    uses: rigetti/pyquil/.github/workflows/publish.yml@master
+    # FIXME: roll this back to master after testing a dev release.
+    uses: rigetti/pyquil/.github/workflows/publish.yml@1871-manual_release_process
     with:
       version:       ${{ needs.detect-version.outputs.version }}
       is-prerelease: ${{ needs.detect-version.outputs.is-prerelease == 'true' }}
@@ -144,7 +145,8 @@ jobs:
   publish-dev:
     name: Publish development build
     needs: tag-dev
-    uses: rigetti/pyquil/.github/workflows/publish.yml@master
+    # FIXME: roll this back to master after testing dev release
+    uses: rigetti/pyquil/.github/workflows/publish.yml@1871-manual_release_process
     with:
       version:          ${{ needs.tag-dev.outputs.version }}
       is-prerelease:    true
