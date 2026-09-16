@@ -172,7 +172,7 @@ jobs:
     - name: Patch package metadata for grpc-web
       run: |
         pip install toml
-        python scripts/ci_publish_grpc_web.py
+        python scripts/ci.py patch-grpc-web
     - name: Poetry Build
       run: |
         poetry build --no-interaction

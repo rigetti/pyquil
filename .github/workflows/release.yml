@@ -42,7 +42,7 @@ jobs:
           python-version: '3.12'
       - run: pip install --quiet packaging
       - id: detect
-        run: python scripts/ci_release_version.py detect
+        run: python scripts/ci.py detect-release
 
   tag-release:
     name: Tag and draft release
@@ -67,7 +67,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "v$VERSION" -m "pyquil v$VERSION"
           git push origin "v$VERSION"
-          python scripts/changelog_section.py "$VERSION" > notes.md
+          python scripts/ci.py release-notes "$VERSION" > notes.md
           gh release create "v$VERSION" \
             --title "v$VERSION" \
             --notes-file notes.md \
@@ -100,7 +100,7 @@ jobs:
           python-version: '3.12'
       - run: pip install --quiet packaging
       - id: derive
-        run: python scripts/ci_release_version.py dev
+        run: python scripts/ci.py dev-version
       - name: Tag and create the GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
