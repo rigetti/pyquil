@@ -88,10 +88,19 @@ Once you've selected an issue to tackle, [forked the repository](https://github.
 
 Our changelog conventions are based on [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 
-If your change is one a user would notice -- a new feature, a bug fix, a behaviour change,
-a removal -- add a bullet for it to [`CHANGELOG.md`](CHANGELOG.md), under the "Unreleased"
+We define a user impacting change to include changes to any of the following:
+
+* the public API, including exception types
+* memory and computational performance
+* the security model
+* deprecations
+* Python version requirements
+* default values
+* dependencies with any of the above implications
+
+These changes require a bullet in [`CHANGELOG.md`](CHANGELOG.md), under the "Unreleased"
 heading at the top. Put it under `### Features`, `### Fixes`, `### Breaking Changes` or
-`### Documentation`, adding that subheading if it isn't there yet, and link your pull
+`### Documentation`; add that subheading if not yet present and link your pull
 request at the end:
 
 ```markdown
@@ -105,16 +114,9 @@ request at the end:
 ```
 
 Write a sentence or two in the present tense, for someone reading the release notes rather
-than the diff. A pull request that changes no behaviour, such as a test or a CI tweak,
-doesn't require an entry. Behavior changes include changes to any of the following:
-
-* the public API, including exception types
-* memory and computational performance
-* the security model
-* deprecations
-* Python version requirements
-* default values
-* dependencies with any of the above implications
+than the diff. A pull request that includes no user-impacting change (see
+[Updating the Changelog]), such as a test or a CI tweak,
+doesn't require an entry. 
 
 ### Adding a Tutorial Notebook
 
@@ -403,12 +405,12 @@ version in all builds going forward.
 
 ### Merging a Pull Request
 
-When merging PRs, we have a couple of guidelines:
+When merging PRs, we have a few guidelines:
 
 1. Double-check that the PR author has completed everything in the PR checklist that is applicable to the changes.
-2. If the PR changes anything a user would notice, check that it adds a bullet under "Unreleased" in [`CHANGELOG.md`](CHANGELOG.md). That bullet, not the commit message, is what ends up in the release notes.
+2. If the PR includes user-impacting changes (see [Updating the Changelog]), check that it adds a bullet under "Unreleased" in [`CHANGELOG.md`](CHANGELOG.md). This message will land in the release notes.
 3. Always use the "squash and merge" option so that every PR corresponds to one commit. This keeps the git history clean and encourages many small (quickly reviewable) PRs rather than behemoth ones with lots of commits.
-4. When pressing the merge button, each commit message will be turned into a bullet point below the title of the issue. Make sure to truncate the PR title to ~50 characters (unless completely impossible) so it fits on one line in the commit history, and delete any spurious bullet points that add no meaningful content.
+4. When pressing the merge button, each commit message will be turned into a bullet point below the title of the issue. Make sure to truncate the PR title to ~50 characters so it fits on one line in the commit history, and delete any spurious bullet points that add no meaningful content. Also make sure the final commit message is formatted correctly for [Conventional Commits].
 
 ### Managing the CI Pipelines
 
@@ -423,48 +425,40 @@ directory: checks and tests for PRs, benchmarks, and publishing to PyPI and Dock
 
 ### Release Process
 
-A release is a pull request. Merging it is the release: nothing infers the version, and
-nothing writes to `master` on its own, so the whole thing is a diff you can read before it
-happens.
+A release is the result of merging a release pull request: the version is read from `pyproject.toml`,
+and nothing writes to `master` on its own; the version bump and release notes are explicitly included
+in the PR diff.
 
 1. **Open a release PR.** Pick the next version according to [semantic versioning][semver]
-   and set it in `pyproject.toml` (`poetry version 4.19.0`). In `CHANGELOG.md`, rename the
-   "Unreleased" heading to, for example, `## 4.19.0 (2026-09-14)` and leave a fresh, empty
-   `## Unreleased` above it. Read the entries while you are there -- these are the release
-   notes, and this is the moment to make them read well.
+   and set it in `pyproject.toml` (e.g. `poetry version 4.19.0`). In `CHANGELOG.md`, rename
+   the "Unreleased" heading to, for example, `## 4.19.0 (2026-09-14)`; leave a fresh, empty
+   `## Unreleased` above it.
 
 2. **Merge it**, once CI is green.
 
-3. **Approve the PyPI upload.** A final release waits at the `pypi-release` environment for
-   one click from a reviewer. Release candidates and development builds, in contrast, do
-   not require manual approval.
+3. **Approve the PyPI upload**, if the `pypi` environment is configured to require it.
+   Every publish goes through that one environment, so whatever it requires applies to
+   release candidates too.
 
 Notes and considerations:
 
 * The workflow detects version changes in `pyproject.toml`, creates a tag, and drafts the
   [GitHub release][gh-releases] with the relevant `CHANGELOG.md` content.
 * The workflow then uploads to [PyPI][pypi] and [DockerHub][docker-forest] (image tags
-  `latest` and `<version>`). The docs on [Read the Docs][rtd] update on their own.
+  `latest` and `<version>`). The docs on [Read the Docs][rtd] update separately based on
+  a Github webhook.
 * PyPI uploads use [Trusted Publishing][trusted-publishing] with a short-lived token via
   OIDC.
-* A veritable release (i.e. non-RC or dev release) workflow will only ever run on the
-  master branch.
+* The workflow only ever runs on `master`.
 
 #### Release candidates
 
-The same release PR process with a [PEP 440][pep-440] prerelease version -- `4.19.0rc1`.
-However, make sure to **leave the changelog entries under "Unreleased"**. The GitHub
-release is marked as a prerelease, and it publishes without waiting for approval.
+A release candidate may be published in the exact same manner as an official release as
+described above with two exceptions:
 
-A release candidate workflow will only ever run on the master branch.
-
-#### Development builds from a pull request
-
-To publish a development release from a non-master branch, go to Actions, choose **Release**,
-click **Run workflow**, and select the branch.
-
-The workflow will tag the branch commit and publish `pyquil` alone (no Docker image, no
-`pyquil-grpc-web`) and nothing is committed to the branch.
+* The `pyproject.toml` version must have a proper [pep-440] release candidate suffix.
+* **Leave the changelog entries under "Unreleased"**; the pull request that ships the
+  final release renames the heading. The GitHub release is marked as a prerelease.
 
 #### When something goes wrong
 
@@ -476,10 +470,10 @@ version already on PyPI.
   missing a section for the version. Nothing has been published. Fix it on `master` and
   the next push completes the release.
 * **The release exists but PyPI does not have it**, because the approval was rejected or
-  expired, or because one of the two packages failed. Re-run `publish.yml`: Actions →
-  **Publish pyQuil** → **Run workflow**, from `master`, with the version.
-* **The version was wrong.** A version can never be reused on PyPI. Delete the tag and the
-  GitHub release, and open a corrected release PR with a new version.
+  expired, or because one of the two packages failed. Re-run the workflow: Actions →
+  **Release pyQuil** → **Run workflow**, from `master`, with the version.
+* **The version was wrong.** Delete the tag and the GitHub release, and open a corrected
+  release PR with a new version.
 
 ### Issue and PR Labels
 
@@ -499,6 +493,7 @@ We use a collection of labels to add metadata to the issues and pull requests in
 | [`work in progress 🚧`][wip-label]              | This PR is not ready to be merged. |
 
 [bug-label]: https://github.com/rigetti/pyquil/labels/bug%20%3Abug%3A
+[Conventional Commits]: (https://www.conventionalcommits.org/en/v1.0.0/)
 [devops-label]: https://github.com/rigetti/pyquil/labels/devops%20%3Arocket%3A
 [discussion-label]: https://github.com/rigetti/pyquil/labels/discussion%20%3Athinking%3A
 [documentation-label]: https://github.com/rigetti/pyquil/labels/documentation%20%3Amemo%3A

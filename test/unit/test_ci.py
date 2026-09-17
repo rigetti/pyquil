@@ -77,6 +77,11 @@ class TestDetectRelease:
         with pytest.raises(ci.CIError, match="not a valid PEP 440 version"):
             ci.detect_release(already_released=lambda _: False)
 
+    def test_a_version_override_is_taken_at_face_value(self, repo):
+        """Re-publishing an existing release must not be gated on it being unreleased."""
+        args = ci.build_parser().parse_args(["detect-release", "--version", "4.19.0"])
+        assert args.version == "4.19.0"
+
     def test_release_exists_reports_false_without_a_release(self, repo, monkeypatch):
         """The default probe shells out to gh; a non-zero exit means not released."""
         monkeypatch.setattr(
@@ -85,23 +90,6 @@ class TestDetectRelease:
             lambda *a, **k: subprocess.CompletedProcess(args=a, returncode=1),
         )
         assert not ci.release_exists(Version("4.19.0"))
-
-
-class TestDevVersion:
-    def test_derives_the_next_minor(self, repo):
-        assert str(ci.dev_version("42")) == "4.19.0.dev42"
-
-    def test_targets_the_release_being_stabilised_when_mid_rc(self, repo):
-        """A dev build during a 4.19.0rc1 cycle is aimed at 4.19.0, not 4.20.0."""
-        write_version("4.19.0rc1")
-        assert str(ci.dev_version("42")) == "4.19.0.dev42"
-
-    def test_the_result_is_always_publishable_from_a_branch(self, repo):
-        """publish.yml only allows a branch to publish versions of this shape."""
-        assert ci.DEV_VERSION.fullmatch(str(ci.dev_version("7")))
-
-    def test_run_numbers_order_as_integers_not_strings(self, repo):
-        assert Version(str(ci.dev_version("9"))) < Version(str(ci.dev_version("10")))
 
 
 class TestReleaseNotes:

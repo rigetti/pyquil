@@ -28,10 +28,6 @@ from packaging.version import InvalidVersion, Version
 PYPROJECT = Path("pyproject.toml")
 CHANGELOG = Path("CHANGELOG.md")
 
-#: A development build version, e.g. 4.19.0.dev42.  Deliberately narrow: this
-#: pattern is what publish.yml checks before allowing a publish from a branch.
-DEV_VERSION = re.compile(r"\d+\.\d+\.\d+\.dev\d+")
-
 #: A released section, e.g. "## 4.18.0 (2026-08-19)".
 RELEASE_HEADING = re.compile(r"^##\s+(?P<version>\S+)\s+\((?P<date>\d{4}-\d{2}-\d{2})\)\s*$")
 
@@ -128,68 +124,32 @@ def detect_release(already_released: Callable[[Version], bool] = release_exists)
     return Release(is_release=True, version=version), f"v{version} has not been released yet"
 
 
-def command_detect_release(_: argparse.Namespace) -> None:
-    """Decide whether a push to master should be released.
+def command_detect_release(args: argparse.Namespace) -> None:
+    """Decide which version to release, if any.
 
-    Invoked by: release.yml, job `detect-version` (push to master).
+    Invoked by: publish.yml, job `version`.
     Requires:   $GH_TOKEN, to ask whether the release already exists.
     Outputs:    is-release (true/false), version, is-prerelease (true/false).
 
-    A release happens when the version in pyproject.toml has no GitHub release
-    yet. Re-runs are a no-op, and a release that failed part way is finished by
-    the next push rather than needing to be driven by hand.
+    With no argument, releases the version in pyproject.toml when it has no
+    GitHub release yet: an ordinary push is a no-op, and a release that failed
+    part way is finished by the next push. With --version, takes that version at
+    face value, for re-publishing a release that already exists.
     """
-    release, reason = detect_release()
+    if args.version:
+        try:
+            version = Version(args.version)
+        except InvalidVersion as error:
+            raise CIError(f"{args.version!r} is not a valid PEP 440 version") from error
+        release, reason = Release(is_release=True, version=version), f"re-publishing v{version}"
+    else:
+        release, reason = detect_release()
     print(reason)
     emit(
         is_release=str(release.is_release).lower(),
         version=str(release.version or ""),
         is_prerelease=str(release.is_prerelease).lower(),
     )
-
-
-# --------------------------------------------------------------------------- #
-# dev-version
-# --------------------------------------------------------------------------- #
-
-
-def dev_version(run_number: str) -> Version:
-    """The version for a development build of the current branch."""
-    current = committed_version()
-    if current.is_devrelease:
-        raise CIError(f"{current} is a development version and must never be committed")
-
-    # Branches never bump the version, so the committed value is the last thing
-    # released.  A dev build is aimed at whatever comes next: the release being
-    # stabilised if master is mid-rc, otherwise the next minor.
-    if current.is_prerelease:
-        base = f"{current.major}.{current.minor}.{current.micro}"
-    else:
-        base = f"{current.major}.{current.minor + 1}.0"
-
-    version = f"{base}.dev{run_number}"
-    if not DEV_VERSION.fullmatch(version):
-        raise CIError(f"derived version {version!r} is not a well-formed development version")
-    return Version(version)
-
-
-def command_dev_version(_: argparse.Namespace) -> None:
-    """Derive the version for a manually dispatched development build.
-
-    Invoked by: release.yml, job `tag-dev` (workflow_dispatch, any branch).
-    Requires:   $GITHUB_RUN_NUMBER.
-    Outputs:    version.
-
-    Takes no human input by design.  The serial number is the run number, which
-    is unique per workflow and assigned when a run is queued, so two branches
-    dispatching at the same moment cannot produce the same version.
-    """
-    run_number = os.environ.get("GITHUB_RUN_NUMBER")
-    if not run_number:
-        raise CIError("GITHUB_RUN_NUMBER is not set")
-    version = dev_version(run_number)
-    print(f"committed version {committed_version()}; building {version}")
-    emit(version=str(version))
 
 
 # --------------------------------------------------------------------------- #
@@ -365,7 +325,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     for name, handler in (
         ("detect-release", command_detect_release),
-        ("dev-version", command_dev_version),
         ("release-notes", command_release_notes),
         ("patch-grpc-web", command_patch_grpc_web),
     ):
@@ -377,6 +336,11 @@ def build_parser() -> argparse.ArgumentParser:
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         subparser.set_defaults(handler=handler)
+        if name == "detect-release":
+            subparser.add_argument(
+                "--version",
+                help="re-publish this already-released version instead of detecting one",
+            )
         if name == "release-notes":
             subparser.add_argument("version", help="version to print notes for, without a leading v")
 
