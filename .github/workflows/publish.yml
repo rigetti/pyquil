@@ -1,8 +1,10 @@
 name: Publish pyQuil
 
-# This is the only workflow that uploads to PyPI, and it is always invoked at a
-# pinned `@master` ref so that the checks below come from master rather than
-# from whatever branch dispatched the run.
+# This is the only workflow that uploads to PyPI. The checks below catch a
+# release built from the wrong ref or against a mismatched version, but they are
+# not a boundary against a branch that edits them: repository write access is.
+# What is enforced regardless of workflow contents is the pypi-release
+# environment's deployment branch rule, which confines real releases to master.
 #
 # PyPI trusted publishing matches on the *entry-point* workflow (release.yml)
 # and on the environment names used here. Renaming either stops publishing
@@ -76,9 +78,10 @@ jobs:
       with:
         virtualenvs-in-project: true
 
-    # Inlined rather than delegated to scripts/, because the checked-out tree
-    # belongs to the ref being published and a branch could edit a script. This
-    # file comes from master; the code below cannot be tampered with by a branch.
+    # Inlined rather than delegated to scripts/, because the checked-out tree is
+    # the ref being published: a script read from there would be the very thing
+    # under test. Keeping the checks in the workflow keeps them independent of
+    # the tree they are checking.
     - name: "Verify this version may be published from this ref"
       env:
         VERSION: ${{ inputs.version }}

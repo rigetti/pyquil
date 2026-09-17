@@ -1,9 +1,4 @@
-"""Tests for scripts/ci.py, the helpers the release workflows depend on.
-
-These run against real git repositories in tmp_path rather than mocks, because
-the behaviour under test is largely "what does git say", and a mocked git would
-not have caught the cases these exist to pin down.
-"""
+"""Tests for scripts/ci.py, the helpers the release workflows depend on."""
 
 import importlib.util
 import subprocess
@@ -28,79 +23,58 @@ def write_version(version: str) -> None:
     Path("pyproject.toml").write_text(f'[tool.poetry]\nname = "pyquil"\nversion = "{version}"\n')
 
 
-def commit(message: str) -> None:
-    subprocess.run(["git", "add", "-A"], check=True)
-    subprocess.run(["git", "commit", "-qm", message], check=True)
-
-
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
-    """An empty git repository at 4.18.0, with the process chdir'd into it."""
+    """A checkout at 4.18.0, with the process chdir'd into it."""
     monkeypatch.chdir(tmp_path)
-    subprocess.run(["git", "init", "-q", "."], check=True)
-    subprocess.run(["git", "config", "user.email", "ci@example.com"], check=True)
-    subprocess.run(["git", "config", "user.name", "ci"], check=True)
     write_version("4.18.0")
-    commit("initial")
     return tmp_path
 
 
 class TestDetectRelease:
-    def test_bump_is_a_release(self, repo):
+    def test_an_unreleased_version_is_released(self, repo):
         write_version("4.19.0")
-        commit("release 4.19.0")
         release, _ = ci.detect_release(already_released=lambda _: False)
-        assert release.changed
+        assert release.is_release
         assert str(release.version) == "4.19.0"
         assert not release.is_prerelease
 
-    def test_release_candidate_is_flagged_as_a_prerelease(self, repo):
+    def test_a_release_candidate_is_flagged_as_a_prerelease(self, repo):
         write_version("4.19.0rc1")
-        commit("release 4.19.0rc1")
         release, _ = ci.detect_release(already_released=lambda _: False)
-        assert release.changed
+        assert release.is_release
         assert release.is_prerelease
 
-    def test_unrelated_change_to_pyproject_is_not_a_release(self, repo):
-        Path("pyproject.toml").write_text(Path("pyproject.toml").read_text() + '\nfoo = "bar"\n')
-        commit("bump a dependency")
-        release, reason = ci.detect_release(already_released=lambda _: False)
-        assert not release.changed
-        assert "unchanged" in reason
-
-    def test_respelling_a_version_is_not_a_release(self, repo):
-        """4.18.0-rc.1 and 4.18.0rc1 are the same version; only the text differs."""
-        write_version("4.19.0rc1")
-        commit("release 4.19.0rc1")
-        write_version("4.19.0-rc.1")
-        commit("use the canonical spelling")
-        release, _ = ci.detect_release(already_released=lambda _: False)
-        assert not release.changed
-
     def test_an_already_released_version_is_not_released_again(self, repo):
-        write_version("4.19.0")
-        commit("release 4.19.0")
+        """This is what makes an ordinary push to master a no-op."""
         release, reason = ci.detect_release(already_released=lambda _: True)
-        assert not release.changed
+        assert not release.is_release
+        assert release.version is None
         assert "already been released" in reason
 
     def test_a_tag_without_a_release_still_releases(self, repo):
         """A tag with no release behind it is a release that died part way.
 
-        The tag alone must not wedge it: the workflow's tag and release steps
-        are each skipped if already done, so a re-run finishes the job.
+        The tag alone must not wedge it: the workflow's tag and release steps are
+        each skipped if already done, so a later push finishes the job.
         """
-        write_version("4.19.0")
-        commit("release 4.19.0")
-        subprocess.run(["git", "tag", "-a", "v4.19.0", "-m", "v4.19.0"], check=True)
         release, _ = ci.detect_release(already_released=lambda _: False)
-        assert release.changed
-        assert str(release.version) == "4.19.0"
+        assert release.is_release
+
+    def test_the_version_is_normalised(self, repo):
+        """The tag and the release-exists probe use the canonical spelling."""
+        write_version("4.19.0-rc.1")
+        release, _ = ci.detect_release(already_released=lambda _: False)
+        assert str(release.version) == "4.19.0rc1"
 
     def test_a_committed_dev_version_is_refused(self, repo):
         write_version("4.19.0.dev1")
-        commit("oops")
         with pytest.raises(ci.CIError, match="must never be committed"):
+            ci.detect_release(already_released=lambda _: False)
+
+    def test_an_unparseable_version_is_refused(self, repo):
+        write_version("not-a-version")
+        with pytest.raises(ci.CIError, match="not a valid PEP 440 version"):
             ci.detect_release(already_released=lambda _: False)
 
     def test_release_exists_reports_false_without_a_release(self, repo, monkeypatch):
@@ -112,12 +86,6 @@ class TestDetectRelease:
         )
         assert not ci.release_exists(Version("4.19.0"))
 
-    def test_an_unparseable_version_is_refused(self, repo):
-        write_version("not-a-version")
-        commit("oops")
-        with pytest.raises(ci.CIError, match="not a valid PEP 440 version"):
-            ci.detect_release(already_released=lambda _: False)
-
 
 class TestDevVersion:
     def test_derives_the_next_minor(self, repo):
@@ -126,7 +94,6 @@ class TestDevVersion:
     def test_targets_the_release_being_stabilised_when_mid_rc(self, repo):
         """A dev build during a 4.19.0rc1 cycle is aimed at 4.19.0, not 4.20.0."""
         write_version("4.19.0rc1")
-        commit("release candidate")
         assert str(ci.dev_version("42")) == "4.19.0.dev42"
 
     def test_the_result_is_always_publishable_from_a_branch(self, repo):
@@ -183,6 +150,28 @@ class TestReleaseNotes:
     def test_a_missing_section_is_an_error(self):
         with pytest.raises(ci.CIError, match="no section for 9.9.9"):
             ci.release_notes(Version("9.9.9"))
+
+    def test_a_stranded_prerelease_section_is_an_error(self):
+        """An rc that renamed its heading would silently truncate the final notes."""
+        Path("CHANGELOG.md").write_text(
+            "## 4.19.0 (2026-09-24)\n\n- Landed after the rc.\n\n"
+            "## 4.19.0rc1 (2026-09-17)\n\n- Feature A.\n\n"
+            "## 4.18.0 (2026-08-19)\n\n- Old.\n"
+        )
+        with pytest.raises(ci.CIError, match="4.19.0rc1"):
+            ci.release_notes(Version("4.19.0"))
+
+    def test_a_prerelease_section_of_another_version_is_fine(self):
+        Path("CHANGELOG.md").write_text(
+            "## 4.19.0 (2026-09-24)\n\n- Entry.\n\n"
+            "## 4.18.0rc1 (2026-08-01)\n\n- Belongs to the previous cycle.\n"
+        )
+        assert "Entry." in ci.release_notes(Version("4.19.0"))
+
+    def test_the_prerelease_itself_is_unaffected_by_the_check(self):
+        """The check guards final releases only; an rc may have its own section."""
+        Path("CHANGELOG.md").write_text("## 4.19.0rc1 (2026-09-17)\n\n- Feature A.\n")
+        assert "Feature A." in ci.release_notes(Version("4.19.0rc1"))
 
     def test_an_empty_section_is_an_error(self):
         Path("CHANGELOG.md").write_text("## 4.19.0 (2026-09-14)\n\n## 4.18.0 (2026-08-19)\n\n- Entry.\n")

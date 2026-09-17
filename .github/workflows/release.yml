@@ -1,9 +1,13 @@
 name: Release
 
-# A release is a pull request. Merging one that changes the version in
+# A release is a pull request. Merging one that sets a new version in
 # pyproject.toml is the whole release: this workflow tags it, drafts the GitHub
 # release from CHANGELOG.md, and publishes. Nothing here infers a version and
 # nothing writes to master.
+#
+# Every push to master is checked, and a version that already has a GitHub
+# release is left alone. A release that failed part way is therefore finished by
+# the next push rather than needing to be driven by hand.
 #
 # Running this workflow by hand instead produces a development build of the
 # selected branch. That path takes no inputs: the version is derived, so there
@@ -12,7 +16,6 @@ name: Release
 on:
   push:
     branches: [master]
-    paths: ['pyproject.toml']
   workflow_dispatch: {}
 
 concurrency:
@@ -23,17 +26,15 @@ concurrency:
 jobs:
   # ------------------------------------------------------------------ release
   detect-version:
-    name: Detect version change
+    name: Detect unreleased version
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       version:       ${{ steps.detect.outputs.version }}
-      changed:       ${{ steps.detect.outputs.changed }}
+      is-release:    ${{ steps.detect.outputs.is-release }}
       is-prerelease: ${{ steps.detect.outputs.is-prerelease }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 2  # to diff pyproject.toml against HEAD^
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -46,7 +47,7 @@ jobs:
   tag-release:
     name: Tag and draft release
     needs: detect-version
-    if: needs.detect-version.outputs.changed == 'true'
+    if: needs.detect-version.outputs.is-release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -62,8 +63,8 @@ jobs:
           VERSION: ${{ needs.detect-version.outputs.version }}
           PRERELEASE: ${{ needs.detect-version.outputs.is-prerelease }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
 
           # Generate the notes before anything irreversible happens. This is the
           # step most likely to fail -- a release PR that forgot to rename the
@@ -93,10 +94,11 @@ jobs:
   publish-release:
     name: Publish release
     needs: [detect-version, tag-release]
-    # Pinned to master on purpose: `./` would resolve the reusable workflow at
-    # the caller's ref, so a branch could supply its own publish logic.
-    # FIXME: roll this back to master after testing a dev release.
-    uses: rigetti/pyquil/.github/workflows/publish.yml@1871-manual_release_process
+    # Resolved at this run's ref, so a change to publish.yml can be exercised from
+    # the branch that makes it. A branch cannot reach a real release this way: the
+    # pypi-release environment's deployment branch rule restricts that to master,
+    # and GitHub enforces it whatever the workflow says.
+    uses: ./.github/workflows/publish.yml
     with:
       version:       ${{ needs.detect-version.outputs.version }}
       is-prerelease: ${{ needs.detect-version.outputs.is-prerelease == 'true' }}
@@ -125,8 +127,8 @@ jobs:
           VERSION: ${{ steps.derive.outputs.version }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
           SHORT_SHA=$(git rev-parse --short HEAD)
           git tag -a "v$VERSION" -m "dev build of $BRANCH @ $GITHUB_SHA"
           git push origin "v$VERSION"
@@ -145,8 +147,7 @@ jobs:
   publish-dev:
     name: Publish development build
     needs: tag-dev
-    # FIXME: roll this back to master after testing dev release
-    uses: rigetti/pyquil/.github/workflows/publish.yml@1871-manual_release_process
+    uses: ./.github/workflows/publish.yml
     with:
       version:          ${{ needs.tag-dev.outputs.version }}
       is-prerelease:    true

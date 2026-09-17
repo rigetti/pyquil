@@ -105,8 +105,16 @@ request at the end:
 ```
 
 Write a sentence or two in the present tense, for someone reading the release notes rather
-than the diff. A pull request that changes no behaviour -- a refactor, a test, a CI tweak
--- doesn't need an entry.
+than the diff. A pull request that changes no behaviour, such as a test or a CI tweak,
+doesn't require an entry. Behavior changes include changes to any of the following:
+
+* the public API, including exception types
+* memory and computational performance
+* the security model
+* deprecations
+* Python version requirements
+* default values
+* dependencies with any of the above implications
 
 ### Adding a Tutorial Notebook
 
@@ -428,7 +436,8 @@ happens.
 2. **Merge it**, once CI is green.
 
 3. **Approve the PyPI upload.** A final release waits at the `pypi-release` environment for
-   one click from a reviewer. Release candidates and development builds don't.
+   one click from a reviewer. Release candidates and development builds, in contrast, do
+   not require manual approval.
 
 Notes and considerations:
 
@@ -438,7 +447,8 @@ Notes and considerations:
   `latest` and `<version>`). The docs on [Read the Docs][rtd] update on their own.
 * PyPI uploads use [Trusted Publishing][trusted-publishing] with a short-lived token via
   OIDC.
-* The release path only runs on master.
+* A veritable release (i.e. non-RC or dev release) workflow will only ever run on the
+  master branch.
 
 #### Release candidates
 
@@ -446,7 +456,7 @@ The same release PR process with a [PEP 440][pep-440] prerelease version -- `4.1
 However, make sure to **leave the changelog entries under "Unreleased"**. The GitHub
 release is marked as a prerelease, and it publishes without waiting for approval.
 
-This release path likewise only runs on master.
+A release candidate workflow will only ever run on the master branch.
 
 #### Development builds from a pull request
 
@@ -458,21 +468,18 @@ The workflow will tag the branch commit and publish `pyquil` alone (no Docker im
 
 #### When something goes wrong
 
-Every step is safe to repeat. A release counts as done when the **GitHub release** exists,
-not when the tag does, so a run that tagged and then failed resumes instead of wedging: an
-existing tag is left alone, an existing GitHub release is left alone, and a version already
-on PyPI is skipped rather than treated as an error.
+A release is done once its **GitHub release** exists. Until then every push to `master`
+retries it, skipping whatever already succeeded -- an existing tag, an existing release, a
+version already on PyPI.
 
-* **The run failed before the GitHub release was created.** Re-run the failed run from
-  Actions; it picks up where it stopped.
-* **The approval was rejected or expired.** The tag and GitHub release exist, but nothing
-  reached PyPI. Once the problem is fixed, re-run `publish.yml`: Actions → **Publish
-  pyQuil** → **Run workflow**, from `master`, with the version.
-* **One package published and the other failed.** `pyquil` and `pyquil-grpc-web` upload
-  independently. Re-run `publish.yml` as above; the half that already succeeded is skipped.
-* **The version itself was wrong.** Repeating will not fix this, because a version can
-  never be reused on PyPI. Delete the tag and the GitHub release, and open a corrected
-  release PR with a new version.
+* **A check failed before the release was created**, for example because the changelog is
+  missing a section for the version. Nothing has been published. Fix it on `master` and
+  the next push completes the release.
+* **The release exists but PyPI does not have it**, because the approval was rejected or
+  expired, or because one of the two packages failed. Re-run `publish.yml`: Actions →
+  **Publish pyQuil** → **Run workflow**, from `master`, with the version.
+* **The version was wrong.** A version can never be reused on PyPI. Delete the tag and the
+  GitHub release, and open a corrected release PR with a new version.
 
 ### Issue and PR Labels
 

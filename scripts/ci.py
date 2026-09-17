@@ -78,14 +78,6 @@ def committed_version() -> Version:
     return parse_version(PYPROJECT.read_bytes())
 
 
-def version_at(revision: str) -> Version | None:
-    """The version declared at a git revision, or None if unreadable there."""
-    result = subprocess.run(["git", "show", f"{revision}:{PYPROJECT}"], capture_output=True)
-    if result.returncode != 0:
-        return None
-    return parse_version(result.stdout)
-
-
 def release_exists(version: Version) -> bool:
     """Whether a GitHub release already exists for this version.
 
@@ -93,14 +85,21 @@ def release_exists(version: Version) -> bool:
     no release behind it is a release that failed part way through, and should
     be resumable; gating on the tag would instead wedge it permanently.
     """
-    return subprocess.run(["gh", "release", "view", f"v{version}"], capture_output=True).returncode == 0
+    try:
+        probe = subprocess.run(["gh", "release", "view", f"v{version}"], capture_output=True)
+    except FileNotFoundError as error:  # pragma: no cover - gh is present on GitHub runners
+        raise CIError("gh is required to check whether this version has already been released") from error
+    # A non-zero exit means "no such release", but also covers transient failures.
+    # Erring towards "not released" is the safe direction: every step that follows
+    # skips work it has already done, so at worst the release resumes.
+    return probe.returncode == 0
 
 
 @dataclass(frozen=True)
 class Release:
-    """Whether a push to master should cut a release, and of what."""
+    """Whether the committed version still needs releasing, and which version."""
 
-    changed: bool
+    is_release: bool
     version: Version | None = None
 
     @property
@@ -114,39 +113,36 @@ class Release:
 
 
 def detect_release(already_released: Callable[[Version], bool] = release_exists) -> tuple[Release, str]:
-    """Decide whether HEAD changed the version, with a reason for the log."""
-    head = committed_version()
-    if head.is_devrelease:
-        raise CIError(f"{head} is a development version and must never be committed to master")
+    """Decide whether the committed version still needs releasing, with a reason.
 
-    previous = version_at("HEAD^")
-    if previous is None:
-        return Release(changed=False), "no parent commit to compare against"
-    # Comparing parsed versions, not strings, so that a spelling change such as
-    # 4.18.0-rc.1 -> 4.18.0rc1 is correctly seen as no change at all.
-    if head == previous:
-        return Release(changed=False), f"version unchanged at {head}"
-    if already_released(head):
-        return Release(changed=False), f"v{head} has already been released"
-    return Release(changed=True, version=head), f"version changed {previous} -> {head}"
+    The question is about state, not about what a particular commit did: a version
+    is released or it is not. That makes every push to master self-correcting --
+    a fix for a release that failed part way completes it -- and leaves a
+    dependency bump that happens to touch pyproject.toml a no-op.
+    """
+    version = committed_version()
+    if version.is_devrelease:
+        raise CIError(f"{version} is a development version and must never be committed to master")
+    if already_released(version):
+        return Release(is_release=False), f"v{version} has already been released"
+    return Release(is_release=True, version=version), f"v{version} has not been released yet"
 
 
 def command_detect_release(_: argparse.Namespace) -> None:
     """Decide whether a push to master should be released.
 
     Invoked by: release.yml, job `detect-version` (push to master).
-    Requires:   a checkout with fetch-depth >= 2, to see HEAD^; $GH_TOKEN, to
-                ask whether the release already exists.
-    Outputs:    changed (true/false), version, is-prerelease (true/false).
+    Requires:   $GH_TOKEN, to ask whether the release already exists.
+    Outputs:    is-release (true/false), version, is-prerelease (true/false).
 
-    A release happens when the version in pyproject.toml differs from the
-    previous commit's and has not already been released, which makes re-runs a
-    no-op while leaving a half-finished release resumable.
+    A release happens when the version in pyproject.toml has no GitHub release
+    yet. Re-runs are a no-op, and a release that failed part way is finished by
+    the next push rather than needing to be driven by hand.
     """
     release, reason = detect_release()
     print(reason)
     emit(
-        changed=str(release.changed).lower(),
+        is_release=str(release.is_release).lower(),
         version=str(release.version or ""),
         is_prerelease=str(release.is_prerelease).lower(),
     )
@@ -223,12 +219,39 @@ def changelog_sections(lines: list[str]) -> list[tuple[str | None, list[str]]]:
     return found
 
 
+def prerelease_sections(sections: list[tuple[str | None, list[str]]], version: Version) -> list[str]:
+    """Headings for prereleases of a final version, e.g. 4.19.0rc1 under 4.19.0."""
+    found = []
+    for declared, _ in sections:
+        if declared is None:
+            continue
+        try:
+            parsed = Version(declared)
+        except InvalidVersion:
+            continue
+        if parsed.is_prerelease and parsed.base_version == version.base_version:
+            found.append(declared)
+    return found
+
+
 def release_notes(version: Version) -> str:
     """The changelog body to publish as the release notes for a version."""
     if not CHANGELOG.is_file():
         raise CIError(f"{CHANGELOG} not found; run this from the repository root")
 
     sections = changelog_sections(CHANGELOG.read_text(encoding="utf-8").splitlines())
+
+    # A release candidate bumps the version and leaves its entries under
+    # "Unreleased". If one renamed the heading instead, those entries are stranded
+    # under a version that was never really released, and the final release notes
+    # would silently omit them -- so refuse rather than publish a partial release.
+    if not version.is_prerelease:
+        if stranded := prerelease_sections(sections, version):
+            raise CIError(
+                f"{CHANGELOG} still has a section for {', '.join(stranded)}, whose entries would be "
+                f"left out of the {version} release notes. Merge them into the {version} section and "
+                f"delete the prerelease heading(s)."
+            )
 
     body: list[str] | None = None
     for declared, lines in sections:
@@ -282,21 +305,9 @@ def command_release_notes(args: argparse.Namespace) -> None:
 # --------------------------------------------------------------------------- #
 
 
-def command_patch_grpc_web(_: argparse.Namespace) -> None:
-    """Rewrite pyproject.toml in place to build the pyquil-grpc-web variant.
-
-    Invoked by: publish.yml, job `build-publish-grpc-web`, before the build.
-    Requires:   the `toml` package (imported here so the other commands do not
-                need it).
-    Outputs:    none; edits pyproject.toml and pyquil/_version.py in the
-                runner's tree only.
-
-    Renames the published package and swaps the qcs-sdk-python dependency for
-    its grpc-web build, keeping the import name as pyquil.
-    """
+def patch_grpc_web(root: Path) -> None:
+    """Rewrite pyproject.toml and _version.py in place for the grpc-web variant."""
     import toml  # noqa: PLC0415  (only this command needs a TOML writer)
-
-    root = Path(__file__).resolve().parent.parent
 
     with open(root / "pyproject.toml", "r+", encoding="utf-8") as handle:
         data = toml.load(handle)
@@ -319,6 +330,23 @@ def command_patch_grpc_web(_: argparse.Namespace) -> None:
         version_file.read_text(encoding="utf-8").replace("__package__", '"pyquil_grpc_web"'),
         encoding="utf-8",
     )
+
+
+def command_patch_grpc_web(_: argparse.Namespace) -> None:
+    """Rewrite pyproject.toml in place to build the pyquil-grpc-web variant.
+
+    Invoked by: publish.yml, job `build-publish-grpc-web`, before the build.
+    Requires:   the `toml` package, which publish.yml pip-installs for this step.
+                It is deliberately not a project dependency: that runner installs
+                no project dependencies, so the workflow must provide it either
+                way. Imported inside this command so the others do not need it.
+    Outputs:    none; edits pyproject.toml and pyquil/_version.py in the
+                runner's tree only.
+
+    Renames the published package and swaps the qcs-sdk-python dependency for
+    its grpc-web build, keeping the import name as pyquil.
+    """
+    patch_grpc_web(Path(__file__).resolve().parent.parent)
     print("patched pyproject.toml and pyquil/_version.py for pyquil-grpc-web")
 
 
