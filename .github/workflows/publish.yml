@@ -1,34 +1,190 @@
-name: Publish pyQuil
+name: Release pyQuil
+
+# Tags the version in pyproject.toml, drafts its GitHub release from
+# CHANGELOG.md, and publishes to PyPI and DockerHub.
+# See CONTRIBUTING.md, "Release Process".
+#
+# This file's name and the `pypi` environment are both part of the PyPI trusted
+# publisher configuration, which matches the workflow a run starts from.
+# Renaming either stops publishing until the publisher is updated:
+#   https://pypi.org/manage/project/pyquil/settings/publishing/
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [master]
   workflow_dispatch:
-    description: "Manually publish release"
+    inputs:
+      version:
+        description: "Re-publish this already-released version, without a leading v (e.g. 4.19.0)"
+        required: true
+        type: string
+      publish-docker:
+        required: false
+        type: boolean
+        default: true
+      publish-grpc-web:
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-master
+  cancel-in-progress: false
 
 jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version:       ${{ steps.resolve.outputs.version }}
+      is-release:    ${{ steps.resolve.outputs.is-release }}
+      is-prerelease: ${{ steps.resolve.outputs.is-prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet packaging
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPUBLISH: ${{ inputs.version }}
+        run: |
+          if [ -n "$REPUBLISH" ]; then
+            python scripts/ci.py detect-release --version "$REPUBLISH"
+          else
+            python scripts/ci.py detect-release
+          fi
+
+  tag:
+    name: Tag and draft release
+    needs: version
+    if: needs.version.outputs.is-release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet packaging
+      - name: Tag and create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          PRERELEASE: ${{ needs.version.outputs.is-prerelease }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          # A dispatch re-publishes a release that already exists. It must never
+          # mint a new one: the version it was given is not checked against
+          # pyproject.toml until the build job, which is too late to un-tag.
+          if [ "$EVENT" = "workflow_dispatch" ] \
+             && [ -z "$(git ls-remote --tags origin "refs/tags/v$VERSION")" ]; then
+            echo "::error::v$VERSION is not tagged; a dispatch re-publishes an existing release"
+            exit 1
+          fi
+
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+          # Generate the notes before anything irreversible happens. This is the
+          # step most likely to fail -- a release PR that forgot to rename the
+          # changelog heading -- and on its own it has no side effects.
+          python scripts/ci.py release-notes "$VERSION" > notes.md
+
+          # Both mutations below are skipped if they have already happened, so a
+          # run that died between them resumes cleanly. The tag is checked
+          # against the remote rather than the local clone, which is shallow.
+          if [ -z "$(git ls-remote --tags origin "refs/tags/v$VERSION")" ]; then
+            git tag -a "v$VERSION" -m "pyquil v$VERSION"
+            git push origin "v$VERSION"
+          else
+            echo "v$VERSION is already tagged; leaving it alone"
+          fi
+
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "the GitHub release for v$VERSION already exists; leaving it alone"
+          else
+            gh release create "v$VERSION" \
+              --title "v$VERSION" \
+              --notes-file notes.md \
+              $([ "$PRERELEASE" = "true" ] && echo --prerelease)
+          fi
+
   build-publish:
     name: Build and Publish
+    needs: [version, tag]
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # required for PyPI Trusted Publishing
+      contents: read
     steps:
     - uses: actions/checkout@v7
+      with:
+        ref: v${{ needs.version.outputs.version }}
+        fetch-depth: 0
     - uses: actions/setup-python@v5
       with:
         python-version: '3.12'
     - uses: snok/install-poetry@v1
       with:
         virtualenvs-in-project: true
+
+    # Inlined rather than delegated to scripts/, because the checked-out tree is
+    # the ref being published: a script read from there would be the very thing
+    # under test.
+    - name: "Verify this version may be published from this ref"
+      env:
+        VERSION: ${{ needs.version.outputs.version }}
+        EVENT: ${{ github.event_name }}
+        REF: ${{ github.ref }}
+      run: |
+        pip install --quiet packaging
+        python - <<'EOF'
+        import os, subprocess, sys
+        from packaging.version import Version
+
+        version = os.environ["VERSION"]
+        ref = os.environ["REF"]
+
+        def die(message):
+            sys.exit(f"::error::{message}")
+
+        if ref != "refs/heads/master":
+            die(f"refusing to publish {version} from {ref}; releases come from master")
+        packaged = subprocess.check_output(["poetry", "version", "--short"], text=True).strip()
+        if Version(packaged) != Version(version):
+            die(f"tag v{version} does not match the version in pyproject.toml ({packaged})")
+        if os.environ["EVENT"] == "workflow_dispatch":
+            # Re-publishing an existing tag: make sure it is a tag on master and
+            # not one left behind on a branch.
+            if subprocess.run(
+                ["git", "merge-base", "--is-ancestor", f"v{version}", "origin/master"]
+            ).returncode != 0:
+                die(f"v{version} is not an ancestor of master")
+        print(f"ok: publishing {version} from {ref}")
+        EOF
+
     - name: "Build"
       run: |
         poetry build --no-interaction
+    - name: "Publish"
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # A version already on the index is not an error: it means an earlier
+        # attempt got this far. Without this, re-running to fix the half that
+        # failed would fail on the half that succeeded.
+        skip-existing: true
+
     - id: publish
-      name: "Publish"
+      name: "Compute image tags"
+      env:
+        PYQUIL_TAG_VERSION: ${{ needs.version.outputs.version }}
       run: |
-        poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
-        poetry publish
-        export PYQUIL_TAG_VERSION=$(poetry version --short)
         export PYQUIL_TAG_LATEST=$([[ "$PYQUIL_TAG_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]] && echo latest || echo)
-        export PYQUIL_TAG_RC=$([[ "$PYQUIL_TAG_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+-rc[.][0-9]+$ ]] && echo rc || echo)
+        export PYQUIL_TAG_RC=$([[ "$PYQUIL_TAG_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+-?rc[.]?[0-9]+$ ]] && echo rc || echo)
         echo "PYQUIL_TAG_VERSION=$PYQUIL_TAG_VERSION" >> "$GITHUB_OUTPUT"
         echo "PYQUIL_TAG_LATEST=$PYQUIL_TAG_LATEST" >> "$GITHUB_OUTPUT"
         echo "PYQUIL_TAG_RC=$PYQUIL_TAG_RC" >> "$GITHUB_OUTPUT"
@@ -39,12 +195,17 @@ jobs:
 
   build-publish-grpc-web:
     name: Build and Publish (pyquil-grpc-web)
+    needs: [version, tag]
+    if: ${{ github.event_name == 'push' || inputs.publish-grpc-web }}
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       id-token: write
       contents: read
     steps:
     - uses: actions/checkout@v7
+      with:
+        ref: v${{ needs.version.outputs.version }}
     - uses: actions/setup-python@v5
       with:
         python-version: '3.12'
@@ -54,26 +215,25 @@ jobs:
     - name: Patch package metadata for grpc-web
       run: |
         pip install toml
-        python scripts/ci_publish_grpc_web.py
+        python scripts/ci.py patch-grpc-web
     - name: Poetry Build
       run: |
         poetry build --no-interaction
     - name: Upload wheels as artifacts
-      uses: actions/upload-artifact@v4 
-      with: 
+      uses: actions/upload-artifact@v4
+      with:
         name: wheels
         path: dist
-    - name: Mint token
-      id: mint
-      uses: tschm/token-mint-action@v1.0.3
-    - name: Publish the package with poetry
-      run: |
-        poetry publish -u __token__ -p '${{ steps.mint.outputs.api-token }}'
+    - name: Publish
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: true
 
   docker-publish:
     name: Docker Publish
+    needs: [version, build-publish]
+    if: ${{ github.event_name == 'push' || inputs.publish-docker }}
     runs-on: ubuntu-latest
-    needs: build-publish
     env:
       PYQUIL_TAG_VERSION: ${{ needs.build-publish.outputs.PYQUIL_TAG_VERSION }}
       PYQUIL_TAG_LATEST: ${{ needs.build-publish.outputs.PYQUIL_TAG_LATEST }}
@@ -93,6 +253,8 @@ jobs:
       # Checkout is needed to use the path context: .
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: v${{ needs.version.outputs.version }}
       - name: Build and Test
         uses: docker/build-push-action@v6
         with:

@@ -1,776 +1,271 @@
 # Changelog
 
+All notable changes to pyQuil are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+A pull request that changes something a user would notice adds a bullet under
+"Unreleased"; the release renames that heading.  See
+[CONTRIBUTING.md](https://github.com/rigetti/pyquil/blob/master/CONTRIBUTING.md#updating-the-changelog).
+
+## Unreleased
+
+### Features
+
+- Experimental exact simulators built on `rigetti-quax`: `PureStateVectorSimulator` and
+  `DensityMatrixSimulator` in `pyquil.simulation._simulator`. They evolve a program exactly
+  under JAX, so they are `jit`-compatible and differentiable with respect to gate
+  parameters, and they accept a `NoiseModel`. The API is not yet stable; see
+  [the architecture guide](https://pyquil-docs.rigetti.com/en/latest/simulation_architecture.html).
+  ([#1855](https://github.com/rigetti/pyquil/pull/1855))
+- A gate angle may be any Quil arithmetic expression over declared memory, so the parametric
+  programs `quilc` emits -- `RX(theta[0]/2 + pi) 0` -- simulate without rewriting.
+  ([#1869](https://github.com/rigetti/pyquil/pull/1869))
+
 ## 4.18.0 (2026-08-19)
 
 ### Features
 
-#### drop Python 3.9 support, add rigetti-quax (1/5) (#1858)
-
-#### qudit noise model (2/5) (#1854) (#1859)
-
-### Fixes
-
-#### format complex params with nonzero real and unit imaginary part (#1850)
-
-## 4.18.0-rc.1 (2026-08-18)
-
-### Features
-
-#### drop Python 3.9 support, add rigetti-quax (1/5) (#1858)
-
-#### qudit noise model (2/5) (#1854) (#1859)
+- drop Python 3.9 support, add rigetti-quax (1/5) ([#1858](https://github.com/rigetti/pyquil/pull/1858))
+- qudit noise model (2/5) ([#1854](https://github.com/rigetti/pyquil/pull/1854)) ([#1859](https://github.com/rigetti/pyquil/pull/1859))
 
 ### Fixes
 
-#### format complex params with nonzero real and unit imaginary part (#1850)
-
-## 4.18.0-rc.0 (2026-07-16)
-
-### Features
-
-#### drop Python 3.9 support, add rigetti-quax (1/5) (#1858)
-
-### Fixes
-
-#### format complex params with nonzero real and unit imaginary part (#1850)
-
-## 4.17.1-rc.0 (2026-06-17)
-
-### Fixes
-
-#### format complex params with nonzero real and unit imaginary part (#1850)
+- format complex params with nonzero real and unit imaginary part ([#1850](https://github.com/rigetti/pyquil/pull/1850))
 
 ## 4.17.0 (2025-10-08)
 
 ### Features
 
-#### restrict dependency versions (#1841)
+- restrict dependency versions ([#1841](https://github.com/rigetti/pyquil/pull/1841))
 
 ### Fixes
 
-#### update packages with detected vulnerabilities (#1834)
-
-#### clarify what printing a compiled program's output looks like for different targets (#1833)
-
-## 4.17.0-rc.0 (2025-10-08)
-
-### Features
-
-#### restrict dependency versions (#1841)
-
-### Fixes
-
-#### update packages with detected vulnerabilities (#1834)
-
-#### clarify what printing a compiled program's output looks like for different targets (#1833)
-
-## 4.16.3-rc.1 (2025-09-10)
-
-### Fixes
-
-#### update packages with detected vulnerabilities (#1834)
-
-#### clarify what printing a compiled program's output looks like for different targets (#1833)
-
-## 4.16.3-rc.0 (2025-09-10)
-
-### Fixes
-
-#### update packages with detected vulnerabilities (#1834)
+- update packages with detected vulnerabilities ([#1834](https://github.com/rigetti/pyquil/pull/1834))
+- clarify what printing a compiled program's output looks like for different targets ([#1833](https://github.com/rigetti/pyquil/pull/1833))
 
 ## 4.16.2 (2025-05-05)
 
 ### Fixes
 
-#### allow installation of pyquil and packaging-24.2 (#1823)
-
-#### expand numpy compat range to >=1.26 (#1827)
-
-## 4.16.2-rc.2 (2025-05-02)
-
-### Fixes
-
-#### allow installation of pyquil and packaging-24.2 (#1823)
-
-#### expand numpy compat range to >=1.25
-
-#### stringify numpy float and remove extra type ignore comment
-
-## 4.16.2-rc.1 (2025-05-02)
-
-### Fixes
-
-#### allow installation of pyquil and packaging-24.2 (#1823)
-
-#### expand numpy compat range to >=1.25
-
-#### stringify numpy float and remove extra type ignore comment
-
-## 4.16.2-rc.0 (2025-03-24)
-
-### Fixes
-
-#### allow installation of pyquil and packaging-24.2 (#1823)
+- allow installation of pyquil and packaging-24.2 ([#1823](https://github.com/rigetti/pyquil/pull/1823))
+- expand numpy compat range to >=1.26 ([#1827](https://github.com/rigetti/pyquil/pull/1827))
 
 ## 4.16.1 (2025-03-06)
 
 ### Fixes
 
-#### ensure pragma extern maps are copied (#1819)
-
-## 4.16.1-rc.0 (2025-02-26)
-
-### Fixes
-
-#### ensure pragma extern maps are copied (#1819)
+- ensure pragma extern maps are copied ([#1819](https://github.com/rigetti/pyquil/pull/1819))
 
 ## 4.16.0 (2025-01-23)
 
 ### Features
 
-#### update quil-rs dependency to >= 0.15.2 (#1815)
-
-## 4.16.0-rc.0 (2025-01-23)
-
-### Features
-
-#### update quil-rs dependency to >= 0.15.2 (#1815)
+- update quil-rs dependency to >= 0.15.2 ([#1815](https://github.com/rigetti/pyquil/pull/1815))
 
 ## 4.15.0 (2024-12-11)
 
 ### Features
 
-#### Update quil to >=0.13.2 (#1809)
-
-## 4.15.0-rc.0 (2024-12-11)
-
-### Features
-
-#### Update quil to >=0.13.2 (#1809)
+- Update quil to >=0.13.2 ([#1809](https://github.com/rigetti/pyquil/pull/1809))
 
 ## 4.14.3 (2024-09-24)
 
 ### Fixes
 
-#### Update qcs-sdk-python, fixing edge cases that prevented access tokens from being refreshed properly (#1803)
-
-## 4.14.3-rc.0 (2024-09-24)
-
-### Fixes
-
-#### Update qcs-sdk-python, fixing edge cases that prevented access tokens from being refreshed properly (#1803)
+- Update qcs-sdk-python, fixing edge cases that prevented access tokens from being refreshed properly ([#1803](https://github.com/rigetti/pyquil/pull/1803))
 
 ## 4.14.2 (2024-08-20)
 
 ### Fixes
 
-#### Loosen qcs-sdk-python version requirement
-
-## 4.14.2-rc.0 (2024-08-20)
-
-### Fixes
-
-#### Loosen qcs-sdk-python version requirement
+- Loosen qcs-sdk-python version requirement
 
 ## 4.14.1 (2024-08-13)
 
 ### Fixes
 
-#### The DefMeasureCalibration `instructions` property returns `pyQuil` `AbstractInstrction`s instead of `quil` `Instruction`s (#1799)
-
-#### Unpickling an `AbstractInstruction` will result in an `AbstractInstruction` instead of a `quil` `Instruction` (#1801)
-
-## 4.14.1-rc.1 (2024-08-13)
-
-### Fixes
-
-#### The DefMeasureCalibration `instructions` property returns `pyQuil` `AbstractInstrction`s instead of `quil` `Instruction`s (#1799)
-
-#### Unpickling an `AbstractInstruction` will result in an `AbstractInstruction` instead of a `quil` `Instruction` (#1801)
-
-## 4.14.1-rc.0 (2024-08-13)
-
-### Fixes
-
-#### The DefMeasureCalibration `instructions` property returns `pyQuil` `AbstractInstrction`s instead of `quil` `Instruction`s (#1799)
+- The DefMeasureCalibration `instructions` property returns `pyQuil` `AbstractInstrction`s instead of `quil` `Instruction`s ([#1799](https://github.com/rigetti/pyquil/pull/1799))
+- Unpickling an `AbstractInstruction` will result in an `AbstractInstruction` instead of a `quil` `Instruction` ([#1801](https://github.com/rigetti/pyquil/pull/1801))
 
 ## 4.14.0 (2024-07-30)
 
 ### Features
 
-#### Instruction classes and execution results now support the pickle module (#1795)
-
-## 4.14.0-rc.0 (2024-07-30)
-
-### Features
-
-#### Instruction classes and execution results now support the pickle module (#1795)
+- Instruction classes and execution results now support the pickle module ([#1795](https://github.com/rigetti/pyquil/pull/1795))
 
 ## 4.13.1 (2024-07-25)
 
 ### Fixes
 
-#### Client configuration is passed to all qcs_sdk methods (#1792)
-
-## 4.13.1-rc.0 (2024-07-25)
-
-### Fixes
-
-#### Client configuration is passed to all qcs_sdk methods (#1792)
+- Client configuration is passed to all qcs_sdk methods ([#1792](https://github.com/rigetti/pyquil/pull/1792))
 
 ## 4.13.0 (2024-07-16)
 
 ### Features
 
-#### Update qcs-sdk-python (#1790)
-
-## 4.13.0-rc.0 (2024-07-15)
-
-### Features
-
-#### Update qcs-sdk-python (#1790)
+- Update qcs-sdk-python ([#1790](https://github.com/rigetti/pyquil/pull/1790))
 
 ## 4.12.0 (2024-07-03)
 
 ### Features
 
-#### Remove unused rewrite arithmetic logic, deprecate recalculation_table (#1787)
-
-## 4.12.0-rc.0 (2024-07-02)
-
-### Features
-
-#### Remove unused rewrite arithmetic logic, deprecate recalculation_table (#1787)
+- Remove unused rewrite arithmetic logic, deprecate recalculation_table ([#1787](https://github.com/rigetti/pyquil/pull/1787))
 
 ## 4.11.0 (2024-06-05)
 
 ### Features
 
-#### Drop support for Python 3.8, update dependencies (#1782)
-
-## 4.11.0-rc.0 (2024-06-05)
-
-### Features
-
-#### Drop support for Python 3.8, update dependencies (#1782)
+- Drop support for Python 3.8, update dependencies ([#1782](https://github.com/rigetti/pyquil/pull/1782))
 
 ## 4.10.1 (2024-05-10)
 
 ### Fixes
 
-#### Refresh JWT only when expired, not before every request (#1772)
-
-## 4.10.1-rc.0 (2024-05-10)
-
-### Fixes
-
-#### Refresh JWT only when expired, not before every request (#1772)
+- Refresh JWT only when expired, not before every request ([#1772](https://github.com/rigetti/pyquil/pull/1772))
 
 ## 4.10.0 (2024-04-29)
 
 ### Features
 
-#### Add Program#control_flow_graph() method (#1770)
-
-## 4.10.0-rc.0 (2024-04-29)
-
-### Features
-
-#### Add Program#control_flow_graph() method (#1770)
+- Add Program#control_flow_graph() method ([#1770](https://github.com/rigetti/pyquil/pull/1770))
 
 ## 4.9.2 (2024-04-17)
 
 ### Fixes
 
-#### Program serialization is deterministic, and program equality checks have been corrected. (#1767)
-
-## 4.9.2-rc.0 (2024-04-17)
-
-### Fixes
-
-#### Program serialization is deterministic, and program equality checks have been corrected. (#1767)
+- Program serialization is deterministic, and program equality checks have been corrected. ([#1767](https://github.com/rigetti/pyquil/pull/1767))
 
 ## 4.9.1 (2024-04-16)
 
 ### Fixes
 
-#### Expression arithmetic does not error when a numpy type is on the left hand side. (#1769)
-
-## 4.9.1-rc.0 (2024-04-16)
-
-### Fixes
-
-#### Expression arithmetic does not error when a numpy type is on the left hand side. (#1769)
+- Expression arithmetic does not error when a numpy type is on the left hand side. ([#1769](https://github.com/rigetti/pyquil/pull/1769))
 
 ## 4.9.0 (2024-04-15)
 
 ### Features
 
-#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
-
-#### Expressions without parameters have improved compatibility with numpy. (#1757)
-
-### Fixes
-
-#### Program#out(calibrations=False) will not expand calibrations (#1758)
-
-#### The imaginary part of a complex number is no longer moved incorrectly to the outside of a binary expression. (#1756)
-
-## 4.9.0-rc.3 (2024-04-12)
-
-### Features
-
-#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
-
-#### Expressions without parameters have improved compatibility with numpy. (#1757)
+- Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. ([#1763](https://github.com/rigetti/pyquil/pull/1763))
+- Expressions without parameters have improved compatibility with numpy. ([#1757](https://github.com/rigetti/pyquil/pull/1757))
 
 ### Fixes
 
-#### Program#out(calibrations=False) will not expand calibrations (#1758)
-
-#### The imaginary part of a complex number is no longer moved incorrectly to the outside of a binary expression. (#1756)
-
-## 4.9.0-rc.2 (2024-04-11)
-
-### Features
-
-#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
-
-### Fixes
-
-#### Program#out(calibrations=False) will not expand calibrations (#1758)
-
-#### The imaginary part of a complex number is no longer moved incorrectly to the outside of a binary expression. (#1756)
-
-## 4.9.0-rc.1 (2024-04-10)
-
-### Features
-
-#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
-
-### Fixes
-
-#### Program#out(calibrations=False) will not expand calibrations (#1758)
-
-## 4.9.0-rc.0 (2024-04-09)
-
-### Features
-
-#### Publish pyquil-grpc-web; A new package that supports making gRPC connections over HTTP/1.1. (#1763)
+- Program#out(calibrations=False) will not expand calibrations ([#1758](https://github.com/rigetti/pyquil/pull/1758))
+- The imaginary part of a complex number is no longer moved incorrectly to the outside of a binary expression. ([#1756](https://github.com/rigetti/pyquil/pull/1756))
 
 ## 4.8.0 (2024-03-08)
 
 ### Features
 
-#### Add run_with_memory_map_batch method for more efficient execution of parameter batches (#1750)
-
-## 4.8.0-rc.0 (2024-03-08)
-
-### Features
-
-#### Add run_with_memory_map_batch method for more efficient execution of parameter batches (#1750)
+- Add run_with_memory_map_batch method for more efficient execution of parameter batches ([#1750](https://github.com/rigetti/pyquil/pull/1750))
 
 ## 4.7.0 (2024-02-27)
 
 ### Features
 
-#### Support job cancellation for QPUs, perform automatic retries on transient network failures. (#1741)
+- Support job cancellation for QPUs, perform automatic retries on transient network failures. ([#1741](https://github.com/rigetti/pyquil/pull/1741))
 
 ### Fixes
 
-#### Valid instructions will no longer be rejected by the compatibility layer (#1742)
-
-#### CompilerISA.dict() now uses the correct default field names: qubits and edges (#1746)
-
-## 4.7.0-rc.2 (2024-02-27)
-
-### Features
-
-#### Support job cancellation for QPUs, perform automatic retries on transient network failures. (#1741)
-
-### Fixes
-
-#### Valid instructions will no longer be rejected by the compatibility layer (#1742)
-
-#### CompilerISA.dict() now uses the correct default field names: qubits and edges (#1746)
-
-## 4.7.0-rc.1 (2024-02-22)
-
-### Features
-
-#### Support job cancellation for QPUs, perform automatic retries on transient network failures. (#1741)
-
-### Fixes
-
-#### Valid instructions will no longer be rejected by the compatibility layer (#1742)
-
-## 4.7.0-rc.0 (2024-02-22)
-
-### Features
-
-#### Support job cancellation for QPUs, perform automatic retries on transient network failures. (#1741)
+- Valid instructions will no longer be rejected by the compatibility layer ([#1742](https://github.com/rigetti/pyquil/pull/1742))
+- CompilerISA.dict() now uses the correct default field names: qubits and edges ([#1746](https://github.com/rigetti/pyquil/pull/1746))
 
 ## 4.6.2 (2024-02-20)
 
 ### Fixes
 
-#### bump qcs-sdk-python version to pull DEFCIRCUIT serialization fix (#1735)
-
-## 4.6.2-rc.3 (2024-02-16)
-
-### Fixes
-
-#### bump qcs-sdk-python version to pull DEFCIRCUIT serialization fix (#1735)
-
-## 4.6.2-rc.2 (2024-02-16)
-
-### Fixes
-
-#### bump qcs-sdk-python version to pull DEFCIRCUIT serialization fix (#1735)
-
-## 4.6.2-rc.1 (2024-02-13)
-
-### Fixes
-
-#### bump qcs-sdk-python version to pull DEFCIRCUIT serialization fix (#1735)
-
-## 4.6.2-rc.0 (2024-02-07)
-
-### Fixes
-
-#### bump qcs-sdk-python version to pull DEFCIRCUIT serialization fix (#1735)
+- bump qcs-sdk-python version to pull DEFCIRCUIT serialization fix ([#1735](https://github.com/rigetti/pyquil/pull/1735))
 
 ## 4.6.1 (2024-02-06)
 
 ### Fixes
 
-#### Compatibility layer will prefer to return DelayFrames, then DelayQubits, then Delay. (#1731)
-
-## 4.6.1-rc.2 (2024-02-06)
-
-### Fixes
-
-#### Compatibility layer will prefer to return DelayFrames, then DelayQubits, then Delay. (#1731)
-
-## 4.6.1-rc.1 (2024-02-06)
-
-### Fixes
-
-#### Compatibility layer will prefer to return DelayFrames, then DelayQubits, then Delay. (#1731)
-
-## 4.6.1-rc.0 (2024-02-05)
-
-### Fixes
-
-#### Compatibility layer will prefer to return DelayFrames, then DelayQubits, then Delay. (#1731)
+- Compatibility layer will prefer to return DelayFrames, then DelayQubits, then Delay. ([#1731](https://github.com/rigetti/pyquil/pull/1731))
 
 ## 4.6.0 (2024-02-01)
 
 ### Features
 
-#### qcs-sdk-python version for libquil support, and document libquil usage (#1698)
-
-#### Add a `with_loop` method to `Program` (#1717)
-
-### Fixes
-
-#### Add deprecated property to DefFrame for CHANNEL-DELAY attribute (#1729)
-
-#### ResetQubit instructions will not be returned as Reset after being inserted into a Program (#1727)
-
-## 4.6.0-rc.4 (2024-02-01)
-
-### Features
-
-#### qcs-sdk-python version for libquil support, and document libquil usage (#1698)
-
-#### Add a `with_loop` method to `Program` (#1717)
+- qcs-sdk-python version for libquil support, and document libquil usage ([#1698](https://github.com/rigetti/pyquil/pull/1698))
+- Add a `with_loop` method to `Program` ([#1717](https://github.com/rigetti/pyquil/pull/1717))
 
 ### Fixes
 
-#### Add deprecated property to DefFrame for CHANNEL-DELAY attribute (#1729)
-
-#### ResetQubit instructions will not be returned as Reset after being inserted into a Program (#1727)
-
-## 4.6.0-rc.3 (2024-01-30)
-
-### Features
-
-#### qcs-sdk-python version for libquil support, and document libquil usage (#1698)
-
-#### Add a `with_loop` method to `Program` (#1717)
-
-### Fixes
-
-#### Add deprecated property to DefFrame for CHANNEL-DELAY attribute (#1729)
-
-## 4.6.0-rc.2 (2024-01-27)
-
-### Features
-
-#### qcs-sdk-python version for libquil support, and document libquil usage (#1698)
-
-#### Add a `with_loop` method to `Program` (#1717)
-
-## 4.6.0-rc.1 (2024-01-27)
-
-### Features
-
-#### qcs-sdk-python version for libquil support, and document libquil usage (#1698)
-
-## 4.6.0-rc.0 (2024-01-26)
-
-### Features
-
-#### qcs-sdk-python version for libquil support, and document libquil usage (#1698)
+- Add deprecated property to DefFrame for CHANNEL-DELAY attribute ([#1729](https://github.com/rigetti/pyquil/pull/1729))
+- ResetQubit instructions will not be returned as Reset after being inserted into a Program ([#1727](https://github.com/rigetti/pyquil/pull/1727))
 
 ## 4.5.0 (2024-01-24)
 
 ### Features
 
-#### Add utility for filtering Programs and a method for removing Quil-T instructions (#1718)
+- Add utility for filtering Programs and a method for removing Quil-T instructions ([#1718](https://github.com/rigetti/pyquil/pull/1718))
 
 ### Fixes
 
-#### Arithmetic instructions will not raise an error when used in Programs (#1723)
-
-## 4.5.0-rc.0 (2024-01-18)
-
-### Features
-
-#### Add utility for filtering Programs and a method for removing Quil-T instructions (#1718)
-
-### Fixes
-
-#### Arithmetic instructions will not raise an error when used in Programs (#1723)
-
-## 4.4.1-rc.0 (2024-01-16)
-
-### Fixes
-
-#### Arithmetic instructions will not raise an error when used in Programs (#1723)
+- Arithmetic instructions will not raise an error when used in Programs ([#1723](https://github.com/rigetti/pyquil/pull/1723))
 
 ## 4.4.0 (2023-12-15)
 
 ### Features
 
-#### Add `get_attribute`, `set_attribute` `__getitem__` and `__setitem__` methods to `DefFrame` (#1714)
+- Add `get_attribute`, `set_attribute` `__getitem__` and `__setitem__` methods to `DefFrame` ([#1714](https://github.com/rigetti/pyquil/pull/1714))
 
 ### Fixes
 
-#### Relax numpy and scipy requirements (#1713)
-
-#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
-
-#### Gate instructions specified as tuples no longer error when using a list of parameters. (#1716)
-
-## 4.4.0-rc.1 (2023-12-15)
-
-### Features
-
-#### Add `get_attribute`, `set_attribute` `__getitem__` and `__setitem__` methods to `DefFrame` (#1714)
-
-### Fixes
-
-#### Relax numpy and scipy requirements (#1713)
-
-#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
-
-#### Gate instructions specified as tuples no longer error when using a list of parameters. (#1716)
-
-## 4.4.0-rc.0 (2023-12-15)
-
-### Features
-
-#### Add `get_attribute`, `set_attribute` `__getitem__` and `__setitem__` methods to `DefFrame` (#1714)
-
-### Fixes
-
-#### Relax numpy and scipy requirements (#1713)
-
-#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
-
-## 4.3.1-rc.1 (2023-12-15)
-
-### Fixes
-
-#### Relax numpy and scipy requirements (#1713)
-
-#### DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. (#1715)
-
-## 4.3.1-rc.0 (2023-12-14)
-
-### Fixes
-
-#### Relax numpy and scipy requirements (#1713)
+- Relax numpy and scipy requirements ([#1713](https://github.com/rigetti/pyquil/pull/1713))
+- DefFrame no longer attempts to serialize HARDWARE-OBJECT as json. ([#1715](https://github.com/rigetti/pyquil/pull/1715))
+- Gate instructions specified as tuples no longer error when using a list of parameters. ([#1716](https://github.com/rigetti/pyquil/pull/1716))
 
 ## 4.3.0 (2023-12-08)
 
 ### Features
 
-#### update qcs_sdk to add ability to modify TranslationOptions (#1706)
-
-## 4.3.0-rc.1 (2023-12-08)
-
-### Features
-
-#### update qcs_sdk to add ability to modify TranslationOptions (#1706)
-
-## 4.3.0-rc.0 (2023-12-06)
-
-### Features
-
-#### update qcs_sdk to add ability to modify TranslationOptions (#1706)
+- update qcs_sdk to add ability to modify TranslationOptions ([#1706](https://github.com/rigetti/pyquil/pull/1706))
 
 ## 4.2.0 (2023-11-28)
 
 ### Features
 
-#### Support Python 3.12 (#1696)
-
-#### Final memory values are now available on QAMExecutionResults (#1703)
-
-## 4.2.0-rc.1 (2023-11-28)
-
-### Features
-
-#### Support Python 3.12 (#1696)
-
-#### Final memory values are now available on QAMExecutionResults (#1703)
-
-## 4.2.0-rc.0 (2023-11-28)
-
-### Features
-
-#### Support Python 3.12 (#1696)
+- Support Python 3.12 ([#1696](https://github.com/rigetti/pyquil/pull/1696))
+- Final memory values are now available on QAMExecutionResults ([#1703](https://github.com/rigetti/pyquil/pull/1703))
 
 ## 4.1.1 (2023-11-15)
 
 ### Fixes
 
-#### The ``execution_options`` property is now used for retrieving results if no overriding options were provided to the ``execute`` method. (#1694)
-
-## 4.1.1-rc.0 (2023-11-15)
-
-### Fixes
-
-#### The ``execution_options`` property is now used for retrieving results if no overriding options were provided to the ``execute`` method. (#1694)
+- The ``execution_options`` property is now used for retrieving results if no overriding options were provided to the ``execute`` method. ([#1694](https://github.com/rigetti/pyquil/pull/1694))
 
 ## 4.1.0 (2023-11-13)
 
 ### Features
 
-#### update qcs-sdk-rust (#1683)
+- update qcs-sdk-rust ([#1683](https://github.com/rigetti/pyquil/pull/1683))
 
 ### Fixes
 
-#### The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. (#1685)
-
-#### Instruction types no longer return a superclass instance when using `copy.deepcopy` (#1689)
-
-#### DefGate's no longer appear in the instructions list (#1688)
-
-## 4.1.0-rc.5 (2023-11-13)
-
-### Features
-
-#### update qcs-sdk-rust (#1683)
-
-### Fixes
-
-#### The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. (#1685)
-
-#### Instruction types no longer return a superclass instance when using `copy.deepcopy` (#1689)
-
-#### DefGate's no longer appear in the instructions list (#1688)
-
-## 4.1.0-rc.4 (2023-11-09)
-
-### Features
-
-#### update qcs-sdk-rust (#1683)
-
-### Fixes
-
-#### The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. (#1685)
-
-#### Instruction types no longer return a superclass instance when using `copy.deepcopy` (#1689)
-
-#### DefGate's no longer appear in the instructions list (#1688)
-
-## 4.1.0-rc.3 (2023-11-07)
-
-### Features
-
-#### update qcs-sdk-rust (#1683)
-
-### Fixes
-
-#### The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. (#1685)
-
-#### Instruction types no longer return a superclass instance when using `copy.deepcopy` (#1689)
-
-## 4.1.0-rc.2 (2023-11-01)
-
-### Features
-
-#### update qcs-sdk-rust (#1683)
-
-### Fixes
-
-#### The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. (#1685)
-
-## 4.1.0-rc.1 (2023-10-31)
-
-### Features
-
-#### update qcs-sdk-rust (#1683)
-
-### Fixes
-
-#### The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. (#1685)
-
-## 4.1.0-rc.0 (2023-10-27)
-
-### Features
-
-#### update qcs-sdk-rust (#1683)
+- The `DefGate.matrix` property will no longer raise an exception when the matrix contains a mix of atomic and object types. ([#1685](https://github.com/rigetti/pyquil/pull/1685))
+- Instruction types no longer return a superclass instance when using `copy.deepcopy` ([#1689](https://github.com/rigetti/pyquil/pull/1689))
+- DefGate's no longer appear in the instructions list ([#1688](https://github.com/rigetti/pyquil/pull/1688))
 
 ## 4.0.3 (2023-10-18)
 
 ### Fixes
 
-#### only rewrite arithmetic when targeting Aspen processors (#1679)
-
-## 4.0.3-rc.0 (2023-10-18)
-
-### Fixes
-
-#### only rewrite arithmetic when targeting Aspen processors (#1679)
+- only rewrite arithmetic when targeting Aspen processors ([#1679](https://github.com/rigetti/pyquil/pull/1679))
 
 ## 4.0.2 (2023-10-16)
 
 ### Fixes
 
-#### update qcs-sdk-rust and quil-rs to pull in fixes (#1680)
-
-## 4.0.2-rc.0 (2023-10-16)
-
-### Fixes
-
-#### update qcs-sdk-rust and quil-rs to pull in fixes (#1680)
+- update qcs-sdk-rust and quil-rs to pull in fixes ([#1680](https://github.com/rigetti/pyquil/pull/1680))
 
 ## 4.0.1 (2023-09-27)
 
 ### Fixes
 
-#### `Gate`s should no longer compare as equal and not equal. (#1671)
-
-## 4.0.1-rc.0 (2023-09-27)
-
-### Fixes
-
-#### `Gate`s should no longer compare as equal and not equal. (#1671)
+- `Gate`s should no longer compare as equal and not equal. ([#1671](https://github.com/rigetti/pyquil/pull/1671))
 
 ## 4.0.0
 
@@ -865,12 +360,6 @@ installation, perform diagnostics checks, and return a summary.
 
 - improve messaging on QPU and compiler timeout (#1397)
 
-## 3.5.0-rc.0
-
-### Features
-
-- Add CHANNEL-DELAY attribute to DefFrame (#1564)
-
 ## 3.4.1
 
 ### Fixes
@@ -913,12 +402,6 @@ installation, perform diagnostics checks, and return a summary.
 
 - gracefully handle error when QPU unavailable for engagement (#1457)
 
-## 3.3.0-rc.0
-
-### Features
-
-- gracefully handle error when QPU unavailable for engagement (#1457)
-
 ## [v3.2.0](https://github.com/rigetti/pyquil/releases/tag/v3.2.0)
 
 ### Improvements and Changes
@@ -926,9 +409,7 @@ installation, perform diagnostics checks, and return a summary.
 - `QAMExecutionResult` now includes `execution_duration_microseconds`, providing the amount of time
   a job held exclusive hardware access. (@randall-fulton, #1436)
 - Upgrade `qcs-api-client` so that clients can specify a QCS account on their profile, which `qcs-api-client` will in turn use to set `X-QCS-ACCOUNT-{ID/TYPE}` headers on outgoing QCS requests, most notably during engagement creation. (@erichulburd, #1439)
-
 - Upgrade `qcs-api-client` to address bug that occurs when the QCS profile and credentials name do not match. (@erichulburd, #1442)
-
 - Allow newer versions of `qcs-api-client` (which allows newer versions of `iso8601` and `pyjwt`) to be used. (@vtomole, #1449)
 
 ## [v3.1.0](https://github.com/rigetti/pyquil/releases/tag/v3.1.0)
@@ -943,29 +424,6 @@ installation, perform diagnostics checks, and return a summary.
   objects such as `theta[4]` with their parameter values, enabling user-side parameter substitution.
 - Versions of `qcs-api-client` up to 0.20.x are now supported.
 - The CompilerISA of physical QPUs now assigns a fidelity of 1 to virtual RZs.
-
-### Bugfixes
-
-- Fix docs typo in `start.rst`, where an extra parentheses was present in a python code block (@ThomasMerkh).
-- Fixed typo where `scale` was being used as the `phase` in generation of several waveforms.
-
-## [v3.0.1](https://github.com/rigetti/pyquil/releases/tag/v3.0.1)
-
-### Improvements and Changes
-
-### Bugfixes
-
-## [v3.1.0](https://github.com/rigetti/pyquil/releases/tag/v3.1.0)
-
-### Announcements
-
-- `setup.py` has been removed and will no longer be generated as part of the automated release process.
-
-### Improvements and Changes
-
-- Function `pyquil.quilatom.substitute()` now supports substitution of classical `MemoryReference`
-  objects such as `theta[4]` with their parameter values, enabling user-side parameter substitution.
-- Versions of `qcs-api-client` up to 0.20.x are now supported.
 
 ### Bugfixes
 
@@ -993,7 +451,6 @@ installation, perform diagnostics checks, and return a summary.
 
 - pyQuil now directly supports the QCS API v1.0, offering you better performance and more
   granular data about QCS quantum processors.
-
 - Python 3.6 is no longer supported. Python 3.7, 3.8, and 3.9 are supported.
 - `pyquil.compatibility.v2` provides a number of classes/utilities which support the pyQuil v2 API, such as
   `get_qc`; `pyquil.compatibility.v2.api` offers `QuantumComputer`, `QPU`, and `QVM`. These may be
@@ -1003,9 +460,7 @@ installation, perform diagnostics checks, and return a summary.
 ### Improvements and Changes
 
 - Added support and documentation for concurrent compilation and execution (see "Advanced Usage" in docs)
-
 - `pyquil.version.__version__` has been moved to `pyquil.__version__`.
-
 - `PyquilConfig` has been replaced by `api.QCSClientConfiguration`. As a result, the only supported configuration-related
   environment variables are:
 
@@ -1013,99 +468,65 @@ installation, perform diagnostics checks, and return a summary.
   - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL` (replaces `QUILC_URL`)
   - `QCS_SETTINGS_FILE_PATH` (overrides location for `settings.toml`)
   - `QCS_SECRETS_FILE_PATH` (overrides location for `secrets.toml`)
-
 - `ForestConnection` and `ForestSession` have been removed. Connection information is now managed via `api.QCSClientConfiguration`
   and `api.EngagementManager`.
 - `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`.
 - `QPU.get_version_info()` has been removed.
-
 - `get_qc()` now accepts an `execution_timeout` parameter (in addition to the existing `compiler_timeout`) to specify
   a time limit on execution requests.
 - `AbstractCompiler.set_timeout()` has been removed. Set timeouts via `get_qc()` instead (`execution_timeout`, `compiler_timeout` parameters).
-
 - `QPUCompiler.refresh_calibration_program()` and `QPUCompiler.calibration_program` have been removed. Instead, use `QPUCompiler.get_calibration_program()`
   (with optional `force_refresh` argument).
-
 - `QVMCompiler.get_calibration_program()`, `QVMCompiler.calibration_program`, and `QVMCompiler.refresh_calibration_program()` have been removed.
 - `get_benchmarker()` has been removed in favor of calling `BenchmarkConnection` constructor directly.
-
 - Moved compiler/ RPCQ models to `external/rpcq.py`, including `CompilerISA`. Eventually, we will move these into the RPCQ package.
-
 - Replaced intermediary `Qubit.type` with an explicit list of gates that the client may pass to the compiler without further transformation.
-
 - Dropped the intermediary `ISA` class. Rely exclusively on `CompilerISA` as a carrier of instruction set architecture information.
-
 - Renamed package `device` to `quantum_processor`. Also renamed any symbols including `device` to include `quantum_processor` instead.
-
 - Renamed `AbstractDevice` to `AbstractQuantumProcessor`, `CompilerDevice` to `CompilerQuantumProcessor`, `NxDevice` to `NxQuantumProcessor`, and `QCSDevice` to `QCSQuantumProcessor`.
-
 - Support `AbstractQuantumProcessor`s derived from QCS `InstructionSetArchitecture`, `CompilerISA`, and `nx.Graph`.
-
 - Dropped `api._quantum_processors`. Moved `get_device` to `pyquil.quantum_processor.qcs.get_qcs_quantum_processor`.
-
 - Dropped `gates_in_isa` and refactored as an internal function for preparing a list of `pyquil.Gate`'s that the user may use to initialize a `NoiseModel` based on the underlying `CompilerISA`.
-
 - `get_qc()` raises `ValueError` when the user passes a QCS quantum processor name and `noisy=True`.
-
 - `QuantumComputer.run_and_measure()` has been removed. Instead, add explicit `MEASURE` instructions to programs and use
   `QuantumComputer.compile()` along with `QuantumComputer.run()` to compile and execute.
 - The `ro` memory region is no longer implicitly declared. All memory regions must be declared explicitly.
-
 - The `pyquil.magic` package has been removed in favor of writing programs more explicitly.
-
 - Removed `TomographyExperiment` (deprecated). Use `Experiment` instead.
-
 - Removed `Experiment.qubits` (deprecated).
-
 - `ExperimentSetting` constructor no longer accepts a `PauliTerm` for its `in_state` parameter (deprecated). Supply a
   `TensorProductState` instead.
-
 - Removed `ExperimentSetting.in_operator` (deprecated). Use `ExperimentSetting.in_state` instead.
-
 - Removed the following `ExperimentResult` attributes (deprecated):
 
   - `stddev`: Use `std_err` instead.
   - `raw_stddev`: Use `raw_std_err` instead.
   - `calibration_stddev`: Use `calibration_std_err` instead.
-
 - Removed deprecated `protoquil_positional` parameter from `QuantumComputer.compile()`. Use `protoquil` keyword
   parameter instead.
-
 - `get_qc()` no longer accepts `"9q-generic"` (deprecated). Use `"9q-square"` instead.
-
 - Removed `QAM.read_from_memory_region()` (deprecated). Use `QAMExecutionResult.readout_data.get(region_name)` instead.
-
 - Removed `local_qvm()` (deprecated). Use `local_forest_runtime()` instead.
-
 - Removed `Wavefunction.ground()` (deprecated). Use `Wavefunction.zeros()` instead.
-
 - `WavefunctionSimulator`'s `run_and_measure()`, `wavefunction()`, and `expectation()` methods no longer accept a
   `Dict[MemoryReference, Any]` for the `memory_map` parameter (deprecated). Supply a
   `Dict[str, List[Union[int, float]]]` instead.
 - `gates.MEASURE()` no longer accepts an integer for `classical_reg` (deprecated). Use a `MemoryReference` instead.
-
 - Removed `gates.TRUE()`, `gates.FALSE()`, and classes `ClassicalTrue` and `ClassicalFalse` (deprecated).
   Use `gates.MOVE()` and class `ClassicalMove` instead.
-
 - Removed `gates.OR()` and class `ClassicalOr` (deprecated). Use `gates.IOR()` and class `ClassicalInclusiveOr` instead.
-
 - `measure_observables()` no longer accepts the following parameters (deprecated):
   - `n_shots`: Set on experiment's program with `Program.wrap_in_numshots_loop()` instead.
   - `active_reset`: Add `RESET` instruction to experiment's program instead.
   - `symmetrize_readout` & `readout_symmetrize`: Set `Experiment.symmetrization` on experiment instead.
 - `PauliTerm.pauli_string()` now requires `qubits` instead of accepting them optionally (deprecated).
-
 - Removed `Program.alloc()` (deprecated). Instantiate a `QubitPlaceholder` instead.
-
 - Removed `Addr` (deprecated). Use `MemoryReference` instead.
-
 - `QPUConnection` and `QVMConnection` have been removed in favor of using `QuantumComputer`, `QVM` or`QPU`
   (e.g. via `QuantumComputer.qam`), or `WavefunctionSimulator`.
-
 - `WavefunctionSimulator` constructor now accepts optional `measurement_noise` and `gate_noise`. These noise parameters
   are passed to the QVM by `WavefunctionSimulator.run_and_measure()` and `WavefunctionSimulator.wavefunction()`.
 - `noise.estimate_assignment_probs()` now accepts a `QuantumComputer` instead of `QVMConnection`.
-
 - `QAM` and its subclasses (such as `QPU` and `QVM`) do not store any information specific to the state
   of execution requests, and thus are safe to be used concurrently by different requests. `QAM.run`
   is now composed of two intermediate calls:
@@ -1116,34 +537,24 @@ installation, perform diagnostics checks, and return a summary.
   These new calls can be used to enqueue multiple programs for execution prior to retrieving
   results for any of them. Note that this new pattern means that `QAM.load`, `QAM.reset`, and
   `QAM.wait` no longer exist.
-
 - `QAM.run` no longer accepts a `memory_map` argument. Memory values must be written onto
   executable directly with `Program.write_memory()` and `EncryptedProgram.write_memory()` instead.
-
 - `QuantumComputer`, `QAM`, `QPU`, and `QVM` are now safe to share across threads and processes,
   as they no longer store request-related state.
-
 - `PyQVM.execute` has been renamed to `PyQVM.execute_once` to execute a single program from start
   to finish within the context of the existing `PyQVM` state. `PyQVM` is the only stateful `QAM`.
   `PyQVM.execute` now implements `QAM.execute` and resets the `PyQVM` state prior to program execution.
-
 - `QuantumComputer.experiment` has been renamed to `QuantumComputer.run_experiment`.
-
 - Results returned from execution are now referred to as `readout_data` rather than `memory`, reflecting the reality
   that the memory of the QAM is not currently exposed to the user. The exception to this rule is the stateful `PyQVM`,
   whose state is maintained within the pyQuil process and whose memory _may truly be inspected._ For that,
   `PyQVM.read_memory` remains available.
-
 - `QuantumComputer.run` now returns a `QAMExecutionResult` rather than the readout data from the `ro` readout
   source. To access those same readout results, use `qc.run().readout_data.get('ro')`. This allows access to other
   execution-related information and other readout sources.
 - Simultaneous, rather than independent, random benchmark scores are passed to quilc as the gate fidelity for RX and RZ operations.
 
 ## [v2.28.2](https://github.com/rigetti/pyquil/compare/v2.28.1..v2.28.2) (July 6, 2021)
-
-### Announcements
-
-### Improvements and Changes
 
 ### Bugfixes
 
@@ -1152,20 +563,12 @@ installation, perform diagnostics checks, and return a summary.
 
 ## [v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.0..v2.28.1) (May 5, 2021)
 
-### Announcements
-
-### Improvements and Changes
-
 ### Bugfixes
 
 - Fix key error for unmeasured memory regions (@notmgsk, @ameyer-rigetti, #1156)
 - Remove extraneous debug prints from `def_gate_matrix()` (@notmgsk)
 
 ## [v2.28.0](https://github.com/rigetti/pyquil/compare/v2.27.0..v2.28.0) (January 26, 2021)
-
-### Announcements
-
-### Improvements and Changes
 
 ### Bugfixes
 
@@ -1216,11 +619,7 @@ installation, perform diagnostics checks, and return a summary.
   a Quil-T program and receive the binary payload without having a QPU reservation
   (#1257).
 
-### Bugfixes
-
 ## [v2.25.0](https://github.com/rigetti/pyquil/compare/v2.24.0..v2.25.0) (November 17, 2020)
-
-### Announcements
 
 ### Improvements and Changes
 
@@ -1231,11 +630,7 @@ installation, perform diagnostics checks, and return a summary.
   `QPUCompiler`. Documentation has been updated to reflect these changes (@notmgsk,
   @kalzoo, #1273).
 
-### Bugfixes
-
 ## [v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.1..v2.24.0) (November 5, 2020)
-
-### Announcements
 
 ### Improvements and Changes
 
@@ -1244,10 +639,8 @@ installation, perform diagnostics checks, and return a summary.
   noise. This prevents the QVM from exhausting memory when it tries to allocate
   for e.g. 32 qubits when only e.g. 2 qubits are used in the program (@notmgsk,
   #1252).
-
 - Include a `py.typed` so that libraries that depend on pyquil can
   validate their typing against it (@notmgsk, #1256).
-
 - Removed warnings expected in normal workflows that cannot be avoided
   programmatically. This included the warning about passing native Quil to
   `native_quil_to_executable`. Documentation has been updated to clarify
@@ -1261,8 +654,6 @@ installation, perform diagnostics checks, and return a summary.
 
 ## [v2.23.1](https://github.com/rigetti/pyquil/compare/v2.23.0..v2.23.1) (September 9, 2020)
 
-### Announcements
-
 ### Improvements and Changes
 
 - Push new pyquil versions to pypi as part of CI/CD pipelines (@notmgsk, gh-1249)
@@ -1272,8 +663,6 @@ installation, perform diagnostics checks, and return a summary.
 - Allow `np.ndarray` in `DefPermutationGate` (@notmgsk, gh-1248)
 
 ## [v2.23.0](https://github.com/rigetti/pyquil/compare/v2.22.0..v2.23.0) (September 7, 2020)
-
-### Announcements
 
 ### Improvements and Changes
 
@@ -1285,13 +674,9 @@ installation, perform diagnostics checks, and return a summary.
 
 ## [v2.22.0](https://github.com/rigetti/pyquil/compare/v2.21.1..v2.22.0) (August 3, 2020)
 
-### Announcements
-
 ### Improvements and Changes
 
 - Various improvements and updates to the documentation.
-
-### Bugfixes
 
 ## [v2.21.1](https://github.com/rigetti/pyquil/compare/v2.21.0..v2.21.1) (July 15, 2020)
 
@@ -1299,15 +684,11 @@ installation, perform diagnostics checks, and return a summary.
 
 - This is just a cosmetic update, to trigger a new docker build.
 
-### Improvements and Changes
-
 ### Bugfixes
 
 - Fix type hinting (@notmgsk, gh-1230)
 
 ## [v2.21.0](https://github.com/rigetti/pyquil/compare/v2.20.0..v2.21.0) (July 14, 2020)
-
-### Announcements
 
 ### Improvements and Changes
 
@@ -1322,8 +703,6 @@ installation, perform diagnostics checks, and return a summary.
 
 ## [v2.20](https://github.com/rigetti/pyquil/compare/v2.19.0..v2.20.0) (June 5, 2020)
 
-### Announcements
-
 ### Improvements and Changes
 
 - Added a PyQuil only `rewrite_arithmetic` handler, deprecating the previous
@@ -1335,8 +714,6 @@ installation, perform diagnostics checks, and return a summary.
 - Add `RX(0) _` to the native gates of a N-q qvm (@notmgsk, gh-1211).
 
 ## [v2.19](https://github.com/rigetti/pyquil/compare/v2.18.0...v2.19.0) (March 26, 2020)
-
-### Announcements
 
 ### Improvements and Changes
 
@@ -1355,10 +732,6 @@ installation, perform diagnostics checks, and return a summary.
   was a QVM based on a physical device (@appleby, gh-1188).
 
 ## [v2.18](https://github.com/rigetti/pyquil/compare/v2.17.0...v2.18.0) (March 3, 2020)
-
-### Announcements
-
-### Improvements and Changes
 
 ### Bugfixes
 

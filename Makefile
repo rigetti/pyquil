@@ -52,12 +52,12 @@ coverage: ## Upload test coverage to Coveralls
 
 .PHONY: docs
 docs: ## Build the HTML documentation
-	poetry install --extras docs --extras latex
+	poetry install --with docs --extras latex
 	make -C docs clean html
 
 .PHONY: doctest
 doctest: ## Run doctests in modules and documentation
-	poetry install --extras docs --extras latex
+	poetry install --with docs --extras latex
 	pytest -v --cov=pyquil --doctest-modules pyquil
 	make -C docs clean doctest
 

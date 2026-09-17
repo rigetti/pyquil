@@ -25,6 +25,8 @@ to uphold this code. Please report unacceptable behavior by contacting support@r
 
 - [Making a Pull Request](#making-a-pull-request)
 
+- [Updating the Changelog](#updating-the-changelog)
+
 - [Adding a Tutorial Notebook](#adding-a-tutorial-notebook)
 
 [Developer How-Tos](#developer-how-tos)
@@ -81,6 +83,40 @@ see completed, but that we don't currently have the bandwidth for.
 ### Making a Pull Request
 
 Once you've selected an issue to tackle, [forked the repository](https://github.com/rigetti/pyquil/fork), and made your changes, the next step is to [open a pull request](https://github.com/rigetti/pyquil/compare)! We've made opening one easy by providing a [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md) that includes a checklist of things to complete before asking for code review. Additionally, all CI checks must pass before the PR will be merged. We look forward to reviewing your work! 🙂
+
+### Updating the Changelog
+
+Our changelog conventions are based on [keep a changelog](https://keepachangelog.com/en/1.1.0/).
+
+We define a user impacting change to include changes to any of the following:
+
+* the public API, including exception types
+* memory and computational performance
+* the security model
+* deprecations
+* Python version requirements
+* default values
+* dependencies with any of the above implications
+
+These changes require a bullet in [`CHANGELOG.md`](CHANGELOG.md), under the "Unreleased"
+heading at the top. Put it under `### Features`, `### Fixes`, `### Breaking Changes` or
+`### Documentation`; add that subheading if not yet present and link your pull
+request at the end:
+
+```markdown
+## Unreleased
+
+### Features
+
+- A gate angle may be any Quil arithmetic expression over declared memory, so the
+  parametric programs `quilc` emits simulate without rewriting.
+  ([#1869](https://github.com/rigetti/pyquil/pull/1869))
+```
+
+Write a sentence or two in the present tense, for someone reading the release notes rather
+than the diff. A pull request that includes no user-impacting change (see
+[Updating the Changelog]), such as a test or a CI tweak,
+doesn't require an entry. 
 
 ### Adding a Tutorial Notebook
 
@@ -369,12 +405,12 @@ version in all builds going forward.
 
 ### Merging a Pull Request
 
-When merging PRs, we have a couple of guidelines:
+When merging PRs, we have a few guidelines:
 
 1. Double-check that the PR author has completed everything in the PR checklist that is applicable to the changes.
-2. Rename the title of the PR to use the correct [Angular-style commit prefix](https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#type). Also be sure to include the [Conventional Commits breaking change][Conventional Commits] indicators in the final commit message if necessary.
+2. If the PR includes user-impacting changes (see [Updating the Changelog]), check that it adds a bullet under "Unreleased" in [`CHANGELOG.md`](CHANGELOG.md). This message will land in the release notes.
 3. Always use the "squash and merge" option so that every PR corresponds to one commit. This keeps the git history clean and encourages many small (quickly reviewable) PRs rather than behemoth ones with lots of commits.
-4. When pressing the merge button, each commit message will be turned into a bullet point below the title of the issue. Make sure to truncate the PR title to ~50 characters (unless completely impossible) so it fits on one line in the commit history, and delete any spurious bullet points that add no meaningful content. Also make sure the final commit message is formatted correctly for [Conventional Commits].
+4. When pressing the merge button, each commit message will be turned into a bullet point below the title of the issue. Make sure to truncate the PR title to ~50 characters so it fits on one line in the commit history, and delete any spurious bullet points that add no meaningful content. Also make sure the final commit message is formatted correctly for [Conventional Commits].
 
 ### Managing the CI Pipelines
 
@@ -384,19 +420,60 @@ distribute the repository via [PyPI][pypi] and [DockerHub][docker-forest], all w
 intervention. These pipelines almost always work as expected, but every now and then something goes
 wrong, and it requires a deeper dive.
 
-We use a collection of services for CI/CD -- [GitLab CI][gitlab-ci] and [GitHub Actions][gha] (GHA).
-
-The configuration for GitLab CI is contained in the [`.gitlab-ci.yml`](.gitlab-ci.yml), and the
-GHA configuration is in the [`.github/workflows`](.github/workflows) directory. GHA is responsible
-for running checks and tests for PRs, while GitLab is responsible for additional tasks that require
-access to resources that are not available publicly. This includes publishing docs, publishing to PyPI,
-publishing Docker images, and running end-to-end tests on real QPUs.
+We use [GitHub Actions][gha] (GHA), configured in the [`.github/workflows`](.github/workflows)
+directory: checks and tests for PRs, benchmarks, and publishing to PyPI and DockerHub on release.
 
 ### Release Process
 
-All releases are triggered manually in GitHub Actions. There is a workflow for generating a "Prerelease" as well as one for "Release". Prereleases should only be generated if there's something specific that needs additional testing before distributing to everyone. The full release process is as lightweight as possible to encourage quicker releases of merged PRs. Don't feel the need to "wait for more content" before releasing!
+A release is the result of merging a release pull request: the version is read from `pyproject.toml`,
+and nothing writes to `master` on its own; the version bump and release notes are explicitly included
+in the PR diff.
 
-The release process will automatically pick the next semantic version, generate a changelog, and publish to [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `latest` and `<version>`). The docs on [Read the Docs][rtd] will also be updated.
+1. **Open a release PR.** Pick the next version according to [semantic versioning][semver]
+   and set it in `pyproject.toml` (e.g. `poetry version 4.19.0`). In `CHANGELOG.md`, rename
+   the "Unreleased" heading to, for example, `## 4.19.0 (2026-09-14)`; leave a fresh, empty
+   `## Unreleased` above it.
+
+2. **Merge it**, once CI is green.
+
+3. **Approve the PyPI upload**, if the `pypi` environment is configured to require it.
+   Every publish goes through that one environment, so whatever it requires applies to
+   release candidates too.
+
+Notes and considerations:
+
+* The workflow detects version changes in `pyproject.toml`, creates a tag, and drafts the
+  [GitHub release][gh-releases] with the relevant `CHANGELOG.md` content.
+* The workflow then uploads to [PyPI][pypi] and [DockerHub][docker-forest] (image tags
+  `latest` and `<version>`). The docs on [Read the Docs][rtd] update separately based on
+  a Github webhook.
+* PyPI uploads use [Trusted Publishing][trusted-publishing] with a short-lived token via
+  OIDC.
+* The workflow only ever runs on `master`.
+
+#### Release candidates
+
+A release candidate may be published in the exact same manner as an official release as
+described above with two exceptions:
+
+* The `pyproject.toml` version must have a proper [pep-440] release candidate suffix.
+* **Leave the changelog entries under "Unreleased"**; the pull request that ships the
+  final release renames the heading. The GitHub release is marked as a prerelease.
+
+#### When something goes wrong
+
+A release is done once its **GitHub release** exists. Until then every push to `master`
+retries it, skipping whatever already succeeded -- an existing tag, an existing release, a
+version already on PyPI.
+
+* **A check failed before the release was created**, for example because the changelog is
+  missing a section for the version. Nothing has been published. Fix it on `master` and
+  the next push completes the release.
+* **The release exists but PyPI does not have it**, because the approval was rejected or
+  expired, or because one of the two packages failed. Re-run the workflow: Actions →
+  **Release pyQuil** → **Run workflow**, from `master`, with the version.
+* **The version was wrong.** Delete the tag and the GitHub release, and open a corrected
+  release PR with a new version.
 
 ### Issue and PR Labels
 
@@ -416,7 +493,7 @@ We use a collection of labels to add metadata to the issues and pull requests in
 | [`work in progress 🚧`][wip-label]              | This PR is not ready to be merged. |
 
 [bug-label]: https://github.com/rigetti/pyquil/labels/bug%20%3Abug%3A
-[Conventional Commits]: (https://www.conventionalcommits.org/en/v1.0.0/) 
+[Conventional Commits]: (https://www.conventionalcommits.org/en/v1.0.0/)
 [devops-label]: https://github.com/rigetti/pyquil/labels/devops%20%3Arocket%3A
 [discussion-label]: https://github.com/rigetti/pyquil/labels/discussion%20%3Athinking%3A
 [documentation-label]: https://github.com/rigetti/pyquil/labels/documentation%20%3Amemo%3A
@@ -433,10 +510,12 @@ We use a collection of labels to add metadata to the issues and pull requests in
 [forest-tutorials]: https://github.com/rigetti/forest-tutorials
 [gha]: https://github.com/rigetti/pyquil/actions
 [gh-releases]: https://github.com/rigetti/pyquil/releases
-[gitlab-ci]: https://gitlab.com/rigetti/forest/pyquil/pipelines
 [jupyter]: https://jupyter.org/
 [mybinder]: https://mybinder.org
+[pep-440]: https://peps.python.org/pep-0440/#pre-releases
 [pep-484]: https://www.python.org/dev/peps/pep-0484/
 [pypi]: https://pypi.org/project/pyquil/
 [rtd]: https://readthedocs.org/projects/pyquil/
+[semver]: https://semver.org/
 [sphinx]: https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html
+[trusted-publishing]: https://docs.pypi.org/trusted-publishers/
