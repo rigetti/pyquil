@@ -13,6 +13,7 @@ Insert your PR description here. Thanks for [contributing][contributing] to pyQu
 - [ ] (New Feature) The [docs][docs] have been updated accordingly.
 - [ ] (User-visible change) A bullet has been added under "Unreleased" in the [changelog][changelog].
 - [ ] (Bugfix) The associated issue is referenced above using [auto-close keywords][auto-close].
+- [ ] (Release) Version bump and [changelog][changelog] update according to [CONTRIBUTING.md][contributing].
 
 [auto-close]: https://help.github.com/en/articles/closing-issues-using-keywords
 [changelog]: https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md
