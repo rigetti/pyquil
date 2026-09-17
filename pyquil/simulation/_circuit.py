@@ -305,7 +305,7 @@ class Circuit:
         decomposed = False
         for op, subsystem in self.ops:
             if isinstance(op, qx.SuperOperator) and not isinstance(op, qx.KrausMap):
-                if not decomposed and not jax.config.jax_enable_x64:
+                if not decomposed and not jax.config.jax_enable_x64:  # type: ignore
                     warnings.warn(
                         "Kraus decomposition at 32-bit precision: JAX's jax_enable_x64 flag is off, so the "
                         f"eigendecomposition and the atol={atol} truncation run at float32 resolution. "

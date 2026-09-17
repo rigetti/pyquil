@@ -100,7 +100,7 @@ def _warn_if_matmul_precision_reduced() -> None:
     """
     if jax.default_backend() == "cpu":
         return
-    precision = jax.config.jax_default_matmul_precision
+    precision = jax.config.jax_default_matmul_precision # type: ignore
     if precision in ("highest", "float32"):
         return
     warnings.warn(
