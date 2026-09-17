@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 pip install --upgrade pip
+# NOTE: best if kept in sync with `readthedocs.yml`
 curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.4 python3 -
 which poetry > /dev/null || export PATH=$PATH:$HOME/.local/bin
 poetry --version
