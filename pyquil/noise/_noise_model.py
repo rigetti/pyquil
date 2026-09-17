@@ -48,12 +48,12 @@ from deprecated import deprecated
 from pyquil.external.rpcq import CompilerISA
 from pyquil.noise._channels import (
     Channel,
+    ChannelBase,
     CycleChannel,
     MeasurementChannel,
     ResetChannel,
     SuperopChannel,
     SuperopResetChannel,
-    _ChannelBase,
 )
 from pyquil.quilbase import Gate, Measurement, ResetQubit
 
@@ -313,7 +313,7 @@ class NoiseModel:
 
         :return: JSON string representation.
         """
-        # Every member of ChannelType derives from _ChannelBase or _ResetChannelBase, or is a
+        # Every member of ChannelType derives from ChannelBase or ResetChannelBase, or is a
         # MeasurementChannel or CycleChannel — all of which implement to_json — so there is no
         # unsupported case to skip here.
         channel_data = [{"type": type(ch).__name__, "data": ch.to_json()} for ch in self.channels.values()]
@@ -467,7 +467,7 @@ def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> 
             channel = noise_model.get_channel(inst)
             # Gate channels (SuperopChannel, Channel) and cycle channels both expose a
             # process (Pauli) fidelity; treat all gate-based channels the same.
-            if isinstance(channel, (_ChannelBase, CycleChannel)):
+            if isinstance(channel, (ChannelBase, CycleChannel)):
                 gate_fidelities.append(channel.process_fidelity)
 
     return math.prod(gate_fidelities)
