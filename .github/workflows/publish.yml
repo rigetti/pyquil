@@ -65,6 +65,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          # necessary for creating the git tag (see repository rulesets)
+          ssh-key: ${{ secrets.RELEASE_TAG_DEPLOY_KEY }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -76,6 +79,8 @@ jobs:
           PRERELEASE: ${{ needs.version.outputs.is-prerelease }}
           EVENT: ${{ github.event_name }}
         run: |
+          echo "Releasing v$VERSION"
+
           # A dispatch re-publishes a release that already exists. It must never
           # mint a new one: the version it was given is not checked against
           # pyproject.toml until the build job, which is too late to un-tag.
