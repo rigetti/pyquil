@@ -29,7 +29,7 @@ import numpy as np
 import pytest
 import quax as qx
 
-from pyquil.gates import CNOT, CPHASE, CZ, MEASURE, RESET, RX, RY, RZ, H, X
+from pyquil.gates import CNOT, CPHASE, CZ, MEASURE, RESET, RX, RY, RZ, H, I, X
 from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, SuperopChannel, SuperopResetChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
@@ -1213,6 +1213,67 @@ def test_outcome_columns_follow_program_order_when_the_plan_reorders_them():
 # ──────────────────────────────────────────────────────────────────────────────
 # Tracing and precision
 # ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestTrajectoryInitialState:
+    """Seeding a trajectory from a caller-supplied pure state.
+
+    This is what lets a shared circuit prefix be evolved once and only the varying tail be run
+    per trajectory.  Both halves must span the same register, so an idle qubit is padded with
+    ``I``.
+    """
+
+    def test_prefix_then_tail_reproduces_the_whole_circuit_exactly(self):
+        """Same keys and the same tail give the same trajectories, not merely the same statistics."""
+        qubits = [0, 1, 2]
+        prefix = Program(H(0), CNOT(0, 1), RX(0.3, 1), I(2))
+        tail = Program(Declare("ro", "BIT", 3), RX(1.1, 0), CNOT(1, 2))
+        tail += [MEASURE(q, ("ro", i)) for i, q in enumerate(qubits)]
+
+        keys = jax.random.split(jax.random.key(3), 64)
+        _, whole = TrajectorySimulator(prefix + tail, qubits=qubits).compute(None, keys)
+
+        psi = PureStateVectorSimulator(prefix, qubits=qubits).compute()
+        simulator = TrajectorySimulator(tail, qubits=qubits)
+        _, split = jax.vmap(lambda key: simulator.compute(None, key, psi))(keys)
+        np.testing.assert_array_equal(np.asarray(split), np.asarray(whole))
+
+    def test_a_noisy_tail_from_a_prepared_state_matches_the_whole_circuit(self):
+        qubits = [0, 1]
+        prefix = Program(H(0), I(1))
+        tail = Program(Declare("ro", "BIT", 2), CNOT(0, 1))
+        tail += [MEASURE(q, ("ro", i)) for i, q in enumerate(qubits)]
+        noise_model = NoiseModel.from_channels([Channel.from_depolarizing_constant(CNOT(0, 1), 0.9)])
+
+        whole = TrajectorySimulator(prefix + tail, qubits=qubits, noise_model=noise_model)
+        outcomes = np.asarray(whole.sample(num_trajectories=8000, key=jax.random.key(11)))
+
+        psi = PureStateVectorSimulator(prefix, qubits=qubits).compute()
+        simulator = TrajectorySimulator(tail, qubits=qubits, noise_model=noise_model)
+        keys = jax.random.split(jax.random.key(11), 8000)
+        _, split = jax.vmap(lambda key: simulator.compute(None, key, psi))(keys)
+        split = np.asarray(split)
+
+        def frequencies(samples):
+            return np.bincount(samples[:, 0] * 2 + samples[:, 1], minlength=4) / len(samples)
+
+        np.testing.assert_allclose(frequencies(split), frequencies(outcomes), atol=0.02)
+
+    def test_a_density_matrix_is_rejected(self):
+        """A trajectory carries a pure state; a mixed one has to be unravelled by the caller."""
+        simulator = TrajectorySimulator(Program(X(0)), qubits=[0])
+        with pytest.raises(TypeError, match="must be a StateVector"):
+            simulator.compute(None, jax.random.key(0), qx.zero_state_matrix(dims=(2,)))
+
+    def test_a_mismatched_register_is_rejected(self):
+        simulator = TrajectorySimulator(Program(X(0)), qubits=[0])
+        with pytest.raises(ValueError, match=r"dims \(2, 2\) but this simulator's register is \(2,\)"):
+            simulator.compute(None, jax.random.key(0), qx.zero_state_vector(dims=(2, 2)))
+
+    def test_the_initial_state_is_cast_to_the_evolution_dtype(self):
+        simulator = TrajectorySimulator(Program(X(0)), qubits=[0], evolution_dtype=jnp.complex64)
+        state, _ = simulator.compute(None, jax.random.key(0), qx.zero_state_vector(dims=(2,)))
+        assert state.matrix.dtype == jnp.complex64
 
 
 class TestTracingAndPrecision:
