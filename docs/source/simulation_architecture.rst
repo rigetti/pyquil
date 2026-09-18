@@ -478,7 +478,35 @@ Cirq, Qiskit and PennyLane where the design allows it:
   ``outcome_probabilities(params)``, the joint distribution of the program's terminal
   measurements with readout error included. The trajectory simulator adds a PRNG key and
   returns the sampled outcomes alongside the state, and offers ``sample`` for outcomes
-  alone.
+  alone. All of them take an optional ``initial_state`` (see `Splitting a circuit`_).
+
+Splitting a circuit
+-------------------
+
+``compute``, ``outcome_probabilities`` and the trajectory ``compute`` all accept an
+``initial_state`` to start from instead of the all-zero register. This exists for the case
+where many runs share a prefix and differ only in a short tail — randomised-measurement and
+classical-shadow experiments, where one state is measured in thousands of random bases:
+
+.. code-block:: python
+
+   prepared = DensityMatrixSimulator(circuit, qubits=register).compute()
+   tail = DensityMatrixSimulator(rotations_and_measurements, qubits=register)
+   probabilities = jax.vmap(lambda p: tail.outcome_probabilities(p, prepared))(angles)
+
+Vectorizing over the whole program instead would be correct but wasteful: the prefix does not
+depend on the batched parameters, yet nothing hoists it out of the ``vmap``, so it is evolved
+once per shot.
+
+Two constraints follow from how the register is fixed at construction:
+
+* **Both halves must span the same register.** ``qubits`` must list exactly the qubits its
+  program acts on, so a half that leaves a qubit idle pads it with ``I``.
+* **A trajectory carries a pure state**, so :class:`TrajectorySimulator` takes a
+  ``StateVector`` only. To start trajectories from a mixed prefix, unravel it first — sample
+  an eigenvector of the density matrix per trajectory and pass that as its initial state.
+
+A state of the wrong representation or the wrong ``dims`` is rejected rather than broadcast.
 
 Samples are not the only thing worth computing. Because ``compute`` returns a
 quax state and is itself a pure JAX function, any quax metric composes with it

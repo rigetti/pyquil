@@ -24,6 +24,13 @@ A pull request that changes something a user would notice adds a bullet under
   `evolution_dtype=jnp.complex64` runs the sampling kernel in single precision while the
   Kraus decomposition stays at 64 bits.
   ([#1861](https://github.com/rigetti/pyquil/pull/1861))
+- The simulators accept an `initial_state` to evolve from, so a circuit can be split in two and
+  a prefix shared across many runs evolved once instead of once per run. This is what a
+  randomised-measurement or classical-shadow experiment needs: one prepared state measured in
+  thousands of random bases, where vectorizing the whole program re-runs the circuit per shot.
+  `TrajectorySimulator` takes a pure `StateVector` -- unravel a mixed prefix into eigenvectors
+  first -- and both halves must span the same register.
+  ([#1861](https://github.com/rigetti/pyquil/pull/1861))
 
 ### Fixed
 

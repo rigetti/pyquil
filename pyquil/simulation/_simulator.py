@@ -553,16 +553,35 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
         return tuple(prepared)
 
     @final
-    def _pre_measurement_state(self, params: Array | None) -> StateT:
+    def _pre_measurement_state(self, params: Array | None, initial_state: StateT | None = None) -> StateT:
         """Evolve the initial state through the operator stack, terminal measurements excluded."""
+        state = self._state0 if initial_state is None else self._validated_initial_state(initial_state)
         # No operations (e.g. empty program): the initial state is the result, and
         # ``lax.switch`` cannot be given zero branches.
         if not self._branches:
-            return self._state0
-        return self._apply(self._state0, self._build_stack(self._default_params(params)))
+            return state
+        return self._apply(state, self._build_stack(self._default_params(params)))
 
     @final
-    def compute(self, params: Array | None = None) -> StateT:  # type: ignore[override]
+    def _validated_initial_state(self, state: StateT) -> StateT:
+        """Check that a caller-supplied initial state is this simulator's representation and shape.
+
+        A mismatched state would otherwise fail deep inside the scan with an opaque shape error,
+        or -- worse, for a state vector handed to the density-matrix backend -- broadcast silently.
+        """
+        if not isinstance(state, type(self._state0)):
+            raise TypeError(
+                f"initial_state must be a {type(self._state0).__name__} for {type(self).__name__}, "
+                f"not a {type(state).__name__}."
+            )
+        if tuple(state.dims) != tuple(self.dims):
+            raise ValueError(
+                f"initial_state has dims {tuple(state.dims)} but this simulator's register is {tuple(self.dims)}."
+            )
+        return state
+
+    @final
+    def compute(self, params: Array | None = None, initial_state: StateT | None = None) -> StateT:  # type: ignore[override]
         """Compute the final state.
 
         Builds the merged operators for *params* and applies them to the initial state.  The
@@ -574,9 +593,13 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
 
         :param params: Flat parameter vector from :meth:`linearize`.  Omit (or
             pass ``None``) for a parameter-free program.
+        :param initial_state: State to start from, in this simulator's representation and on
+            this simulator's ``dims``.  Omit to start from the all-zero register.  This lets a
+            circuit be split in two: evolve the shared prefix once, then run the varying tail
+            from the state it produced, instead of re-running the prefix for every tail.
         :return: The final state: a ``StateVector`` or a ``DensityMatrix``.
         """
-        state = self._pre_measurement_state(params)
+        state = self._pre_measurement_state(params, initial_state)
         for channel, subsystem in self._terminal_channels:
             # Only the density-matrix backend can hold an instrument, so ``state`` is a
             # ``DensityMatrix`` whenever this loop runs.
@@ -584,9 +607,9 @@ class _DifferentiableSimulator(ProgramSimulator, Generic[StateT]):
         return state
 
     @final
-    def __call__(self, params: Array | None = None) -> StateT:
+    def __call__(self, params: Array | None = None, initial_state: StateT | None = None) -> StateT:
         """Alias for :meth:`compute`."""
-        return self.compute(params)
+        return self.compute(params, initial_state)
 
     @final
     def _apply(self, state: StateT, op_stack: Array) -> StateT:
@@ -1010,7 +1033,9 @@ class DensityMatrixSimulator(_DifferentiableSimulator[qx.DensityMatrix]):
         """The qubit each axis of :meth:`outcome_probabilities` refers to, in program order."""
         return tuple(self.qubits[subsystem[0]] for _, _, subsystem in self._terminal)
 
-    def outcome_probabilities(self, params: Array | None = None) -> Array:
+    def outcome_probabilities(
+        self, params: Array | None = None, initial_state: qx.DensityMatrix | None = None
+    ) -> Array:
         """Compute the joint distribution of the program's terminal measurement outcomes.
 
         Axis ``j`` of the result runs over the outcomes of the ``j``-th terminal measurement in
@@ -1025,6 +1050,7 @@ class DensityMatrixSimulator(_DifferentiableSimulator[qx.DensityMatrix]):
 
         :param params: Flat parameter vector from :meth:`linearize`.  Omit (or pass ``None``)
             for a parameter-free program.
+        :param initial_state: Density matrix to start from, as :meth:`compute`.
         :return: Real array of shape ``(n_1, ..., n_m)``, ``n_j`` being the number of outcomes
             of the ``j``-th terminal measurement.  The entries sum to one.
         :raises ValueError: If the program has no terminal measurement.
@@ -1034,7 +1060,7 @@ class DensityMatrixSimulator(_DifferentiableSimulator[qx.DensityMatrix]):
                 "The program has no terminal measurement to read out. Add a MEASURE that is not followed by "
                 "another operation on the same qubit, or use compute() for the state itself."
             )
-        rho = self._pre_measurement_state(params).matrix
+        rho = self._pre_measurement_state(params, initial_state).matrix
         n = len(self.dims)
         tensor = jnp.reshape(rho, self.dims + self.dims)
         # Label the row axis of qudit q as q and its column axis as n + q; a measured qudit's pair
@@ -1216,6 +1242,7 @@ class TrajectorySimulator(_TrajectorySimulator):
         self,
         params: Array | None = None,
         key: Array | None = None,
+        initial_state: qx.StateVector | None = None,
     ) -> tuple[qx.StateVector, Array]:
         """Run trajectory simulation.
 
@@ -1223,6 +1250,13 @@ class TrajectorySimulator(_TrajectorySimulator):
             pass ``None``) for a parameter-free program.
         :param key: JAX PRNG key (required).  Scalar key → single trajectory.
             Batch of keys (from ``jax.random.split``) → batched trajectories.
+        :param initial_state: Pure state to start the trajectory from, on this simulator's
+            ``dims``; omit to start from the all-zero register.  A trajectory carries a *pure*
+            state, so a mixed state cannot be passed here: unravel it first, by sampling an
+            eigenvector of the density matrix per trajectory and passing that.  Use this to
+            evolve a shared circuit prefix once -- with
+            :class:`DensityMatrixSimulator` if it is noisy -- and then run only the varying
+            tail per trajectory.
         :return: Tuple of ``(state_vector, measurement_outcomes)``.  Outcome columns follow the
             ``MEASURE`` instructions in program order.  The state is at
             :attr:`evolution_dtype`.
@@ -1234,11 +1268,31 @@ class TrajectorySimulator(_TrajectorySimulator):
             raise ValueError("TrajectorySimulator.compute requires a JAX PRNG key.")
         op_stack = self._op_stack(params)
         ensemble_size = () if key.ndim == 0 else (key.shape[0],)
-        return self._kernel(op_stack, self._zero_state(ensemble_size), key)
+        state = self._zero_state(ensemble_size) if initial_state is None else self._start_state(initial_state)
+        return self._kernel(op_stack, state, key)
 
-    def __call__(self, params: Array | None = None, key: Array | None = None) -> tuple[qx.StateVector, Array]:
+    @final
+    def _start_state(self, state: qx.StateVector) -> qx.StateVector:
+        """Check a caller-supplied initial state and cast it to the evolution dtype."""
+        if not isinstance(state, qx.StateVector):
+            raise TypeError(
+                f"initial_state must be a StateVector, not a {type(state).__name__}. A trajectory "
+                "carries a pure state; unravel a density matrix into eigenvectors first."
+            )
+        if tuple(state.dims) != tuple(self.dims):
+            raise ValueError(
+                f"initial_state has dims {tuple(state.dims)} but this simulator's register is {tuple(self.dims)}."
+            )
+        return qx.StateVector.from_matrix(state.matrix.astype(self.evolution_dtype), self.dims)
+
+    def __call__(
+        self,
+        params: Array | None = None,
+        key: Array | None = None,
+        initial_state: qx.StateVector | None = None,
+    ) -> tuple[qx.StateVector, Array]:
         """Alias for :meth:`compute`."""
-        return self.compute(params, key)
+        return self.compute(params, key, initial_state)
 
     @final
     def _op_stack(self, params: Array | None) -> Array:
