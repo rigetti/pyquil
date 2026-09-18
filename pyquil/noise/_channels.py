@@ -425,7 +425,11 @@ def get_instruction_unitary(
     elif name in qx.gates.QUANTUM_GATES:
         gate_def = qx.gates.QUANTUM_GATES[name]
     else:
-        raise KeyError(f"Unknown gate '{name}'. Provide it via custom_gates (e.g. custom_gates={{'{name}': matrix}}).")
+        raise KeyError(
+            f"Unknown gate '{name}'. Provide it via custom_gates as a quax Unitary -- "
+            f"custom_gates={{'{name}': qx.Unitary.from_matrix(matrix, (dims, dims))}} -- or, for a "
+            "parametric gate, a callable returning one."
+        )
 
     if inst.params:
         fixed_params = _evaluate_parameter_designators(inst.params)
@@ -438,8 +442,16 @@ def get_instruction_unitary(
         else:
             result = gate_def
 
-    # quax parametric gates may return Operator instead of Unitary; wrap if needed
+    # quax parametric gates may return Operator instead of Unitary; wrap if needed.
     if not isinstance(result, qx.Unitary):
+        if not hasattr(result, "matrix") or not hasattr(result, "dims"):
+            # Most likely a bare array passed as a custom gate. Guessing its dims would silently
+            # assume qubits, so say what is needed instead: a qutrit gate is the same shape.
+            raise TypeError(
+                f"Custom gate '{name}' is a {type(result).__name__}; it must be a quax operator. "
+                f"Wrap it with qx.Unitary.from_matrix(matrix, (dims, dims)), naming the per-qudit "
+                "dimensions explicitly."
+            )
         result = qx.Unitary.from_matrix(result.matrix, result.dims)
     return result
 
