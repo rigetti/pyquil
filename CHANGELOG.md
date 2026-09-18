@@ -11,6 +11,23 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Features
+
+- A gate angle may be any Quil arithmetic expression over declared memory, so the parametric
+  programs `quilc` emits -- `RX(theta[0]/2 + pi) 0` -- simulate without rewriting.
+  ([#1869](https://github.com/rigetti/pyquil/pull/1869))
+
+### Fixed
+
+- Restored the six commits that were dropped from the 4.19.0 release. The squash that merged
+  [#1860](https://github.com/rigetti/pyquil/pull/1860) was built from an earlier state of its
+  branch, so they never reached `master` even though the changelog credited
+  one of them. The Quil arithmetic expression support above is the user-visible part and has
+  been moved to this section from 4.19.0, where it was listed but not present. Also restored:
+  tolerant `Circuit` equality (and its unhashability, which follows), the split of
+  `Circuit.__post_init__` into named coercion and validation steps, and a mypy fix for JAX's
+  dynamically defined config flags.
+
 ## 4.19.0 (2026-09-17)
 
 ### Features
@@ -21,9 +38,6 @@ A pull request that changes something a user would notice adds a bullet under
   parameters, and they accept a `NoiseModel`. The API is not yet stable; see
   [the architecture guide](https://pyquil-docs.rigetti.com/en/latest/simulation_architecture.html).
   ([#1855](https://github.com/rigetti/pyquil/pull/1855))
-- A gate angle may be any Quil arithmetic expression over declared memory, so the parametric
-  programs `quilc` emits -- `RX(theta[0]/2 + pi) 0` -- simulate without rewriting.
-  ([#1869](https://github.com/rigetti/pyquil/pull/1869))
 
 ## 4.18.0 (2026-08-19)
 
