@@ -11,6 +11,8 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+## 4.19.0 (2026-09-17)
+
 ### Features
 
 - Experimental exact simulators built on `rigetti-quax`: `PureStateVectorSimulator` and
