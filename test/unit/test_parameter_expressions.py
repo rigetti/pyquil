@@ -21,6 +21,7 @@ import numpy as np
 import pytest
 
 from pyquil.gates import FSIM, PHASE, RX, RY, RZ, H
+from pyquil.noise._channels import get_custom_gates_from_program
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Parameter, quil_cis, quil_cos, quil_exp, quil_sin, quil_sqrt
 from pyquil.quilbase import Declare, DefGate, Gate
@@ -240,3 +241,93 @@ class TestSimulation:
         sim = PureStateVectorSimulator(program)
         assert sim.parameters == ()
         np.testing.assert_allclose(_state(program), _state(Program(RX(np.sin(np.pi / 4), 0))), atol=1e-12)
+
+
+class TestParametricDefGate:
+    """A ``DEFGATE`` whose matrix entries are Quil expressions over its formal parameters.
+
+    These reach the simulator through ``get_custom_gates_from_program``, not through the gate
+    *argument* path the rest of this file covers.  They are evaluated in JAX for the same reason:
+    the operator stack is built under ``jax.vmap``, so a parameter arrives as a tracer and the
+    NumPy substitution that used to do this raised ``TracerArrayConversionError``.
+    """
+
+    @staticmethod
+    def _defgate() -> DefGate:
+        theta, beta = Parameter("theta"), Parameter("beta")
+        return DefGate(
+            name="BLARG",
+            matrix=np.array(
+                [
+                    [1, 0, 0, 0],
+                    [0, quil_cos(theta / 2), 1j * quil_sin(theta / 2) * quil_exp(1j * beta), 0],
+                    [0, 1j * quil_sin(theta / 2) * quil_exp(-1j * beta), quil_cos(theta / 2), 0],
+                    [0, 0, 0, 1],
+                ]
+            ),
+            parameters=[beta, theta],
+        )
+
+    @staticmethod
+    def _program(defgate: DefGate) -> Program:
+        program = Program()
+        theta = program.declare("theta", "REAL", 1)
+        beta = program.declare("beta", "REAL", 1)
+        program += defgate
+        program += RX(np.pi, 0)
+        program += defgate.get_constructor()(beta, theta)(0, 1)
+        return program
+
+    @staticmethod
+    def _expected(theta: float, beta: float) -> np.ndarray:
+        gate = np.array(
+            [
+                [1, 0, 0, 0],
+                [0, np.cos(theta / 2), 1j * np.sin(theta / 2) * np.exp(1j * beta), 0],
+                [0, 1j * np.sin(theta / 2) * np.exp(-1j * beta), np.cos(theta / 2), 0],
+                [0, 0, 0, 1],
+            ],
+            dtype=complex,
+        )
+        rx = np.array([[np.cos(np.pi / 2), -1j * np.sin(np.pi / 2)], [-1j * np.sin(np.pi / 2), np.cos(np.pi / 2)]])
+        return gate @ np.kron(rx, np.eye(2)) @ np.array([1, 0, 0, 0], dtype=complex)
+
+    @pytest.mark.parametrize(("theta", "beta"), [(np.pi, 0.0), (0.7, 1.3), (0.0, 0.0)])
+    def test_matches_the_matrix_it_defines(self, theta, beta):
+        """The simulated state equals the state the DEFGATE's matrix produces by hand."""
+        program = self._program(self._defgate())
+        simulator = PureStateVectorSimulator(program, qubits=[0, 1])
+        state = simulator.compute(simulator.linearize({"theta": [theta], "beta": [beta]}))
+
+        np.testing.assert_allclose(np.asarray(state.matrix), self._expected(theta, beta), atol=1e-12)
+
+    def test_density_matrix_backend_agrees(self):
+        """The density-matrix backend builds its stack the same way and must agree."""
+        program = self._program(self._defgate())
+        simulator = DensityMatrixSimulator(program, qubits=[0, 1])
+        rho = simulator.compute(simulator.linearize({"theta": [0.7], "beta": [1.3]}))
+
+        expected = np.outer(self._expected(0.7, 1.3), self._expected(0.7, 1.3).conj())
+        np.testing.assert_allclose(np.asarray(rho.matrix), expected, atol=1e-12)
+
+    def test_is_differentiable(self):
+        """Evaluating in JAX rather than NumPy makes the gate differentiable, like any other."""
+        program = self._program(self._defgate())
+        simulator = PureStateVectorSimulator(program, qubits=[0, 1])
+
+        def excited(params):
+            return jnp.abs(simulator.compute(params).matrix[3]) ** 2
+
+        gradient = jax.grad(excited)(simulator.linearize({"theta": [0.7], "beta": [1.3]}))
+
+        assert np.all(np.isfinite(np.asarray(gradient)))
+
+    def test_rejects_a_parameter_with_no_binding(self):
+        """A matrix naming a parameter the DEFGATE does not declare is a caller error."""
+        rogue = Parameter("rogue")
+        defgate = DefGate(
+            name="ROGUE", matrix=np.array([[quil_cos(rogue), 0], [0, 1]]), parameters=[Parameter("theta")]
+        )
+
+        with pytest.raises(ValueError, match="No value supplied for DEFGATE parameter"):
+            get_custom_gates_from_program(Program(defgate))["ROGUE"](0.5)

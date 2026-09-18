@@ -42,6 +42,8 @@ import quax as qx
 from jax import Array
 
 from pyquil.noise._channels import (
+    QUIL_BINARY_OPERATORS,
+    QUIL_FUNCTIONS,
     ChannelBase,
     CycleChannel,
     MeasurementChannel,
@@ -55,16 +57,11 @@ from pyquil.noise._noise_model import (
 )
 from pyquil.quil import Program
 from pyquil.quilatom import (
-    Add,
     BinaryExp,
-    Div,
     Function,
     MemoryReference,
-    Mul,
     Parameter,
-    Pow,
     Qubit,
-    Sub,
     _contained_mrefs,
     substitute,
 )
@@ -98,21 +95,10 @@ from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
 ParameterRef: TypeAlias = tuple[str, int]
 
 
-#: The Quil arithmetic functions, as JAX functions.  ``CIS(x)`` is ``exp(i x)``.
-_FUNCTIONS: dict[str, Callable[[Array], Array]] = {
-    "SIN": jnp.sin,
-    "COS": jnp.cos,
-    "SQRT": jnp.sqrt,
-    "EXP": jnp.exp,
-    "CIS": lambda x: jnp.exp(1j * x),
-}
-_BINARY_OPERATORS: dict[type[BinaryExp], Callable[[Array, Array], Array]] = {
-    Add: jnp.add,
-    Sub: jnp.subtract,
-    Mul: jnp.multiply,
-    Div: jnp.divide,
-    Pow: jnp.power,
-}
+#: The Quil arithmetic functions and binary operators, as JAX functions, shared with the
+#: ``DEFGATE`` matrix evaluator in :mod:`pyquil.noise._channels` so the two cannot drift.
+_FUNCTIONS = QUIL_FUNCTIONS
+_BINARY_OPERATORS = QUIL_BINARY_OPERATORS
 
 
 @dataclass(frozen=True, slots=True)
