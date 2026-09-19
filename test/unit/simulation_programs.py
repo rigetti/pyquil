@@ -39,13 +39,20 @@ Three collections are exported:
     :func:`reverse_endianness` before comparing against the reference simulators.
 """
 
+import jax
 import numpy as np
 
 from pyquil.gates import CCNOT, CNOT, CPHASE, CSWAP, CZ, FSIM, MEASURE, RESET, RX, RY, RZ, SWAP, XY, H, I, S, T, X, Y, Z
 from pyquil.quil import Program
 from pyquil.quilatom import Qubit
 from pyquil.quilbase import Declare, Gate, Measurement, ResetQubit
-from pyquil.simulation._simulator import DensityMatrixSimulator, PureStateVectorSimulator
+from pyquil.simulation._simulator import (
+    DensityMatrixSimulator,
+    PureStateVectorSimulator,
+    TrajectorySimulator,
+    _build_trajectory_kernel,
+    _KrausStackLayout,
+)
 
 PROGRAMS: dict[str, Program] = {}
 
@@ -269,6 +276,26 @@ def simulate_density_matrix(program, qubits=None, noise_model=None, memory_map=N
     """Run ``DensityMatrixSimulator`` and return the final ``qx.DensityMatrix``."""
     sim = DensityMatrixSimulator(program, qubits=qubits, noise_model=noise_model, **kwargs)
     return sim.compute(sim.linearize(memory_map) if memory_map else None)
+
+
+def simulate_trajectories(program, noise_model=None, qubits=None, num_trajectories=1, seed=0, **kwargs):
+    """Run ``TrajectorySimulator.compute`` and return ``(state_vector, outcomes)``.
+
+    Every trajectory is kept, so this is for the small ensembles the correctness tests use;
+    :meth:`TrajectorySimulator.sample` is the scalable path and discards the states.
+    """
+    sim = TrajectorySimulator(program, qubits=qubits, noise_model=noise_model, **kwargs)
+    return sim.compute(None, jax.random.split(jax.random.key(seed), num_trajectories))
+
+
+def apply_trajectory_operations(operations, psi, key):
+    """Build a one-off trajectory kernel for a bare operation sequence and apply it to *psi*.
+
+    The simulators compile their kernel once at construction from the merge plan; this is for
+    tests and benchmarks holding placements with no simulator around them.
+    """
+    layout = _KrausStackLayout.from_operations(operations, psi.dims)
+    return _build_trajectory_kernel(layout)(layout.stack(operations), psi, key)
 
 
 def reverse_endianness(array, n_qubits):

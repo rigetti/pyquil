@@ -216,7 +216,15 @@ Expansion does several things at once:
   *not* resolved to a number. It is wrapped in a ``ParametricGate`` that, given
   :math:`\theta`, constructs the gate matrix. This keeps gate construction
   inside the traced/differentiated graph, which is what makes ``jax.grad`` with
-  respect to gate angles work.
+  respect to gate angles work. An angle may be any Quil arithmetic expression over memory
+  references -- ``+ - * / ^``, the functions ``SIN``, ``COS``, ``SQRT``, ``EXP`` and ``CIS``,
+  and real or complex literals -- so ``RX(theta[0]/2 + pi)``, the form quilc emits when it
+  compiles a parametric program, and ``RZ(2*SIN(phi[1]))`` both simulate directly. Gates whose
+  expressions have the same *shape* (``SIN(theta[0])`` and ``SIN(theta[1])``) are still built in
+  one vectorised batch. A complex-valued argument (``CIS``, a complex literal) is accepted only
+  by a ``DEFGATE`` gate, since the built-in gates take real angles; everything else is evaluated
+  in real arithmetic, so ``SQRT`` of a negative number or a fractional power of one gives ``nan``
+  where Quil would give a complex result.
 
 * **DEFCIRCUIT and cycle expansion.** ``DEFCIRCUIT`` bodies are expanded with
   formal-argument substitution. When a circuit invocation matches a
@@ -225,7 +233,7 @@ Expansion does several things at once:
   replaced by the channel's constituent operators directly.
 
   A body must reference **only its own formal arguments**. Quil allows a literal qubit in a
-  body (``DEFCIRCUIT C q: X q; X 3``), but such a qubit is invisible to
+  body (``DEFCIRCUIT GADGET q: X q; X 3``), but such a qubit is invisible to
   ``Program.get_qubit_indices`` (`pyQuil issue #1868
   <https://github.com/rigetti/pyquil/issues/1868>`_), so it escapes the register the simulator
   sizes itself for. It is rejected rather than silently mis-simulated; the check is a stopgap
@@ -364,18 +372,24 @@ Adapters
 
 The resolver is backend-agnostic: it yields each operator in its most specific
 type. Each simulator then converts the merged circuit to the representation it
-evolves, using the methods on :class:`~pyquil.simulation._circuit.Circuit`:
+evolves. The hook is ``ProgramSimulator.adapt``, and ``sim.operations(params)``
+runs the whole pipeline -- ``resolve``, ``compress``, ``adapt`` -- in one call:
 
-* **Density matrix** (:meth:`~pyquil.simulation._circuit.Circuit.to_superops`): everything becomes a
-  ``SuperOp``. A ``QuantumInstrument`` is collapsed to its total channel, since the
-  density-matrix backend does not branch on outcomes -- except that a *terminal* measurement
-  (one nothing acts on afterwards) is held back so that its outcome distribution can be read
-  off the pre-measurement state; see `Density matrix`_.
+* **Density matrix**: everything becomes a ``SuperOp``. A ``QuantumInstrument`` is collapsed
+  to its total channel, since the density-matrix backend does not branch on outcomes -- except
+  that a *terminal* measurement (one nothing acts on afterwards) is held back so that its
+  outcome distribution can be read off the pre-measurement state; see `Density matrix`_. The
+  differentiable family does this inside its vectorized stack constructor rather than by
+  walking a circuit, so it leaves ``adapt`` as the identity;
+  :meth:`~pyquil.simulation._circuit.Circuit.to_superops` performs the same conversion when you
+  want the circuit itself.
 
 * **Trajectory** (:meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`): a ``SuperOp`` is
-  converted to a (truncated) ``KrausMap``; ``Unitary``, ``KrausMap``, and
-  ``QuantumInstrument`` pass through unchanged, each already being applicable to
-  a state vector either deterministically or by sampling.
+  converted to a ``KrausMap``; ``Unitary``, ``KrausMap``, and ``QuantumInstrument`` pass
+  through unchanged, each already being applicable to a state vector either deterministically
+  or by sampling. The Kraus set has the full size :math:`d^2` -- components below the
+  eigenvalue tolerance come back as exactly-zero operators rather than being dropped, which is
+  what makes the count a property of the program's structure alone.
 
 Calculator
 ----------
@@ -435,11 +449,11 @@ the operations they admit.
      - Yes
      - Resets (measurements as total channel)
      - ``jit`` + ``grad``
-   * - ``TrajectorySimulator`` [#planned]_
+   * - ``TrajectorySimulator``
      - Monte-Carlo sampling
      - Yes
      - Yes
-     - ``jit`` (per batch)
+     - ``jit`` only
 
 API shape
 ---------
@@ -464,7 +478,35 @@ Cirq, Qiskit and PennyLane where the design allows it:
   ``outcome_probabilities(params)``, the joint distribution of the program's terminal
   measurements with readout error included. The trajectory simulator adds a PRNG key and
   returns the sampled outcomes alongside the state, and offers ``sample`` for outcomes
-  alone.
+  alone. All of them take an optional ``initial_state`` (see `Splitting a circuit`_).
+
+Splitting a circuit
+-------------------
+
+``compute``, ``outcome_probabilities`` and the trajectory ``compute`` all accept an
+``initial_state`` to start from instead of the all-zero register. This exists for the case
+where many runs share a prefix and differ only in a short tail — randomised-measurement and
+classical-shadow experiments, where one state is measured in thousands of random bases:
+
+.. code-block:: python
+
+   prepared = DensityMatrixSimulator(circuit, qubits=register).compute()
+   tail = DensityMatrixSimulator(rotations_and_measurements, qubits=register)
+   probabilities = jax.vmap(lambda p: tail.outcome_probabilities(p, prepared))(angles)
+
+Vectorizing over the whole program instead would be correct but wasteful: the prefix does not
+depend on the batched parameters, yet nothing hoists it out of the ``vmap``, so it is evolved
+once per shot.
+
+Two constraints follow from how the register is fixed at construction:
+
+* **Both halves must span the same register.** ``qubits`` must list exactly the qubits its
+  program acts on, so a half that leaves a qubit idle pads it with ``I``.
+* **A trajectory carries a pure state**, so :class:`TrajectorySimulator` takes a
+  ``StateVector`` only. To start trajectories from a mixed prefix, unravel it first — sample
+  an eigenvector of the density matrix per trajectory and pass that as its initial state.
+
+A state of the wrong representation or the wrong ``dims`` is rejected rather than broadcast.
 
 Samples are not the only thing worth computing. Because ``compute`` returns a
 quax state and is itself a pure JAX function, any quax metric composes with it
@@ -641,14 +683,6 @@ which is deprecated for removal in pyQuil v5.)
 Trajectory
 ----------
 
-.. note::
-   ``TrajectorySimulator`` is **not yet available**.  This section describes the design that
-   the instrument representation and the merge plan's ``atomic`` set exist to support; the
-   simulator itself lands in a follow-up change.  The code block below will not run against
-   this release.
-
-.. [#planned] Planned; see the note under `Trajectory`_.
-
 For programs with mid-circuit measurements, resets, and feed-forward-style
 sampling, unravel the dynamics into pure-state **quantum trajectories**: each
 trajectory samples a Kraus operator (or measurement outcome) at every noisy step
@@ -660,12 +694,48 @@ The number of trajectories is set by the shape of the PRNG key: a scalar key
 runs one trajectory, while a batch of keys (from ``jax.random.split``) runs that
 many in parallel via ``vmap``. A measurement is handled by flattening its
 ``QuantumInstrument`` into a single Kraus axis, so sampling a Kraus index also
-selects the outcome.
+selects the outcome. Measurements are passed to the merge plan as ``atomic`` (see
+`Compressor`_), and outcome columns are labelled by each measurement's *program*
+index, so they follow the ``MEASURE`` instructions in program order regardless of
+how the plan ordered its groups.
+
+The sampling kernel is compiled once, at construction, from the merge plan alone —
+no parameter value is ever resolved to build it. Its layout is which subsystem each
+merged operation acts on, which operations are measurements, and how many Kraus
+operators each needs; all three are properties of the program's structure, so each
+``compute`` or ``sample`` call rebuilds just the zero-padded Kraus stack for its
+parameters and passes it to the compiled kernel as an argument.
+
+Kraus counts are structural because the conversion keeps the full :math:`d^2` set:
+an all-unitary group needs one operator whatever its angles, a group containing a
+channel needs :math:`d^2`, and an instrument needs :math:`d^2` per outcome. (A
+*truncated* count would not be structural. A merged group holding two channels
+either side of a parametric gate has a Choi spectrum that moves with the angle, so
+its rank — and with it the stack width — would differ from one parameter value to
+the next.) The stack is homogeneous because ``lax.scan`` requires it, but each
+``lax.switch`` branch slices its own base's budget, so a one-qubit gate is not
+applied as though it were the widest merged channel in the circuit.
+
+``compute`` is ``jax.jit``- and ``jax.vmap``-traceable: nothing in
+``resolve → compress → adapt → stack`` has a data-dependent shape, so a whole
+parameter sweep can be compiled. It is **not** differentiable — the sampled Kraus
+index is a discrete choice, so ``jax.grad`` traces successfully and returns zeros
+rather than raising. Use ``DensityMatrixSimulator`` for gradients.
+
+.. note::
+   Preprocessing must run at 64-bit precision (``jax_enable_x64``). Converting a
+   merged channel to Kraus form goes through an eigendecomposition of its Choi
+   matrix, whose eigenvalue tolerance scales with the working dtype: about
+   ``1e-6`` at float32, which is the resolution of the arithmetic itself, against
+   about ``1e-14`` at float64. At 32 bits the correlated multi-error branches of a
+   merged channel — weight :math:`p^2` for constituents of rate :math:`p` — fall
+   below the floor and are lost. Evolution is a separate choice: pass
+   ``evolution_dtype=jnp.complex64`` to run the sampling kernel in single
+   precision (roughly 1.8x faster) on top of a Kraus set computed at 64 bits.
 
 .. code-block:: python
 
    import jax
-   import jax.numpy as jnp
    from pyquil import Program
    from pyquil.gates import H, MEASURE
    from pyquil.quilatom import MemoryReference
@@ -674,23 +744,29 @@ selects the outcome.
 
    p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
    sim = TrajectorySimulator(p)
-   params = jnp.array([])
 
-   # A batch of 1000 trajectories in parallel.
+   # A batch of 1000 trajectories in parallel (no runtime parameters, so none are passed).
    keys = jax.random.split(jax.random.key(0), 1000)
-   psi_batch, outcomes = sim.compute(params, keys)
+   psi_batch, outcomes = sim.compute(key=keys)
    # outcomes has shape (1000, n_measurements); ~50/50 for an H gate.
 
    # Or, scalable sampling that streams batches and keeps only the outcomes:
-   shots = sim.sample(params, num_trajectories=100_000, batch_size=2_000)
+   shots = sim.sample(num_trajectories=100_000, batch_size=2_000)
 
 ``sample`` runs trajectories in fixed-size batches, discarding state vectors
-between batches so the total number of shots is unbounded by memory. When
-multiple JAX devices are available, each batch is run data-parallel via
-:func:`jax.pmap` — one independent kernel replica per device, with no
-cross-device communication. In that case ``batch_size`` is interpreted **per
-device**, so ``n`` devices run ``n * batch_size`` trajectories per batch and
-each device's memory footprint matches a single-device run.
+between batches so that *device* memory is bounded by one batch however many
+shots are asked for. The returned outcome array is not bounded: it grows as
+``num_trajectories × n_measurements × 4`` bytes in host memory. When multiple JAX
+devices are available, each batch is run data-parallel via :func:`jax.pmap` — one
+independent kernel replica per device, with no cross-device communication. In
+that case ``batch_size`` is interpreted **per device**, so ``n`` devices run
+``n * batch_size`` trajectories per batch and each device's memory footprint
+matches a single-device run.
+
+Each trajectory's randomness is derived from its *global* index, so the shots
+depend only on ``key`` and ``num_trajectories``: ``batch_size`` and the device
+count cannot reach the results. Omitting ``key`` draws fresh entropy, so repeated
+calls accumulate independent samples; pass one to make a run reproducible.
 
 
 Numerical precision
@@ -701,10 +777,21 @@ The simulators never change JAX's global precision settings; two of them matter 
 * **64-bit arithmetic.** JAX computes in 32 bits unless ``jax_enable_x64`` is set
   (``jax.config.update("jax_enable_x64", True)`` or ``JAX_ENABLE_X64=1``). State evolution
   at 32 bits is usually adequate, but Kraus decomposition is not: :meth:`Circuit.to_kraus_maps
-  <pyquil.simulation._circuit.Circuit.to_kraus_maps>` diagonalises each channel's Choi matrix and
-  drops eigenvalues below ``atol=1e-6``, which is the resolution of float32 arithmetic itself.
-  It therefore warns when it decomposes a channel with 64-bit mode off. Build and convert
-  noise models at 64 bits; the trajectory path depends on it.
+  <pyquil.simulation._circuit.Circuit.to_kraus_maps>` diagonalises each channel's Choi matrix,
+  and at float32 an eigenvalue below roughly ``1e-6`` is indistinguishable from round-off --
+  the resolution of the arithmetic itself. Error components weaker than that are lost, which
+  matters most for the correlated multi-error branches of a merged channel. It therefore warns
+  when it decomposes a channel with 64-bit mode off. Build and convert noise models at 64 bits;
+  the trajectory path depends on it.
+
+* **Preprocessing versus evolution.** Those are two different precisions, and the trajectory
+  simulator lets you pick them separately. Preprocessing -- resolution, merging and the Choi
+  eigendecomposition -- always runs at JAX's default, which the point above requires to be
+  64-bit. ``evolution_dtype`` then sets what the sampling kernel evolves in: passing
+  ``jnp.complex64`` runs the scan in single precision (roughly 1.8x faster, and quicker to
+  compile) on top of an exactly-computed Kraus set. Note that it is not merely "the same
+  answer, less precisely": the categorical draw over float32 logits differs from the float64
+  one, so individual trajectories differ and only the statistics agree.
 
 * **Matrix-multiplication precision.** On GPUs and TPUs, JAX's default matmul precision
   allows reduced-precision passes (TF32 or bfloat16) unless ``jax_default_matmul_precision``
@@ -733,3 +820,13 @@ In all cases, ``max_subsystem_size`` trades compile time against runtime: larger
 groups mean fewer, denser operator applications (faster steady-state runtime) at
 the cost of larger merged matrices and longer compilation. The default (2) is a
 reasonable balance for circuits dominated by one- and two-qubit gates.
+
+It does not change the simulated channel, the density matrix, or the distribution
+of measurement outcomes. For ``TrajectorySimulator`` there is one thing it does
+change: *which unravelling* the trajectories sample. The Kraus operators come from
+the Choi eigendecomposition of each merged group, so merging replaces several
+decompositions by one of their composition, and a different set of Kraus operators
+means a different ensemble of trajectory states for the same channel. Anything
+computed from that ensemble beyond its average — the spread of per-trajectory
+purities, say — therefore depends on the merge budget, even though the density
+matrix it averages to does not.
