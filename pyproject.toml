@@ -29,7 +29,7 @@ qcs-sdk-python = ">=0.20.1,<0.22"
 packaging = ">=23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
-rigetti-quax = "^0.7.4"
+rigetti-quax = "^0.7.5"
 quil = ">=0.18.0, <0.34.0"
 
 # latex extra
