@@ -78,11 +78,6 @@ import numpy as np
 import quax as qx
 from jax import Array
 
-# quax exports ``targeted_apply_kraus_map_trajectory``, which discards the sampled Kraus index; the
-# trajectory kernel needs that index to decode measurement outcomes, so it uses the underlying
-# sampler directly.  Exporting a variant that returns the index is an open request against quax.
-from quax._apply import _sample_kraus_map_trajectory
-
 from pyquil.api import MemoryMap
 from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
@@ -1705,7 +1700,9 @@ def _build_trajectory_kernel(layout: _KrausStackLayout) -> _TrajectoryRun:
             # base's budget: slicing the Kraus axis here keeps a one-qubit gate from being
             # applied as if it were the widest merged channel in the circuit.
             kraus_map = qx.KrausMap.from_matrix(op_mat[:base_max_k, :db, :db], (base_dims, base_dims))
-            return cast(tuple[qx.StateVector, Array], _sample_kraus_map_trajectory(kraus_map, psi, key, base))
+            # ``sample_kraus_map_trajectory`` rather than ``targeted_apply_kraus_map_trajectory``:
+            # the kernel needs the sampled Kraus index to decode measurement outcomes.
+            return cast(tuple[qx.StateVector, Array], qx.sample_kraus_map_trajectory(kraus_map, psi, key, base))
 
         return branch
 
