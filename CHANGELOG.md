@@ -11,6 +11,17 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Features
+
+- Helper for adding leading delays to programs with leading classical computation, including
+  cases with control flow. See `pyquil._qpu.add_leading_delay_to_first_pulse_block`.
+- Support for per-shot randomized compiling on the QPU control system. The top-level
+  `pyquil._qpu.RandomizedCompilingConfiguration` provides methods for building the necessary
+  classical instructions (`build_quil_program`), seed values (`generate_seed_values`), and
+  memory map values (`build_memory_map`) to enable the method. It additionally provides methods
+  for verifying final memory read off of the QPU for verification (`verify_final_memory`),
+  along with tracking the randomizations shot by shot (`track_pauli_frames`).
+
 ## 4.19.0 (2026-09-17)
 
 ### Features
