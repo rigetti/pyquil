@@ -341,9 +341,7 @@ class TestDecoherence:
 
             ch = Channel.from_coherence_times(RX(np.pi, 0), 40e-9, t1s=[20e-6], t2s=[15e-6])
             H = qutip.Qobj(np.asarray(ch.lindbladian.hamiltonian.matrix))
-            c_ops = [
-                qutip.Qobj(j) for j in np.asarray(ch.lindbladian.jump_operators.matrix) if np.linalg.norm(j) > 1e-15
-            ]
+            c_ops = [qutip.Qobj(j) for j in np.asarray(ch.lindbladian.jump_operators.matrix) if np.linalg.norm(j) > 1e-15]
             qutip.mesolve(H, qutip.Qobj(np.diag([1.0, 0.0]).astype(complex)), [0, 40e-9], c_ops=c_ops)
         """
         channel = Channel.from_coherence_times(RX(np.pi, 0), gate_duration=40e-9, t1s=[20e-6], t2s=[15e-6])
