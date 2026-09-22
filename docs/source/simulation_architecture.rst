@@ -503,8 +503,8 @@ Two constraints follow from how the register is fixed at construction:
 * **Both halves must span the same register.** ``qubits`` must list exactly the qubits its
   program acts on, so a half that leaves a qubit idle pads it with ``I``.
 * **A trajectory carries a pure state**, so :class:`TrajectorySimulator` takes a
-  ``StateVector`` only. To start trajectories from a mixed prefix, unravel it first — sample
-  an eigenvector of the density matrix per trajectory and pass that as its initial state.
+  ``StateVector`` only. The split pays off mainly on the density-matrix path: a trajectory
+  run has to run its trajectories either way.
 
 A state of the wrong representation or the wrong ``dims`` is rejected rather than broadcast.
 
@@ -699,14 +699,15 @@ selects the outcome. Measurements are passed to the merge plan as ``atomic`` (se
 index, so they follow the ``MEASURE`` instructions in program order regardless of
 how the plan ordered its groups.
 
-The sampling kernel is compiled once, at construction, from the merge plan alone —
-no parameter value is ever resolved to build it. Its layout is which subsystem each
+The sampling kernel is compiled once, at construction, from the merge plan alone;
+parameter resolution is not required to build it. Its layout is which subsystem each
 merged operation acts on, which operations are measurements, and how many Kraus
 operators each needs; all three are properties of the program's structure, so each
 ``compute`` or ``sample`` call rebuilds just the zero-padded Kraus stack for its
 parameters and passes it to the compiled kernel as an argument.
 
-Kraus counts are structural because the conversion keeps the full :math:`d^2` set:
+Kraus counts are structural because the superoperator-to-Kraus conversion keeps the
+full :math:`d^2` set:
 an all-unitary group needs one operator whatever its angles, a group containing a
 channel needs :math:`d^2`, and an instrument needs :math:`d^2` per outcome. (A
 *truncated* count would not be structural. A merged group holding two channels
@@ -719,8 +720,9 @@ applied as though it were the widest merged channel in the circuit.
 ``compute`` is ``jax.jit``- and ``jax.vmap``-traceable: nothing in
 ``resolve → compress → adapt → stack`` has a data-dependent shape, so a whole
 parameter sweep can be compiled. It is **not** differentiable — the sampled Kraus
-index is a discrete choice, so ``jax.grad`` traces successfully and returns zeros
-rather than raising. Use ``DensityMatrixSimulator`` for gradients.
+index is a discrete choice whose gradient would be identically zero, so the kernel
+carries a ``custom_jvp`` rule that makes ``jax.grad`` raise ``NotImplementedError``
+at trace time rather than return zeros. Use ``DensityMatrixSimulator`` for gradients.
 
 .. note::
    Preprocessing must run at 64-bit precision (``jax_enable_x64``). Converting a
@@ -732,6 +734,8 @@ rather than raising. Use ``DensityMatrixSimulator`` for gradients.
    below the floor and are lost. Evolution is a separate choice: pass
    ``evolution_dtype=jnp.complex64`` to run the sampling kernel in single
    precision (roughly 1.8x faster) on top of a Kraus set computed at 64 bits.
+   A misconfigured process does not raise: the conversion warns once when it
+   decomposes a channel with 64-bit mode off. See `Numerical precision`_.
 
 .. code-block:: python
 
@@ -761,7 +765,9 @@ devices are available, each batch is run data-parallel via :func:`jax.pmap` — 
 independent kernel replica per device, with no cross-device communication. In
 that case ``batch_size`` is interpreted **per device**, so ``n`` devices run
 ``n * batch_size`` trajectories per batch and each device's memory footprint
-matches a single-device run.
+matches a single-device run. When ``batch_size`` is omitted it is derived from the
+kernel's per-trajectory footprint against a fixed memory budget, capped at what the
+run needs; pass one to pin a single compiled width across calls.
 
 Each trajectory's randomness is derived from its *global* index, so the shots
 depend only on ``key`` and ``num_trajectories``: ``batch_size`` and the device

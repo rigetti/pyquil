@@ -128,10 +128,10 @@ class Circuit:
     ops: tuple[Placement, ...]
 
     # Equality is the dataclass one: same register and, pairwise, equal ``(operator, subsystem)``
-    # entries, so it delegates to the quax operators' own ``__eq__`` (tolerant, by ``allclose``,
-    # once quax issue 43 stops its dataclass subclasses shadowing it).  Objects equal within a
-    # tolerance cannot share a value hash, so a circuit is unhashable -- like an array -- rather
-    # than inheriting a dataclass hash that would only fail later from inside a quax operator.
+    # entries, so it delegates to the quax operators' own ``__eq__``, which is tolerant (by
+    # ``allclose``; quax >= 0.7.6).  Objects equal within a tolerance cannot share a value hash,
+    # so a circuit is unhashable -- like an array -- rather than inheriting a dataclass hash that
+    # would only fail later from inside a quax operator.
     __hash__ = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
@@ -144,6 +144,7 @@ class Circuit:
 
         Callers pass lists, NumPy integers and ranges; normalising once here is what lets
         ``dims`` and ``subsystems`` serve as hashable pytree auxiliary data and compare by value.
+        For input that is already tuples of ``int`` it is a no-op.
         """
         object.__setattr__(self, "dims", tuple(int(d) for d in self.dims))
         object.__setattr__(self, "ops", tuple((op, tuple(int(q) for q in sub)) for op, sub in self.ops))

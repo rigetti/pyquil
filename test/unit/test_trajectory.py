@@ -40,6 +40,7 @@ from pyquil.quilbase import Measurement as QuilMeasurement
 from pyquil.simulation._simulator import (
     PureStateVectorSimulator,
     TrajectorySimulator,
+    _default_batch_size,
     _KrausStackLayout,
     _op_to_kraus_matrix,
     _trajectory_keys,
@@ -47,6 +48,8 @@ from pyquil.simulation._simulator import (
 from test.unit.simulation_programs import (
     apply_trajectory_operations,
     simulate_state_vector,
+)
+from test.unit.simulation_programs import (
     simulate_trajectories as _simulate_trajectories,
 )
 
@@ -351,6 +354,56 @@ class TestTrajectoryBatching:
         assert jnp.array_equal(whole, halves)
 
 
+class TestTrajectoryKernelContract:
+    """The compiled kernel's contract: one compilation per shape, and no gradient."""
+
+    @staticmethod
+    def _parametric_simulator():
+        p = Program()
+        p += Declare("theta", "REAL", 1)
+        p += Declare("ro", "BIT", 1)
+        p += RX(MemoryReference("theta", 0), 0)
+        p += MEASURE(0, MemoryReference("ro", 0))
+        return TrajectorySimulator(p)
+
+    def test_kernel_compiles_once_per_shape(self):
+        """The Kraus stack is an *argument* of the kernel, so a new parameter value reuses the
+        compilation; only a new ensemble shape compiles again."""
+        sim = self._parametric_simulator()
+        key = jax.random.key(0)
+
+        sim.compute(sim.linearize({"theta": [0.1]}), key)
+        sim.compute(sim.linearize({"theta": [2.9]}), key)
+        assert sim._kernel._cache_size() == 1
+
+        sim.compute(sim.linearize({"theta": [0.1]}), jax.random.split(key, 4))
+        assert sim._kernel._cache_size() == 2
+
+    def test_grad_raises_instead_of_returning_zeros(self):
+        """The sampled Kraus index is discrete, so differentiating is an error, not a zero."""
+        sim = self._parametric_simulator()
+        key = jax.random.key(0)
+
+        def loss(params):
+            psi, _ = sim.compute(params, key)
+            return jnp.abs(psi.matrix[0]) ** 2
+
+        with pytest.raises(NotImplementedError, match="not differentiable"):
+            jax.grad(loss)(sim.linearize({"theta": [0.3]}))
+
+    def test_jit_and_vmap_still_trace(self):
+        """The rule that blocks ``grad`` must not get in the way of ``jit`` or ``vmap``."""
+        sim = self._parametric_simulator()
+        keys = jax.random.split(jax.random.key(0), 8)
+        angles = jnp.array([0.0, np.pi])
+
+        run = jax.jit(jax.vmap(lambda theta: sim.compute(jnp.array([theta]), keys)[1]))
+        outcomes = run(angles)
+
+        assert outcomes.shape == (2, 8, 1)
+        assert jnp.all(outcomes[0] == 0) and jnp.all(outcomes[1] == 1)
+
+
 class TestComputeProgramStateVectorWithNoise:
     """Test the TrajectorySimulator with noise_model parameter."""
 
@@ -451,6 +504,41 @@ class TestSampleProgramTrajectories:
         sim = TrajectorySimulator(p, qubits=[0])
 
         assert not np.array_equal(sim.sample(None, num_trajectories=200), sim.sample(None, num_trajectories=200))
+
+    def test_default_batch_size_matches_an_explicit_one(self):
+        """Deriving the width is a memory decision only; at the same key the shots are identical."""
+        p = Program(H(0), CNOT(0, 1), MEASURE(0, None), MEASURE(1, None))
+        sim = TrajectorySimulator(p, qubits=[0, 1])
+        key = jax.random.key(8)
+
+        derived = sim.sample(None, num_trajectories=50, key=key)
+        explicit = sim.sample(None, num_trajectories=50, key=key, batch_size=7)
+
+        assert np.array_equal(derived, explicit)
+
+    def test_default_batch_size_is_capped_by_the_run(self):
+        """A small run does not pad itself out to a wide batch, and a huge state gets width one."""
+        p = Program(H(0), MEASURE(0, None))
+        sim = TrajectorySimulator(p, qubits=[0])
+        n_devices = len(sim._devices)
+
+        sim.sample(None, num_trajectories=7, key=jax.random.key(1))
+        assert all(width <= -(-7 // n_devices) for width in sim._batched_kernels)
+
+        assert _default_batch_size(sim._layout, jnp.complex128, 7, 1) == 7
+        assert _default_batch_size(sim._layout, jnp.complex128, 10_000, 4) == 2_500
+        wide = _KrausStackLayout.from_plan(sim.plan, sim._resolution.ops, sim.dims)
+        huge = _KrausStackLayout(
+            dims=(2,) * 30,
+            subsystems=wide.subsystems,
+            bases=wide.bases,
+            branch_index=wide.branch_index,
+            base_max_k=wide.base_max_k,
+            divisors=wide.divisors,
+            measure_positions=wide.measure_positions,
+            d_max=wide.d_max,
+        )
+        assert _default_batch_size(huge, jnp.complex128, 10_000, 1) == 1
 
 
 # ──────────────────────────────────────────────────────────────────────────────

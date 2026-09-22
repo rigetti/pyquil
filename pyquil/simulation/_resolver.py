@@ -395,8 +395,8 @@ def expand_program(
         slot order.
     :raises ValueError: If the program contains control flow or classical memory
         instructions (see :data:`UNSUPPORTED_INSTRUCTIONS`), a gate modifier, an
-        expression-valued or feed-forward gate parameter, or a DEFCIRCUIT body that names a
-        literal qubit.
+        expression-valued or feed-forward gate parameter, a DEFCIRCUIT body that names a
+        literal qubit, or a DEFGATE that reuses a standard gate's name.
     """
     # Program-level derivations. These are independent of qubit dimensions, so
     # ``resolve_program``'s two passes each recompute them; measured at 1-4 ms (under 6% of a
@@ -405,6 +405,17 @@ def expand_program(
         inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)
     }
     custom_gates = get_custom_gates_from_program(program) or None
+    # A ``DEFGATE`` may not reuse a standard gate's name: the definition would silently replace
+    # the built-in on every instruction of that name, on the fixed and the parametric path alike.
+    # Quil reserves its own standard names already; this covers the gates quax knows beyond them
+    # (``ECR``, ``FSIM``, ``U``, the qutrit gates, ...).
+    if custom_gates is not None:
+        shadowed = sorted(name for name in custom_gates if name in qx.gates.QUANTUM_GATES)
+        if shadowed:
+            raise ValueError(
+                f"DEFGATE redefines the standard gate(s) {shadowed}. Custom gates may not shadow the built-in "
+                "gate set; rename the definition."
+            )
     measure_regs = _measure_registers(program)
     all_qubits = sorted(program.get_qubit_indices())
 
@@ -451,13 +462,14 @@ def expand_program(
 
             arguments: list[float | complex | ParameterExpression] = []
             for p in inst.params:
+                mrefs = _contained_mrefs(p)  # type: ignore[arg-type]
                 argument: float | complex | ParameterExpression
-                if not _contained_mrefs(p):  # type: ignore[arg-type]
+                if not mrefs:
                     # A literal: a compile-time constant for this gate.
                     argument = _literal_value(p)
                     is_complex = isinstance(argument, complex)
                 else:
-                    feed_forward = [m for m in _contained_mrefs(p) if m.name in measure_regs]  # type: ignore[arg-type]
+                    feed_forward = [m for m in mrefs if m.name in measure_regs]
                     if feed_forward:
                         # Classically-conditioned angle: the value is only known mid-circuit.
                         raise ValueError(

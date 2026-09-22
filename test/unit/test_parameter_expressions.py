@@ -107,6 +107,22 @@ class TestCompileExpression:
             _compile(THETA + Parameter("p"))
 
 
+class TestCustomGateNames:
+    def test_defgate_may_not_shadow_a_standard_gate(self):
+        # Quil reserves its own standard names (``DefGate("X", ...)`` fails in quil-rs), so the
+        # simulator's check matters for the gates quax knows beyond the Quil standard set.
+        program = _program(RX(np.pi, 0))
+        program += DefGate("ECR", np.eye(4))
+        with pytest.raises(ValueError, match=r"redefines the standard gate\(s\) \['ECR'\]"):
+            PureStateVectorSimulator(program)
+
+    def test_fresh_defgate_name_is_accepted(self):
+        program = Program()
+        program += DefGate("MY_X", np.array([[0, 1], [1, 0]]))
+        program += Gate("MY_X", [], [0])
+        np.testing.assert_allclose(_state(program), [0, 1], atol=1e-12)
+
+
 class TestSimulation:
     @pytest.mark.parametrize(
         ("gate", "literal"),
