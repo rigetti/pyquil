@@ -11,6 +11,25 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Features
+
+- `TrajectorySimulator`, a Monte-Carlo trajectory simulator for programs with mid-circuit
+  measurements and resets. It samples pure-state trajectories under JAX, returning the
+  measurement outcomes alongside the final state; `sample` streams trajectories in batches,
+  data-parallel across the available devices, so the shot count is not bounded by device
+  memory. `compute` is `jax.jit`-traceable (though not differentiable).
+  ([#1861](https://github.com/rigetti/pyquil/pull/1861))
+- A gate angle may be any Quil arithmetic expression over declared memory, so the parametric
+  programs `quilc` emits -- `RX(theta[0]/2 + pi) 0` -- simulate without rewriting.
+  ([#1869](https://github.com/rigetti/pyquil/pull/1869))
+- The simulators accept an `initial_state` to evolve from, so a circuit can be split in two and
+  a prefix shared across many runs evolved once instead of once per run.
+
+### Fixed
+
+- Restored the six commits that were dropped from the 4.19.0 release. 
+- `Circuit.to_kraus_maps` no longer truncates the Kraus set.
+
 ## 4.20.0 (2026-09-21)
 
 ### Features
@@ -37,9 +56,6 @@ A pull request that changes something a user would notice adds a bullet under
   parameters, and they accept a `NoiseModel`. The API is not yet stable; see
   [the architecture guide](https://pyquil-docs.rigetti.com/en/latest/simulation_architecture.html).
   ([#1855](https://github.com/rigetti/pyquil/pull/1855))
-- A gate angle may be any Quil arithmetic expression over declared memory, so the parametric
-  programs `quilc` emits -- `RX(theta[0]/2 + pi) 0` -- simulate without rewriting.
-  ([#1869](https://github.com/rigetti/pyquil/pull/1869))
 
 ## 4.18.0 (2026-08-19)
 

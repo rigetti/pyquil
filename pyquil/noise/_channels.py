@@ -33,7 +33,7 @@ import itertools
 import json
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from functools import cached_property, reduce
 from itertools import product
@@ -49,7 +49,19 @@ from quil.instructions import Instruction as RSInstruction
 from scipy.linalg import logm as scipy_logm
 from scipy.optimize import brentq
 
-from pyquil.quilatom import Expression, FormalArgument, MemoryReference, Parameter, ParameterDesignator, substitute
+from pyquil.quilatom import (
+    Add,
+    BinaryExp,
+    Div,
+    Expression,
+    FormalArgument,
+    Function,
+    Mul,
+    Parameter,
+    ParameterDesignator,
+    Pow,
+    Sub,
+)
 from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset, ResetQubit, _integer_base_and_exponent
 
 if TYPE_CHECKING:
@@ -298,6 +310,56 @@ def _random_coherent_error_unitary(
     )
 
 
+#: The Quil arithmetic functions, as JAX functions.  ``CIS(x)`` is ``exp(i x)``.
+QUIL_FUNCTIONS: dict[str, Callable[[Any], Any]] = {
+    "SIN": jnp.sin,
+    "COS": jnp.cos,
+    "SQRT": jnp.sqrt,
+    "EXP": jnp.exp,
+    "CIS": lambda x: jnp.exp(1j * x),
+}
+
+#: The Quil binary operators, as JAX functions.
+QUIL_BINARY_OPERATORS: dict[type[BinaryExp], Callable[[Any, Any], Any]] = {
+    Add: jnp.add,
+    Sub: jnp.subtract,
+    Mul: jnp.multiply,
+    Div: jnp.divide,
+    Pow: jnp.power,
+}
+
+
+def evaluate_expression(node: Any, bindings: Mapping[Parameter, Any]) -> Any:
+    """Evaluate a Quil arithmetic expression in JAX, binding ``DEFGATE`` parameters to values.
+
+    :func:`pyquil.quilatom.substitute` does the same job in NumPy, which is fine for a concrete
+    angle but fails on a traced value: the simulators build their operator stack under
+    ``jax.vmap``, so a parameter arrives as a tracer and ``substitute`` raises
+    ``TracerArrayConversionError`` trying to convert it.  Walking the tree with JAX operations
+    instead keeps the whole matrix traceable, which is what lets a parametric ``DEFGATE`` be
+    simulated, jitted and differentiated like any other gate.
+
+    :param node: A node of the expression tree: a ``Parameter``, a ``BinaryExp``, a ``Function``,
+        or a literal.
+    :param bindings: Values for the ``DEFGATE``'s formal parameters.  Values may be traced.
+    :return: The evaluated value, as a JAX array when any input is traced.
+    :raises ValueError: If the expression names a parameter with no binding, or an unknown
+        Quil function.
+    """
+    if isinstance(node, Parameter):
+        if node not in bindings:
+            raise ValueError(f"No value supplied for DEFGATE parameter {node}.")
+        return bindings[node]
+    if isinstance(node, BinaryExp):
+        operator = QUIL_BINARY_OPERATORS[type(node)]
+        return operator(evaluate_expression(node.op1, bindings), evaluate_expression(node.op2, bindings))
+    if isinstance(node, Function):
+        if node.name not in QUIL_FUNCTIONS:
+            raise ValueError(f"Unknown Quil function {node.name!r}.")
+        return QUIL_FUNCTIONS[node.name](evaluate_expression(node.expression, bindings))
+    return node
+
+
 def get_custom_gates_from_program(program: Program) -> CustomGateMap:
     """Extract custom gate definitions from a Quil program.
 
@@ -312,13 +374,18 @@ def get_custom_gates_from_program(program: Program) -> CustomGateMap:
     for defgate in program.defined_gates:
         if defgate.parameters:
 
-            def parametric_gate(*args: float, defgate: DefGate = defgate) -> qx.Unitary:
-                parameter_map: dict[Parameter | MemoryReference, float] = {
-                    Parameter(p.name): arg for p, arg in zip(defgate.parameters, args, strict=False)
-                }
-                matrix = jnp.asarray(
-                    [[substitute(element, parameter_map) for element in row] for row in defgate.matrix],
-                    dtype=complex,
+            def parametric_gate(*args: Any, defgate: DefGate = defgate) -> qx.Unitary:
+                bindings = {Parameter(p.name): arg for p, arg in zip(defgate.parameters, args, strict=False)}
+                # Built row by row through ``jnp.stack`` rather than one ``jnp.asarray`` over a
+                # nested list, so that traced entries stay traced instead of being forced into a
+                # NumPy object array.
+                matrix = jnp.stack(
+                    [
+                        jnp.stack(
+                            [jnp.asarray(evaluate_expression(element, bindings), dtype=complex) for element in row]
+                        )
+                        for row in defgate.matrix
+                    ]
                 )
                 return qx.Unitary.from_matrix(matrix, _operator_dims_from_dimension(matrix.shape[0]))
 
@@ -358,7 +425,11 @@ def get_instruction_unitary(
     elif name in qx.gates.QUANTUM_GATES:
         gate_def = qx.gates.QUANTUM_GATES[name]
     else:
-        raise KeyError(f"Unknown gate '{name}'. Provide it via custom_gates (e.g. custom_gates={{'{name}': matrix}}).")
+        raise KeyError(
+            f"Unknown gate '{name}'. Provide it via custom_gates as a quax Unitary -- "
+            f"custom_gates={{'{name}': qx.Unitary.from_matrix(matrix, (dims, dims))}} -- or, for a "
+            "parametric gate, a callable returning one."
+        )
 
     if inst.params:
         fixed_params = _evaluate_parameter_designators(inst.params)
@@ -371,8 +442,16 @@ def get_instruction_unitary(
         else:
             result = gate_def
 
-    # quax parametric gates may return Operator instead of Unitary; wrap if needed
+    # quax parametric gates may return Operator instead of Unitary; wrap if needed.
     if not isinstance(result, qx.Unitary):
+        if not hasattr(result, "matrix") or not hasattr(result, "dims"):
+            # Most likely a bare array passed as a custom gate. Guessing its dims would silently
+            # assume qubits, so say what is needed instead: a qutrit gate is the same shape.
+            raise TypeError(
+                f"Custom gate '{name}' is a {type(result).__name__}; it must be a quax operator. "
+                f"Wrap it with qx.Unitary.from_matrix(matrix, (dims, dims)), naming the per-qudit "
+                "dimensions explicitly."
+            )
         result = qx.Unitary.from_matrix(result.matrix, result.dims)
     return result
 

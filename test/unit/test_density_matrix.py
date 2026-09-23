@@ -58,7 +58,7 @@ from pyquil.noise._channels import (
 )
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
+from pyquil.quilatom import MemoryReference, quil_cis
 from pyquil.quilbase import Declare, Gate, ResetQubit
 from pyquil.simulation._reference import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
 from pyquil.simulation._simulator import DensityMatrixSimulator
@@ -509,6 +509,59 @@ class TestOutcomeProbabilities:
             sim.outcome_probabilities()
 
 
+class TestInitialState:
+    """``compute``/``outcome_probabilities`` starting from a caller-supplied state.
+
+    The point of the argument is to let a circuit be split in two so that a shared prefix is
+    evolved once and only the varying tail is re-run.  What these check is the property that
+    makes the split sound: prefix-then-tail must equal the whole circuit exactly.
+
+    Both halves have to span the same register -- ``qubits`` must list exactly the qubits the
+    program acts on -- so a half that leaves a qubit idle pads it with ``I``.
+    """
+
+    PREFIX = Program(H(0), CNOT(0, 1), RX(0.3, 1), I(2))
+    TAIL = Program(RX(1.1, 0), CNOT(1, 2))
+
+    def test_prefix_then_tail_equals_the_whole_circuit(self):
+        qubits = [0, 1, 2]
+        whole = DensityMatrixSimulator(self.PREFIX + self.TAIL, qubits=qubits).compute()
+        prefix = DensityMatrixSimulator(self.PREFIX, qubits=qubits).compute()
+        split = DensityMatrixSimulator(self.TAIL, qubits=qubits).compute(None, prefix)
+        np.testing.assert_allclose(np.asarray(split.matrix), np.asarray(whole.matrix), atol=1e-12)
+
+    def test_outcome_probabilities_from_a_prepared_state(self):
+        qubits = [0, 1, 2]
+        measured = Program(Declare("ro", "BIT", 3)) + self.TAIL
+        measured += [MEASURE(q, ("ro", i)) for i, q in enumerate(qubits)]
+        whole = DensityMatrixSimulator(self.PREFIX + measured, qubits=qubits).outcome_probabilities()
+        prefix = DensityMatrixSimulator(self.PREFIX, qubits=qubits).compute()
+        split = DensityMatrixSimulator(measured, qubits=qubits).outcome_probabilities(None, prefix)
+        np.testing.assert_allclose(np.asarray(split), np.asarray(whole), atol=1e-12)
+
+    def test_a_noisy_prefix_carries_its_mixedness_into_the_tail(self):
+        """The split has to work for a *mixed* prefix, which is the case it exists for."""
+        qubits = [0, 1]
+        noise_model = NoiseModel.from_channels([Channel.from_depolarizing_constant(H(0), 0.8)])
+        prefix, tail = Program(H(0), I(1)), Program(CNOT(0, 1))
+        whole = DensityMatrixSimulator(prefix + tail, qubits=qubits, noise_model=noise_model).compute()
+        prepared = DensityMatrixSimulator(prefix, qubits=qubits, noise_model=noise_model).compute()
+        assert np.trace(np.asarray(prepared.matrix) @ np.asarray(prepared.matrix)).real < 0.99, "prefix is mixed"
+        split = DensityMatrixSimulator(tail, qubits=qubits, noise_model=noise_model).compute(None, prepared)
+        np.testing.assert_allclose(np.asarray(split.matrix), np.asarray(whole.matrix), atol=1e-12)
+
+    def test_a_state_vector_is_rejected_by_the_density_matrix_backend(self):
+        """The dangerous case: without the check this broadcasts into a wrong-but-plausible matrix."""
+        sim = DensityMatrixSimulator(Program(X(0)), qubits=[0])
+        with pytest.raises(TypeError, match="must be a DensityMatrix"):
+            sim.compute(None, qx.zero_state_vector(dims=(2,)))
+
+    def test_a_mismatched_register_is_rejected(self):
+        sim = DensityMatrixSimulator(Program(X(0)), qubits=[0])
+        with pytest.raises(ValueError, match=r"dims \(2, 2\) but this simulator's register is \(2,\)"):
+            sim.compute(None, qx.zero_state_matrix(dims=(2, 2)))
+
+
 class TestPrecisionWarnings:
     def test_warns_about_reduced_matmul_precision_on_accelerators(self, monkeypatch):
         monkeypatch.setattr(jax, "default_backend", lambda: "gpu")
@@ -684,9 +737,10 @@ class TestErrorHandling:
         with pytest.raises(ValueError, match=f"modifiers are not supported.*{modifier}"):
             _dm(program)
 
-    def test_expression_valued_parameter_reports_clearly(self):
-        program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0) / 2, 0))
-        with pytest.raises(ValueError, match="expression over memory"):
+    def test_complex_valued_parameter_for_builtin_gate_reports_clearly(self):
+        theta = MemoryReference("theta", 0)
+        program = Program(Declare("theta", "REAL", 1), RX(quil_cis(theta), 0))
+        with pytest.raises(ValueError, match="complex-valued"):
             DensityMatrixSimulator(program, qubits=[0])
 
     def test_feed_forward_parameter_reports_clearly(self):

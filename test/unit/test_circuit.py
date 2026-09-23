@@ -29,6 +29,7 @@ costs and catch very different bugs:
 
 import itertools
 import warnings
+from functools import cached_property
 from typing import Any, cast
 
 import jax
@@ -303,6 +304,85 @@ class TestToSuperops:
         assert_same_channel(circuit.to_superops().full_operator(), circuit.full_operator())
 
 
+def _cached_property_names(cls) -> tuple[str, ...]:
+    return tuple(n for k in cls.__mro__ for n, a in vars(k).items() if isinstance(a, cached_property))
+
+
+class TestEqualityAndHashing:
+    """Circuits compare structurally with quax's tolerant operator equality, and do not hash."""
+
+    @pytest.fixture
+    def circuit(self):
+        return Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
+
+    def test_equality_is_structural(self, circuit):
+        """Same register and the same placed operators compare equal; a different register does not.
+
+        Operator comparison is delegated to quax; two *distinct but equal* operator objects compare
+        tolerantly once quax issue 43 (dataclass subclasses shadowing ``QuantumObject.__eq__``) is
+        fixed, which is why this test reuses the gate objects.
+        """
+        assert circuit == Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
+        assert circuit != Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (1, 0))])
+        assert circuit != Circuit(dims=(2, 3), ops=circuit.ops)
+
+    def test_circuit_is_unhashable(self, circuit):
+        with pytest.raises(TypeError, match="unhashable type: 'Circuit'"):
+            hash(circuit)
+        with pytest.raises(TypeError, match="unhashable"):
+            _ = {circuit: 1}
+
+    def test_circuit_cannot_be_a_static_argument(self, circuit):
+        with pytest.raises(ValueError, match="Non-hashable static arguments"):
+            jax.jit(lambda c, x: x.sum(), static_argnums=0)(circuit, jnp.ones(2))
+
+    def test_merge_plan_is_hashable_and_value_comparable(self, circuit):
+        plan = MergePlan.greedy(circuit.subsystems, max_subsystem_size=2)
+        assert plan == MergePlan.greedy(circuit.subsystems, max_subsystem_size=2)
+        assert {plan: 1}[MergePlan.greedy(circuit.subsystems, max_subsystem_size=2)] == 1
+
+
+class TestTraceSafety:
+    """Guards for the construction rules a pytree with cached properties must follow."""
+
+    @pytest.fixture
+    def circuit(self):
+        return Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
+
+    def test_no_cached_property_caches_a_tracer(self, circuit):
+        """Every cached property, touched first inside a trace, must cache concrete values."""
+        names = _cached_property_names(Circuit)
+        assert names, "guard is vacuous if there are none"
+        jax.jit(lambda x: [getattr(circuit, n) for n in names] and x.sum())(jnp.ones(1))
+        leaked = [
+            n
+            for n in names
+            for leaf in jax.tree_util.tree_leaves(circuit.__dict__[n])
+            if isinstance(leaf, jax.core.Tracer)
+        ]
+        assert not leaked, f"cached a tracer: {leaked}"
+
+    def test_unflatten_does_not_rerun_post_init(self, monkeypatch):
+        calls: list[int] = []
+        original = Circuit.__post_init__
+        monkeypatch.setattr(Circuit, "__post_init__", lambda self: (calls.append(1), original(self))[1])
+        circuit = Circuit.from_ops([(qx.gates.H, (0,)), (qx.gates.CNOT, (0, 1))])
+        assert len(calls) == 1  # construction
+        calls.clear()
+        jax.jit(lambda c, x: c.full_operator().matrix @ x)(circuit, jnp.ones(4))
+        assert calls == []  # unflatten bypassed it
+
+    def test_construction_inside_a_trace_validates_shapes_only(self):
+        """Validation reads operator shapes, never values, so a circuit can be built under jit."""
+
+        def build(theta):
+            return Circuit.from_ops([(qx.gates.RX(theta), (0,)), (qx.gates.CNOT, (0, 1))]).full_operator().matrix
+
+        assert jax.jit(build)(0.3).shape == (4, 4)
+        with pytest.raises(ValueError, match="does not fit the register"):
+            jax.jit(lambda t: Circuit(dims=(2, 2), ops=[(qx.gates.TRX01(t), (0,))]).num_ops)(0.3)
+
+
 class TestToKrausMaps:
     def test_converts_superops_to_kraus_maps(self):
         circuit = Circuit.from_ops([(qx.gates.H, (0,))]).to_superops().to_kraus_maps()
@@ -336,12 +416,31 @@ class TestToKrausMaps:
             finally:
                 jax.config.update("jax_enable_x64", True)
 
-    def test_truncation_drops_negligible_kraus_operators(self):
+    def test_keeps_a_fixed_size_kraus_set(self):
+        """The Kraus axis is d_out * d_in whatever the channel's rank; the surplus is zero.
+
+        Keeping the count fixed is what makes it a property of the circuit's structure rather
+        than of a parameter value, which is what lets a trajectory simulator compile its kernel
+        once.  A zero Kraus operator carries zero Born probability and is never sampled.
+        """
         unitary_channel = Circuit.from_ops([(qx.gates.H, (0,))]).to_superops()
-        truncated = unitary_channel.to_kraus_maps(atol=1e-6).operators[0]
-        # A unitary channel has Kraus rank 1, whatever the superoperator's dense shape.
+        converted = unitary_channel.to_kraus_maps().operators[0]
+
         # A Kraus map's matrix is (*ensemble, num_kraus, d_out, d_in).
-        assert truncated.matrix.shape[-3] == 1
+        assert converted.matrix.shape[-3] == 4
+        # A unitary channel has Kraus rank 1, so exactly one operator is non-zero.
+        assert int(jnp.sum(jnp.linalg.norm(converted.matrix, axis=(-2, -1)) > 0)) == 1
+
+    def test_keeps_low_weight_components(self):
+        """Error components far below the old fixed 1e-6 threshold survive the conversion.
+
+        A merged group's correlated multi-error branches sit at the product of its constituent
+        error rates, which is exactly what a truncating conversion used to discard.
+        """
+        channel = Circuit.from_ops([(qx.channels.depolarizing(1e-9, (2,)), (0,))])
+        converted = channel.to_kraus_maps().operators[0]
+
+        assert int(jnp.sum(jnp.linalg.norm(converted.matrix, axis=(-2, -1)) > 0)) == 4
 
 
 class TestCompose:

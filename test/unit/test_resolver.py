@@ -430,7 +430,7 @@ class TestParameterSlots:
         program = Program(Declare("theta", "REAL", 1), RX(theta0, 0), RZ(theta0, 1))
         ops, _, parameters = expand_program(program)
         assert parameters == (("theta", 0),)
-        assert [op.param_indices for op in ops] == [(0,), (0,)]
+        assert [op.arguments[0].slot_indices for op in ops] == [(0,), (0,)]
 
     def test_distinct_references_get_distinct_slots_in_first_use_order(self):
         program = Program(

@@ -127,13 +127,41 @@ class Circuit:
     dims: tuple[int, ...]
     ops: tuple[Placement, ...]
 
+    # Equality is the dataclass one: same register and, pairwise, equal ``(operator, subsystem)``
+    # entries, so it delegates to the quax operators' own ``__eq__``, which is tolerant (by
+    # ``allclose``; quax >= 0.7.6).  Objects equal within a tolerance cannot share a value hash,
+    # so a circuit is unhashable -- like an array -- rather than inheriting a dataclass hash that
+    # would only fail later from inside a quax operator.
+    __hash__ = None  # type: ignore[assignment]
+
     def __post_init__(self) -> None:
+        self._coerce_fields()
+        self._validate_register()
+        self._validate_placements()
+
+    def _coerce_fields(self) -> None:
+        """Store ``dims`` and every subsystem as tuples of plain ``int``.
+
+        Callers pass lists, NumPy integers and ranges; normalising once here is what lets
+        ``dims`` and ``subsystems`` serve as hashable pytree auxiliary data and compare by value.
+        For input that is already tuples of ``int`` it is a no-op.
+        """
         object.__setattr__(self, "dims", tuple(int(d) for d in self.dims))
         object.__setattr__(self, "ops", tuple((op, tuple(int(q) for q in sub)) for op, sub in self.ops))
 
+    def _validate_register(self) -> None:
+        """Reject a register with a non-positive dimension."""
         if any(d < 1 for d in self.dims):
             raise ValueError(f"Register dimensions must be positive, got {self.dims}.")
 
+    def _validate_placements(self) -> None:
+        """Check that every operation fits where it is placed.
+
+        Each subsystem must name distinct register positions inside the register, one per
+        qudit the operator acts on, and the operator's dimension on each qudit may not exceed
+        the register's there.  Only shapes are inspected, never array values, so this is safe
+        to run on traced operators inside ``jax.jit``.
+        """
         num_qudits = len(self.dims)
         for index, (op, subsystem) in enumerate(self.ops):
             out_of_range = [q for q in subsystem if not 0 <= q < num_qudits]
@@ -283,38 +311,45 @@ class Circuit:
             converted.append((qx.to_superop(channel), subsystem))
         return self.with_ops(converted)
 
-    def to_kraus_maps(self, atol: float = 1e-6) -> Circuit:
-        """Convert channels to truncated :class:`~quax.KrausMap` operators.
+    def to_kraus_maps(self) -> Circuit:
+        """Convert channels to :class:`~quax.KrausMap` operators.
 
-        ``SuperOp``, ``Choi`` and ``PauliLiouville`` operations become ``KrausMap`` operations
-        with negligible Kraus operators dropped.  ``Unitary``, ``KrausMap`` and
-        ``QuantumInstrument`` operations pass through unchanged: each is already applicable to
-        a state vector, deterministically or by sampling, so lifting them would only cost
-        precision and memory.
+        ``SuperOp``, ``Choi`` and ``PauliLiouville`` operations become ``KrausMap`` operations.
+        ``Unitary``, ``KrausMap`` and ``QuantumInstrument`` operations pass through unchanged:
+        each is already applicable to a state vector, deterministically or by sampling, so
+        lifting them would only cost precision and memory.
 
-        The decomposition diagonalises each channel's Choi matrix and keeps the eigenvectors
-        whose eigenvalues exceed ``atol``.  At JAX's default 32-bit precision that threshold
-        sits at the resolution of the arithmetic itself, so a warning is issued when a channel
-        is decomposed with ``jax_enable_x64`` off; enable 64-bit mode before building or
-        converting noise models.
+        The decomposition diagonalises each channel's Choi matrix, so a channel on a subsystem
+        of dimension :math:`d` always yields :math:`d^2` Kraus operators, ordered by descending
+        eigenvalue.  Components below quax's eigenvalue tolerance come back as *exactly zero*
+        operators rather than being dropped: a zero operator carries zero Born probability and
+        is never sampled, and the stack a trajectory simulator builds from these is padded to a
+        fixed width anyway, so removing them would save no work.  Keeping the count fixed is
+        what makes it a function of the circuit's structure alone -- independent of any
+        parameter value -- and keeps this conversion ``jax.jit``-traceable.
 
-        :param atol: Kraus operators with smaller norm are discarded.
         :return: A circuit with no dense superoperators.
         """
         converted: list[Placement] = []
         decomposed = False
         for op, subsystem in self.ops:
             if isinstance(op, qx.SuperOperator) and not isinstance(op, qx.KrausMap):
-                if not decomposed and not jax.config.jax_enable_x64:  # type: ignore
+                # JAX defines its flags dynamically, so they are read through ``config.values``:
+                # attribute access works at runtime but is invisible to type checkers.  The
+                # condition is a static config read, so under ``jax.jit`` this fires on the first
+                # trace only, which is enough to reach the user who needs it.
+                if not decomposed and not jax.config.values["jax_enable_x64"]:
                     warnings.warn(
                         "Kraus decomposition at 32-bit precision: JAX's jax_enable_x64 flag is off, so the "
-                        f"eigendecomposition and the atol={atol} truncation run at float32 resolution. "
-                        "Enable 64-bit mode (jax.config.update('jax_enable_x64', True), or JAX_ENABLE_X64=1) "
-                        "before building or converting noise models.",
+                        "Choi eigendecomposition runs at float32, where eigenvalues below roughly 1e-6 are "
+                        "indistinguishable from round-off. Error components weaker than that are lost, which "
+                        "matters most for the correlated multi-error branches of a merged channel. Enable "
+                        "64-bit mode (jax.config.update('jax_enable_x64', True), or JAX_ENABLE_X64=1) before "
+                        "building or converting noise models.",
                         stacklevel=2,
                     )
                 decomposed = True
-                converted.append((qx.truncate_kraus(qx.to_kraus(op), atol=atol), subsystem))
+                converted.append((qx.to_kraus(op), subsystem))
             else:
                 converted.append((op, subsystem))
         return self.with_ops(converted)
@@ -326,7 +361,9 @@ class Circuit:
 
         Each operation is embedded into the register's Hilbert space and the embedded operators
         are multiplied in application order.  The result is a ``Unitary`` when every operation
-        is unitary and a superoperator as soon as one is not.
+        is unitary and a superoperator as soon as one is not; a circuit of ``KrausMap``
+        operations folds to a ``SuperOp`` rather than to a product Kraus set, for the reason in
+        the body.
 
         This is exponentially expensive in the register size and is intended for verification
         and analysis, not for simulation.
@@ -344,7 +381,14 @@ class Circuit:
                 f"Operation(s) {instruments} are QuantumInstruments, which have no single operator. "
                 "Call to_superops() first to use their total channels instead."
             )
-        return _merge(self.ops, tuple(range(self.num_qudits)), self.dims)
+        ops = self.ops
+        # Composing two Kraus maps produces the product of their operator counts, so folding a
+        # deep circuit of d^2-operator maps is exponential in *depth* as well as register size.
+        # Superoperator composition is a fixed-size matrix product, so route through it as soon
+        # as more than one operation would be composed.
+        if len(ops) > 1 and any(isinstance(op, qx.KrausMap) for op, _ in ops):
+            ops = self.to_superops().ops
+        return _merge(ops, tuple(range(self.num_qudits)), self.dims)
 
 
 def _merge(
