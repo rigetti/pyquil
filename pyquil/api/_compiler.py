@@ -16,6 +16,7 @@
 from typing import Any, TypeAlias
 from warnings import warn
 
+from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import QuilcClient
 from qcs_sdk.qpu.translation import (
@@ -28,6 +29,7 @@ from qcs_sdk.qpu.translation import (
 )
 from rpcq.messages import ParameterSpec
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
@@ -173,6 +175,11 @@ class QPUCompiler(AbstractCompiler):
         self._calibration_program = None
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=SIMULATOR_REASON,
+    category=PyQuilDeprecationWarning,
+)
 class QVMCompiler(AbstractCompiler):
     """Client to communicate with the compiler."""
 

@@ -13,7 +13,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Sub-package for facilitating connections to the QVM / QPU."""
+"""Sub-package for facilitating connections to the QVM / QPU.
+
+.. deprecated:: 4.22.0
+    :py:class:`QVM`, :py:class:`QVMCompiler` and :py:class:`WavefunctionSimulator`, along with
+    getting a QVM-backed quantum computer from :py:func:`get_qc`, are deprecated. They will be
+    removed in pyQuil v5 in favor of the Quax-based simulators. Those simulators are available in
+    pyQuil v4 (``pyquil.simulation._simulator``), but are private, experimental and subject to
+    change, so we recommend continuing to use the deprecated APIs until you upgrade to pyQuil v5.
+"""
 
 from qcs_sdk import QCSClient, RegisterMatrixConversionError
 from qcs_sdk.qpu import RawQPUReadoutData

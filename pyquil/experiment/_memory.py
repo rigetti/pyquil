@@ -18,7 +18,9 @@ import itertools
 from typing import cast
 
 import numpy as np
+from deprecated.sphinx import deprecated
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, PyQuilDeprecationWarning
 from pyquil.paulis import PauliTerm
 
 
@@ -40,6 +42,9 @@ def euler_angles_RY(theta: float) -> tuple[float, float, float]:
     return (0.0, theta, 0.0)
 
 
+# ``euler_angles_RX`` and ``euler_angles_RY`` are not decorated: they are called here at import time,
+# so they would warn on every import. The module-level warning in ``pyquil.experiment`` covers them.
+
 # euler angles for preparing the +1 eigenstate of X, Y, or Z
 P_X = euler_angles_RY(np.pi / 2)
 P_Y = euler_angles_RX(-np.pi / 2)
@@ -52,6 +57,11 @@ M_Y = euler_angles_RX(np.pi / 2)
 M_Z = (0.0, 0.0, 0.0)
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def pauli_term_to_euler_memory_map(
     term: PauliTerm,
     *,
@@ -121,6 +131,11 @@ def pauli_term_to_euler_memory_map(
     return memory_map
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def pauli_term_to_preparation_memory_map(term: PauliTerm, label: str = "preparation") -> dict[str, list[float]]:
     """Create a memory map for ZXZXZ-decomposed single-qubit gates to prepare the plus one eigenstate of the PauliTerm.
 
@@ -145,6 +160,11 @@ def pauli_term_to_preparation_memory_map(term: PauliTerm, label: str = "preparat
     return pauli_term_to_euler_memory_map(term, prefix=label, tuple_x=P_X, tuple_y=P_Y, tuple_z=P_Z)
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def pauli_term_to_measurement_memory_map(term: PauliTerm, label: str = "measurement") -> dict[str, list[float]]:
     """Create a memory map for ZXZXZ-decomposed single-qubit gates to measure in the eigenbasis of the PauliTerm.
 
@@ -170,6 +190,11 @@ def pauli_term_to_measurement_memory_map(term: PauliTerm, label: str = "measurem
     return pauli_term_to_euler_memory_map(term, prefix=label, tuple_x=M_X, tuple_y=M_Y, tuple_z=M_Z)
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def merge_memory_map_lists(
     mml1: list[dict[str, list[float]]], mml2: list[dict[str, list[float]]]
 ) -> list[dict[str, list[float]]]:

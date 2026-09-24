@@ -1,4 +1,10 @@
-"""A pure Python implementation of the Quantum Virtual Machine (QVM)."""
+"""A pure Python implementation of the Quantum Virtual Machine (QVM).
+
+.. deprecated:: 4.22.0
+    It will be removed in pyQuil v5 in favor of the Quax-based simulators. Those simulators are
+    available in pyQuil v4 (pyquil.simulation._simulator), but are private, experimental and subject
+    to change, so we recommend continuing to use this API until you upgrade to pyQuil v5.
+"""
 
 ##############################################################################
 # Copyright 2018 Rigetti Computing
@@ -16,15 +22,18 @@
 #    limitations under the License.
 ##############################################################################
 import logging
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from typing import Any
 
 import numpy as np
+from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
 from qcs_sdk import ExecutionData, RegisterData, ResultData
 from qcs_sdk.qvm import QVMResultData
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
 from pyquil.api import QAM, MemoryMap, QAMExecutionResult, QuantumExecutable
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
@@ -62,11 +71,19 @@ from pyquil.quilbase import (
     Wait,
 )
 
+warnings.warn(
+    f"The module {__name__} is deprecated. ({SIMULATOR_REASON}) -- Deprecated since version {DEPRECATED_IN_VERSION}.",
+    PyQuilDeprecationWarning,
+    stacklevel=2,
+)
+
 log = logging.getLogger(__name__)
 
 QUIL_TO_NUMPY_DTYPE = {"INT": np.int32, "REAL": np.float64, "BIT": np.int8, "OCTET": np.uint8}
 
 
+# Not decorated: ``deprecated`` wraps ``__new__``, so every deprecated subclass (the NumPy and
+# reference simulators) would also emit this class's warning. The module-level warning covers it.
 class AbstractQuantumSimulator(ABC):
     """An abstract interface for a quantum simulator."""
 
@@ -150,6 +167,11 @@ class AbstractQuantumSimulator(ABC):
         """
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=SIMULATOR_REASON,
+    category=PyQuilDeprecationWarning,
+)
 class PyQVM(QAM["PyQVM"]):
     """A pure python implementation of the Quantum Virtual Machine."""
 

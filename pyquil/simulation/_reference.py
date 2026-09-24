@@ -18,8 +18,10 @@ from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
+from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
@@ -69,6 +71,11 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
     return hermitian and trace_one and non_neg_eigs
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=SIMULATOR_REASON,
+    category=PyQuilDeprecationWarning,
+)
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState | None = None):
         """Initialize a wavefunction simulator that prioritizes readability over performance.
@@ -184,6 +191,11 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=SIMULATOR_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def zero_state_matrix(n_qubits: int) -> np.ndarray:
     """Construct a matrix corresponding to the tensor product of `n` ground states ``|0><0|``.
 
@@ -195,6 +207,11 @@ def zero_state_matrix(n_qubits: int) -> np.ndarray:
     return state_matrix
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=SIMULATOR_REASON,
+    category=PyQuilDeprecationWarning,
+)
 class ReferenceDensitySimulator(AbstractQuantumSimulator):
     """A density matrix simulator that prioritizes readability over performance.
 

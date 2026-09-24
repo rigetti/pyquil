@@ -13,18 +13,39 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Module containing the Wavefunction object and methods for working with wavefunctions."""
+"""Module containing the Wavefunction object and methods for working with wavefunctions.
+
+.. deprecated:: 4.22.0
+    It will be removed in pyQuil v5 in favor of the Quax-based simulators. Those simulators are
+    available in pyQuil v4 (pyquil.simulation._simulator), but are private, experimental and subject
+    to change, so we recommend continuing to use this API until you upgrade to pyQuil v5.
+"""
 
 import itertools
+import warnings
 from collections.abc import Iterator, Sequence
 from typing import cast
 
 import numpy as np
+from deprecated.sphinx import deprecated
+
+from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
+
+warnings.warn(
+    f"The module {__name__} is deprecated. ({SIMULATOR_REASON}) -- Deprecated since version {DEPRECATED_IN_VERSION}.",
+    PyQuilDeprecationWarning,
+    stacklevel=2,
+)
 
 OCTETS_PER_DOUBLE_FLOAT = 8
 OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=SIMULATOR_REASON,
+    category=PyQuilDeprecationWarning,
+)
 class Wavefunction:
     """Encapsulate a wavefunction representing a quantum state as returned by :py:class:`~pyquil.api.WavefunctionSimulator`.
 
@@ -176,6 +197,11 @@ class Wavefunction:
         return bitstrings
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=SIMULATOR_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def get_bitstring_from_index(index: int, qubit_num: int) -> str:
     """Get the bitstring in lexical order that corresponds to the given index in 0 to 2^(qubit_num).
 

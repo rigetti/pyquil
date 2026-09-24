@@ -1,13 +1,20 @@
-"""Tools for estimating the expectation value of operators on a quantum computer."""
+"""Tools for estimating the expectation value of operators on a quantum computer.
+
+.. deprecated:: 4.22.0
+    It will be removed in pyQuil v5 in favor of the Estimator interface in rigetti-qpu-hybrid-benchmark.
+"""
 
 import logging
+import warnings
 from collections.abc import Callable, Generator, Mapping
 from math import pi
 from numbers import Complex
 from typing import cast
 
 import numpy as np
+from deprecated.sphinx import deprecated
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, OPERATOR_ESTIMATION_REASON, PyQuilDeprecationWarning
 from pyquil.api import QuantumComputer
 
 # import the full public API of the pyquil experiment module
@@ -37,6 +44,12 @@ from pyquil.gates import RESET, RX, RY, RZ, X
 from pyquil.paulis import is_identity
 from pyquil.quil import Program
 from pyquil.quilatom import QubitDesignator
+
+warnings.warn(
+    f"The module {__name__} is deprecated. ({OPERATOR_ESTIMATION_REASON}) -- Deprecated since version {DEPRECATED_IN_VERSION}.",
+    PyQuilDeprecationWarning,
+    stacklevel=2,
+)
 
 log = logging.getLogger(__name__)
 
@@ -184,6 +197,11 @@ def _generate_experiment_programs(
     return programs, meas_qubits
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=OPERATOR_ESTIMATION_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def measure_observables(
     qc: QuantumComputer,
     tomo_experiment: Experiment,

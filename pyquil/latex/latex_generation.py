@@ -15,18 +15,32 @@
 ##############################################################################
 """Convert a ``Program`` to a LaTeX quantum circuit diagram.
 
-Note: this is a deprecated module: Import from pyquil.latex instead.
+.. deprecated:: 4.0
+    This module has been moved: import from ``pyquil.latex`` instead.
+
+.. deprecated:: 4.22.0
+    ``pyquil.latex`` is itself deprecated and will be removed in pyQuil v5, with no replacement in pyQuil.
 """
 
-from deprecated.classic import deprecated
+import warnings
 
+from deprecated.sphinx import deprecated
+
+from pyquil._deprecation import DEPRECATED_IN_VERSION, LATEX_REASON, PyQuilDeprecationWarning
 from pyquil.latex._diagram import DiagramSettings
 from pyquil.quil import Program
 
+warnings.warn(
+    f"The module {__name__} is deprecated. ({LATEX_REASON}) -- Deprecated since version {DEPRECATED_IN_VERSION}.",
+    PyQuilDeprecationWarning,
+    stacklevel=2,
+)
+
 
 @deprecated(
-    version="4.0",
-    reason="This module has been moved -- please import it as 'from pyquil.latex import to_latex' going forward",
+    version=DEPRECATED_IN_VERSION,
+    reason=LATEX_REASON,
+    category=PyQuilDeprecationWarning,
 )
 def to_latex(circuit: Program, settings: DiagramSettings | None = None) -> str:
     """Produce a circuit diagram in LaTeX for a given pyQuil Program."""
