@@ -25,6 +25,9 @@ from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from typing import Any, cast
 
+from deprecated.sphinx import deprecated
+
+from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, PyQuilDeprecationWarning
 from pyquil.paulis import PauliTerm, sI
 
 log = logging.getLogger(__name__)
@@ -54,6 +57,11 @@ class _OneQState:
         return _OneQState(label=ma.group(1), index=int(ma.group(2)), qubit=int(ma.group(3)))
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 @dataclass(frozen=True)
 class TensorProductState:
     """A description of a multi-qubit quantum state that is a tensor product of many _OneQStates states."""
@@ -106,50 +114,110 @@ class TensorProductState:
         return TensorProductState(list(_OneQState.from_str(x) for x in s.split("*")))
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def SIC0(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="SIC", index=0, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def SIC1(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="SIC", index=1, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def SIC2(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="SIC", index=2, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def SIC3(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="SIC", index=3, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def plusX(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="X", index=0, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def minusX(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="X", index=1, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def plusY(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="Y", index=0, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def minusY(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="Y", index=1, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def plusZ(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="Z", index=0, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def minusZ(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="Z", index=1, qubit=q)])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def zeros_state(qubits: Iterable[int]) -> TensorProductState:
     return TensorProductState([_OneQState(label="Z", index=0, qubit=q) for q in qubits])
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 @dataclass(frozen=True, init=False)
 class ExperimentSetting:
     """Input and output settings for a tomography-like experiment.

@@ -16,9 +16,12 @@
 from typing import cast
 
 import numpy as np
+from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient, qvm
 from qcs_sdk.qvm import QVMOptions
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
+from pyquil._wavefunction import Wavefunction
 from pyquil.api import MemoryMap
 from pyquil.api._qvm import (
     validate_noise_probabilities,
@@ -27,9 +30,13 @@ from pyquil.gates import MOVE
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-from pyquil.wavefunction import Wavefunction
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=SIMULATOR_REASON,
+    category=PyQuilDeprecationWarning,
+)
 class WavefunctionSimulator:
     def __init__(
         self,

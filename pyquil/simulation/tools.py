@@ -16,16 +16,20 @@
 """Miscellaneous tools that are helpful for simulation."""
 
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
-from pyquil.experiment._setting import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import Parameter
 from pyquil.quilbase import Gate, Halt, _strip_modifiers
 from pyquil.simulation.matrices import QUANTUM_GATES, STATES, SWAP
+
+if TYPE_CHECKING:
+    # ``pyquil.experiment`` is deprecated. It is not imported at runtime, so that importing this
+    # module does not import it (see ``pyquil._deprecation``).
+    from pyquil.experiment._setting import TensorProductState
 
 
 def all_bitstrings(n_bits: int) -> np.ndarray:
@@ -402,7 +406,7 @@ def tensor_up(pauli_sum: PauliSum | PauliTerm, qubits: list[int]) -> np.ndarray:
     return lifted_pauli(pauli_sum=pauli_sum, qubits=qubits)
 
 
-def lifted_state_operator(state: TensorProductState, qubits: list[int]) -> np.ndarray:
+def lifted_state_operator(state: "TensorProductState", qubits: list[int]) -> np.ndarray:
     """Return a matrix corresponding to the tensored-up representation of the given state and qubits.
 
     Developer note: Quil and the QVM like qubits to be ordered such that qubit 0 is on the right.

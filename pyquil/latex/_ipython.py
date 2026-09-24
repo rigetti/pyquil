@@ -20,13 +20,20 @@ import subprocess
 import tempfile
 from typing import Any
 
+from deprecated.sphinx import deprecated
 from IPython.display import Image
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, LATEX_REASON, PyQuilDeprecationWarning
 from pyquil.latex._diagram import DiagramSettings
 from pyquil.latex._main import to_latex
 from pyquil.quil import Program
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=LATEX_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def display(circuit: Program, settings: DiagramSettings | None = None, **image_options: Any) -> Image:
     """Display a PyQuil circuit as an IPython image object.
 

@@ -17,11 +17,18 @@
 from collections.abc import Sequence
 
 import numpy as np
+from deprecated.sphinx import deprecated
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, PyQuilDeprecationWarning
 from pyquil.gates import MEASURE, RX, RZ
 from pyquil.quil import Program
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def parameterized_euler_rotations(
     qubits: Sequence[int],
     *,
@@ -79,6 +86,11 @@ def parameterized_euler_rotations(
     return p
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def parameterized_single_qubit_state_preparation(qubits: Sequence[int], label: str = "preparation") -> Program:
     """Produce a program as in ``parameterized_euler_rotations`` where each memory region is prefixed by "preparation".
 
@@ -89,6 +101,11 @@ def parameterized_single_qubit_state_preparation(qubits: Sequence[int], label: s
     return parameterized_euler_rotations(qubits, prefix=label)
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def parameterized_single_qubit_measurement_basis(qubits: Sequence[int], label: str = "measurement") -> Program:
     """Produce a program as in ``parameterized_euler_rotations`` where each memory region is prefixed by "measurement".
 
@@ -99,6 +116,11 @@ def parameterized_single_qubit_measurement_basis(qubits: Sequence[int], label: s
     return parameterized_euler_rotations(qubits, prefix=label)
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def parameterized_readout_symmetrization(qubits: Sequence[int], label: str = "symmetrization") -> Program:
     """Given a number of qubits (n), produce a parameterized ``Program`` with an ``RX`` instruction on qubits [0, n-1].
 
@@ -116,6 +138,11 @@ def parameterized_readout_symmetrization(qubits: Sequence[int], label: str = "sy
     return p
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def measure_qubits(qubits: Sequence[int]) -> Program:
     """Given a number of qubits (n), produce a ``Program`` with a ``MEASURE`` instruction on qubits [0, n-1].
 

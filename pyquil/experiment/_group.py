@@ -20,8 +20,10 @@ from operator import mul
 from typing import cast
 
 import networkx as nx
+from deprecated.sphinx import deprecated
 from networkx.algorithms.approximation.clique import clique_removal
 
+from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, PyQuilDeprecationWarning
 from pyquil.experiment._main import Experiment
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting, TensorProductState, _OneQState
@@ -30,6 +32,11 @@ from pyquil.paulis import PauliTerm, sI
 from pyquil.quil import Program
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def get_results_by_qubit_groups(
     results: Iterable[ExperimentResult], qubit_groups: Sequence[Sequence[int]]
 ) -> dict[tuple[int, ...], list[ExperimentResult]]:
@@ -60,6 +67,11 @@ def get_results_by_qubit_groups(
     return results_by_qubit_group
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def merge_disjoint_experiments(experiments: list[Experiment], group_merged_settings: bool = True) -> Experiment:
     """Merge the experiments into one that runs all individual programs and includes all combined settings.
 
@@ -111,6 +123,11 @@ def merge_disjoint_experiments(experiments: list[Experiment], group_merged_setti
     return merged_expt
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
     """Construct a graph where an edge signifies two experiments are diagonal in a TPB."""
     g: nx.Graph = nx.Graph()
@@ -140,6 +157,11 @@ def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
     return g
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def group_settings_clique_removal(experiments: Experiment) -> Experiment:
     """Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number of QPU runs.
 
@@ -261,6 +283,11 @@ def _max_tpb_overlap(
     return diagonal_sets
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def group_settings_greedy(tomo_expt: Experiment) -> Experiment:
     """Greedy method to group ExperimentSettings in a given Experiment.
 
@@ -278,6 +305,11 @@ def group_settings_greedy(tomo_expt: Experiment) -> Experiment:
     return grouped_tomo_expt
 
 
+@deprecated(
+    version=DEPRECATED_IN_VERSION,
+    reason=EXPERIMENT_REASON,
+    category=PyQuilDeprecationWarning,
+)
 def group_settings(experiments: Experiment, method: str = "greedy") -> Experiment:
     """Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number of QPU runs.
 
