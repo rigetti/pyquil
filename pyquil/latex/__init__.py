@@ -1,7 +1,7 @@
 """Generate LaTeX diagrams from a ``Program``.
 
 .. deprecated:: 4.22.0
-    It will be removed in pyQuil v5, with no replacement in pyQuil.
+    To be removed in pyQuil v5, with no replacement in pyQuil.
 """
 
 __all__ = [

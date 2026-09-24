@@ -21,8 +21,8 @@ from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
 
 from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
+from pyquil._pyqvm import AbstractQuantumSimulator
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import QUANTUM_GATES
 

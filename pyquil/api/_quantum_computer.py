@@ -36,6 +36,7 @@ from qcs_sdk.qpu import list_quantum_processors
 from qcs_sdk.qvm import QVMClient
 
 from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, SIMULATOR_REASON, PyQuilDeprecationWarning
+from pyquil._pyqvm import PyQVM
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
@@ -55,11 +56,10 @@ from pyquil.quil import Program
 from pyquil.quilatom import QubitDesignator
 
 if TYPE_CHECKING:
-    # ``pyquil.experiment`` and ``pyquil.pyqvm`` are deprecated. They are imported lazily, where
-    # used, so that importing pyQuil does not import them (see ``pyquil._deprecation``).
+    # ``pyquil.experiment`` is deprecated. It is imported lazily, where used, so that importing
+    # pyQuil does not import it (see ``pyquil._deprecation``).
     from pyquil.experiment._main import Experiment
     from pyquil.experiment._result import ExperimentResult
-    from pyquil.pyqvm import PyQVM
 
 
 class QuantumComputer:
@@ -515,14 +515,12 @@ def _get_qvm_or_pyqvm(
     noise_model: NoiseModel | None,
     quantum_processor: AbstractQuantumProcessor | None,
     execution_timeout: float,
-) -> "QVM | PyQVM":
+) -> QVM | PyQVM:
     if qvm_type == "qvm":
         return QVM(noise_model=noise_model, timeout=execution_timeout, client=qvm_client)
     elif qvm_type == "pyqvm":
         if quantum_processor is None:
             raise ValueError("Cannot construct a PyQVM without a quantum_processor.")
-        from pyquil.pyqvm import PyQVM
-
         return PyQVM(n_qubits=quantum_processor.qubit_topology().number_of_nodes())
 
     raise ValueError(f"Unknown qvm type {qvm_type}")

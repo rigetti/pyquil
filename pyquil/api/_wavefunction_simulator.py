@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 import numpy as np
 from deprecated.sphinx import deprecated
@@ -21,6 +21,7 @@ from qcs_sdk import QCSClient, qvm
 from qcs_sdk.qvm import QVMOptions
 
 from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
+from pyquil._wavefunction import Wavefunction
 from pyquil.api import MemoryMap
 from pyquil.api._qvm import (
     validate_noise_probabilities,
@@ -29,11 +30,6 @@ from pyquil.gates import MOVE
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-
-if TYPE_CHECKING:
-    # ``pyquil.wavefunction`` is deprecated. It is imported lazily, where used, so that importing
-    # ``pyquil.api`` does not import it (see ``pyquil._deprecation``).
-    from pyquil.wavefunction import Wavefunction
 
 
 @deprecated(
@@ -78,7 +74,7 @@ class WavefunctionSimulator:
         self._client = client_configuration or QCSClient.load()
         self._qvm_client = qvm.QVMClient.new_http(self._client.qvm_url)
 
-    def wavefunction(self, quil_program: Program, memory_map: MemoryMap | None = None) -> "Wavefunction":
+    def wavefunction(self, quil_program: Program, memory_map: MemoryMap | None = None) -> Wavefunction:
         """Simulate a Quil program and return the wavefunction.
 
         .. note:: If your program contains measurements or noisy gates, this method may not do what
@@ -108,8 +104,6 @@ class WavefunctionSimulator:
         wavefunction = bytes(
             qvm.api.get_wavefunction(request, self._qvm_client, options=QVMOptions(timeout_seconds=self.timeout))
         )
-        from pyquil.wavefunction import Wavefunction
-
         return Wavefunction.from_bit_packed_string(wavefunction)
 
     def expectation(

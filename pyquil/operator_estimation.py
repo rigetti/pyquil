@@ -1,7 +1,7 @@
 """Tools for estimating the expectation value of operators on a quantum computer.
 
 .. deprecated:: 4.22.0
-    It will be removed in pyQuil v5 in favor of the Estimator interface in rigetti-qpu-hybrid-benchmark.
+    To be removed in pyQuil v5 in favor of the Estimator interface in rigetti-qpu-hybrid-benchmark.
 """
 
 import logging

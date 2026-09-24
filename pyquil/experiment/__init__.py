@@ -1,7 +1,7 @@
 """Classes and functions to facilitate running experiments on a quantum computer.
 
 .. deprecated:: 4.22.0
-    It will be removed in pyQuil v5 in favor of qpu-hybrid-benchmark.
+    To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.
 """
 
 __all__ = [

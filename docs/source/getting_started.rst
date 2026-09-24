@@ -70,6 +70,14 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 
 Setting up requisite servers for pyQuil
 =======================================
+
+.. deprecated:: 4.22.0
+
+   pyQuil's use of the QVM is deprecated and will be removed in pyQuil v5 in favor of the Quax-based simulators
+   described in :ref:`simulation_architecture`, which run in-process and need no server. Those simulators are
+   available in pyQuil v4, but are private, experimental and subject to change, so we recommend continuing to use
+   the QVM until you upgrade to pyQuil v5.
+
 To get started with pyQuil, ``quilc`` and ``qvm`` should both be running in server mode. If you have them installed locally
 you can run them in their own terminal windows. First launch ``quilc``:
 
@@ -163,7 +171,8 @@ the terminal windows where your servers are running, you should see output print
 .. note::
 
     pyQuil also provides the :py:func:`~pyquil.api.local_forest_runtime()` context manager to ensure both ``quilc`` and ``qvm`` servers are running
-    by starting them as subprocesses if they aren't already.
+    by starting them as subprocesses if they aren't already. Starting the ``qvm`` server is deprecated: in pyQuil v5,
+    ``local_forest_runtime()`` will start only ``quilc``.
 
     .. code:: python
 
