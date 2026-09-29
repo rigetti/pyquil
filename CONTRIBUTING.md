@@ -41,6 +41,8 @@ to uphold this code. Please report unacceptable behavior by contacting support@r
 
 - [Working with the Parser](#working-with-the-parser)
 
+- [Deprecating an API](#deprecating-an-api)
+
 - [Using the Docker Image](#using-the-docker-image)
 
 [Tips for Maintainers](#tips-for-maintainers)
@@ -358,6 +360,34 @@ verify that everything looks right!
 
 The parser is implemented with Lark. See the [parser README](pyquil/_parser/README.md).
 
+### Deprecating an API
+
+Deprecate a class, function or method with the `deprecated.sphinx.deprecated` decorator, writing
+the reason inline and point to a replacement, if any. [`pyquil/_deprecation.py`](pyquil/_deprecation.py):
+
+```python
+from deprecated.sphinx import deprecated
+
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+
+
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,  # stops the reason from being wrapped, which would break its URL
+    reason=f"To be removed in pyQuil v5, where TrajectorySimulator ... instead. {QUAX_REPLACEMENT_NOTE}",
+    category=PyQuilDeprecationWarning,
+)
+class QVM: ...
+```
+
+For anything the decorator can't express, such as a whole module or only some uses of a function,
+call `warnings.warn` with `PyQuilDeprecationWarning` and a `stacklevel` that points at the caller,
+ending the message with `-- Deprecated since version {PENDING_DEPRECATION_RELEASE}.`.
+
+Give the version as `PENDING_DEPRECATION_RELEASE`. Until the release, it evaluates to the installed
+pyQuil version; the release pull request replaces it (see [Release Process](#release-process)).
+Also add a bullet to `CHANGELOG.md` (see [Updating the Changelog]).
+
 ### Using the Docker Image
 
 Rather than having a user go through the effort of setting up their local Forest
@@ -434,6 +464,12 @@ in the PR diff.
    the "Unreleased" heading to, for example, `## 4.19.0 (2026-09-14)`; leave a fresh, empty
    `## Unreleased` above it.
 
+   Then replace every reference to `PENDING_DEPRECATION_RELEASE` (see
+   [Deprecating an API](#deprecating-an-api)) with the hardcoded release version, so
+   `{PENDING_DEPRECATION_RELEASE}` becomes `4.19.0`, and `.. deprecated:: PENDING_DEPRECATION_RELEASE`
+   becomes `.. deprecated:: 4.19.0`. `git grep -n PENDING_DEPRECATION_RELEASE -- ':!pyquil/_deprecation.py'`
+   lists any dangling references.
+
 2. **Merge it**, once CI is green.
 
 3. **Approve the PyPI upload**, if the `pypi` environment is configured to require it.
@@ -454,11 +490,13 @@ Notes and considerations:
 #### Release candidates
 
 A release candidate may be published in the exact same manner as an official release as
-described above with two exceptions:
+described above with three exceptions:
 
 * The `pyproject.toml` version must have a proper [pep-440] release candidate suffix.
 * **Leave the changelog entries under "Unreleased"**; the pull request that ships the
   final release renames the heading. The GitHub release is marked as a prerelease.
+* **Leave `PENDING_DEPRECATION_RELEASE` in place.** Only the pull request that ships the final
+  release replaces it with the version.
 
 #### When something goes wrong
 
