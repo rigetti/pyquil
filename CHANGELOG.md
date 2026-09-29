@@ -17,11 +17,14 @@ APIs that pyQuil v5 removes now emit a `PyQuilDeprecationWarning` when used, and
 module warns when imported. It is a `FutureWarning`, so Python shows it by default; filter on
 `pyquil._deprecation.PyQuilDeprecationWarning` to silence it.
 
-- Replaced in pyQuil v5 by the Quax-based simulators and noise model. pyQuil v4 already includes
+- Replaced in pyQuil v5 by the JAX-based simulators and noise model. pyQuil v4 already includes
   them as private, experimental modules (`pyquil.simulation._simulator` and
   `pyquil.noise._noise_model`; see the
   [simulation architecture documentation](https://pyquil-docs.rigetti.com/en/stable/simulation_architecture.html)),
-  so we recommend continuing to use the deprecated APIs until you upgrade to pyQuil v5:
+  so we recommend continuing to use the deprecated APIs until you upgrade to pyQuil v5. Note also,
+  the [qcs-sdk](https://github.com/rigetti/qcs-sdk-rust) maintains support for executing Quil
+  programs on the QVM as of its 0.27.0 release (see documentation for
+  [qcs_sdk.qvm](https://rigetti.github.io/qcs-sdk-rust/qcs_sdk/qvm.html)):
   - The `pyquil.pyqvm` and `pyquil.wavefunction` modules.
   - `pyquil.api.QVM`, `pyquil.api.QVMCompiler` and `pyquil.api.WavefunctionSimulator`, and getting
     a QVM-backed quantum computer from `get_qc` (a `-qvm` or `-pyqvm` name, or `as_qvm=True`).
