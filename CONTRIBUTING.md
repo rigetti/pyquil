@@ -467,8 +467,10 @@ in the PR diff.
    Then replace every reference to `PENDING_DEPRECATION_RELEASE` (see
    [Deprecating an API](#deprecating-an-api)) with the hardcoded release version, so
    `{PENDING_DEPRECATION_RELEASE}` becomes `4.19.0`, and `.. deprecated:: PENDING_DEPRECATION_RELEASE`
-   becomes `.. deprecated:: 4.19.0`. `git grep -n PENDING_DEPRECATION_RELEASE -- ':!pyquil/_deprecation.py'`
-   lists any dangling references.
+   becomes `.. deprecated:: 4.19.0`.
+   `git grep -n PENDING_DEPRECATION_RELEASE -- pyquil docs ':!pyquil/_deprecation.py'` lists any
+   dangling references. The release workflow runs the same check before tagging and stops if it
+   finds any.
 
 2. **Merge it**, once CI is green.
 
