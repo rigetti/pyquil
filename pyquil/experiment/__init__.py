@@ -1,6 +1,6 @@
 """Classes and functions to facilitate running experiments on a quantum computer.
 
-.. deprecated:: 4.22.0
+.. deprecated:: PENDING_DEPRECATION_RELEASE
     To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.
 """
 
@@ -36,7 +36,7 @@ __all__ = [
 
 import warnings
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.experiment._calibration import CalibrationMethod
 from pyquil.experiment._group import (
     get_results_by_qubit_groups,
@@ -74,7 +74,8 @@ from pyquil.experiment._setting import (
 from pyquil.experiment._symmetrization import SymmetrizationLevel
 
 warnings.warn(
-    f"The module {__name__} is deprecated. ({EXPERIMENT_REASON}) -- Deprecated since version {DEPRECATED_IN_VERSION}.",
+    f"The module {__name__} is deprecated and will be removed in pyQuil v5 in favor of "
+    f"rigetti-qpu-hybrid-benchmark. -- Deprecated since version {PENDING_DEPRECATION_RELEASE}.",
     PyQuilDeprecationWarning,
     stacklevel=2,
 )

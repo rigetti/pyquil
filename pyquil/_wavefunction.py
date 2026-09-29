@@ -15,7 +15,7 @@
 ##############################################################################
 """Module containing the Wavefunction object and methods for working with wavefunctions.
 
-.. deprecated:: 4.22.0
+.. deprecated:: PENDING_DEPRECATION_RELEASE
     This private module holds the implementation of the deprecated :py:mod:`pyquil.wavefunction`, so
     that pyQuil can use it internally without triggering that module's import warning.
 """
@@ -27,15 +27,16 @@ from typing import cast
 import numpy as np
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 
 OCTETS_PER_DOUBLE_FLOAT = 8
 OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=SIMULATOR_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, where the Quax-based simulators return quax states instead. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 class Wavefunction:
@@ -190,8 +191,9 @@ class Wavefunction:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=SIMULATOR_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def get_bitstring_from_index(index: int, qubit_num: int) -> str:

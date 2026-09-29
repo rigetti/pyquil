@@ -17,14 +17,15 @@
 
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, LATEX_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.latex._diagram import DiagramBuilder, DiagramSettings
 from pyquil.quil import Program
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 def to_latex(circuit: Program, settings: DiagramSettings | None = None) -> str:
@@ -65,8 +66,9 @@ def to_latex(circuit: Program, settings: DiagramSettings | None = None) -> str:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 def header() -> str:
@@ -89,8 +91,9 @@ def header() -> str:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 def footer() -> str:
@@ -102,8 +105,9 @@ def footer() -> str:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 def body(circuit: Program, settings: DiagramSettings) -> str:

@@ -36,7 +36,7 @@ from qcs_sdk.compiler.quilc import NativeQuilMetadata
 from quil.program import CalibrationSet
 from quil.program import Program as RSProgram
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, NOISE_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.control_flow_graph import ControlFlowGraph
 from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
@@ -544,8 +544,9 @@ class Program:
         return self.inst(DefGate(name, matrix, parameters))
 
     @deprecated(
-        version=DEPRECATED_IN_VERSION,
-        reason=NOISE_REASON,
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
         category=PyQuilDeprecationWarning,
     )
     def define_noisy_gate(self, name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[Any]) -> "Program":
@@ -569,8 +570,9 @@ class Program:
         return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
 
     @deprecated(
-        version=DEPRECATED_IN_VERSION,
-        reason=NOISE_REASON,
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
         category=PyQuilDeprecationWarning,
     )
     def define_noisy_readout(self, qubit: int, p00: float, p11: float) -> "Program":
@@ -1002,8 +1004,9 @@ class Program:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def merge_with_pauli_noise(

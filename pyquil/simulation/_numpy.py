@@ -20,7 +20,7 @@ import numpy as np
 from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._pyqvm import AbstractQuantumSimulator
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilbase import Gate
@@ -47,8 +47,9 @@ from pyquil.simulation.tools import all_bitstrings
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=SIMULATOR_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: list[int]) -> np.ndarray:
@@ -95,8 +96,9 @@ def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: list[int])
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=SIMULATOR_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def targeted_tensordot(gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequence[int]) -> np.ndarray:
@@ -142,8 +144,9 @@ def targeted_tensordot(gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequenc
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=SIMULATOR_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def get_measure_probabilities(wf: np.ndarray, qubit: int) -> np.ndarray:
@@ -194,8 +197,12 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=SIMULATOR_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=(
+        "To be removed in pyQuil v5, where PureStateVectorSimulator computes a program's "
+        f"state instead (DensityMatrixSimulator, for programs with measurements or noise). {QUAX_REPLACEMENT_NOTE}"
+    ),
     category=PyQuilDeprecationWarning,
 )
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):

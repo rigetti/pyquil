@@ -23,7 +23,7 @@ import networkx as nx
 from deprecated.sphinx import deprecated
 from networkx.algorithms.approximation.clique import clique_removal
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.experiment._main import Experiment
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting, TensorProductState, _OneQState
@@ -33,8 +33,9 @@ from pyquil.quil import Program
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def get_results_by_qubit_groups(
@@ -68,8 +69,9 @@ def get_results_by_qubit_groups(
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def merge_disjoint_experiments(experiments: list[Experiment], group_merged_settings: bool = True) -> Experiment:
@@ -124,8 +126,9 @@ def merge_disjoint_experiments(experiments: list[Experiment], group_merged_setti
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
@@ -158,8 +161,9 @@ def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def group_settings_clique_removal(experiments: Experiment) -> Experiment:
@@ -284,8 +288,9 @@ def _max_tpb_overlap(
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def group_settings_greedy(tomo_expt: Experiment) -> Experiment:
@@ -306,8 +311,9 @@ def group_settings_greedy(tomo_expt: Experiment) -> Experiment:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def group_settings(experiments: Experiment, method: str = "greedy") -> Experiment:

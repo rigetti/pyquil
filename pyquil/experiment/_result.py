@@ -26,15 +26,16 @@ from typing import Any
 import numpy as np
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.experiment._setting import ExperimentSetting
 
 log = logging.getLogger(__name__)
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 @dataclass(frozen=True)
@@ -103,8 +104,9 @@ class ExperimentResult:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def bitstrings_to_expectations(bitstrings: np.ndarray, joint_expectations: list[list[int]] | None = None) -> np.ndarray:
@@ -137,8 +139,9 @@ def bitstrings_to_expectations(bitstrings: np.ndarray, joint_expectations: list[
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def correct_experiment_result(
@@ -191,8 +194,9 @@ def correct_experiment_result(
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def ratio_variance(

@@ -20,7 +20,7 @@ from typing import cast
 import numpy as np
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.paulis import PauliTerm
 
 
@@ -58,8 +58,9 @@ M_Z = (0.0, 0.0, 0.0)
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def pauli_term_to_euler_memory_map(
@@ -132,8 +133,9 @@ def pauli_term_to_euler_memory_map(
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def pauli_term_to_preparation_memory_map(term: PauliTerm, label: str = "preparation") -> dict[str, list[float]]:
@@ -161,8 +163,9 @@ def pauli_term_to_preparation_memory_map(term: PauliTerm, label: str = "preparat
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def pauli_term_to_measurement_memory_map(term: PauliTerm, label: str = "measurement") -> dict[str, list[float]]:
@@ -191,8 +194,9 @@ def pauli_term_to_measurement_memory_map(term: PauliTerm, label: str = "measurem
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=EXPERIMENT_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
 )
 def merge_memory_map_lists(

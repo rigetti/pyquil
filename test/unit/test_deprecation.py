@@ -7,7 +7,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, SIMULATION_DOCS, PyQuilDeprecationWarning
 
 
 def _pyquil_deprecations(record) -> list:
@@ -33,7 +33,27 @@ def test_deprecated_class_warns_at_the_callers_line():
 def test_docstring_carries_the_sphinx_directive():
     from pyquil.api import QVM
 
-    assert f".. deprecated:: {DEPRECATED_IN_VERSION}" in (QVM.__doc__ or "")
+    docstring = " ".join((QVM.__doc__ or "").split())  # the directive's text is line-wrapped
+    assert ".. deprecated::" in docstring
+    assert "To be removed in pyQuil v5, where TrajectorySimulator samples program outcomes instead." in docstring
+    assert SIMULATION_DOCS in docstring
+
+
+def test_decorator_warning_names_what_is_deprecated():
+    from pyquil.api import QVM
+
+    # The reason does not repeat the name: the decorator's message supplies it.
+    with pytest.warns(PyQuilDeprecationWarning, match=r"^Call to deprecated class QVM\. \(To be removed"):
+        try:
+            QVM()
+        except Exception:  # noqa: BLE001, S110 - only the warning matters; there may be no QVM server
+            pass
+
+
+def test_pending_deprecation_release_defaults_to_the_installed_version():
+    import pyquil
+
+    assert PENDING_DEPRECATION_RELEASE == pyquil.__version__
 
 
 def test_legacy_noise_warns():
@@ -118,4 +138,6 @@ def test_importing_a_deprecated_module_warns_by_default(module: str):
     result = _run_python(f"import {module}\n")
     assert result.returncode == 0, result.stderr
     # Shown under Python's default filters and attributed to the import statement.
-    assert f"<string>:1: PyQuilDeprecationWarning: The module {module} is deprecated." in result.stderr
+    assert (
+        f"<string>:1: PyQuilDeprecationWarning: The module {module} is deprecated and will be removed" in result.stderr
+    )

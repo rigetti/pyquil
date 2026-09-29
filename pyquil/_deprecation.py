@@ -13,57 +13,48 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""Shared constants for deprecating pyQuil APIs ahead of their removal in pyQuil v5.
+"""Shared pieces of pyQuil's deprecation notices.
 
-Classes, functions and methods are marked with ``deprecated.sphinx.deprecated``, passing
-:data:`DEPRECATED_IN_VERSION`, one of the ``*_REASON`` strings below and
-``category=PyQuilDeprecationWarning``::
+Deprecate a class, function or method with ``deprecated.sphinx.deprecated``, writing its reason inline::
 
-    @deprecated(version=DEPRECATED_IN_VERSION, reason=SIMULATOR_REASON, category=PyQuilDeprecationWarning)
+    @deprecated(
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason=f"To be removed in pyQuil v5, where TrajectorySimulator ... instead. {QUAX_REPLACEMENT_NOTE}",
+        category=PyQuilDeprecationWarning,
+    )
     class QVM: ...
 
-A deprecated module warns at import with ``warnings.warn(..., PyQuilDeprecationWarning,
-stacklevel=2)`` at its top level, which attributes the warning to the importing line.
+``line_length=0`` stops the decorator from wrapping the reason into the docstring, which would break a
+URL at a hyphen (``pyquil-docs``).
 
-Warning on import relies on pyQuil not having imported the module first: once a module is in
-``sys.modules``, importing it again does not run it. Non-deprecated pyQuil modules therefore import
-deprecated modules lazily, from the code that needs them, or only under ``TYPE_CHECKING``.
+The decorator's warning names the class or function ("Call to deprecated class QVM. (...)"), so the
+reason need not. Anything else -- a module, or only some uses of a function -- warns with
+``warnings.warn(message, PyQuilDeprecationWarning, stacklevel=...)``, whose message must say what is
+deprecated. See "Deprecating an API" in CONTRIBUTING.md.
 """
 
-__all__ = [
-    "DEPRECATED_IN_VERSION",
-    "EXPERIMENT_REASON",
-    "LATEX_REASON",
-    "NOISE_REASON",
-    "OPERATOR_ESTIMATION_REASON",
-    "PyQuilDeprecationWarning",
-    "SIMULATOR_REASON",
-]
+from pyquil._version import DOCS_URL, pyquil_version
 
-# Any additional deprecations added after the 4.22 release should convert this to an str enum for
-# the different "deprecated in" versions.
-DEPRECATED_IN_VERSION = "4.22.0"
-"""The pyQuil release in which the APIs slated for removal in v5 were deprecated."""
+__all__ = ["PENDING_DEPRECATION_RELEASE", "QUAX_REPLACEMENT_NOTE", "SIMULATION_DOCS", "PyQuilDeprecationWarning"]
 
-SIMULATOR_REASON = (
-    "To be removed in pyQuil v5 in favor of the Quax-based simulators. Those simulators are "
-    "available in pyQuil v4 (pyquil.simulation._simulator), but are private, experimental and "
-    "subject to change, so we recommend continuing to use this API until you upgrade to pyQuil v5."
+PENDING_DEPRECATION_RELEASE = pyquil_version
+"""The version for deprecations that have not been released yet.
+
+It defaults to the installed pyQuil version, which is right once the release that includes them is
+installed. Each release pull request replaces every reference to it with that release's version (see
+"Release Process" in CONTRIBUTING.md), so released deprecations keep their version.
+"""
+
+SIMULATION_DOCS = f"{DOCS_URL}/simulation_architecture.html"
+"""The documentation of the Quax-based simulators and noise model that replace pyQuil's older ones."""
+
+QUAX_REPLACEMENT_NOTE = (
+    "pyQuil v4 already includes the Quax-based simulators and noise model that replace it, as private, "
+    f"experimental modules (see {SIMULATION_DOCS}), so we recommend continuing to use this API until you "
+    "upgrade to pyQuil v5."
 )
-
-NOISE_REASON = (
-    "To be removed in pyQuil v5 in favor of the Quax-based noise model. That noise model is "
-    "available in pyQuil v4 (pyquil.noise._noise_model), but is private, experimental and subject "
-    "to change, so we recommend continuing to use this API until you upgrade to pyQuil v5."
-)
-
-EXPERIMENT_REASON = "To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark."
-
-OPERATOR_ESTIMATION_REASON = (
-    "To be removed in pyQuil v5 in favor of the Estimator interface in rigetti-qpu-hybrid-benchmark."
-)
-
-LATEX_REASON = "To be removed in pyQuil v5, with no replacement in pyQuil."
+"""A sentence for deprecations whose replacement is the Quax-based simulators or noise model."""
 
 
 class PyQuilDeprecationWarning(FutureWarning):

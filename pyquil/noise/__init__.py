@@ -18,13 +18,13 @@ This package provides:
   next major version, at which point the legacy Kraus-based model above is
   removed.
 
-.. deprecated:: 4.22.0
+.. deprecated:: PENDING_DEPRECATION_RELEASE
     The Kraus-map noise model re-exported here, used by the QVM, will be removed in pyQuil v5 in
-    favor of the Quax-based noise model. That noise model is available in pyQuil v4
-    (``pyquil.noise._noise_model``), but is private, experimental and subject to change, so we
+    favor of the Quax-based noise model. It is already in pyQuil v4, but private and experimental
+    (see the :ref:`simulation architecture documentation <simulation_architecture>`), so we
     recommend continuing to use the Kraus-map noise model until you upgrade to pyQuil v5. The
-    constants ``ANGLE_TOLERANCE``, ``INFINITY`` and ``NO_NOISE`` are deprecated too, but do not
-    warn when used.
+    constants ``ANGLE_TOLERANCE``, ``INFINITY`` and ``NO_NOISE`` are deprecated too, but do not warn
+    when used.
 """
 
 # ── Noise model (Kraus-map based) ───────────────────────────────────────

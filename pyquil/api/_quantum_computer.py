@@ -35,7 +35,7 @@ from qcs_sdk.compiler.quilc import QuilcClient
 from qcs_sdk.qpu import list_quantum_processors
 from qcs_sdk.qvm import QVMClient
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, EXPERIMENT_REASON, SIMULATOR_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._pyqvm import PyQVM
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
@@ -148,8 +148,9 @@ class QuantumComputer:
         return [self.qam.get_result(handle) for handle in handles]
 
     @deprecated(
-        version=DEPRECATED_IN_VERSION,
-        reason=EXPERIMENT_REASON,
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
         category=PyQuilDeprecationWarning,
     )
     def calibrate(self, experiment: "Experiment") -> list["ExperimentResult"]:
@@ -163,8 +164,9 @@ class QuantumComputer:
         return self.run_experiment(calibration_experiment)
 
     @deprecated(
-        version=DEPRECATED_IN_VERSION,
-        reason=EXPERIMENT_REASON,
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
         category=PyQuilDeprecationWarning,
     )
     def run_experiment(
@@ -790,13 +792,13 @@ def get_qc(
 
     Use :py:func:`list_quantum_computers` to retrieve a list of known qc names.
 
-    .. deprecated:: 4.22.0
-        Getting a QVM-backed quantum computer (a ``-qvm`` or ``-pyqvm`` name, or ``as_qvm=True``)
-        is deprecated, along with :py:class:`~pyquil.api.QVM`, :py:class:`~pyquil.pyqvm.PyQVM`
-        and :py:class:`~pyquil.api.QVMCompiler`. They will be removed in pyQuil v5 in favor of
-        the Quax-based simulators. Those simulators are available in pyQuil v4
-        (``pyquil.simulation._simulator``), but are private, experimental and subject to change,
-        so we recommend continuing to use the QVM until you upgrade to pyQuil v5.
+    .. deprecated:: PENDING_DEPRECATION_RELEASE
+        Getting a QVM-backed quantum computer (a ``-qvm`` or ``-pyqvm`` name, or ``as_qvm=True``) is
+        deprecated, along with :py:class:`~pyquil.api.QVM`, :py:class:`~pyquil.pyqvm.PyQVM` and
+        :py:class:`~pyquil.api.QVMCompiler`. They will be removed in pyQuil v5 in favor of the
+        Quax-based simulators. They are already in pyQuil v4, but private and experimental (see the
+        :ref:`simulation architecture documentation <simulation_architecture>`), so we recommend
+        continuing to use the QVM until you upgrade to pyQuil v5.
 
     This method is provided as a convenience to quickly construct and use QVM's and QPU's.
     Power users may wish to have more control over the specification of a quantum computer
@@ -836,9 +838,9 @@ def get_qc(
     del as_qvm  # do not use after _parse_name
     if qvm_type is not None:
         warnings.warn(
-            f"Getting a QVM-backed quantum computer from get_qc (here {name!r}) is deprecated. The QVM, "
-            f"PyQVM and QVMCompiler are deprecated. ({SIMULATOR_REASON}) -- Deprecated since version "
-            f"{DEPRECATED_IN_VERSION}.",
+            f"Getting a QVM-backed quantum computer from get_qc (here {name!r}) is deprecated and will be removed "
+            "in pyQuil v5, along with the QVM, PyQVM and QVMCompiler. "
+            f"{QUAX_REPLACEMENT_NOTE} -- Deprecated since version {PENDING_DEPRECATION_RELEASE}.",
             PyQuilDeprecationWarning,
             stacklevel=2,
         )
@@ -980,7 +982,7 @@ def local_forest_runtime(
 
     :raises: FileNotFoundError: If either executable is not installed.
 
-    .. deprecated:: 4.22.0
+    .. deprecated:: PENDING_DEPRECATION_RELEASE
         Starting a QVM server is deprecated. In pyQuil v5 this context manager will start only
         ``quilc``, because the QVM is replaced by the Quax-based simulators, which run in-process.
 
@@ -991,9 +993,9 @@ def local_forest_runtime(
     """
     # stacklevel=3: this runs in the generator, which ``contextlib`` resumes on behalf of the user's ``with``.
     warnings.warn(
-        "local_forest_runtime starts a QVM server, which is deprecated. In pyQuil v5 it will start only "
-        "quilc, because the QVM is replaced by the Quax-based simulators, which run in-process. -- "
-        f"Deprecated since version {DEPRECATED_IN_VERSION}.",
+        "Starting a QVM server with local_forest_runtime is deprecated. In pyQuil v5 it will start only quilc, "
+        "because the Quax-based simulators that replace the QVM run in-process. -- Deprecated since version "
+        f"{PENDING_DEPRECATION_RELEASE}.",
         PyQuilDeprecationWarning,
         stacklevel=3,
     )

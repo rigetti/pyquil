@@ -31,7 +31,7 @@ For information on constructing quantum programs, please refer back to :ref:`bas
 The Quantum Virtual Machine (QVM)
 *********************************
 
-.. deprecated:: 4.22.0
+.. deprecated:: PENDING_DEPRECATION_RELEASE
 
    The QVM is deprecated in pyQuil: :py:class:`~pyquil.api.QVM`, :py:class:`~pyquil.pyqvm.PyQVM`,
    :py:class:`~pyquil.api.QVMCompiler`, :py:class:`~pyquil.api.WavefunctionSimulator`, and getting a QVM-backed

@@ -15,11 +15,11 @@
 ##############################################################################
 """Module for creating and verifying noisy gate and readout definitions.
 
-.. deprecated:: 4.22.0
+.. deprecated:: PENDING_DEPRECATION_RELEASE
     This Kraus-map noise model, used by the QVM, will be removed in pyQuil v5 in favor of the
-    Quax-based noise model. That noise model is available in pyQuil v4
-    (``pyquil.noise._noise_model``), but is private, experimental and subject to change, so we
-    recommend continuing to use this one until you upgrade to pyQuil v5.
+    Quax-based noise model. It is already in pyQuil v4, but private and experimental (see the
+    :ref:`simulation architecture documentation <simulation_architecture>`), so we recommend
+    continuing to use this one until you upgrade to pyQuil v5.
 """
 
 import sys
@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import numpy as np
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, NOISE_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX, I
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
@@ -48,8 +48,9 @@ _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, where the channels of the Quax-based noise model replace it. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 class KrausModel(_KrausModel):
@@ -136,8 +137,9 @@ _NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, where the Quax-based NoiseModel replaces it. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 class NoiseModel(_NoiseModel):
@@ -237,8 +239,9 @@ def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Se
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def append_kraus_to_gate(kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray) -> list[np.number | np.ndarray]:
@@ -252,8 +255,9 @@ def append_kraus_to_gate(kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarra
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def pauli_kraus_map(probabilities: Sequence[float]) -> list[np.ndarray]:
@@ -296,8 +300,9 @@ def pauli_kraus_map(probabilities: Sequence[float]) -> list[np.ndarray]:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def damping_kraus_map(p: float = 0.10) -> list[np.ndarray]:
@@ -314,8 +319,9 @@ def damping_kraus_map(p: float = 0.10) -> list[np.ndarray]:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def dephasing_kraus_map(p: float = 0.10) -> list[np.ndarray]:
@@ -329,8 +335,9 @@ def dephasing_kraus_map(p: float = 0.10) -> list[np.ndarray]:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def tensor_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.ndarray]:
@@ -344,8 +351,9 @@ def tensor_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.nda
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def combine_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.ndarray]:
@@ -359,8 +367,9 @@ def combine_kraus_maps(k1: list[np.ndarray], k2: list[np.ndarray]) -> list[np.nd
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> list[np.ndarray]:
@@ -398,8 +407,9 @@ ANGLE_TOLERANCE = 1e-10
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 class NoisyGateUndefined(Exception):
@@ -409,8 +419,9 @@ class NoisyGateUndefined(Exception):
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> tuple[np.ndarray, str]:
@@ -549,8 +560,9 @@ def _decoherence_noise_model(
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def decoherence_noise_with_asymmetric_ro(isa: CompilerISA, p00: float = 0.975, p11: float = 0.911) -> NoiseModel:
@@ -610,8 +622,12 @@ def _noise_model_program_header(noise_model: NoiseModel) -> "Program":
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=(
+        "To be removed in pyQuil v5, where the Quax-based simulators take a noise model directly "
+        f"(noise_model=...) rather than noise pragmas in the program. {QUAX_REPLACEMENT_NOTE}"
+    ),
     category=PyQuilDeprecationWarning,
 )
 def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
@@ -637,8 +653,12 @@ def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=(
+        "To be removed in pyQuil v5, where the Quax-based simulators take a noise model directly "
+        f"(noise_model=...) rather than noise pragmas in the program. {QUAX_REPLACEMENT_NOTE}"
+    ),
     category=PyQuilDeprecationWarning,
 )
 def add_decoherence_noise(
@@ -712,8 +732,9 @@ def _bitstring_probs_by_qubit(p: np.ndarray) -> np.ndarray:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def estimate_bitstring_probs(results: np.ndarray) -> np.ndarray:
@@ -767,8 +788,9 @@ def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarr
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.ndarray]) -> np.ndarray:
@@ -796,8 +818,9 @@ def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.nda
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.ndarray]) -> np.ndarray:
@@ -825,8 +848,9 @@ def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: list[np.nda
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:
@@ -847,8 +871,9 @@ def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=NOISE_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
 )
 def estimate_assignment_probs(

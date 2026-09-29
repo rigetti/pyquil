@@ -20,7 +20,7 @@ from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient, qvm
 from qcs_sdk.qvm import QVMOptions
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, SIMULATOR_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._wavefunction import Wavefunction
 from pyquil.api import MemoryMap
 from pyquil.api._qvm import (
@@ -33,8 +33,12 @@ from pyquil.quilatom import MemoryReference
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=SIMULATOR_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=(
+        "To be removed in pyQuil v5, where PureStateVectorSimulator computes a program's state "
+        f"instead (DensityMatrixSimulator, for programs with measurements or noise). {QUAX_REPLACEMENT_NOTE}"
+    ),
     category=PyQuilDeprecationWarning,
 )
 class WavefunctionSimulator:

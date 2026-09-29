@@ -22,7 +22,7 @@ from warnings import warn
 
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import DEPRECATED_IN_VERSION, LATEX_REASON, PyQuilDeprecationWarning
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.quil import Program
 from pyquil.quilatom import ParameterDesignator, QubitDesignator, format_parameter
 from pyquil.quilbase import (
@@ -48,8 +48,9 @@ from pyquil.quilbase import (
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 @dataclass
@@ -204,8 +205,9 @@ SOURCE_TARGET_OP = {
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 class DiagramState:
@@ -272,8 +274,9 @@ class DiagramState:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 def split_on_terminal_measures(
@@ -314,8 +317,9 @@ def split_on_terminal_measures(
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 class DiagramBuilder:
@@ -524,8 +528,9 @@ class DiagramBuilder:
 
 
 @deprecated(
-    version=DEPRECATED_IN_VERSION,
-    reason=LATEX_REASON,
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
 )
 def qubit_indices(instr: AbstractInstruction) -> list[int]:
