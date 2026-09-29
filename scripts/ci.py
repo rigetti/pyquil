@@ -34,6 +34,19 @@ RELEASE_HEADING = re.compile(r"^##\s+(?P<version>\S+)\s+\((?P<date>\d{4}-\d{2}-\
 #: The section entries accumulate in between releases.
 UNRELEASED_HEADING = re.compile(r"^##\s+Unreleased\s*$", re.IGNORECASE)
 
+#: The placeholder version of deprecations not yet released (see pyquil/_deprecation.py).
+PENDING_DEPRECATION = "PENDING_DEPRECATION_RELEASE"
+
+#: The files in which a release must have replaced the placeholder: the package's
+#: Python sources and the documentation's pages.
+PENDING_DEPRECATION_SCOPE = {
+    Path("pyquil"): (".py", ".pyi"),
+    Path("docs"): (".rst", ".md", ".ipynb"),
+}
+
+#: The placeholder's own definition, the one reference that stays.
+PENDING_DEPRECATION_DEFINITION = Path("pyquil/_deprecation.py")
+
 
 # --------------------------------------------------------------------------- #
 # Shared helpers
@@ -261,6 +274,51 @@ def command_release_notes(args: argparse.Namespace) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# check-deprecations
+# --------------------------------------------------------------------------- #
+
+
+def pending_deprecations(root: Path) -> list[str]:
+    """Every line in ``root``'s Python sources and docs that still references the placeholder."""
+    found = []
+    for directory, suffixes in PENDING_DEPRECATION_SCOPE.items():
+        for path in sorted((root / directory).rglob("*")):
+            relative = path.relative_to(root)
+            if path.suffix not in suffixes or relative == PENDING_DEPRECATION_DEFINITION:
+                continue
+            found += [
+                f"{relative}:{number}: {line.strip()}"
+                for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
+                if PENDING_DEPRECATION in line
+            ]
+    return found
+
+
+def command_check_deprecations(_: argparse.Namespace) -> None:
+    """Fail if a deprecation is still versioned with PENDING_DEPRECATION_RELEASE.
+
+    Invoked by: publish.yml, job `tag`, before anything is tagged; final releases only.
+    Requires:   nothing.
+    Outputs:    the offending lines, if any.
+
+    A final release's pull request replaces each reference to the placeholder with
+    the version it releases (CONTRIBUTING.md, "Release Process"). This checks the
+    .py and .pyi files under pyquil/ and the .rst, .md and .ipynb files under docs/. One left behind
+    would report whichever version happens to be installed, so it would drift to a
+    later version in the next release. Release candidates keep the placeholder, so
+    the workflow skips this check for them.
+    """
+    found = pending_deprecations(Path("."))
+    if found:
+        print("\n".join(found))
+        raise CIError(
+            f"{len(found)} reference(s) to {PENDING_DEPRECATION} remain; replace them with the version being "
+            'released (see CONTRIBUTING.md, "Release Process")'
+        )
+    print(f"ok: {PENDING_DEPRECATION} is referenced only by its definition in {PENDING_DEPRECATION_DEFINITION}")
+
+
+# --------------------------------------------------------------------------- #
 # patch-grpc-web
 # --------------------------------------------------------------------------- #
 
@@ -326,6 +384,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name, handler in (
         ("detect-release", command_detect_release),
         ("release-notes", command_release_notes),
+        ("check-deprecations", command_check_deprecations),
         ("patch-grpc-web", command_patch_grpc_web),
     ):
         doc = textwrap.dedent(handler.__doc__ or "").strip()

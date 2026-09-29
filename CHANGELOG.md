@@ -11,6 +11,43 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Deprecated
+
+APIs that pyQuil v5 removes now emit a `PyQuilDeprecationWarning` when used, and a deprecated
+module warns when imported. It is a `FutureWarning`, so Python shows it by default; filter on
+`pyquil._deprecation.PyQuilDeprecationWarning` to silence it.
+
+- Replaced in pyQuil v5 by the JAX-based simulators and noise model. pyQuil v4 already includes
+  them as private, experimental modules (`pyquil.simulation._simulator` and
+  `pyquil.noise._noise_model`; see the
+  [simulation architecture documentation](https://pyquil-docs.rigetti.com/en/stable/simulation_architecture.html)),
+  so we recommend continuing to use the deprecated APIs until you upgrade to pyQuil v5. Note also,
+  the [qcs-sdk](https://github.com/rigetti/qcs-sdk-rust) maintains support for executing Quil
+  programs on the QVM as of its 0.27.0 release (see documentation for
+  [qcs_sdk.qvm](https://rigetti.github.io/qcs-sdk-rust/qcs_sdk/qvm.html)):
+  - The `pyquil.pyqvm` and `pyquil.wavefunction` modules.
+  - `pyquil.api.QVM`, `pyquil.api.QVMCompiler` and `pyquil.api.WavefunctionSimulator`, and getting
+    a QVM-backed quantum computer from `get_qc` (a `-qvm` or `-pyqvm` name, or `as_qvm=True`).
+  - From `pyquil.simulation`: `NumpyWavefunctionSimulator`, `ReferenceWavefunctionSimulator`,
+    `ReferenceDensitySimulator`, `get_measure_probabilities`, `targeted_einsum`,
+    `targeted_tensordot` and `zero_state_matrix`.
+  - The Kraus-map noise model in `pyquil.noise`: `NoiseModel`, `KrausModel`, `NoisyGateUndefined`,
+    `add_decoherence_noise`, `append_kraus_to_gate`, `apply_noise_model`,
+    `bitstring_probs_to_z_moments`, `combine_kraus_maps`, `correct_bitstring_probs`,
+    `corrupt_bitstring_probs`, `damping_after_dephasing`, `damping_kraus_map`,
+    `decoherence_noise_with_asymmetric_ro`, `dephasing_kraus_map`, `estimate_assignment_probs`,
+    `estimate_bitstring_probs`, `get_noisy_gate`, `pauli_kraus_map` and `tensor_kraus_maps`. The
+    constants `ANGLE_TOLERANCE`, `INFINITY` and `NO_NOISE` are deprecated too, but do not warn.
+  - `Program.define_noisy_gate`, `Program.define_noisy_readout` and
+    `pyquil.quil.merge_with_pauli_noise`, whose noise pragmas only the QVM understands.
+- Replaced in pyQuil v5 by `rigetti-qpu-hybrid-benchmark`:
+  - The `pyquil.experiment` module, with `QuantumComputer.run_experiment` and
+    `QuantumComputer.calibrate`.
+  - The `pyquil.operator_estimation` module, by its Estimator interface.
+- Removed in pyQuil v5 without replacement: the `pyquil.latex` module.
+- `pyquil.api.local_forest_runtime` warns that starting a QVM server is deprecated: in pyQuil v5 it
+  starts only `quilc`.
+
 ## 4.21.0 (2026-09-23)
 
 ### Features

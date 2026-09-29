@@ -72,6 +72,10 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install --quiet packaging
+      # Only a final release versions its deprecations.
+      - name: Check that deprecations are versioned
+        if: needs.version.outputs.is-prerelease != 'true' && github.event_name == 'push'
+        run: python scripts/ci.py check-deprecations
       - name: Tag and create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

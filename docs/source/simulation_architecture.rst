@@ -12,8 +12,15 @@ Noisy simulation architecture
    The API is not stable: names, signatures and return types may change in any
    release before pyQuil 5, and the import paths are private on purpose. It is
    documented here because the design is intended to become the default
-   simulation backend in a future major release, replacing the NumPy reference
-   simulators, and because using it in real work is how the API will be settled.
+   simulation backend in pyQuil v5, and because using it in real work is how the
+   API will be settled.
+
+   In pyQuil v5 these simulators replace the QVM, ``PyQVM``, the
+   ``WavefunctionSimulator`` and the NumPy reference simulators, and the Quax-based
+   noise model replaces the Kraus-map noise model; all of those are deprecated in
+   pyQuil v4. Because the simulators described here are private and experimental,
+   we recommend that users keep using the deprecated APIs until they upgrade to
+   pyQuil v5.
 
    These modules depend on `JAX <https://jax.readthedocs.io>`_ (via the
    ``rigetti-quax`` package), which provides the operator algebra and the

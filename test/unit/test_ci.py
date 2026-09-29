@@ -151,8 +151,7 @@ class TestReleaseNotes:
 
     def test_a_prerelease_section_of_another_version_is_fine(self):
         Path("CHANGELOG.md").write_text(
-            "## 4.19.0 (2026-09-24)\n\n- Entry.\n\n"
-            "## 4.18.0rc1 (2026-08-01)\n\n- Belongs to the previous cycle.\n"
+            "## 4.19.0 (2026-09-24)\n\n- Entry.\n\n" "## 4.18.0rc1 (2026-08-01)\n\n- Belongs to the previous cycle.\n"
         )
         assert "Entry." in ci.release_notes(Version("4.19.0"))
 
@@ -165,6 +164,54 @@ class TestReleaseNotes:
         Path("CHANGELOG.md").write_text("## 4.19.0 (2026-09-14)\n\n## 4.18.0 (2026-08-19)\n\n- Entry.\n")
         with pytest.raises(ci.CIError, match="is empty"):
             ci.release_notes(Version("4.19.0"))
+
+
+class TestCheckDeprecations:
+    @pytest.fixture
+    def root(self, tmp_path, monkeypatch):
+        """A checkout whose only reference to the placeholder is its definition."""
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "pyquil").mkdir()
+        (tmp_path / "pyquil" / "_deprecation.py").write_text('PENDING_DEPRECATION_RELEASE = "4.18.0"\n')
+        (tmp_path / "pyquil" / "quil.py").write_text('@deprecated(version="4.19.0", reason="Gone.")\n')
+        return tmp_path
+
+    def test_a_fully_versioned_release_passes(self, root, capsys):
+        assert ci.pending_deprecations(root) == []
+        ci.command_check_deprecations(None)
+        assert "ok:" in capsys.readouterr().out
+
+    @pytest.mark.parametrize(
+        ("path", "line"),
+        [
+            ("pyquil/api/_qvm.py", "    version=PENDING_DEPRECATION_RELEASE,"),
+            ("pyquil/pyqvm.py", '    f"... -- Deprecated since version {PENDING_DEPRECATION_RELEASE}.",'),
+            ("pyquil/pyqvm.py", ".. deprecated:: PENDING_DEPRECATION_RELEASE"),
+            ("pyquil/api/_qvm.pyi", "from pyquil._deprecation import PENDING_DEPRECATION_RELEASE"),
+            ("docs/source/noise.rst", ".. deprecated:: PENDING_DEPRECATION_RELEASE"),
+            ("docs/source/guide.md", "Deprecated since PENDING_DEPRECATION_RELEASE."),
+            ("docs/source/tutorial.ipynb", '"source": ["Deprecated since PENDING_DEPRECATION_RELEASE."]'),
+        ],
+    )
+    def test_a_dangling_reference_fails(self, root, path, line):
+        (root / path).parent.mkdir(parents=True, exist_ok=True)
+        (root / path).write_text(f"first line\n{line}\n")
+        assert ci.pending_deprecations(root) == [f"{path}:2: {line.strip()}"]
+        with pytest.raises(ci.CIError, match="1 reference"):
+            ci.command_check_deprecations(None)
+
+    @pytest.mark.parametrize(
+        "path",
+        ["CONTRIBUTING.md", "test/unit/test_deprecation.py", "pyquil/README.md", "docs/source/conf.py"],
+    )
+    def test_only_python_sources_and_doc_pages_are_checked(self, root, path):
+        (root / path).parent.mkdir(parents=True, exist_ok=True)
+        (root / path).write_text("PENDING_DEPRECATION_RELEASE\n")
+        assert ci.pending_deprecations(root) == []
+
+    def test_is_a_subcommand(self):
+        args = ci.build_parser().parse_args(["check-deprecations"])
+        assert args.handler is ci.command_check_deprecations
 
 
 class TestPatchGrpcWeb:

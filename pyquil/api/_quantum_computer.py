@@ -22,31 +22,30 @@ from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from math import log, pi
 from typing import (
+    TYPE_CHECKING,
     Any,
     cast,
 )
 
 import networkx as nx
 import numpy as np
+from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import QuilcClient
 from qcs_sdk.qpu import list_quantum_processors
 from qcs_sdk.qvm import QVMClient
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._pyqvm import PyQVM
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
-from pyquil.experiment._main import Experiment
-from pyquil.experiment._memory import merge_memory_map_lists
-from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
-from pyquil.experiment._setting import ExperimentSetting
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX
 from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import PauliTerm
-from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import (
     AbstractQuantumProcessor,
     NxQuantumProcessor,
@@ -55,6 +54,12 @@ from pyquil.quantum_processor import (
 )
 from pyquil.quil import Program
 from pyquil.quilatom import QubitDesignator
+
+if TYPE_CHECKING:
+    # ``pyquil.experiment`` is deprecated. It is imported lazily, where used, so that importing
+    # pyQuil does not import it (see ``pyquil._deprecation``).
+    from pyquil.experiment._main import Experiment
+    from pyquil.experiment._result import ExperimentResult
 
 
 class QuantumComputer:
@@ -142,7 +147,13 @@ class QuantumComputer:
         handles = self.qam.execute_with_memory_map_batch(executable, memory_maps, **kwargs)
         return [self.qam.get_result(handle) for handle in handles]
 
-    def calibrate(self, experiment: Experiment) -> list[ExperimentResult]:
+    @deprecated(
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+        category=PyQuilDeprecationWarning,
+    )
+    def calibrate(self, experiment: "Experiment") -> list["ExperimentResult"]:
         """Perform readout calibration on the various multi-qubit observables involved in the provided ``Experiment``.
 
         :param experiment: The ``Experiment`` to calibrate readout error for.
@@ -152,11 +163,17 @@ class QuantumComputer:
         calibration_experiment = experiment.generate_calibration_experiment()
         return self.run_experiment(calibration_experiment)
 
+    @deprecated(
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+        category=PyQuilDeprecationWarning,
+    )
     def run_experiment(
         self,
-        experiment: Experiment,
+        experiment: "Experiment",
         memory_map: MemoryMap | None = None,
-    ) -> list[ExperimentResult]:
+    ) -> list["ExperimentResult"]:
         """Run an ``Experiment`` on a QVM or QPU backend.
 
         An ``Experiment`` is composed of:
@@ -205,6 +222,10 @@ class QuantumComputer:
         :return: A list of ``ExperimentResult`` objects containing the statistics gathered
             according to the specifications of the ``Experiment``.
         """
+        from pyquil.experiment._memory import merge_memory_map_lists
+        from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
+        from pyquil.experiment._setting import ExperimentSetting
+
         experiment_program = experiment.generate_experiment_program()
         executable = self.compile(experiment_program)
 
@@ -771,6 +792,14 @@ def get_qc(
 
     Use :py:func:`list_quantum_computers` to retrieve a list of known qc names.
 
+    .. deprecated:: PENDING_DEPRECATION_RELEASE
+        Getting a QVM-backed quantum computer (a ``-qvm`` or ``-pyqvm`` name, or ``as_qvm=True``) is
+        deprecated, along with :py:class:`~pyquil.api.QVM`, :py:class:`~pyquil.pyqvm.PyQVM` and
+        :py:class:`~pyquil.api.QVMCompiler`. They will be removed in pyQuil v5 in favor of the
+        Quax-based simulators. They are already in pyQuil v4, but private and experimental (see the
+        :ref:`simulation architecture documentation <simulation_architecture>`), so we recommend
+        continuing to use the QVM until you upgrade to pyQuil v5.
+
     This method is provided as a convenience to quickly construct and use QVM's and QPU's.
     Power users may wish to have more control over the specification of a quantum computer
     (e.g. custom noise models, bespoke topologies, etc.). This is possible by constructing
@@ -807,6 +836,14 @@ def get_qc(
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
     del as_qvm  # do not use after _parse_name
+    if qvm_type is not None:
+        warnings.warn(
+            f"Getting a QVM-backed quantum computer from get_qc (here {name!r}) is deprecated and will be removed "
+            "in pyQuil v5, along with the QVM, PyQVM and QVMCompiler. "
+            f"{QUAX_REPLACEMENT_NOTE} -- Deprecated since version {PENDING_DEPRECATION_RELEASE}.",
+            PyQuilDeprecationWarning,
+            stacklevel=2,
+        )
     name = _canonicalize_name(prefix, qvm_type, noisy)
 
     # 2. Check for unrestricted {n}q-qvm
@@ -945,11 +982,23 @@ def local_forest_runtime(
 
     :raises: FileNotFoundError: If either executable is not installed.
 
+    .. deprecated:: PENDING_DEPRECATION_RELEASE
+        Starting a QVM server is deprecated. In pyQuil v5 this context manager will start only
+        ``quilc``, because the QVM is replaced by the Quax-based simulators, which run in-process.
+
     :returns: The returned tuple contains two ``subprocess.Popen`` objects
         for the `qvm` and the `quilc` processes.  If one of the designated
         ports is in use, the process won't be started and the respective
         value in the tuple will be ``None``.
     """
+    # stacklevel=3: this runs in the generator, which ``contextlib`` resumes on behalf of the user's ``with``.
+    warnings.warn(
+        "Starting a QVM server with local_forest_runtime is deprecated. In pyQuil v5 it will start only quilc, "
+        "because the Quax-based simulators that replace the QVM run in-process. -- Deprecated since version "
+        f"{PENDING_DEPRECATION_RELEASE}.",
+        PyQuilDeprecationWarning,
+        stacklevel=3,
+    )
     qvm: subprocess.Popen | None = None
     quilc: subprocess.Popen | None = None
 

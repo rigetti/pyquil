@@ -4,9 +4,9 @@ This package provides:
 
 - **Noise model** (``_legacy_noise``): Kraus-map based noise construction
   for the QVM, including ``KrausModel``, ``NoiseModel``, and decoherence
-  helpers. This is the public, supported API and is re-exported below; it was
+  helpers. This is the public API in pyQuil v4 and is re-exported below; it was
   previously the module ``pyquil/noise.py``, and every name it exported is still
-  importable from ``pyquil.noise``.
+  importable from ``pyquil.noise``. It is deprecated (see below).
 
 - **Channel classes** (``_channels``): quax-backed ``Channel``,
   ``MeasurementChannel``, ``ResetChannel``, and ``CycleChannel`` dataclasses
@@ -17,6 +17,14 @@ This package provides:
   still private and not re-exported; they will become the public API in the
   next major version, at which point the legacy Kraus-based model above is
   removed.
+
+.. deprecated:: PENDING_DEPRECATION_RELEASE
+    The Kraus-map noise model re-exported here, used by the QVM, will be removed in pyQuil v5 in
+    favor of the Quax-based noise model. It is already in pyQuil v4, but private and experimental
+    (see the :ref:`simulation architecture documentation <simulation_architecture>`), so we
+    recommend continuing to use the Kraus-map noise model until you upgrade to pyQuil v5. The
+    constants ``ANGLE_TOLERANCE``, ``INFINITY`` and ``NO_NOISE`` are deprecated too, but do not warn
+    when used.
 """
 
 # ── Noise model (Kraus-map based) ───────────────────────────────────────

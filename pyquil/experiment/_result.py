@@ -24,12 +24,20 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+from deprecated.sphinx import deprecated
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.experiment._setting import ExperimentSetting
 
 log = logging.getLogger(__name__)
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 @dataclass(frozen=True)
 class ExperimentResult:
     """An expectation and standard deviation for the measurement of one experiment setting in a tomographic experiment.
@@ -95,6 +103,12 @@ class ExperimentResult:
         }
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def bitstrings_to_expectations(bitstrings: np.ndarray, joint_expectations: list[list[int]] | None = None) -> np.ndarray:
     """Given an array of bitstrings, map them to expectation values and return the desired joint expectation values.
 
@@ -124,6 +138,12 @@ def bitstrings_to_expectations(bitstrings: np.ndarray, joint_expectations: list[
     return np.stack(e, axis=-1)
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def correct_experiment_result(
     result: ExperimentResult,
     calibration: ExperimentResult,
@@ -173,6 +193,12 @@ def correct_experiment_result(
     )
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def ratio_variance(
     a: float | complex | np.number | np.ndarray,
     var_a: float | complex | np.number | np.ndarray,

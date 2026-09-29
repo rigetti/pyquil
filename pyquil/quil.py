@@ -36,6 +36,7 @@ from qcs_sdk.compiler.quilc import NativeQuilMetadata
 from quil.program import CalibrationSet
 from quil.program import Program as RSProgram
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.control_flow_graph import ControlFlowGraph
 from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
@@ -542,6 +543,12 @@ class Program:
         """
         return self.inst(DefGate(name, matrix, parameters))
 
+    @deprecated(
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
+        category=PyQuilDeprecationWarning,
+    )
     def define_noisy_gate(self, name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[Any]) -> "Program":
         """Overload a static ideal gate with a noisy one defined in terms of a Kraus map.
 
@@ -562,6 +569,12 @@ class Program:
         _check_kraus_ops(len(qubit_indices), kraus_ops)
         return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
 
+    @deprecated(
+        version=PENDING_DEPRECATION_RELEASE,
+        line_length=0,
+        reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
+        category=PyQuilDeprecationWarning,
+    )
     def define_noisy_readout(self, qubit: int, p00: float, p11: float) -> "Program":
         """For this program define a classical bit flip readout error channel parametrized by ``p00`` and ``p11``.
 
@@ -990,6 +1003,12 @@ class Program:
         return _convert_to_py_instructions(self._program.to_instructions())
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
+    category=PyQuilDeprecationWarning,
+)
 def merge_with_pauli_noise(
     prog_list: Iterable[Program], probabilities: Sequence[float], qubits: Sequence[int]
 ) -> Program:

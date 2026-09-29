@@ -20,6 +20,9 @@ from dataclasses import dataclass, replace
 from typing import cast
 from warnings import warn
 
+from deprecated.sphinx import deprecated
+
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.quil import Program
 from pyquil.quilatom import ParameterDesignator, QubitDesignator, format_parameter
 from pyquil.quilbase import (
@@ -44,6 +47,12 @@ from pyquil.quilbase import (
 )
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 @dataclass
 class DiagramSettings:
     """Settings to control the layout and rendering of circuits."""
@@ -195,6 +204,12 @@ SOURCE_TARGET_OP = {
 }
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 class DiagramState:
     """A representation of a circuit diagram.
 
@@ -258,6 +273,12 @@ class DiagramState:
         return qubits == self.interval(min(qubits), max(qubits))
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 def split_on_terminal_measures(
     program: Program,
 ) -> tuple[list[AbstractInstruction], list[AbstractInstruction]]:
@@ -295,6 +316,12 @@ def split_on_terminal_measures(
     return measures, remaining
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 class DiagramBuilder:
     """Constructs DiagramStates from a given circuit and settings.
 
@@ -500,6 +527,12 @@ class DiagramBuilder:
         self.index += 1
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 def qubit_indices(instr: AbstractInstruction) -> list[int]:
     """Get a list of indices associated with the given instruction."""
     if isinstance(instr, (Measurement, Gate)):
