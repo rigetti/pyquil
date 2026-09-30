@@ -1,0 +1,72 @@
+# See https://github.com/rigetti/pyquil/issues/1852
+# pillow 11.3.0 - locked for python <3.11 via matplotlib (docs extra)
+# Fixed in pillow 12.x which requires python >=3.10
+[[IgnoredVulns]]
+id = "GHSA-5xmw-vc9v-4wf2"
+reason = "pillow 11.3.0 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "GHSA-cfh3-3jmp-rvhc"
+reason = "pillow 11.3.0 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "GHSA-pwv6-vv43-88gr"
+reason = "pillow 11.3.0 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "GHSA-r73j-pqj5-w3x7"
+reason = "pillow 11.3.0 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "GHSA-whj4-6x5x-4v2j"
+reason = "pillow 11.3.0 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-165"
+reason = "pillow 11.3.0 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "GHSA-wjx4-4jcj-g98j"
+reason = "pillow 11.3.0 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+# pytest 8.4.2 - dev dependency only, not shipped to users
+# Fixed in pytest 9.x but requires bumping pytest-benchmark and other plugins
+[[IgnoredVulns]]
+id = "GHSA-6w46-j5rx-g56g"
+reason = "pytest is a dev dependency only; fix requires bumping to pytest ^9 and updating plugins"
+
+# requests 2.32.5 - locked for python <3.11 via sphinx (docs extra)
+# Fixed in requests 2.34.x which requires python >=3.10
+[[IgnoredVulns]]
+id = "GHSA-gc5v-m9x4-r6x2"
+reason = "requests 2.32.5 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+# urllib3 2.6.3 - locked for python <3.11 via sphinx/requests (docs extra)
+# Fixed in urllib3 2.7.x which requires python >=3.10
+[[IgnoredVulns]]
+id = "PYSEC-2026-142"
+reason = "urllib3 2.6.3 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "GHSA-mf9v-mfxr-j63j"
+reason = "urllib3 2.6.3 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-141"
+reason = "urllib3 2.6.3 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "GHSA-qccp-gfcp-xxvc"
+reason = "urllib3 2.6.3 only resolved for python <3.11 (docs extra); fix requires dropping python 3.9 support"
+
+[[IgnoredVulns]]
+id = "GHSA-8rfp-98v4-mmr6"
+reason = "bleach update requires python >= 3.10"
+
+[[IgnoredVulns]]
+id = "GHSA-gj48-438w-jh9v"
+reason = "bleach update requires python >= 3.10"
+
+[[IgnoredVulns]]
+id = "GHSA-6v7p-g79w-8964"
+reason = "requires dropping rpcq dependency"

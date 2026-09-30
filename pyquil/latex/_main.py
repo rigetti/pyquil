@@ -15,13 +15,20 @@
 ##############################################################################
 """The main entry point to the LaTeX generation functionality in pyQuil."""
 
-from typing import Optional
+from deprecated.sphinx import deprecated
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.latex._diagram import DiagramBuilder, DiagramSettings
 from pyquil.quil import Program
 
 
-def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
+def to_latex(circuit: Program, settings: DiagramSettings | None = None) -> str:
     """Translate a given pyQuil Program to a TikZ picture in a LaTeX document.
 
     Here are some high points of the generation procedure (see ``pyquil/latex/_diagram.py``):
@@ -58,6 +65,12 @@ def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> st
     return text
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 def header() -> str:
     """Write the LaTeX header using the settings file.
 
@@ -77,6 +90,12 @@ def header() -> str:
     return "\n".join(("\n".join(packages), "\n".join(init)))
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 def footer() -> str:
     """Return the footer of the LaTeX document.
 
@@ -85,6 +104,12 @@ def footer() -> str:
     return "\\end{tikzcd}\n\\end{document}"
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 def body(circuit: Program, settings: DiagramSettings) -> str:
     """Return the body of the LaTeX document, including the entire circuit in TikZ format.
 

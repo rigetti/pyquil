@@ -1,13 +1,20 @@
-"""Tools for estimating the expectation value of operators on a quantum computer."""
+"""Tools for estimating the expectation value of operators on a quantum computer.
+
+.. deprecated:: PENDING_DEPRECATION_RELEASE
+    To be removed in pyQuil v5 in favor of the Estimator interface in rigetti-qpu-hybrid-benchmark.
+"""
 
 import logging
-from collections.abc import Generator, Mapping
+import warnings
+from collections.abc import Callable, Generator, Mapping
 from math import pi
 from numbers import Complex
-from typing import Callable, Optional, cast
+from typing import cast
 
 import numpy as np
+from deprecated.sphinx import deprecated
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.api import QuantumComputer
 
 # import the full public API of the pyquil experiment module
@@ -37,6 +44,13 @@ from pyquil.gates import RESET, RX, RY, RZ, X
 from pyquil.paulis import is_identity
 from pyquil.quil import Program
 from pyquil.quilatom import QubitDesignator
+
+warnings.warn(
+    f"The module {__name__} is deprecated and will be removed in pyQuil v5 in favor of the "
+    f"Estimator interface in rigetti-qpu-hybrid-benchmark. -- Deprecated since version {PENDING_DEPRECATION_RELEASE}.",
+    PyQuilDeprecationWarning,
+    stacklevel=2,
+)
 
 log = logging.getLogger(__name__)
 
@@ -184,11 +198,17 @@ def _generate_experiment_programs(
     return programs, meas_qubits
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=("To be removed in pyQuil v5 in favor of the Estimator interface in " "rigetti-qpu-hybrid-benchmark."),
+    category=PyQuilDeprecationWarning,
+)
 def measure_observables(
     qc: QuantumComputer,
     tomo_experiment: Experiment,
-    progress_callback: Optional[Callable[[int, int], None]] = None,
-    calibrate_readout: Optional[str] = "plus-eig",
+    progress_callback: Callable[[int, int], None] | None = None,
+    calibrate_readout: str | None = "plus-eig",
 ) -> Generator[ExperimentResult, None, None]:
     """Measure all the observables in a TomographyExperiment.
 
@@ -209,14 +229,12 @@ def measure_observables(
 
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and symmetrization != SymmetrizationLevel.EXHAUSTIVE:
-        raise ValueError(
-            "Readout calibration only currently works with exhaustive readout " "symmetrization turned on."
-        )
+        raise ValueError("Readout calibration only currently works with exhaustive readout symmetrization turned on.")
 
     # generate programs for each group of simultaneous settings.
     programs, meas_qubits = _generate_experiment_programs(tomo_experiment, reset)
 
-    for i, (prog, qubits, settings) in enumerate(zip(programs, meas_qubits, tomo_experiment)):
+    for i, (prog, qubits, settings) in enumerate(zip(programs, meas_qubits, tomo_experiment, strict=False)):
         log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
 
         # we don't need to do any actual measurement if the combined operator is simply the

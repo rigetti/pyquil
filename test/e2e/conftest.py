@@ -6,8 +6,10 @@ from qcs_sdk import QCSClient
 
 from pyquil import get_qc
 from pyquil.api import QuantumComputer
+from test import override_qcs_config
 
 _QPU_ID_KEY = StashKey[str]()
+
 
 def pytest_runtest_setup(item):
     user_qpu_id = item.config.getoption("--qpu-id") or os.environ.get("TEST_QUANTUM_PROCESSOR")
@@ -24,6 +26,29 @@ def pytest_runtest_setup(item):
         pytest.skip(f"test requires QPU ID={test_qpu_id}, but currently testing {user_qpu_id}")
 
 
+def pytest_addoption(parser: pytest.Parser):
+    """Add command line option to skip tests marked integration"""
+    parser.addoption(
+        "--live-qpu-access",
+        action="store_true",
+        default=False,
+        help="run tests that require access to a live QPU",
+    )
+
+
+def pytest_configure(config: pytest.Config):
+    """Register custom marker 'live_qpu_access'"""
+    config.addinivalue_line(
+        "markers",
+        "live_qpu_access: mark test as requiring live access to a QPU for execution",
+    )
+
+
+@pytest.fixture(scope="session")
+def quantum_processor_id() -> str:
+    return os.environ.get("TEST_QUANTUM_PROCESSOR", "Cepheus-1-108Q")
+
+
 @pytest.fixture()
 def qc(client_configuration: QCSClient, pytestconfig) -> QuantumComputer:
     quantum_processor_id = pytestconfig.stash[_QPU_ID_KEY]
@@ -35,7 +60,15 @@ def qc(client_configuration: QCSClient, pytestconfig) -> QuantumComputer:
 
 
 @pytest.fixture()
-def client_configuration(qcs_config_env) -> QCSClient:
-    _ = qcs_config_env # we just need to ensure the fixture loads
+def client_configuration(live_qpu_access: bool) -> QCSClient:
+    if not live_qpu_access:
+        override_qcs_config()
     return QCSClient.load()
 
+
+@pytest.fixture(scope="session")
+def live_qpu_access(request: pytest.FixtureRequest) -> bool:
+    return (
+        request.config.getoption("--live-qpu-access") is not None
+        and request.config.getoption("--live-qpu-access") is not False
+    )

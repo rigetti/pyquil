@@ -17,9 +17,12 @@
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Optional, cast
+from typing import cast
 from warnings import warn
 
+from deprecated.sphinx import deprecated
+
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.quil import Program
 from pyquil.quilatom import ParameterDesignator, QubitDesignator, format_parameter
 from pyquil.quilbase import (
@@ -44,6 +47,12 @@ from pyquil.quilbase import (
 )
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 @dataclass
 class DiagramSettings:
     """Settings to control the layout and rendering of circuits."""
@@ -144,23 +153,23 @@ def TIKZ_MEASURE() -> str:
     return r"\meter{}"
 
 
-def _format_parameter(param: ParameterDesignator, settings: Optional[DiagramSettings] = None) -> str:
+def _format_parameter(param: ParameterDesignator, settings: DiagramSettings | None = None) -> str:
     formatted: str = format_parameter(param)
     if settings and settings.texify_numerical_constants:
         formatted = formatted.replace("pi", r"\pi")
     return formatted
 
 
-def _format_parameters(params: Iterable[ParameterDesignator], settings: Optional[DiagramSettings] = None) -> str:
+def _format_parameters(params: Iterable[ParameterDesignator], settings: DiagramSettings | None = None) -> str:
     return "(" + ",".join(_format_parameter(param, settings) for param in params) + ")"
 
 
 def TIKZ_GATE(
     name: str,
     size: int = 1,
-    params: Optional[Sequence[ParameterDesignator]] = None,
+    params: Sequence[ParameterDesignator] | None = None,
     dagger: bool = False,
-    settings: Optional[DiagramSettings] = None,
+    settings: DiagramSettings | None = None,
 ) -> str:
     cmd = r"\gate"
     rotations = ["RX", "RY", "RZ"]
@@ -195,6 +204,12 @@ SOURCE_TARGET_OP = {
 }
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 class DiagramState:
     """A representation of a circuit diagram.
 
@@ -221,7 +236,7 @@ class DiagramState:
         """Add an operation to the rightmost edge of the specified qubit line."""
         self.lines[qubit].append(op)
 
-    def append_diagram(self, diagram: "DiagramState", group: Optional[str] = None) -> "DiagramState":
+    def append_diagram(self, diagram: "DiagramState", group: str | None = None) -> "DiagramState":
         """Add all operations represented by the given diagram to their corresponding qubit lines in this diagram.
 
         If group is not None, then a TIKZ_GATE_GROUP is created with the label indicated by group.
@@ -258,6 +273,12 @@ class DiagramState:
         return qubits == self.interval(min(qubits), max(qubits))
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 def split_on_terminal_measures(
     program: Program,
 ) -> tuple[list[AbstractInstruction], list[AbstractInstruction]]:
@@ -286,7 +307,7 @@ def split_on_terminal_measures(
             elif isinstance(instr, Pragma):
                 if instr.command == PRAGMA_END_GROUP:
                     warn(
-                        "Alignment of terminal MEASURE operations may" "conflict with gate group declaration.",
+                        "Alignment of terminal MEASURE operations mayconflict with gate group declaration.",
                         stacklevel=2,
                     )
                     in_group = True
@@ -295,6 +316,12 @@ def split_on_terminal_measures(
     return measures, remaining
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 class DiagramBuilder:
     """Constructs DiagramStates from a given circuit and settings.
 
@@ -306,13 +333,13 @@ class DiagramBuilder:
         self.circuit = circuit
         self.settings = settings
         # instructions currently being processed
-        self.working_instructions: Optional[list[AbstractInstruction]] = None
+        self.working_instructions: list[AbstractInstruction] | None = None
         # index into working instructions. we maintain the invariant that
         # working_instructions[0:index] has been processed, with the diagram
         # updated accordingly
         self.index = 0
         # partially constructed diagram
-        self.diagram: Optional[DiagramState] = None
+        self.diagram: DiagramState | None = None
 
     def build(self) -> DiagramState:
         """Build the diagram."""
@@ -347,7 +374,7 @@ class DiagramBuilder:
                 self._build_measure()
             elif isinstance(instr, Gate):
                 if "FORKED" in instr.modifiers:
-                    raise ValueError("LaTeX output does not currently support" f"FORKED modifiers: {instr}.")
+                    raise ValueError(f"LaTeX output does not currently support FORKED modifiers: {instr}.")
                 # the easy case is 1q operations
                 if len(instr.qubits) == 1:
                     self._build_1q_unitary()
@@ -357,7 +384,7 @@ class DiagramBuilder:
                     else:
                         self._build_generic_unitary()
             elif isinstance(instr, UNSUPPORTED_INSTRUCTION_CLASSES):
-                raise ValueError("LaTeX output does not currently support" f"the following instruction: {instr.out()}")
+                raise ValueError(f"LaTeX output does not currently support the following instruction: {instr.out()}")
             else:
                 self.index += 1
 
@@ -500,6 +527,12 @@ class DiagramBuilder:
         self.index += 1
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
+    category=PyQuilDeprecationWarning,
+)
 def qubit_indices(instr: AbstractInstruction) -> list[int]:
     """Get a list of indices associated with the given instruction."""
     if isinstance(instr, (Measurement, Gate)):

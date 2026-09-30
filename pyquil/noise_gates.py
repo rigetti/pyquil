@@ -1,8 +1,10 @@
 """Utility functions for generating noise gates compatible with a QVM's instruction set architecture."""
 
 import logging
-from typing import Optional
 
+from deprecated.sphinx import deprecated
+
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.external.rpcq import CompilerISA, Edge, GateInfo, Supported1QGate, Supported2QGate
 from pyquil.quilatom import Parameter, unpack_qubit
 from pyquil.quilbase import Gate
@@ -11,6 +13,12 @@ _log = logging.getLogger(__name__)
 THETA = Parameter("theta")
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
+    category=PyQuilDeprecationWarning,
+)
 def _get_qvm_noise_supported_gates(isa: CompilerISA) -> list[Gate]:
     """Generate the gate set associated with an ISA for which QVM noise is supported.
 
@@ -45,7 +53,13 @@ def _get_qvm_noise_supported_gates(isa: CompilerISA) -> list[Gate]:
     return gates
 
 
-def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, gate: GateInfo) -> Optional[Gate]:
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
+    category=PyQuilDeprecationWarning,
+)
+def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, gate: GateInfo) -> Gate | None:
     if gate.operator == Supported1QGate.RX:
         if len(gate.parameters) == 1 and gate.parameters[0] == 0.0:
             return None
@@ -63,6 +77,12 @@ def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, g
     return None
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
+    category=PyQuilDeprecationWarning,
+)
 def _transform_rpcq_edge_gate_info_to_qvm_noise_supported_gates(edge: Edge) -> list[Gate]:
     operators = [gate.operator for gate in edge.gates]
     targets = [unpack_qubit(t) for t in edge.ids]

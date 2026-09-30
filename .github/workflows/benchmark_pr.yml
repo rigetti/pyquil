@@ -8,13 +8,13 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       pull-requests: write
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12' 
       - uses: actions/cache@v4
         with:
           path: .venv
@@ -27,10 +27,8 @@ jobs:
           --project pyquil \
           --token '${{ secrets.BENCHER_API_TOKEN }}' \
           --branch '${{ github.head_ref }}' \
-          --start-point '${{ github.base_ref }}' \
-          --start-point-hash '${{ github.event.pull_request.base.sha }}' \
-          --start-point-clone-thresholds \
-          --start-point-reset \
+          --branch-start-point '${{ github.base_ref }}' \
+          --branch-start-point-hash '${{ github.event.pull_request.base.sha }}' \
           --testbed ci-runner-linux \
           --err \
           --github-actions '${{ secrets.GITHUB_TOKEN }}' \

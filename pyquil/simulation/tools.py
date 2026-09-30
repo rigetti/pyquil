@@ -16,16 +16,20 @@
 """Miscellaneous tools that are helpful for simulation."""
 
 from collections.abc import Sequence
-from typing import Union, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
-from pyquil.experiment._setting import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import Parameter
 from pyquil.quilbase import Gate, Halt, _strip_modifiers
 from pyquil.simulation.matrices import QUANTUM_GATES, STATES, SWAP
+
+if TYPE_CHECKING:
+    # ``pyquil.experiment`` is deprecated. It is not imported at runtime, so that importing this
+    # module does not import it (see ``pyquil._deprecation``).
+    from pyquil.experiment._setting import TensorProductState
 
 
 def all_bitstrings(n_bits: int) -> np.ndarray:
@@ -306,7 +310,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
             elif mod == "CONTROLLED":
                 child = _strip_modifiers(gate, limit=1)
                 matrix = _gate_matrix(child)
-                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)  # type: ignore
+                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)
             elif mod == "FORKED":
                 if len(gate.params) % 2 != 0:
                     raise ValueError("FORKED gates must have an even number of parameters.")
@@ -346,7 +350,7 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
     return umat
 
 
-def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.ndarray:
+def lifted_pauli(pauli_sum: PauliSum | PauliTerm, qubits: list[int]) -> np.ndarray:
     """Return a matrix corresponding to the tensor representation of the given PauliSum and qubits.
 
     Useful for generating the full Hamiltonian after a particular fermion to
@@ -387,7 +391,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np
     return result_hilbert
 
 
-def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.ndarray:
+def tensor_up(pauli_sum: PauliSum | PauliTerm, qubits: list[int]) -> np.ndarray:
     """Return a matrix corresponding to the tensor representation of the given PauliSum and qubits.
 
     This is the same as :py:func:`lifted_pauli`. Nick R originally wrote this functionality
@@ -400,7 +404,7 @@ def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: list[int]) -> np.nd
     return lifted_pauli(pauli_sum=pauli_sum, qubits=qubits)
 
 
-def lifted_state_operator(state: TensorProductState, qubits: list[int]) -> np.ndarray:
+def lifted_state_operator(state: "TensorProductState", qubits: list[int]) -> np.ndarray:
     """Return a matrix corresponding to the tensored-up representation of the given state and qubits.
 
     Developer note: Quil and the QVM like qubits to be ordered such that qubit 0 is on the right.

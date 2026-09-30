@@ -1,6 +1,6 @@
 """Transformers for converting between NetworkX graphs and CompilerISAs."""
 
-from typing import Optional, Union, cast
+from typing import cast
 
 import networkx as nx
 import numpy as np
@@ -28,7 +28,7 @@ DEFAULT_2Q_GATES = [
 
 
 def graph_to_compiler_isa(
-    graph: nx.Graph, gates_1q: Optional[list[str]] = None, gates_2q: Optional[list[str]] = None
+    graph: nx.Graph, gates_1q: list[str] | None = None, gates_2q: list[str] | None = None
 ) -> CompilerISA:
     """Generate an ``CompilerISA`` object from a NetworkX graph and list of 1Q and 2Q gates.
 
@@ -108,17 +108,17 @@ def _make_wildcard_1q_gates() -> list[GateInfo]:
 
 def _transform_qubit_operation_to_gates(
     operation_name: str,
-) -> list[Union[GateInfo, MeasureInfo]]:
+) -> list[GateInfo | MeasureInfo]:
     if operation_name == Supported1QGate.I:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_i_gates())
+        return cast(list[GateInfo | MeasureInfo], _make_i_gates())
     elif operation_name == Supported1QGate.RX:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_rx_gates())
+        return cast(list[GateInfo | MeasureInfo], _make_rx_gates())
     elif operation_name == Supported1QGate.RZ:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_rz_gates())
+        return cast(list[GateInfo | MeasureInfo], _make_rz_gates())
     elif operation_name == Supported1QGate.MEASURE:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_measure_gates())
+        return cast(list[GateInfo | MeasureInfo], _make_measure_gates())
     elif operation_name == Supported1QGate.WILDCARD:
-        return cast(list[Union[GateInfo, MeasureInfo]], _make_wildcard_1q_gates())
+        return cast(list[GateInfo | MeasureInfo], _make_wildcard_1q_gates())
     else:
         raise GraphGateError(f"Unsupported graph qubit operation: {operation_name}")
 

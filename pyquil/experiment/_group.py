@@ -17,11 +17,13 @@ import functools
 import itertools
 from collections.abc import Iterable, Sequence
 from operator import mul
-from typing import Union, cast
+from typing import cast
 
 import networkx as nx
+from deprecated.sphinx import deprecated
 from networkx.algorithms.approximation.clique import clique_removal
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.experiment._main import Experiment
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting, TensorProductState, _OneQState
@@ -30,6 +32,12 @@ from pyquil.paulis import PauliTerm, sI
 from pyquil.quil import Program
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def get_results_by_qubit_groups(
     results: Iterable[ExperimentResult], qubit_groups: Sequence[Sequence[int]]
 ) -> dict[tuple[int, ...], list[ExperimentResult]]:
@@ -60,6 +68,12 @@ def get_results_by_qubit_groups(
     return results_by_qubit_group
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def merge_disjoint_experiments(experiments: list[Experiment], group_merged_settings: bool = True) -> Experiment:
     """Merge the experiments into one that runs all individual programs and includes all combined settings.
 
@@ -91,9 +105,7 @@ def merge_disjoint_experiments(experiments: list[Experiment], group_merged_setti
     used_qubits: set[int] = set()
     for expt in experiments:
         if expt.program.get_qubits().intersection(used_qubits):
-            raise ValueError(
-                "Experiment programs act on some shared set of qubits and cannot be " "merged unambiguously."
-            )
+            raise ValueError("Experiment programs act on some shared set of qubits and cannot be merged unambiguously.")
         used_qubits = used_qubits.union(cast(set[int], expt.program.get_qubits()))
 
     # get a flat list of all settings, to be regrouped later
@@ -113,9 +125,15 @@ def merge_disjoint_experiments(experiments: list[Experiment], group_merged_setti
     return merged_expt
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
     """Construct a graph where an edge signifies two experiments are diagonal in a TPB."""
-    g = nx.Graph()
+    g: nx.Graph = nx.Graph()
     for expt in experiments:
         if len(expt) != 1:
             raise ValueError("There must be a single set of ExperimentSettings for each Experiment.")
@@ -142,6 +160,12 @@ def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
     return g
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def group_settings_clique_removal(experiments: Experiment) -> Experiment:
     """Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number of QPU runs.
 
@@ -169,7 +193,7 @@ def group_settings_clique_removal(experiments: Experiment) -> Experiment:
     )
 
 
-def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
+def _max_weight_operator(ops: Iterable[PauliTerm]) -> None | PauliTerm:
     """Construct a PauliTerm operator by taking the non-identity single-qubit operator at each qubit position.
 
     This function will return ``None`` if the input operators do not share a natural tensor product basis.
@@ -191,7 +215,7 @@ def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
     return op
 
 
-def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, TensorProductState]:
+def _max_weight_state(states: Iterable[TensorProductState]) -> None | TensorProductState:
     """Construct a TensorProductState by taking the single-qubit state at each qubit position.
 
     This function will return ``None`` if the input states are not compatible
@@ -263,6 +287,12 @@ def _max_tpb_overlap(
     return diagonal_sets
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def group_settings_greedy(tomo_expt: Experiment) -> Experiment:
     """Greedy method to group ExperimentSettings in a given Experiment.
 
@@ -280,6 +310,12 @@ def group_settings_greedy(tomo_expt: Experiment) -> Experiment:
     return grouped_tomo_expt
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def group_settings(experiments: Experiment, method: str = "greedy") -> Experiment:
     """Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number of QPU runs.
 

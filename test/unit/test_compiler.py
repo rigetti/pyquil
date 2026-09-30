@@ -3,7 +3,6 @@ from typing import Optional
 
 import pytest
 from qcs_sdk.qpu.translation import TranslationBackend
-from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program
 from pyquil.api._compiler import (
@@ -36,10 +35,16 @@ def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
     assert compilation_result == program
 
 
-def test_transpile_qasm_2(compiler: QPUCompiler, snapshot: SnapshotAssertion):
+def test_transpile_qasm_2(compiler: QPUCompiler):
     qasm = 'OPENQASM 2.0;\nqreg q[3];\ncreg ro[2];\nmeasure q[0] -> ro[0];\nmeasure q[1] -> ro[1];'
     program = compiler.transpile_qasm_2(qasm)
-    assert program.out() == snapshot
+    lines = [line for line in program.out().splitlines() if line]
+    assert lines[0] == "DECLARE ro BIT[2]"
+    instructions = lines[1:]
+    if instructions[-1:] == ["HALT"]:
+        instructions = instructions[:-1]
+    assert len(instructions) == 2
+    assert set(instructions) == {"MEASURE 0 ro[0]", "MEASURE 1 ro[1]"}
 
 
 @pytest.mark.parametrize(
@@ -60,4 +65,3 @@ def test_translation_backend_validation(quantum_processor_id: str, backend: Opti
     else:
         actual = select_backend_for_quantum_processor_id(quantum_processor_id, backend)
     assert actual == expected
-

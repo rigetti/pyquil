@@ -13,12 +13,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Optional, Union, cast
+from typing import cast
 
 import numpy as np
+from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient, qvm
 from qcs_sdk.qvm import QVMOptions
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._wavefunction import Wavefunction
 from pyquil.api import MemoryMap
 from pyquil.api._qvm import (
     validate_noise_probabilities,
@@ -27,18 +30,26 @@ from pyquil.gates import MOVE
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-from pyquil.wavefunction import Wavefunction
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=(
+        "To be removed in pyQuil v5, where PureStateVectorSimulator computes a program's state "
+        f"instead (DensityMatrixSimulator, for programs with measurements or noise). {QUAX_REPLACEMENT_NOTE}"
+    ),
+    category=PyQuilDeprecationWarning,
+)
 class WavefunctionSimulator:
     def __init__(
         self,
         *,
-        gate_noise: Optional[tuple[float, float, float]] = None,
-        measurement_noise: Optional[tuple[float, float, float]] = None,
-        random_seed: Optional[int] = None,
+        gate_noise: tuple[float, float, float] | None = None,
+        measurement_noise: tuple[float, float, float] | None = None,
+        random_seed: int | None = None,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClient] = None,
+        client_configuration: QCSClient | None = None,
     ) -> None:
         """Return a simulator that propagates a wavefunction representation of a quantum state.
 
@@ -67,7 +78,7 @@ class WavefunctionSimulator:
         self._client = client_configuration or QCSClient.load()
         self._qvm_client = qvm.QVMClient.new_http(self._client.qvm_url)
 
-    def wavefunction(self, quil_program: Program, memory_map: Optional[MemoryMap] = None) -> Wavefunction:
+    def wavefunction(self, quil_program: Program, memory_map: MemoryMap | None = None) -> Wavefunction:
         """Simulate a Quil program and return the wavefunction.
 
         .. note:: If your program contains measurements or noisy gates, this method may not do what
@@ -102,9 +113,9 @@ class WavefunctionSimulator:
     def expectation(
         self,
         prep_prog: Program,
-        pauli_terms: Union[PauliSum, list[PauliTerm]],
-        memory_map: Optional[dict[str, list[Union[int, float]]]] = None,
-    ) -> Union[float, np.ndarray]:
+        pauli_terms: PauliSum | list[PauliTerm],
+        memory_map: dict[str, list[int | float]] | None = None,
+    ) -> float | np.ndarray:
         """Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
         If ``pauli_terms`` is a ``PauliSum`` then the returned value is a single ``float``,
@@ -151,9 +162,9 @@ class WavefunctionSimulator:
     def run_and_measure(
         self,
         quil_program: Program,
-        qubits: Optional[list[int]] = None,
+        qubits: list[int] | None = None,
         trials: int = 1,
-        memory_map: Optional[MemoryMap] = None,
+        memory_map: MemoryMap | None = None,
     ) -> np.ndarray:
         """Run a Quil program once to determine the final wavefunction, and measure multiple times.
 

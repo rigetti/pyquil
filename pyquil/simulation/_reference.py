@@ -15,13 +15,15 @@
 ##############################################################################
 import warnings
 from collections.abc import Sequence
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
+from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._pyqvm import AbstractQuantumSimulator
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import KRAUS_OPS, P0, P1, QUANTUM_GATES
 from pyquil.simulation.tools import all_bitstrings, lifted_gate, lifted_gate_matrix
@@ -69,8 +71,17 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
     return hermitian and trace_one and non_neg_eigs
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=(
+        "To be removed in pyQuil v5, where PureStateVectorSimulator computes a program's "
+        f"state instead (DensityMatrixSimulator, for programs with measurements or noise). {QUAX_REPLACEMENT_NOTE}"
+    ),
+    category=PyQuilDeprecationWarning,
+)
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
-    def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
+    def __init__(self, n_qubits: int, rs: RandomState | None = None):
         """Initialize a wavefunction simulator that prioritizes readability over performance.
 
         Please consider using
@@ -160,7 +171,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
             self.wf = unitary.dot(self.wf)
             return 1
 
-    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> float:
+    def expectation(self, operator: PauliTerm | PauliSum) -> float:
         """Compute the expectation of an operator.
 
         :param operator: The operator
@@ -184,6 +195,12 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
+    category=PyQuilDeprecationWarning,
+)
 def zero_state_matrix(n_qubits: int) -> np.ndarray:
     """Construct a matrix corresponding to the tensor product of `n` ground states ``|0><0|``.
 
@@ -195,6 +212,12 @@ def zero_state_matrix(n_qubits: int) -> np.ndarray:
     return state_matrix
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, where DensityMatrixSimulator replaces it. {QUAX_REPLACEMENT_NOTE}",
+    category=PyQuilDeprecationWarning,
+)
 class ReferenceDensitySimulator(AbstractQuantumSimulator):
     """A density matrix simulator that prioritizes readability over performance.
 
@@ -210,7 +233,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
     """
 
-    def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
+    def __init__(self, n_qubits: int, rs: RandomState | None = None):
         self.n_qubits = n_qubits
         self.rs = rs
         self.density: np.ndarray
@@ -241,7 +264,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             self.initial_density = state_matrix
         else:
             raise ValueError(
-                "The state matrix is not valid. It must be Hermitian, trace one, " "and have non-negative eigenvalues."
+                "The state matrix is not valid. It must be Hermitian, trace one, and have non-negative eigenvalues."
             )
         return self
 
@@ -320,7 +343,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             self.density = unitary.dot(self.density).dot(np.conj(unitary.T))
             return 1
 
-    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> complex:
+    def expectation(self, operator: PauliTerm | PauliSum) -> complex:
         raise NotImplementedError("To implement")
 
     def reset(self) -> "AbstractQuantumSimulator":

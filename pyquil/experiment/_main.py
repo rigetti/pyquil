@@ -22,16 +22,16 @@ and process tomography, and the variational quantum eigensolver.
 import json
 import logging
 import warnings
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from json import JSONEncoder
 from typing import (
     Any,
-    Callable,
-    Optional,
-    Union,
     cast,
 )
 
+from deprecated.sphinx import deprecated
+
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.experiment._calibration import CalibrationMethod
 from pyquil.experiment._memory import (
     pauli_term_to_measurement_memory_map,
@@ -85,6 +85,12 @@ def _remove_reset_from_program(program: Program) -> Program:
     return p
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 class Experiment:
     """A tomography-like experiment.
 
@@ -136,7 +142,7 @@ class Experiment:
 
     def __init__(
         self,
-        settings: Union[list[ExperimentSetting], list[list[ExperimentSetting]]],
+        settings: list[ExperimentSetting] | list[list[ExperimentSetting]],
         program: Program,
         *,
         symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
@@ -193,7 +199,7 @@ class Experiment:
     def __contains__(self, item: list[ExperimentSetting]) -> bool:
         return item in self._settings
 
-    def append(self, expts: Union[ExperimentSetting, list[ExperimentSetting]]) -> None:
+    def append(self, expts: ExperimentSetting | list[ExperimentSetting]) -> None:
         if not isinstance(expts, list):
             expts = [expts]
         self._settings.append(expts)
@@ -219,7 +225,7 @@ class Experiment:
     def reverse(self) -> None:
         self._settings.reverse()
 
-    def sort(self, key: Optional[Callable[[list[ExperimentSetting]], Any]] = None, reverse: bool = False) -> None:
+    def sort(self, key: Callable[[list[ExperimentSetting]], Any] | None = None, reverse: bool = False) -> None:
         return self._settings.sort(key=key, reverse=reverse)
 
     def setting_strings(self) -> Generator[str, None, None]:
@@ -228,7 +234,7 @@ class Experiment:
             for i, settings in enumerate(self._settings)
         )
 
-    def settings_string(self, abbrev_after: Optional[int] = None) -> str:
+    def settings_string(self, abbrev_after: int | None = None) -> str:
         setting_strs = list(self.setting_strings())
         if abbrev_after is not None and len(setting_strs) > abbrev_after:
             first_n = abbrev_after // 2
@@ -273,7 +279,7 @@ class Experiment:
             meas_qubits.update(cast(list[int], settings[0].out_operator.get_qubits()))
         return sorted(meas_qubits)
 
-    def get_meas_registers(self, qubits: Optional[Sequence[int]] = None) -> list[int]:
+    def get_meas_registers(self, qubits: Sequence[int] | None = None) -> list[int]:
         """Return the sorted list of memory registers corresponding to the list of qubits provided.
 
         If no qubits are provided, just returns the list of numbers from 0 to n-1 where n is the
@@ -414,7 +420,7 @@ class Experiment:
             zeros = np.zeros(num_meas_registers)
             for idx, r in enumerate(symm_registers):
                 zeros[r] = a[idx]
-            memory_maps.append({f"{label}": list(zeros)})
+            memory_maps.append({f"{label}": zeros.tolist()})
         return memory_maps
 
     def generate_calibration_experiment(self) -> "Experiment":
@@ -473,6 +479,12 @@ def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
         )
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 class OperatorEncoder(JSONEncoder):
     def default(self, o: Any) -> Any:
         if isinstance(o, ExperimentSetting):
@@ -484,6 +496,12 @@ class OperatorEncoder(JSONEncoder):
         return o
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def to_json(fn: str, obj: Any) -> str:
     """Save pyquil.experiment objects as a JSON file.
 
@@ -495,7 +513,7 @@ def to_json(fn: str, obj: Any) -> str:
     return fn
 
 
-def _operator_object_hook(obj: Mapping[str, Any]) -> Union[Mapping[str, Any], Experiment]:
+def _operator_object_hook(obj: Mapping[str, Any]) -> Mapping[str, Any] | Experiment:
     if "type" in obj and obj["type"] in ["Experiment", "TomographyExperiment"]:
         # I bet this doesn't work for grouped experiment settings
         settings = [[ExperimentSetting.from_str(s) for s in stt] for stt in obj["settings"]]
@@ -507,6 +525,12 @@ def _operator_object_hook(obj: Mapping[str, Any]) -> Union[Mapping[str, Any], Ex
     return obj
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
+    category=PyQuilDeprecationWarning,
+)
 def read_json(fn: str) -> Any:
     """Read pyquil.experiment objects from a JSON file.
 

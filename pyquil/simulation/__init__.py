@@ -1,4 +1,13 @@
-"""Functions and classes for running simulations."""
+"""Functions and classes for running simulations.
+
+.. deprecated:: PENDING_DEPRECATION_RELEASE
+    The simulators exported here -- :py:class:`NumpyWavefunctionSimulator`,
+    :py:class:`ReferenceWavefunctionSimulator` and :py:class:`ReferenceDensitySimulator` -- and the
+    helper functions exported alongside them are deprecated. They will be removed in pyQuil v5 in
+    favor of the Quax-based simulators. They are already in pyQuil v4, but private and experimental
+    (see the :ref:`simulation architecture documentation <simulation_architecture>`), so we
+    recommend continuing to use the deprecated simulators until you upgrade to pyQuil v5.
+"""
 
 __all__ = [
     "get_measure_probabilities",

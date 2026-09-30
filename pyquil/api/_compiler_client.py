@@ -15,7 +15,6 @@
 ##############################################################################
 import json
 from dataclasses import dataclass
-from typing import Optional
 
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import (
@@ -45,7 +44,7 @@ class CompileToNativeQuilRequest:
     target_quantum_processor: TargetQuantumProcessor
     """Quantum processor to target."""
 
-    protoquil: Optional[bool]
+    protoquil: bool | None
     """Whether or not to restrict to protoquil. Overrides server default when provided."""
 
 
@@ -56,25 +55,25 @@ class NativeQuilMetadataResponse:
     final_rewiring: list[int]
     """Output qubit index relabeling due to SWAP insertion."""
 
-    gate_depth: Optional[int]
+    gate_depth: int | None
     """Maximum number of successive gates in the native Quil program."""
 
-    gate_volume: Optional[int]
+    gate_volume: int | None
     """Total number of gates in the native Quil program."""
 
-    multiqubit_gate_depth: Optional[int]
+    multiqubit_gate_depth: int | None
     """Maximum number of successive two-qubit gates in the native Quil program."""
 
-    program_duration: Optional[float]
+    program_duration: float | None
     """Rough estimate of native Quil program length in nanoseconds."""
 
-    program_fidelity: Optional[float]
+    program_fidelity: float | None
     """Rough estimate of the fidelity of the full native Quil program."""
 
-    topological_swaps: Optional[int]
+    topological_swaps: int | None
     """Total number of SWAPs in the native Quil program."""
 
-    qpu_runtime_estimation: Optional[float]
+    qpu_runtime_estimation: float | None
     """
     The estimated runtime (milliseconds) on a Rigetti QPU (protoquil program). Available only for protoquil-compliant
     programs.
@@ -88,7 +87,7 @@ class CompileToNativeQuilResponse:
     native_program: str
     """Native Quil program."""
 
-    metadata: Optional[NativeQuilMetadata]
+    metadata: NativeQuilMetadata | None
     """Metadata for the returned Native Quil."""
 
 
@@ -100,7 +99,7 @@ class CompilerClient:
         *,
         client_configuration: QCSClient,
         request_timeout: float = 10.0,
-        quilc_client: Optional[QuilcClient] = None,
+        quilc_client: QuilcClient | None = None,
     ) -> None:
         """Instantiate a new compiler client.
 

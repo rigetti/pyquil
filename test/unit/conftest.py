@@ -1,6 +1,10 @@
 import os
 from typing import Any, Dict
 
+import jax
+
+jax.config.update("jax_enable_x64", True)
+
 import numpy as np
 import pytest
 from qcs_sdk import QCSClient
@@ -25,6 +29,7 @@ from pyquil.quil import Program
 from test.unit.utils import DummyCompiler
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+
 
 @pytest.fixture(autouse=True)
 def qcs_config_env(qcs_config_env):

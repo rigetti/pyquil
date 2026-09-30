@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass, field
-from typing import Literal, Optional, Union
+from typing import Literal, Union
 
 from deprecated.sphinx import deprecated
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
@@ -14,9 +14,9 @@ JsonValue = Union[type(None), bool, int, float, str, list["JsonValue"], dict[str
 class Operator:
     """Operator class for representing a quantum gate or measurement."""
 
-    operator: Optional[str] = None
-    duration: Optional[float] = None
-    fidelity: Optional[float] = None
+    operator: str | None = None
+    duration: float | None = None
+    fidelity: float | None = None
 
     def __post_init__(self):
         self.duration = float(self.duration) if self.duration is not None else None
@@ -57,8 +57,8 @@ class Operator:
 class MeasureInfo(Operator):
     """MeasureInfo class for representing a measurement operation."""
 
-    qubit: Optional[Union[int, str]] = None
-    target: Optional[Union[int, str]] = None
+    qubit: int | str | None = None
+    target: int | str | None = None
     operator_type: Literal["measure"] = "measure"
 
     def __post_init__(self):
@@ -107,8 +107,8 @@ class MeasureInfo(Operator):
 class GateInfo(Operator):
     """GateInfo class for representing a quantum gate operation."""
 
-    parameters: list[Union[float, str]] = field(default_factory=list)
-    arguments: list[Union[int, str]] = field(default_factory=list)
+    parameters: list[float | str] = field(default_factory=list)
+    arguments: list[int | str] = field(default_factory=list)
     operator_type: Literal["gate"] = "gate"
 
     def _dict(self) -> dict[str, JsonValue]:
@@ -149,7 +149,7 @@ class GateInfo(Operator):
         return cls._parse_obj(dictionary)
 
 
-def _parse_operator(dictionary: dict) -> Union[GateInfo, MeasureInfo]:
+def _parse_operator(dictionary: dict) -> GateInfo | MeasureInfo:
     operator_type = dictionary["operator_type"]
     if operator_type == "measure":
         return MeasureInfo._parse_obj(dictionary)
@@ -163,8 +163,8 @@ class Qubit:
     """Qubit class for representing a qubit in a quantum processor."""
 
     id: int
-    dead: Optional[bool] = False
-    gates: list[Union[GateInfo, MeasureInfo]] = field(default_factory=list)
+    dead: bool | None = False
+    gates: list[GateInfo | MeasureInfo] = field(default_factory=list)
 
     def _dict(self) -> dict[str, JsonValue]:
         encoding = dict(id=self.id, gates=[g._dict() for g in self.gates])
@@ -203,7 +203,7 @@ class Edge:
     """Edge class for representing a connection between two qubits."""
 
     ids: list[int]
-    dead: Optional[bool] = False
+    dead: bool | None = False
     gates: list[GateInfo] = field(default_factory=list)
 
     def _dict(self) -> dict[str, JsonValue]:
@@ -296,7 +296,7 @@ def add_qubit(quantum_processor: CompilerISA, node_id: int) -> Qubit:
     return quantum_processor.qubits[str(node_id)]
 
 
-def get_qubit(quantum_processor: CompilerISA, node_id: int) -> Optional[Qubit]:
+def get_qubit(quantum_processor: CompilerISA, node_id: int) -> Qubit | None:
     """Get a qubit from the quantum processor ISA."""
     return quantum_processor.qubits.get(str(node_id))
 
@@ -314,7 +314,7 @@ def add_edge(quantum_processor: CompilerISA, qubit1: int, qubit2: int) -> Edge:
     return quantum_processor.edges[edge_id]
 
 
-def get_edge(quantum_processor: CompilerISA, qubit1: int, qubit2: int) -> Optional[Edge]:
+def get_edge(quantum_processor: CompilerISA, qubit1: int, qubit2: int) -> Edge | None:
     """Get an Edge between two qubit IDs."""
     edge_id = make_edge_id(qubit1, qubit2)
     return quantum_processor.edges.get(edge_id)

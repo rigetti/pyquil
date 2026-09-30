@@ -1,0 +1,63 @@
+# serializer version: 1
+# name: test_add_leading_delay_to_first_pulse_block[\n    DECLARE phase REAL[1]\n    ADD phase 1.5707963267948966\n    RZ(phase) 0\n    RX(pi/2) 0\n    ][quil]
+  '''
+  DECLARE phase REAL[1]
+  DELAY 0 0.0002
+  ADD phase[0] 1.5707963267948966
+  FENCE
+  RZ(phase[0]) 0
+  RX(pi/2) 0
+  
+  '''
+# ---
+# name: test_add_leading_delay_to_first_pulse_block[\n    DECLARE phase REAL[1]\n    ADD phase 1.5707963267948966\n    SET-PHASE 0 "rf" phase\n    NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.1, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.1, t0: 1e-8)\n    ][quil]
+  '''
+  DECLARE phase REAL[1]
+  DELAY 0 0.0002
+  ADD phase[0] 1.5707963267948966
+  SET-PHASE 0 "rf" phase[0]
+  FENCE
+  NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.1, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.1, t0: 1e-8)
+  
+  '''
+# ---
+# name: test_add_leading_delay_to_first_pulse_block[\n    DECLARE ro BIT[1]\n    DECLARE phase REAL[1]\n    DECLARE index INTEGER[1]\n    DECLARE condition BIT[1]\n    ADD phase 0.7853981633974483\n    LABEL @loop\n    ADD phase 0.39269908169872414\n    RZ(phase) 0\n    RX(pi/2) 0\n    ADD index 1\n    LT condition index 5\n    JUMP-WHEN @loop condition\n    MEASURE 0 ro[0]\n    ][quil]
+  '''
+  DECLARE condition BIT[1]
+  DECLARE index INTEGER[1]
+  DECLARE phase REAL[1]
+  DECLARE ro BIT[1]
+  ADD phase[0] 0.7853981633974483
+  LABEL @loop
+  DELAY 0 0.0002
+  ADD phase[0] 0.39269908169872414
+  FENCE
+  RZ(phase[0]) 0
+  RX(pi/2) 0
+  ADD index[0] 1
+  LT condition[0] index[0] 5
+  JUMP-WHEN @loop condition[0]
+  MEASURE 0 ro[0]
+  
+  '''
+# ---
+# name: test_add_leading_delay_to_first_pulse_block[\n    DECLARE ro BIT[1]\n    DECLARE phase REAL[1]\n    DECLARE index INTEGER[1]\n    DECLARE condition BIT[1]\n    ADD phase 0.7853981633974483\n    LABEL @loop\n    ADD phase 0.39269908169872414\n    SET-PHASE 0 "rf" phase\n    NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.1, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.1, t0: 1e-8)\n    ADD index 1\n    LT condition index 5\n    JUMP-WHEN @loop condition\n    NONBLOCKING CAPTURE 0 "ro_rx" boxcar_kernel(detuning: 0, duration: 1.6e-6, phase: 0, scale: 1) q10_unclassified[0]    \n    ][quil]
+  '''
+  DECLARE condition BIT[1]
+  DECLARE index INTEGER[1]
+  DECLARE phase REAL[1]
+  DECLARE ro BIT[1]
+  ADD phase[0] 0.7853981633974483
+  LABEL @loop
+  DELAY 0 0.0002
+  ADD phase[0] 0.39269908169872414
+  SET-PHASE 0 "rf" phase[0]
+  FENCE
+  NONBLOCKING PULSE 0 "rf" drag_gaussian(alpha: -0.1, anh: -100000000, detuning: 0, duration: 1e-8, fwhm: 1e-8, phase: 0, scale: 0.1, t0: 1e-8)
+  ADD index[0] 1
+  LT condition[0] index[0] 5
+  JUMP-WHEN @loop condition[0]
+  NONBLOCKING CAPTURE 0 "ro_rx" boxcar_kernel(detuning: 0, duration: 1.6e-6, phase: 0, scale: 1) q10_unclassified[0]
+  
+  '''
+# ---

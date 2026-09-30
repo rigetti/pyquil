@@ -13,9 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Any, Optional
+from typing import Any, TypeAlias
 from warnings import warn
 
+from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import QuilcClient
 from qcs_sdk.qpu.translation import (
@@ -27,8 +28,8 @@ from qcs_sdk.qpu.translation import (
     TranslationOptions as _TranslationOptions,
 )
 from rpcq.messages import ParameterSpec
-from typing_extensions import TypeAlias
 
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
@@ -75,7 +76,7 @@ def _collect_memory_descriptors(program: Program) -> dict[str, ParameterSpec]:
 class QPUCompiler(AbstractCompiler):
     """Client to communicate with the compiler and translation service."""
 
-    api_options: Optional[QPUCompilerAPIOptions]
+    api_options: QPUCompilerAPIOptions | None
 
     def __init__(
         self,
@@ -83,9 +84,9 @@ class QPUCompiler(AbstractCompiler):
         quantum_processor_id: str,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClient] = None,
-        api_options: Optional[QPUCompilerAPIOptions] = None,
-        quilc_client: Optional[QuilcClient] = None,
+        client_configuration: QCSClient | None = None,
+        api_options: QPUCompilerAPIOptions | None = None,
+        quilc_client: QuilcClient | None = None,
     ) -> None:
         """Instantiate a new QPU compiler client.
 
@@ -104,10 +105,10 @@ class QPUCompiler(AbstractCompiler):
 
         self.api_options = api_options
         self.quantum_processor_id = quantum_processor_id
-        self._calibration_program: Optional[Program] = None
+        self._calibration_program: Program | None = None
 
     def native_quil_to_executable(
-        self, nq_program: Program, *, api_options: Optional[QPUCompilerAPIOptions] = None, **kwargs: Any
+        self, nq_program: Program, *, api_options: QPUCompilerAPIOptions | None = None, **kwargs: Any
     ) -> QuantumExecutable:
         """Convert a native Quil program into an executable binary which can be executed by a QPU.
 
@@ -174,6 +175,15 @@ class QPUCompiler(AbstractCompiler):
         self._calibration_program = None
 
 
+@deprecated(
+    version=PENDING_DEPRECATION_RELEASE,
+    line_length=0,
+    reason=(
+        "To be removed in pyQuil v5 along with the QVM; the Quax-based simulators that replace the QVM "
+        f"run programs without compiling them. {QUAX_REPLACEMENT_NOTE}"
+    ),
+    category=PyQuilDeprecationWarning,
+)
 class QVMCompiler(AbstractCompiler):
     """Client to communicate with the compiler."""
 
@@ -182,8 +192,8 @@ class QVMCompiler(AbstractCompiler):
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
-        client_configuration: Optional[QCSClient] = None,
-        quilc_client: Optional[QuilcClient] = None,
+        client_configuration: QCSClient | None = None,
+        quilc_client: QuilcClient | None = None,
     ) -> None:
         """Client to communicate with compiler.
 
@@ -210,7 +220,7 @@ class IncompatibleBackendForQuantumProcessorIDWarning(Warning):
 
 
 def select_backend_for_quantum_processor_id(
-    quantum_processor_id: str, backend: Optional[TranslationBackend]
+    quantum_processor_id: str, backend: TranslationBackend | None
 ) -> TranslationBackend:
     """Check that the translation backend is supported for the quantum processor.
 
