@@ -29,17 +29,63 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 
 import numpy as np
 from deprecated.sphinx import deprecated
+from quil.expression import Expression
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX, I
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
-from pyquil.quilatom import MemoryReference, ParameterDesignator, format_parameter
+from pyquil.quilatom import MemoryReference, ParameterDesignator
 from pyquil.quilbase import Declare, Gate, Pragma
 
 if TYPE_CHECKING:
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
     from pyquil.quil import Program
+
+
+def _format_parameter(element: ParameterDesignator) -> str:
+    """Format a numeric Kraus-matrix element for Quil output.
+
+    Essentially the same as built-in formatting except using 'i' instead of 'j' for the
+    imaginary number. Only numeric types are supported here, since this is only used to format
+    values from Kraus matrices (unlike the retired, more general ``quilatom.format_parameter``).
+
+    :param element: The number to format for Quil output.
+    """
+    if isinstance(element, (int, np.integer)):
+        return repr(int(element))
+    elif isinstance(element, (float, np.floating)):
+        return repr(float(element))
+    elif isinstance(element, (complex, np.complexfloating)):
+        element = complex(element.real, element.imag)
+        out = ""
+        r = element.real
+        i = element.imag
+        if i == 0:
+            return repr(r)
+
+        if r != 0:
+            out += repr(r)
+
+        if i == 1:
+            if np.isclose(r, 0, atol=1e-14):
+                out = "i"
+            else:
+                out += "+i"
+        elif i == -1:
+            if np.isclose(r, 0, atol=1e-14):
+                out = "-i"
+            else:
+                out += "-i"
+        elif i < 0:
+            out += repr(i) + "i"
+        elif r != 0:
+            out += "+" + repr(i) + "i"
+        else:
+            out += repr(i) + "i"
+
+        return out
+    raise AssertionError(f"Invalid parameter: {element}")
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
@@ -231,7 +277,7 @@ def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Se
         Pragma(
             "ADD-KRAUS",
             (name,) + tuple(qubit_indices),
-            "({})".format(" ".join(map(format_parameter, np.ravel(k)))),
+            "({})".format(" ".join(map(_format_parameter, np.ravel(k)))),
         )
         for k in kraus_ops
     ]
@@ -502,7 +548,7 @@ def _decoherence_noise_model(
         :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
     :return: A NoiseModel with the appropriate Kraus operators defined.
     """
-    all_qubits = set(sum((g.get_qubit_indices() for g in gates), []))
+    all_qubits = set(sum((list(g.get_qubit_indices()) for g in gates), []))
     if isinstance(T1, dict):
         all_qubits.update(T1.keys())
     if isinstance(T2, dict):
@@ -530,7 +576,8 @@ def _decoherence_noise_model(
         targets = tuple(g.get_qubit_indices())
         if g.name in NO_NOISE:
             continue
-        matrix, _ = get_noisy_gate(g.name, g.params)
+        params = [p.evaluate({}, {}) if isinstance(p, Expression) else p for p in g.params]
+        matrix, _ = get_noisy_gate(g.name, params)
 
         if len(targets) == 1:
             noisy_I = noisy_identities_1q[targets[0]]
@@ -544,7 +591,7 @@ def _decoherence_noise_model(
         kraus_maps.append(
             KrausModel(
                 g.name,
-                tuple(g.params),
+                tuple(params),
                 targets,
                 combine_kraus_maps(noisy_I, [matrix]),
                 # FIXME (Nik): compute actual avg gate fidelity for this simple
@@ -643,7 +690,8 @@ def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
     for i in prog:
         if isinstance(i, Gate) and noise_model.gates:
             try:
-                _, new_name = get_noisy_gate(i.name, tuple(i.params))
+                params = [p.evaluate({}, {}) if isinstance(p, Expression) else p for p in i.params]
+                _, new_name = get_noisy_gate(i.name, tuple(params))
                 new_prog += Gate(new_name, [], i.qubits)
             except NoisyGateUndefined:
                 new_prog += i

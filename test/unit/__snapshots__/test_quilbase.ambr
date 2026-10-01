@@ -1,27 +1,36 @@
 # serializer version: 1
-# name: TestArithmeticBinaryOp.test_out[ADD-left0-right0]
+# name: TestArithmetic.test_out[ADD-destination0-source0]
   'ADD a[0] b[0]'
 # ---
-# name: TestArithmeticBinaryOp.test_out[DIV-left3-4.2]
+# name: TestArithmetic.test_out[DIV-destination3-4.2]
   'DIV c[2] 4.2'
 # ---
-# name: TestArithmeticBinaryOp.test_out[MUL-left2-1.0]
+# name: TestArithmetic.test_out[MUL-destination2-1.0]
   'MUL c[2] 1'
 # ---
-# name: TestArithmeticBinaryOp.test_out[SUB-left1-1]
+# name: TestArithmetic.test_out[SUB-destination1-1]
   'SUB b[1] 1'
 # ---
-# name: TestArithmeticBinaryOp.test_pickle[ADD-left0-right0]
+# name: TestArithmetic.test_pickle[ADD-destination0-source0]
   Arithmetic { operator: Add, destination: MemoryReference { name: "a", index: 0 }, source: MemoryReference(MemoryReference { name: "b", index: 0 }) }
 # ---
-# name: TestArithmeticBinaryOp.test_pickle[DIV-left3-4.2]
+# name: TestArithmetic.test_pickle[DIV-destination3-4.2]
   Arithmetic { operator: Divide, destination: MemoryReference { name: "c", index: 2 }, source: LiteralReal(4.2) }
 # ---
-# name: TestArithmeticBinaryOp.test_pickle[MUL-left2-1.0]
+# name: TestArithmetic.test_pickle[MUL-destination2-1.0]
   Arithmetic { operator: Multiply, destination: MemoryReference { name: "c", index: 2 }, source: LiteralReal(1.0) }
 # ---
-# name: TestArithmeticBinaryOp.test_pickle[SUB-left1-1]
+# name: TestArithmetic.test_pickle[SUB-destination1-1]
   Arithmetic { operator: Subtract, destination: MemoryReference { name: "b", index: 1 }, source: LiteralInteger(1) }
+# ---
+# name: TestBinaryLogic.test_out[AND-destination0-source0]
+  'AND a[0] b[0]'
+# ---
+# name: TestBinaryLogic.test_out[IOR-destination1-1]
+  'IOR b[1] 1'
+# ---
+# name: TestBinaryLogic.test_out[XOR-destination2-2]
+  'XOR c[2] 2'
 # ---
 # name: TestCapture.test_out[Blocking]
   'CAPTURE 123 q "FRAMEX" WAVEFORMY ro[0]'
@@ -41,56 +50,26 @@
 # name: TestCapture.test_pickle[TemplateWaveform]
   Capture { blocking: false, frame: FrameIdentifier { name: "FRAMEX", qubits: [Fixed(123), Variable("q")] }, memory_reference: MemoryReference { name: "ro", index: 0 }, waveform: WaveformInvocation { name: "flat", parameters: {"iq": Number(Complex { re: 1.0, im: 2.0 }), "duration": Number(Complex { re: 2.5, im: 0.0 })} } }
 # ---
-# name: TestClassicalComparison.test_out[EQ-target0-left0-right0]
+# name: TestComparison.test_out[op0-target0-left0-right0]
   'EQ t[0] y[0] z[0]'
 # ---
-# name: TestClassicalComparison.test_out[GE-target4-left4-3.14]
-  'GE t[2] y[0] 3.14'
-# ---
-# name: TestClassicalComparison.test_out[GT-target3-left3-3.14]
-  'GT t[2] y[0] 3.14'
-# ---
-# name: TestClassicalComparison.test_out[LE-target2-left2-3.14]
-  'LE t[2] y[0] 3.14'
-# ---
-# name: TestClassicalComparison.test_out[LT-target1-left1-2]
+# name: TestComparison.test_out[op1-target1-left1-2]
   'LT t[0] y[5] 2'
 # ---
-# name: TestClassicalConvert.test_out[left0-right0]
+# name: TestComparison.test_out[op2-target2-left2-3.14]
+  'LE t[2] y[0] 3.14'
+# ---
+# name: TestComparison.test_out[op3-target3-left3-3.14]
+  'GT t[2] y[0] 3.14'
+# ---
+# name: TestComparison.test_out[op4-target4-left4-3.14]
+  'GE t[2] y[0] 3.14'
+# ---
+# name: TestConvert.test_out[destination0-source0]
   'CONVERT ro[0] bar[0]'
 # ---
-# name: TestClassicalConvert.test_out[left1-right1]
+# name: TestConvert.test_out[destination1-source1]
   'CONVERT foo[5] bar[0]'
-# ---
-# name: TestClassicalExchange.test_out[left0-right0]
-  'EXCHANGE ro[0] bar[0]'
-# ---
-# name: TestClassicalExchange.test_out[left1-right1]
-  'EXCHANGE foo[5] bar[0]'
-# ---
-# name: TestClassicalLoad.test_out[target0-y-right0]
-  'LOAD t[0] y z[0]'
-# ---
-# name: TestClassicalLoad.test_out[target1-y-right1]
-  'LOAD t[5] y bar[1]'
-# ---
-# name: TestClassicalMove.test_out[left0-right0]
-  'MOVE ro[0] bar[0]'
-# ---
-# name: TestClassicalMove.test_out[left1-5]
-  'MOVE foo[5] 5'
-# ---
-# name: TestClassicalMove.test_out[left2-3.2]
-  'MOVE bar[0] 3.2'
-# ---
-# name: TestClassicalStore.test_out[t-left0-right0]
-  'STORE t y[0] z[0]'
-# ---
-# name: TestClassicalStore.test_out[t-left1-2]
-  'STORE t y[5] 2'
-# ---
-# name: TestClassicalStore.test_out[t-left2-3.14]
-  'STORE t y[5] 3.14'
 # ---
 # name: TestDeclare.test_asdict[Defaults]
   dict({
@@ -276,8 +255,8 @@
 # name: TestDefGate.test_out[ParameterlessExpression]
   '''
   DEFGATE ParameterlessExpressions AS MATRIX:
-      1, 1.2246467991473532e-16
-      1.2246467991473532e-16, -1
+      -cos(3.141592653589793), sin(3.141592653589793)
+      sin(3.141592653589793), cos(3.141592653589793)
   
   '''
 # ---
@@ -298,7 +277,7 @@
   GateDefinition { name: "NoParamGate", parameters: [], specification: Matrix([[Number(Complex { re: 1.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 1.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 1.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 1.0, im: 0.0 })]]) }
 # ---
 # name: TestDefGate.test_pickle[ParameterlessExpression]
-  GateDefinition { name: "ParameterlessExpressions", parameters: [], specification: Matrix([[Number(Complex { re: 1.0, im: 0.0 }), Number(Complex { re: 1.2246467991473532e-16, im: 0.0 })], [Number(Complex { re: 1.2246467991473532e-16, im: 0.0 }), Number(Complex { re: -1.0, im: 0.0 })]]) }
+  GateDefinition { name: "ParameterlessExpressions", parameters: [], specification: Matrix([[Prefix(PrefixExpression { operator: Minus, expression: FunctionCall(FunctionCallExpression { function: Cosine, expression: Number(Complex { re: 3.141592653589793, im: 0.0 }) }) }), FunctionCall(FunctionCallExpression { function: Sine, expression: Number(Complex { re: 3.141592653589793, im: 0.0 }) })], [FunctionCall(FunctionCallExpression { function: Sine, expression: Number(Complex { re: 3.141592653589793, im: 0.0 }) }), FunctionCall(FunctionCallExpression { function: Cosine, expression: Number(Complex { re: 3.141592653589793, im: 0.0 }) })]]) }
 # ---
 # name: TestDefGate.test_pickle[Params]
   GateDefinition { name: "ParameterizedGate", parameters: ["X"], specification: Matrix([[FunctionCall(FunctionCallExpression { function: Cosine, expression: Variable("X") }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), FunctionCall(FunctionCallExpression { function: Cosine, expression: Variable("X") }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), FunctionCall(FunctionCallExpression { function: Cosine, expression: Variable("X") }), Number(Complex { re: 0.0, im: 0.0 })], [Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), Number(Complex { re: 0.0, im: 0.0 }), FunctionCall(FunctionCallExpression { function: Cosine, expression: Variable("X") })]]) }
@@ -324,8 +303,8 @@
 # name: TestDefGate.test_str[ParameterlessExpression]
   '''
   DEFGATE ParameterlessExpressions AS MATRIX:
-      1, 1.2246467991473532e-16
-      1.2246467991473532e-16, -1
+      -cos(3.141592653589793), sin(3.141592653589793)
+      sin(3.141592653589793), cos(3.141592653589793)
   
   '''
 # ---
@@ -420,17 +399,17 @@
   
   '''
 # ---
-# name: TestDefPermutationGate.test_get_constructor[PermGate-permutation0]
+# name: TestDefPermutationGate.test_get_constructor[PermGate-permutation0-2]
   'PermGate 123'
 # ---
-# name: TestDefPermutationGate.test_out[PermGate-permutation0]
+# name: TestDefPermutationGate.test_out[PermGate-permutation0-2]
   '''
   DEFGATE PermGate AS PERMUTATION:
       4, 3, 2, 1
   
   '''
 # ---
-# name: TestDefPermutationGate.test_str[PermGate-permutation0]
+# name: TestDefPermutationGate.test_str[PermGate-permutation0-2]
   '''
   DEFGATE PermGate AS PERMUTATION:
       4, 3, 2, 1
@@ -463,6 +442,12 @@
 # ---
 # name: TestDelayQubits.test_out[Qubit]
   'DELAY 0 5'
+# ---
+# name: TestExchange.test_out[left0-right0]
+  'EXCHANGE ro[0] bar[0]'
+# ---
+# name: TestExchange.test_out[left1-right1]
+  'EXCHANGE foo[5] bar[0]'
 # ---
 # name: TestFence.test_out[FormalArgument]
   'FENCE a'
@@ -560,14 +545,11 @@
 # name: TestGate.test_str[X-Gate]
   'X 0'
 # ---
-# name: TestLogicalBinaryOp.test_out[AND-left0-right0]
-  'AND a[0] b[0]'
+# name: TestLoad.test_out[destination0-y-offset0]
+  'LOAD t[0] y z[0]'
 # ---
-# name: TestLogicalBinaryOp.test_out[IOR-left1-1]
-  'IOR b[1] 1'
-# ---
-# name: TestLogicalBinaryOp.test_out[XOR-left2-2]
-  'XOR c[2] 2'
+# name: TestLoad.test_out[destination1-y-offset1]
+  'LOAD t[5] y bar[1]'
 # ---
 # name: TestMeasurement.test_out[MemoryReference]
   'MEASURE 1 theta[0]'
@@ -580,6 +562,15 @@
 # ---
 # name: TestMeasurement.test_str[No-MemoryReference]
   'MEASURE 0'
+# ---
+# name: TestMove.test_out[destination0-source0]
+  'MOVE ro[0] bar[0]'
+# ---
+# name: TestMove.test_out[destination1-5]
+  'MOVE foo[5] 5'
+# ---
+# name: TestMove.test_out[destination2-3.2]
+  'MOVE bar[0] 3.2'
 # ---
 # name: TestPragma.test_out[Command-Only]
   'PRAGMA NO-NOISE'
@@ -680,15 +671,24 @@
 # name: TestReset.test_str[Qubit]
   'RESET 0'
 # ---
+# name: TestStore.test_out[t-offset0-source0]
+  'STORE t y[0] z[0]'
+# ---
+# name: TestStore.test_out[t-offset1-2]
+  'STORE t y[5] 2'
+# ---
+# name: TestStore.test_out[t-offset2-3.14]
+  'STORE t y[5] 3.14'
+# ---
 # name: TestSwapPhases.test_out[frame_a0-frame_b0]
   'SWAP-PHASES 1 "FRAMEX" 2 "FRAMEX"'
 # ---
-# name: TestUnaryClassicalInstruction.test_out[NEG-target0]
+# name: TestUnaryLogic.test_out[NEG-target0]
   'NEG a[0]'
 # ---
-# name: TestUnaryClassicalInstruction.test_out[NEG-target2]
+# name: TestUnaryLogic.test_out[NEG-target2]
   'NEG c[2]'
 # ---
-# name: TestUnaryClassicalInstruction.test_out[NOT-target1]
+# name: TestUnaryLogic.test_out[NOT-target1]
   'NOT b[1]'
 # ---

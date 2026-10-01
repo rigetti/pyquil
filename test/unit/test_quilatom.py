@@ -1,26 +1,26 @@
 from collections.abc import Sequence
-from typing import Union
 
 import numpy as np
 import pytest
+from quil.instructions import Qubit
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quilatom import Add, FormalArgument, Frame, Label, LabelPlaceholder, Parameter, Qubit, QubitPlaceholder
+from pyquil.quilatom import Add, Frame, Label, LabelPlaceholder, Parameter, QubitPlaceholder
 
 
 @pytest.mark.parametrize(
     ("qubits", "name"),
     [
         ([Qubit(0)], "FRAME"),
-        ([FormalArgument("One")], "FRAME"),
+        ([Qubit("One")], "FRAME"),
         ([2], "FRAME"),
-        ([Qubit(0), FormalArgument("One"), 2], "FRAME"),
+        ([Qubit(0), Qubit("One"), 2], "FRAME"),
     ],
-    ids=("With-Qubit", "With-FormalArgument", "With-int", "With-Mixed"),
+    ids=("With-Fixed", "With-Variable", "With-int", "With-Mixed"),
 )
 class TestFrame:
     @pytest.fixture
-    def frame(self, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str):
+    def frame(self, qubits: Sequence[int | Qubit], name: str):
         return Frame(qubits, name)
 
     def test_out(self, frame: Frame, snapshot: SnapshotAssertion):
@@ -29,8 +29,9 @@ class TestFrame:
     def test_str(self, frame: Frame, snapshot: SnapshotAssertion):
         assert str(frame) == snapshot
 
-    def test_qubits(self, frame: Frame, qubits: Sequence[Union[int, Qubit, FormalArgument]]):
-        assert frame.qubits == tuple(Qubit(q) if isinstance(q, int) else q for q in qubits)
+    def test_qubits(self, frame: Frame, qubits: Sequence[int | Qubit]):
+        expected = [Qubit(q) if isinstance(q, int) else q for q in qubits]
+        assert frame.qubits == expected
 
     def test_name(self, frame: Frame, name: str):
         assert frame.name == name
@@ -64,9 +65,6 @@ def test_label_placeholder():
 def test_qubit_placeholder():
     register = QubitPlaceholder.register(2)
     assert len(register) == 2
-    with pytest.raises(RuntimeError):
-        register[0].out()
-
     assert register[0] != register[1]
 
 

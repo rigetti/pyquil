@@ -54,7 +54,7 @@ def test_simplify_terms():
     assert term.coefficient == -1.0
 
     term = PauliTerm("Z", q[0]) + PauliTerm("Z", q[0], 1.0)
-    assert str(term).startswith("(2+0j)*Zq")
+    assert str(term).startswith("(2+0j)*ZPlaceholder(")
 
 
 def test_get_qubits():
@@ -223,9 +223,9 @@ def test_ps_sub():
     assert str(b - 1.0) == "(1+0j)*I"
     assert str(1.0 - b) == "(-1+0j)*I"
     b = 1.0 - sX(q0)
-    assert re.match(r"\(1\+0j\)\*I \+ \(-1\+0j\)\*Xq\d+", str(b))
+    assert re.search(r"\(-1-0j\)\*XPlaceholder\(", str(b))
     b = sX(q0) - 1.0
-    assert re.match(r"\(1\+0j\)\*Xq\d+ \+ \(-1\+0j\)\*I", str(b))
+    assert re.match(r"\(1\+0j\)\*XPlaceholder\(", str(b))
 
 
 def test_exponentiate_1():
@@ -511,7 +511,7 @@ def test_check_commutation_rigorous():
     # more rigorous test.  Get all operators in Pauli group
     p_n_group = ("I", "X", "Y", "Z")
     pauli_list = list(product(p_n_group, repeat=3))
-    pauli_ops = [list(zip(x, QubitPlaceholder.register(3))) for x in pauli_list]
+    pauli_ops = [list(zip(x, QubitPlaceholder.register(3), strict=False)) for x in pauli_list]
     pauli_ops_pq = [reduce(mul, (PauliTerm(*x) for x in op)) for op in pauli_ops]
 
     non_commuting_pairs = []

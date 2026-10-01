@@ -1,15 +1,14 @@
 import os
-from typing import Optional
 
 import numpy as np
 import pytest
-from syrupy.assertion import SnapshotAssertion
+from quil.instructions import Qubit
 from quil.program import ProgramError
+from syrupy.assertion import SnapshotAssertion
 
 from pyquil.gates import RX
 from pyquil.quil import Program
 from pyquil.quilatom import (
-    FormalArgument,
     MemoryReference,
     Parameter,
 )
@@ -18,7 +17,6 @@ from pyquil.quilbase import (
     DefCalibration,
     DefMeasureCalibration,
     Gate,
-    Qubit,
 )
 from pyquil.quiltcalibrations import (
     CalibrationMatch,
@@ -71,7 +69,7 @@ def test_waveform_samples_optional_args():
     assert np.array_equal(np.exp(1j) * flat(), flat(phase=1.0))
 
 
-def _match(cal: DefCalibration, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
+def _match(cal: DefCalibration, instr: AbstractInstruction) -> CalibrationMatch | None:
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast
@@ -83,7 +81,7 @@ def _match(cal: DefCalibration, instr: AbstractInstruction) -> Optional[Calibrat
     return match_calibration(instr, cal)
 
 
-def _match_measure(cal: DefMeasureCalibration, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
+def _match_measure(cal: DefMeasureCalibration, instr: AbstractInstruction) -> CalibrationMatch | None:
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast
@@ -106,7 +104,7 @@ def test_simple_gate_calibration_match():
     for cal, instr in matches:
         assert _match(cal, instr) is not None
 
-    assert _match(cal, instr).settings[FormalArgument("q")] == Qubit(0)
+    assert _match(cal, instr).settings[Qubit("q")] == Qubit(0)
 
     mismatches = [
         ("DEFCAL X 0", "X 1"),
@@ -133,7 +131,7 @@ def test_parametric_calibration_match():
     for cal, instr in matches:
         assert _match(cal, instr) is not None
 
-    assert np.isclose(_match(cal, instr).settings[Parameter("theta")], np.pi)
+    assert np.isclose(complex(_match(cal, instr).settings[Parameter("theta")]), np.pi)
 
     mismatches = [
         ("DEFCAL RX(pi) q", "RX(0) 0"),
@@ -161,7 +159,7 @@ def test_measure_calibration_match():
         assert _match_measure(cal, instr) is not None
 
     match = _match_measure(cal, instr)
-    assert match.settings[FormalArgument("q")] == Qubit(1)
+    assert match.settings[Qubit("q")] == Qubit(1)
     assert match.settings[MemoryReference("b")] == MemoryReference("ro")
 
     mismatches = [
@@ -174,11 +172,11 @@ def test_measure_calibration_match():
 
 
 def test_program_match_last():
-    first = DefCalibration("X", [], [Qubit(0)], [RX(np.pi / 2, 0)])
-    second = DefCalibration("X", [], [Qubit(0)], [RX(-np.pi / 2, 0)])
+    first = DefCalibration.from_parts("X", [], [Qubit(0)], [RX(np.pi / 2, 0)], None)
+    second = DefCalibration.from_parts("X", [], [Qubit(0)], [RX(-np.pi / 2, 0)], None)
     prog = Program(first, second)
     match = prog.match_calibrations(Gate("X", [], [Qubit(0)]))
-    assert match.cal.out() == second.out()
+    assert match.cal.to_quil() == second.to_quil()
     assert match.settings == {}
 
 

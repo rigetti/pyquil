@@ -82,7 +82,7 @@ from jax import Array
 from pyquil.api import MemoryMap
 from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
-from pyquil.quilbase import Measurement, Reset, ResetQubit
+from pyquil.quilbase import Measurement, Reset
 from pyquil.simulation._circuit import Circuit, CircuitOp, Group, MergePlan, Placement
 from pyquil.simulation._resolver import (
     ExpandedOp,
@@ -906,7 +906,7 @@ class PureStateVectorSimulator(_DifferentiableSimulator[qx.StateVector]):
         for inst in program.instructions:
             if isinstance(inst, Measurement):
                 raise ValueError(f"PureStateVectorSimulator does not support measurements.  Found: {inst}")
-            if isinstance(inst, (Reset, ResetQubit)):
+            if isinstance(inst, Reset):
                 raise ValueError(f"PureStateVectorSimulator does not support resets.  Found: {inst}")
 
     def _validate_ops(self, ops: tuple[ExpandedOp, ...], subsystems: tuple[tuple[int, ...], ...]) -> None:

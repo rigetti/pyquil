@@ -1,9 +1,10 @@
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import pytest
 
 from pyquil.quil import Program
+
 
 @pytest.fixture(scope="session")
 def over_9000_program_text() -> str:

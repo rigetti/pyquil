@@ -1,5 +1,4 @@
 import math
-from typing import Optional
 
 import pytest
 from qcs_sdk.qpu.translation import TranslationBackend
@@ -10,8 +9,9 @@ from pyquil.api._compiler import (
     QPUCompiler,
     select_backend_for_quantum_processor_id,
 )
+from quil.instructions import Qubit
+
 from pyquil.gates import MEASURE, RX, RZ
-from pyquil.quilatom import FormalArgument
 from pyquil.quilbase import DefCalibration
 
 
@@ -24,8 +24,10 @@ def simple_program():
 
 def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
     program = simple_program()
-    q = FormalArgument("q")
-    defn = DefCalibration("H", [], [q], [RZ(math.pi / 2, q), RX(math.pi / 2, q), RZ(math.pi / 2, q)])
+    q = Qubit("q")
+    defn = DefCalibration.from_parts(
+        "H", [], [q], [RZ(math.pi / 2, q), RX(math.pi / 2, q), RZ(math.pi / 2, q)], None
+    )
     cals = [defn]
     program.inst(cals)
     # this should more or less pass through
@@ -36,8 +38,10 @@ def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
 
 
 def test_transpile_qasm_2(compiler: QPUCompiler):
-    qasm = 'OPENQASM 2.0;\nqreg q[3];\ncreg ro[2];\nmeasure q[0] -> ro[0];\nmeasure q[1] -> ro[1];'
+    qasm = "OPENQASM 2.0;\nqreg q[3];\ncreg ro[2];\nmeasure q[0] -> ro[0];\nmeasure q[1] -> ro[1];"
     program = compiler.transpile_qasm_2(qasm)
+
+    # Manual verification (vs against snapshot) because MEASUREs might be reordered.
     lines = [line for line in program.out().splitlines() if line]
     assert lines[0] == "DECLARE ro BIT[2]"
     instructions = lines[1:]
@@ -56,9 +60,11 @@ def test_transpile_qasm_2(compiler: QPUCompiler):
         ("Not-Aspen", None, TranslationBackend.V2, False),
         ("Not-Aspen", TranslationBackend.V1, TranslationBackend.V2, True),
         ("Not-Aspen", TranslationBackend.V2, TranslationBackend.V2, False),
-    ]
+    ],
 )
-def test_translation_backend_validation(quantum_processor_id: str, backend: Optional[TranslationBackend], expected: TranslationBackend, warns: bool):
+def test_translation_backend_validation(
+    quantum_processor_id: str, backend: TranslationBackend | None, expected: TranslationBackend, warns: bool
+):
     if warns:
         with pytest.warns(IncompatibleBackendForQuantumProcessorIDWarning):
             actual = select_backend_for_quantum_processor_id(quantum_processor_id, backend)

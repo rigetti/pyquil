@@ -9,10 +9,7 @@ import pytest
 import pyquil.simulation.matrices as qmats
 from pyquil import Program
 from pyquil.api import QCSClient, QuantumComputer
-from pyquil.experiment import Experiment, ExperimentSetting, zeros_state
 from pyquil.gates import CNOT, MEASURE, PHASE, RX, RY, RZ, H, I, X
-from pyquil.operator_estimation import measure_observables
-from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.simulation._reference import ReferenceDensitySimulator, _is_valid_quantum_state
@@ -319,41 +316,10 @@ def test_multiqubit_decay_bellstate():
     assert np.allclose(qam.wf_simulator.density, state)
 
 
-@pytest.mark.slow
-def test_for_negative_probabilities(client_configuration: QCSClient):
-    # trivial program to do state tomography on
-    prog = Program(I(0)).wrap_in_numshots_loop(3000)
-
-    # make an Experiment
-    expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
-    experiment_1q = Experiment(settings=expt_settings, program=prog)
-
-    # make a quantum computer object
-    device = NxQuantumProcessor(nx.complete_graph(1))
-    qc_density = QuantumComputer(
-        name="testy!",
-        qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
-        compiler=DummyCompiler(quantum_processor=device, client_configuration=client_configuration),
-    )
-
-    # initialize with a pure state
-    initial_density = np.array([[1.0, 0.0], [0.0, 0.0]])
-    qc_density.qam.wf_simulator.density = initial_density
-
-    try:
-        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q))
-    except ValueError as e:
-        # the error is from np.random.choice by way of self.rs.choice in ReferenceDensitySimulator
-        assert str(e) != "probabilities are not non-negative"
-
-    # initialize with a mixed state
-    initial_density = np.array([[0.9, 0.0], [0.0, 0.1]])
-    qc_density.qam.wf_simulator.density = initial_density
-
-    try:
-        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q))
-    except ValueError as e:
-        assert str(e) != "probabilities are not non-negative"
+# `test_for_negative_probabilities` was removed because it relies on the removed
+# `pyquil.experiment`/`pyquil.operator_estimation` modules (state-tomography/observable-estimation
+# framework); it is unrelated to the QVM/`ReferenceDensitySimulator` functionality this file
+# otherwise tests.
 
 
 def test_set_initial_state(client_configuration: QCSClient):

@@ -11,9 +11,9 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 # Valid, sample Z85-encoded keys specified by zmq curve for testing:
 #   http://api.zeromq.org/master:zmq-curve#toc4
 CLIENT_PUBLIC_KEY = "Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID"
-CLIENT_SECRET_KEY = "D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs"
+CLIENT_SECRET_KEY = "D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs"  # noqa: S105
 SERVER_PUBLIC_KEY = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7"
-SERVER_SECRET_KEY = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6"
+SERVER_SECRET_KEY = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6"  # noqa: S105
 
 
 def patch_rpcq_client(*, mocker: MockerFixture, return_value: Any) -> MagicMock:
@@ -31,7 +31,7 @@ def patch_rpcq_client(*, mocker: MockerFixture, return_value: Any) -> MagicMock:
         client.auth_config = auth_config
         return client
 
-    constructor = mocker.patch("rpcq.Client", side_effect=_construct)
+    mocker.patch("rpcq.Client", side_effect=_construct)
 
     return client
 

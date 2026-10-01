@@ -23,8 +23,8 @@ dependencies = [
   "scipy (>=1.11,<2.0)",
   "rpcq (>=3.11.0,<4.0.0)",
   "networkx (>=2.5)",
-  "qcs-sdk-python (>=0.26.0rc0,<0.27.0)",
-  "quil (>=0.35.0,<0.36.0)",
+  "qcs-sdk-python (>=0.31.1,<0.32.0)",
+  "quil (==0.37.3-rc.2)",
   "packaging (>=26.0,<27.0)",
   "deprecated (>=1.2.14,<2.0.0)",
   "types-deprecated (>=1.2.9.3,<2.0.0.0)",
@@ -138,6 +138,7 @@ docstring-code-line-length = "dynamic"
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning:pyquil.*:", "ignore::DeprecationWarning:test.unit.*:"]
+xfail_strict = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

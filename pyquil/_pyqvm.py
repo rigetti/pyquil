@@ -37,42 +37,51 @@ from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
+from quil.instructions import ArithmeticOperand, BinaryOperand, Halt, Nop, Wait
 from pyquil.quilbase import (
     ArithmeticBinaryOp,
-    ClassicalAdd,
-    ClassicalAnd,
-    ClassicalDiv,
+    ArithmeticOperator,
+    BinaryOperator,
     ClassicalExchange,
-    ClassicalExclusiveOr,
-    ClassicalInclusiveOr,
     ClassicalMove,
-    ClassicalMul,
-    ClassicalNeg,
-    ClassicalNot,
-    ClassicalSub,
     Declare,
-    DefGate,
-    DefGateByPaulis,
-    DefPermutationGate,
     Gate,
-    Halt,
+    GateDefinition,
+    GateSpecification,
     Jump,
     JumpTarget,
     JumpUnless,
     JumpWhen,
     LogicalBinaryOp,
     Measurement,
-    Nop,
     Pragma,
     Reset,
-    ResetQubit,
     UnaryClassicalInstruction,
-    Wait,
+    UnaryOperator,
+    gate_definition_matrix,
 )
 
 log = logging.getLogger(__name__)
 
 QUIL_TO_NUMPY_DTYPE = {"INT": np.int32, "REAL": np.float64, "BIT": np.int8, "OCTET": np.uint8}
+
+
+def _gate_definition_matrix(dg: GateDefinition) -> np.ndarray:
+    """Extract the unitary matrix from a ``GATE ... AS MATRIX`` :py:class:`GateDefinition`."""
+    rows = gate_definition_matrix(dg)
+    return np.array([[cell.evaluate({}, {}) for cell in row] for row in rows])
+
+
+def _unwrap_operand(operand: "ArithmeticOperand | BinaryOperand") -> int | float | MemoryReference:
+    """Unwrap an ``ArithmeticOperand``/``BinaryOperand`` enum variant to its underlying value."""
+    match operand:
+        case ArithmeticOperand.LiteralInteger(value) | BinaryOperand.LiteralInteger(value):
+            return value
+        case ArithmeticOperand.LiteralReal(value):
+            return value
+        case ArithmeticOperand.MemoryReference(value) | BinaryOperand.MemoryReference(value):
+            return value
+    raise TypeError(f"Unknown operand type: {type(operand)}")
 
 
 # Not decorated: ``deprecated`` wraps ``__new__``, so every deprecated subclass (the NumPy and
@@ -231,9 +240,9 @@ class PyQVM(QAM["PyQVM"]):
         for dg in self.program.defined_gates:
             if dg.parameters is not None and len(dg.parameters) > 0:
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
-            if isinstance(dg, DefPermutationGate) or isinstance(dg, DefGateByPaulis):
-                raise NotImplementedError("PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM.")
-            self.defined_gates[dg.name] = dg.matrix
+            if not isinstance(dg.specification, GateSpecification.Matrix):
+                raise NotImplementedError("PyQVM does not support DEFGATE ... AS PERMUTATION | PAULI-SUM.")
+            self.defined_gates[dg.name] = _gate_definition_matrix(dg)
 
     def execute_with_memory_map_batch(
         self, executable: QuantumExecutable, memory_maps: Iterable[MemoryMap], **__: Any
@@ -302,7 +311,7 @@ class PyQVM(QAM["PyQVM"]):
             raise ValueError("No memory results available.")
         return np.asarray(self._memory_results[region_name])
 
-    def find_label(self, label: Label | LabelPlaceholder) -> int:
+    def find_label(self, label: "Target") -> int:
         """Iterate over the program and find a JumpTarget that has a Label matching the input label.
 
         :param label: Label object to search for in program
@@ -312,7 +321,7 @@ class PyQVM(QAM["PyQVM"]):
             raise RuntimeError("No program loaded into PyQVM.")
         for index, action in enumerate(self.program):
             if isinstance(action, JumpTarget):
-                if label == action.label:
+                if label == action.target:
                     return index
 
         raise RuntimeError("Improper program - Jump Target not found in the input program!")
@@ -347,7 +356,7 @@ class PyQVM(QAM["PyQVM"]):
 
         elif isinstance(instruction, Measurement):
             measured_val = self.wf_simulator.do_measurement(qubit=instruction.get_qubit_indices().pop())
-            meas_reg: MemoryReference | None = instruction.classical_reg
+            meas_reg: MemoryReference | None = instruction.target
             if meas_reg is None:
                 raise ValueError("Measurement instruction must have a classical register.")
             self.ram[meas_reg.name][meas_reg.offset] = measured_val
@@ -401,11 +410,11 @@ class PyQVM(QAM["PyQVM"]):
             # UnaryClassicalInstruction; set classical reg
             target = instruction.target
             old = self.ram[target.name][target.offset]
-            if isinstance(instruction, ClassicalNeg):
+            if instruction.operator == UnaryOperator.NEG:
                 if not isinstance(old, (int, float, np.int32, np.float64)):
                     raise ValueError(f"NEG requires a data type of REAL or INTEGER; not {type(old)}")
                 self.ram[target.name][target.offset] *= -1
-            elif isinstance(instruction, ClassicalNot):
+            elif instruction.operator == UnaryOperator.NOT:
                 if not isinstance(old, (bool, np.bool_)):
                     raise ValueError(f"NOT requires a data type of BIT; not {type(old)}")
                 self.ram[target.name][target.offset] = not old
@@ -417,31 +426,32 @@ class PyQVM(QAM["PyQVM"]):
         elif isinstance(instruction, (LogicalBinaryOp, ArithmeticBinaryOp, ClassicalMove)):
             left_ind = instruction.left
             left_val = self.ram[left_ind.name][left_ind.offset]
-            if isinstance(instruction.right, MemoryReference):
-                right_ind = instruction.right
+            right_operand = _unwrap_operand(instruction.right)
+            if isinstance(right_operand, MemoryReference):
+                right_ind = right_operand
                 right_val = self.ram[right_ind.name][right_ind.offset]
             else:
-                right_val = instruction.right
+                right_val = right_operand
 
-            if isinstance(instruction, ClassicalAnd):
+            if isinstance(instruction, LogicalBinaryOp) and instruction.operator == BinaryOperator.AND:
                 if not isinstance(left_val, int) or not isinstance(right_val, int):
                     raise ValueError("AND requires a data type of INTEGER; not {type(left_val)} and {type(right_val)}")
                 new_val: int | float = left_val & right_val
-            elif isinstance(instruction, ClassicalInclusiveOr):
+            elif isinstance(instruction, LogicalBinaryOp) and instruction.operator == BinaryOperator.IOR:
                 if not isinstance(left_val, int) or not isinstance(right_val, int):
                     raise ValueError("OR requires a data type of INTEGER; not {type(left_val)} and {type(right_val)}")
                 new_val = left_val | right_val
-            elif isinstance(instruction, ClassicalExclusiveOr):
+            elif isinstance(instruction, LogicalBinaryOp) and instruction.operator == BinaryOperator.XOR:
                 if not isinstance(left_val, int) or not isinstance(right_val, int):
                     raise ValueError("XOR requires a data type of INTEGER; not {type(left_val)} and {type(right_val)}")
                 new_val = left_val ^ right_val
-            elif isinstance(instruction, ClassicalAdd):
+            elif isinstance(instruction, ArithmeticBinaryOp) and instruction.operator == ArithmeticOperator.ADD:
                 new_val = left_val + right_val
-            elif isinstance(instruction, ClassicalSub):
+            elif isinstance(instruction, ArithmeticBinaryOp) and instruction.operator == ArithmeticOperator.SUBTRACT:
                 new_val = left_val - right_val
-            elif isinstance(instruction, ClassicalMul):
+            elif isinstance(instruction, ArithmeticBinaryOp) and instruction.operator == ArithmeticOperator.MULTIPLY:
                 new_val = left_val * right_val
-            elif isinstance(instruction, ClassicalDiv):
+            elif isinstance(instruction, ArithmeticBinaryOp) and instruction.operator == ArithmeticOperator.DIVIDE:
                 new_val = left_val / right_val
             elif isinstance(instruction, ClassicalMove):
                 new_val = right_val
@@ -459,27 +469,27 @@ class PyQVM(QAM["PyQVM"]):
             self.ram[right_ind_ex.name][right_ind_ex.offset] = tmp
             self.program_counter += 1
 
+        elif isinstance(instruction, Reset) and instruction.qubit is not None:
+            raise NotImplementedError("Need to implement in wf simulator")
+
         elif isinstance(instruction, Reset):
             self.wf_simulator.reset()
             self.program_counter += 1
 
-        elif isinstance(instruction, ResetQubit):
-            raise NotImplementedError("Need to implement in wf simulator")
-
-        elif isinstance(instruction, Wait):
+        elif instruction is Wait:
             self.program_counter += 1
 
-        elif isinstance(instruction, Nop):
+        elif instruction is Nop:
             # well that was easy
             self.program_counter += 1
 
-        elif isinstance(instruction, DefGate):
+        elif isinstance(instruction, GateDefinition):
             if instruction.parameters is not None and len(instruction.parameters) > 0:
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
-            self.defined_gates[instruction.name] = instruction.matrix
+            self.defined_gates[instruction.name] = _gate_definition_matrix(instruction)
             self.program_counter += 1
 
-        elif isinstance(instruction, Halt):
+        elif instruction is Halt:
             return True
         else:
             raise ValueError(f"Unsupported instruction type: {instruction}")

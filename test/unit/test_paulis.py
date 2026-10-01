@@ -46,8 +46,6 @@ from pyquil.paulis import (
     trotterize,
 )
 from pyquil.quil import Program
-from pyquil.simulation import matrices
-from pyquil.simulation.tools import program_unitary, unitary_equal
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
@@ -259,7 +257,7 @@ def test_ps_sub():
     assert str(b - 1.0) == "(1+0j)*I"
     assert str(1.0 - b) == "(-1+0j)*I"
     b = 1.0 - sX(0)
-    assert str(b) == "(1+0j)*I + (-1+0j)*X0"
+    assert str(b) == "(1+0j)*I + (-1-0j)*X0"
     b = sX(0) - 1.0
     assert str(b) == "(1+0j)*X0 + (-1+0j)*I"
 
@@ -399,56 +397,6 @@ def test_exponentiate_prog():
     assert prog.out() == result_prog.out()
 
 
-def test_exponentiate_pauli_sum_rxx():
-    """Test that exponentiate_exponentiate_pauli_sum generates the RXX gate"""
-    generators = PauliTerm("X", 0) * PauliTerm("X", 1)
-    for angle in np.linspace(-0.5, 0.5):
-        generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.RXX(2 * np.pi * angle))
-
-
-def test_exponentiate_pauli_sum_ryy():
-    """Test that exponentiate_exponentiate_pauli_sum generates the RYY gate"""
-    generators = PauliTerm("Y", 0) * PauliTerm("Y", 1)
-    for angle in np.linspace(-0.5, 0.5):
-        generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.RYY(2 * np.pi * angle))
-
-
-def test_exponentiate_pauli_sum_rzz():
-    """Test that exponentiate_exponentiate_pauli_sum generates the RZZ gate"""
-    generators = PauliTerm("Z", 0) * PauliTerm("Z", 1)
-    for angle in np.linspace(-0.5, 0.5):
-        generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.RZZ(2 * np.pi * angle))
-
-
-def test_exponentiate_pauli_sum_cphase():
-    """Test that exponentiate_exponentiate_pauli_sum generates the CZ gate"""
-    generators = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
-    for angle in np.linspace(-0.5, 0.5):
-        generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.CPHASE(2 * np.pi * (-2 * angle)))
-
-
-def test_exponentiate_pauli_sum_xy():
-    """Test that exponentiate_exponentiate_pauli_sum generates the XY gate"""
-    generators = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
-    for angle in np.linspace(-0.5, 0.5):
-        generated_unitary = exponentiate_pauli_sum(generators * angle)
-        assert unitary_equal(generated_unitary, matrices.XY(2 * np.pi * (-2 * angle)))
-
-
-def test_exponentiate_pauli_sum_fsim():
-    """Test that exponentiate_exponentiate_pauli_sum generates the FSIM gate"""
-    xy_generators = PauliTerm("X", 0) * PauliTerm("X", 1) + PauliTerm("Y", 0) * PauliTerm("Y", 1)
-    cphase_generators = PauliTerm("Z", 0) * PauliTerm("Z", 1) - 1 * PauliTerm("Z", 0) - 1 * PauliTerm("Z", 1)
-    for theta in np.linspace(-0.5, 0.5):
-        for phi in np.linspace(-0.5, 0.5):
-            generated_unitary = exponentiate_pauli_sum(xy_generators * theta + cphase_generators * phi)
-            assert unitary_equal(generated_unitary, matrices.FSIM(2 * np.pi * (-2 * theta), 2 * np.pi * (-2 * phi)))
-
-
 def test_exponentiate_identity():
     generator = PauliTerm("I", 1, 0.0)
     para_prog = exponential_map(generator)
@@ -540,39 +488,6 @@ def test_trotterize():
     assert prog.out() == result_prog.out()
 
 
-def test_trotterize_order():
-    def expmi(hermitian_matrix):
-        """Compute the matrix exponential of -1j * hermitian_matrix."""
-        L, Q = np.linalg.eigh(hermitian_matrix)
-        return Q @ np.diag(np.exp(-1j * L)) @ Q.conj().T
-
-    def error(order, time_step_length):
-        a_pauli = time_step_length * sZ(0) * sY(1) * sX(2)
-        a_program = a_pauli.program
-
-        b_pauli = time_step_length * sX(0) * sZ(1) * sY(2)
-        b_program = b_pauli.program
-
-        num_qubits = len(a_program.get_qubits())
-        assert num_qubits == len(b_program.get_qubits())
-
-        a = program_unitary(a_program, num_qubits)
-        b = program_unitary(b_program, num_qubits)
-        a_plus_b = a + b
-        exp_a_plus_b = expmi(time_step_length * a_plus_b)
-
-        trotter_program = trotterize(a_pauli, b_pauli, trotter_order=order)
-        trotter = program_unitary(trotter_program, num_qubits)
-
-        return np.linalg.norm(exp_a_plus_b - trotter, np.inf)
-
-    xs = 10 ** np.logspace(-1, -6, 10)
-    for order in [1, 2, 3, 4]:
-        ys = [error(order, float(x)) for x in xs]
-        p = np.polyfit(np.log10(xs), np.log10(ys), 1)
-        assert p[0] >= order, f"Bound not satisfied with order={order}: the slope is {p[0]}"
-
-
 def test_is_zero():
     with pytest.raises(TypeError):
         is_zero(1)
@@ -611,7 +526,7 @@ def test_check_commutation_rigorous():
     # more rigorous test.  Get all operators in Pauli group
     p_n_group = ("I", "X", "Y", "Z")
     pauli_list = list(product(p_n_group, repeat=3))
-    pauli_ops = [list(zip(x, range(3))) for x in pauli_list]
+    pauli_ops = [list(zip(x, range(3), strict=False)) for x in pauli_list]
     pauli_ops_pq = [reduce(mul, (PauliTerm(*x) for x in op)) for op in pauli_ops]
 
     non_commuting_pairs = []

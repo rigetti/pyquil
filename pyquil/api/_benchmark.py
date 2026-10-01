@@ -74,9 +74,9 @@ class BenchmarkConnection(AbstractBenchmarker):
         phase_factor, paulis = response.phase, response.pauli
 
         pauli_out = PauliTerm("I", 0, 1.0j**phase_factor)
-        clifford_qubits = clifford.get_qubits()
+        clifford_qubits = clifford.get_qubit_indices()
         pauli_qubits = pauli_in.get_qubits()
-        all_qubits = sorted(set(cast(list[int], pauli_qubits)).union(set(cast(list[int], clifford_qubits))))
+        all_qubits = sorted(set(cast(list[int], pauli_qubits)).union(clifford_qubits))
         # The returned pauli will have specified its value on all_qubits, sorted by index.
         #  This is maximal set of qubits that can be affected by this conjugation.
         for i, pauli in enumerate(paulis):
@@ -122,7 +122,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         # Support QubitPlaceholders: we temporarily index to arbitrary integers.
         # `generate_rb_sequence` handles mapping back to the original gateset gates.
         gateset_as_program = address_qubits(sum(gateset, Program()))  # type: ignore
-        qubits = len(gateset_as_program.get_qubits())
+        qubits = len(gateset_as_program.get_qubit_indices())
         gateset_for_api = gateset_as_program.out().splitlines()
         interleaver_out: str | None = None
         if interleaver:

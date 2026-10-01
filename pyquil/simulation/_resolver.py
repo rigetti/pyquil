@@ -40,13 +40,27 @@ import jax.numpy as jnp
 import numpy as np
 import quax as qx
 from jax import Array
+from quil.instructions import (
+    FormalArgument,
+    MemoryReference,
+    Qubit,
+)
+from quil.expression import (
+    ExpressionFunction,
+    PrefixOperator,
+    Address,
+    FunctionCallExpression,
+    InfixExpression,
+    PrefixExpression,
+    Parameter,
+)
 
 from pyquil.noise._channels import (
-    QUIL_BINARY_OPERATORS,
-    QUIL_FUNCTIONS,
     ChannelBase,
     CycleChannel,
     MeasurementChannel,
+    QUIL_FUNCTIONS,
+    QUIL_INFIX_OPERATORS,
     ResetChannelBase,
     _reject_gate_modifiers,
     get_custom_gates_from_program,
@@ -56,15 +70,9 @@ from pyquil.noise._noise_model import (
     NoiseModelLike,
 )
 from pyquil.quil import Program
-from pyquil.quilatom import (
-    BinaryExp,
-    Function,
-    MemoryReference,
-    Parameter,
-    Qubit,
-    _contained_mrefs,
-    substitute,
-)
+from pyquil.quilatom import _contained_mrefs
+
+# TODO: remove the deprecated imports/replace with quil imports
 from pyquil.quilbase import (
     AbstractInstruction,
     ArithmeticBinaryOp,
@@ -82,7 +90,6 @@ from pyquil.quilbase import (
     LogicalBinaryOp,
     Measurement,
     Reset,
-    ResetQubit,
     UnaryClassicalInstruction,
 )
 from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
@@ -98,7 +105,7 @@ ParameterRef: TypeAlias = tuple[str, int]
 #: The Quil arithmetic functions and binary operators, as JAX functions, shared with the
 #: ``DEFGATE`` matrix evaluator in :mod:`pyquil.noise._channels` so the two cannot drift.
 _FUNCTIONS = QUIL_FUNCTIONS
-_BINARY_OPERATORS = QUIL_BINARY_OPERATORS
+_BINARY_OPERATORS = QUIL_INFIX_OPERATORS
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,34 +167,46 @@ def _build_expression(node: Any, references: list[MemoryReference]) -> tuple[Cal
     :raises ValueError: If the node is an unbound ``DEFGATE`` parameter or an unknown function.
         The message names only the offending node; :func:`expand_program` adds the instruction.
     """
-    if isinstance(node, MemoryReference):
-        if node not in references:
-            references.append(node)
-        index = references.index(node)
-        return (lambda slot_values, index=index: slot_values[index]), f"%{index}", False
-    if isinstance(node, Parameter):
-        raise ValueError(f"Unbound DEFGATE parameter {node}.")
-    if isinstance(node, BinaryExp):
-        left, left_key, left_complex = _build_expression(node.op1, references)
-        right, right_key, right_complex = _build_expression(node.op2, references)
-        operator = _BINARY_OPERATORS[type(node)]
-        return (
-            (lambda slot_values: operator(left(slot_values), right(slot_values))),
-            f"({left_key}{node.operator.strip()}{right_key})",
-            left_complex or right_complex,
-        )
-    if isinstance(node, Function):
-        if node.name not in _FUNCTIONS:
-            raise ValueError(f"Unknown Quil function {node.name!r}.")
-        function = _FUNCTIONS[node.name]
-        inner, inner_key, inner_complex = _build_expression(node.expression, references)
-        return (
-            (lambda slot_values: function(inner(slot_values))),
-            f"{node.name}({inner_key})",
-            inner_complex or node.name == "CIS",
-        )
-    literal = _literal_value(node)
-    return (lambda slot_values, literal=literal: jnp.asarray(literal)), repr(literal), isinstance(literal, complex)
+    match node:
+        case Address(mref) | (MemoryReference() as mref):
+            if mref not in references:
+                references.append(mref)
+            index = references.index(mref)
+            return (lambda slot_values, index=index: slot_values[index]), f"%{index}", False
+        case Parameter(name):
+            raise ValueError(f"Unbound DEFGATE parameter %{name}.")
+        case InfixExpression(left, operator, right):
+            left_fn, left_key, left_complex = _build_expression(left, references)
+            right_fn, right_key, right_complex = _build_expression(right, references)
+            jax_operator = _BINARY_OPERATORS[operator]
+            return (
+                (lambda slot_values: jax_operator(left_fn(slot_values), right_fn(slot_values))),
+                f"({left_key}{str(operator).strip()}{right_key})",
+                left_complex or right_complex,
+            )
+        case PrefixExpression(operator, expression):
+            inner, inner_key, inner_complex = _build_expression(expression, references)
+            if operator is PrefixOperator.MINUS:
+                return (lambda slot_values: -inner(slot_values)), f"(-1.0*{inner_key})", inner_complex
+            return inner, inner_key, inner_complex
+        case FunctionCallExpression(function, expression):
+            name = str(function).upper()
+            if function not in _FUNCTIONS:
+                raise ValueError(f"Unknown Quil function {name!r}.")
+            jax_function = _FUNCTIONS[function]
+            inner, inner_key, inner_complex = _build_expression(expression, references)
+            return (
+                (lambda slot_values: jax_function(inner(slot_values))),
+                f"{name}({inner_key})",
+                inner_complex or function is ExpressionFunction.CIS,
+            )
+        case _:
+            literal = _literal_value(node)
+            return (
+                (lambda slot_values, literal=literal: jnp.asarray(literal)),
+                repr(literal),
+                isinstance(literal, complex),
+            )
 
 
 def _compile_expression(expression: Any, slot_of: Callable[[MemoryReference], int]) -> ParameterExpression:
@@ -244,7 +263,7 @@ def expand_defcircuit_body(
     inst: Gate,
     defcircuit: DefCircuit,
     circuit_definitions: dict[str, DefCircuit],
-) -> Iterator[Gate | Measurement | ResetQubit | Reset]:
+) -> Iterator[Gate | Measurement | Reset]:
     """Yield concrete instructions from a DEFCIRCUIT invocation.
 
     Substitutes formal qubit/parameter arguments with the concrete values
@@ -257,13 +276,13 @@ def expand_defcircuit_body(
     """
     if len(inst.qubits) != len(defcircuit.qubit_variables):
         raise ValueError(
-            f"{inst.out()!r} passes {len(inst.qubits)} qubit(s) but DEFCIRCUIT "
+            f"{inst.to_quil()!r} passes {len(inst.qubits)} qubit(s) but DEFCIRCUIT "
             f"{defcircuit.name} declares {len(defcircuit.qubit_variables)} "
             f"({[str(a) for a in defcircuit.qubit_variables]})."
         )
     if len(inst.params) != len(defcircuit.parameters):
         raise ValueError(
-            f"{inst.out()!r} passes {len(inst.params)} parameter(s) but DEFCIRCUIT "
+            f"{inst.to_quil()!r} passes {len(inst.params)} parameter(s) but DEFCIRCUIT "
             f"{defcircuit.name} declares {len(defcircuit.parameters)} "
             f"({[str(a) for a in defcircuit.parameters]})."
         )
@@ -279,35 +298,32 @@ def expand_defcircuit_body(
         silently escapes the register the simulator sizes itself for. Rejecting it here is
         clearer than the downstream failure; the check can be dropped once #1868 is fixed.
         """
-        if qarg not in qarg_to_arg_map:
+        name = qarg.name if isinstance(qarg, FormalArgument) else qarg
+        if name not in qarg_to_arg_map:
             raise ValueError(
                 f"DEFCIRCUIT {defcircuit.name} body references {qarg}, which is not one of its "
                 f"formal arguments ({[str(a) for a in defcircuit.qubit_variables]}). Literal "
                 "qubits in a DEFCIRCUIT body are not supported; parameterize the circuit over "
                 "all the qubits it touches."
             )
-        return qarg_to_arg_map[qarg]
+        return qarg_to_arg_map[name]
 
     for circuit_inst in defcircuit.instructions:
         if isinstance(circuit_inst, Gate):
-            circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubits = [resolve_qubit(qarg) for qarg in circuit_inst.qubits]
-            if hasattr(circuit_inst, "params"):
-                circuit_inst.params = [substitute(param, parg_to_arg_map) for param in circuit_inst.params]  # type: ignore[arg-type]
-            if circuit_inst.name in circuit_definitions:
-                yield from expand_defcircuit_body(
-                    circuit_inst, circuit_definitions[circuit_inst.name], circuit_definitions
-                )
+            new_gate = Gate(
+                name=circuit_inst.name,
+                params=[param.substitute_variables(parg_to_arg_map) for param in circuit_inst.params],
+                qubits=[resolve_qubit(qarg) for qarg in circuit_inst.qubits],
+                modifiers=circuit_inst.modifiers,
+            )
+            if new_gate.name in circuit_definitions:
+                yield from expand_defcircuit_body(new_gate, circuit_definitions[new_gate.name], circuit_definitions)
             else:
-                yield circuit_inst
+                yield new_gate
         elif isinstance(circuit_inst, Measurement):
-            circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubit = resolve_qubit(circuit_inst.qubit)
-            yield circuit_inst
-        elif isinstance(circuit_inst, ResetQubit):
-            circuit_inst = deepcopy(circuit_inst)
-            circuit_inst.qubit = resolve_qubit(circuit_inst.qubit)
-            yield circuit_inst
+            yield Measurement(qubit=resolve_qubit(circuit_inst.qubit), classical_reg=circuit_inst.target)
+        elif isinstance(circuit_inst, Reset) and circuit_inst.qubit is not None:
+            yield Reset(resolve_qubit(circuit_inst.qubit))
         else:
             yield deepcopy(circuit_inst)  # type: ignore[misc]
 
@@ -344,7 +360,7 @@ def _measure_registers(program: Program) -> set[str]:
     regs: set[str] = set()
     for inst in program.instructions:
         if isinstance(inst, Measurement):
-            cr = inst.classical_reg
+            cr = inst.target
             if cr is not None:
                 regs.add(cr.name)
     return regs
@@ -401,9 +417,9 @@ def expand_program(
     # Program-level derivations. These are independent of qubit dimensions, so
     # ``resolve_program``'s two passes each recompute them; measured at 1-4 ms (under 6% of a
     # resolve), which is not worth caching across the passes.
-    circuit_definitions: dict[str, DefCircuit] = {
-        inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)
-    }
+    # ``Program.instructions``/``__iter__`` never surfaces DEFCIRCUITs (mirroring
+    # ``defined_gates``, they live in their own mapping); pull them from the native program.
+    circuit_definitions: dict[str, DefCircuit] = dict(program._program.circuits)
     custom_gates = get_custom_gates_from_program(program) or None
     # A ``DEFGATE`` may not reuse a standard gate's name: the definition would silently replace
     # the built-in on every instruction of that name, on the fixed and the parametric path alike.
@@ -458,7 +474,7 @@ def expand_program(
             else:
                 raise KeyError(f"Unknown gate '{gate_name}'.")
             if isinstance(gate_def, qx.Unitary):
-                raise ValueError(f"Gate '{gate_name}' is not parametric but {inst.out()!r} passes parameters.")
+                raise ValueError(f"Gate '{gate_name}' is not parametric but {inst.to_quil()!r} passes parameters.")
 
             arguments: list[float | complex | ParameterExpression] = []
             for p in inst.params:
@@ -473,7 +489,7 @@ def expand_program(
                     if feed_forward:
                         # Classically-conditioned angle: the value is only known mid-circuit.
                         raise ValueError(
-                            f"Gate parameter {p} in {inst.out()!r} reads memory region "
+                            f"Gate parameter {p} in {inst.to_quil()!r} reads memory region "
                             f"'{feed_forward[0].name}', which is written by a MEASURE in this program. "
                             "Feed-forward (classically-conditioned) parameters are not supported."
                         )
@@ -483,13 +499,13 @@ def expand_program(
                         )
                     except ValueError as error:
                         # The compiler sees one expression; name the instruction it came from.
-                        raise ValueError(f"Gate parameter {p} in {inst.out()!r}: {error}") from error
+                        raise ValueError(f"Gate parameter {p} in {inst.to_quil()!r}: {error}") from error
                     is_complex = argument.is_complex
                 # Checked for literals too: quax's built-in constructors take real angles, and a
                 # complex one otherwise surfaces much later as an opaque error from deep in quax.
                 if is_complex and is_builtin:
                     raise ValueError(
-                        f"Gate parameter {p} in {inst.out()!r} is complex-valued (it contains CIS or a complex "
+                        f"Gate parameter {p} in {inst.to_quil()!r} is complex-valued (it contains CIS or a complex "
                         f"literal), but the built-in gate {gate_name} takes real angles. Complex arguments are "
                         "only supported for DEFGATE gates."
                     )
@@ -512,7 +528,7 @@ def expand_program(
             # Readout channels are keyed by the measured qubit, not by where the bit is stored:
             # ``MEASURE 0 ro[3]`` and ``MEASURE 0`` read the same qubit with the same error.
             channel = noise_model.get_channel(inst)
-            if channel is None and inst.classical_reg is not None:
+            if channel is None and inst.target is not None:
                 channel = noise_model.get_channel(Measurement(inst.qubit, None))
         instrument = (
             channel.process
@@ -521,7 +537,7 @@ def expand_program(
         )
         return instrument, qubits
 
-    def _resolve_reset_qubit(inst: ResetQubit) -> tuple[CircuitOp, tuple[int, ...]]:
+    def _resolve_reset_qubit(inst: Reset) -> tuple[CircuitOp, tuple[int, ...]]:
         """Resolve a targeted reset instruction."""
         qubits = tuple(inst.get_qubit_indices())  # type: ignore[arg-type]
         channel = noise_model.get_channel(inst) if noise_model is not None else None
@@ -531,7 +547,7 @@ def expand_program(
             return channel.process, qubits
         return qx.gates.RESET(dim=_dimension_for(qubits[0])), qubits
 
-    def _emit_instruction(inst: Gate | Measurement | ResetQubit | Reset) -> None:
+    def _emit_instruction(inst: Gate | Measurement | Reset) -> None:
         """Resolve and emit a single instruction."""
         match inst:
             case Gate():
@@ -540,7 +556,7 @@ def expand_program(
             case Measurement():
                 op, qubits = _resolve_measurement(inst)
                 _emit_op(op, qubits)
-            case ResetQubit():
+            case Reset() if inst.qubit is not None:
                 op, qubits = _resolve_reset_qubit(inst)
                 _emit_op(op, qubits)
             case Reset():
@@ -549,7 +565,7 @@ def expand_program(
                 # emitting the ideal reset -- otherwise a model carrying reset channels is
                 # silently ignored for `RESET` while being honoured for `RESET <q>`.
                 for q in all_qubits:
-                    op, qubits = _resolve_reset_qubit(ResetQubit(Qubit(q)))
+                    op, qubits = _resolve_reset_qubit(Reset(Qubit(q)))
                     _emit_op(op, qubits)
 
     for inst in program.instructions:
@@ -578,7 +594,7 @@ def expand_program(
                 # Expand DEFCIRCUIT body and resolve each instruction.
                 for expanded_inst in expand_defcircuit_body(inst, circuit_definitions[inst.name], circuit_definitions):
                     _emit_instruction(expanded_inst)
-        elif isinstance(inst, (Gate, Measurement, ResetQubit, Reset)):
+        elif isinstance(inst, (Gate, Measurement, Reset)):
             _emit_instruction(inst)
 
     return tuple(ops), tuple(qubit_tuples), tuple(slots)

@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from test.unit.simulation_programs import apply_trajectory_operations
+
 import jax
 import numpy as np
 import pytest
@@ -11,16 +13,18 @@ from pyquil.gates import CNOT, RX, RZ
 from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilbase import DefCircuit, ResetQubit
-from pyquil.quilbase import Gate as QuilGate
-from pyquil.quilbase import Measurement as QuilMeasurement
-from pyquil.quilbase import Reset as QuilReset
 from pyquil.simulation._simulator import (
     DensityMatrixSimulator,
     PureStateVectorSimulator,
     TrajectorySimulator,
 )
-from test.unit.simulation_programs import apply_trajectory_operations
+from quil.instructions import (
+    CircuitDefinition,
+    Gate as QuilGate,
+    Measurement as QuilMeasurement,
+    Qubit,
+    Reset as QuilReset,
+)
 
 # The simulators are validated at 64-bit precision; see test/unit/conftest.py.
 jax.config.update("jax_enable_x64", True)
@@ -85,8 +89,8 @@ def _build_noisy_program_and_model(num_qubits, num_layers, seed=4867):
     return program, noise_model
 
 
-def _surface17_defcircuits(program):
-    return {inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)}
+def _surface17_defcircuits(program: Program) -> dict[str, CircuitDefinition]:
+    return program._program.circuits
 
 
 def _surface17_program_variant(variant="full"):
@@ -114,7 +118,7 @@ def _surface17_program_variant(variant="full"):
     filtered_program = Program()
 
     for inst in program.instructions:
-        if isinstance(inst, DefCircuit):
+        if isinstance(inst, CircuitDefinition):
             instructions = [
                 cycle_inst
                 for cycle_inst in inst.instructions
@@ -122,7 +126,7 @@ def _surface17_program_variant(variant="full"):
                 or (keep_measurements and isinstance(cycle_inst, QuilMeasurement))
             ]
             if instructions:
-                defcircuit = DefCircuit(inst.name, inst.parameters, inst.qubit_variables, instructions)
+                defcircuit = CircuitDefinition(inst.name, inst.parameters, inst.qubit_variables, instructions)
                 filtered_defcircuits[inst.name] = defcircuit
                 filtered_program += defcircuit
         elif isinstance(inst, QuilGate) and inst.name in original_defcircuits:
@@ -145,7 +149,7 @@ def _build_surface17_cycle_noise_model(program, depolarizing_constant=0.99, read
             continue
 
         defcircuit = defcircuits[inst.name]
-        qubit_map = dict(zip(defcircuit.qubit_variables, inst.qubits, strict=False))
+        qubit_map = {Qubit(v): q for v, q in zip(defcircuit.qubit_variables, inst.qubits, strict=False)}
         channels = []
 
         for cycle_inst in defcircuit.instructions:
@@ -153,7 +157,7 @@ def _build_surface17_cycle_noise_model(program, depolarizing_constant=0.99, read
                 concrete_gate = QuilGate(
                     cycle_inst.name,
                     list(cycle_inst.params),
-                    [qubit_map[qubit] for qubit in cycle_inst.qubits],
+                    [qubit_map[q] for q in cycle_inst.qubits],
                 )
                 channels.append(Channel.from_depolarizing_constant(concrete_gate, depolarizing_constant))
             elif isinstance(cycle_inst, QuilMeasurement):
@@ -303,14 +307,14 @@ def _run_surface17_benchmark(
 
 def test_surface17_fixture_structure():
     program = Program(_SURFACE17_FIXTURE.read_text())
-    defcircuits = {inst.name: inst for inst in program.instructions if isinstance(inst, DefCircuit)}
+    defcircuits = _surface17_defcircuits(program)
     invocations = [inst for inst in program.instructions if isinstance(inst, QuilGate)]
     invocation_names = [inst.name for inst in invocations]
 
     assert _SURFACE17_FIXTURE.exists()
     assert set(defcircuits) == _SURFACE17_CYCLES
     assert set(program.get_qubit_indices()) == set(_SURFACE17_QUBITS)
-    assert not any(isinstance(inst, (QuilReset, ResetQubit)) for inst in program.instructions)
+    assert not any(isinstance(inst, QuilReset) for inst in program.instructions)
     assert invocation_names.count("MEASURE_ANCILLA") == 4
     assert invocation_names[-1] == "MEASURE_ALL"
 

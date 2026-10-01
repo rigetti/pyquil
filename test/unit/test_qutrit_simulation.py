@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 import quax as qx
+import quil
 
 from pyquil.gates import H, X
 from pyquil.noise._channels import Channel, MeasurementChannel, SuperopResetChannel
@@ -320,7 +321,7 @@ class TestMixedQubitQutrit:
         """
         # DefGate rejects non-perfect-power matrices (6 = 2*3)
         mat = np.eye(6, dtype=complex)
-        with pytest.raises(ValueError, match="prime qudit dimension"):
+        with pytest.raises(quil.ValueError, match="length of Matrix dimensions must be a prime power"):
             DefGate("BAD_GATE", mat)
 
         # Test entanglement using built-in gates instead:
@@ -452,7 +453,7 @@ class TestDimensionInference:
         """DefGate rejects matrices whose dimension is not a prime power."""
         # 6 = 2*3 is not a prime power
         mat = np.eye(6, dtype=complex)
-        with pytest.raises(ValueError, match="prime qudit dimension"):
+        with pytest.raises(quil.ValueError, match="length of Matrix dimensions must be a prime power"):
             DefGate("BAD_GATE", mat)
 
 

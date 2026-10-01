@@ -22,7 +22,7 @@ from typing import Any, Generic, TypeVar
 import numpy as np
 from deprecated import deprecated
 from qcs_sdk import ExecutionData
-from qcs_sdk.qpu import MemoryValues, RawQPUReadoutData, QPUResultData
+from qcs_sdk.qpu import MemoryValues, QPUResultData, RawQPUReadoutData
 from qcs_sdk.qvm import RawQVMReadoutData
 
 from pyquil.api._abstract_compiler import QuantumExecutable

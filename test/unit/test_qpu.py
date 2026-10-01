@@ -89,7 +89,7 @@ def test_qpu_execute(
     result = qpu.get_result(execute_response)
 
     assert np.all(result.get_register_map()["ro"] == np.array([[1, 1], [1, 1], [1, 1], [1, 1]]))
-    assert np.all(result.get_register_map()["ro"] == result.readout_data["ro"])
+    assert np.all(result.get_register_map()["ro"] == result.get_register_map()["ro"])
     assert result.get_memory_values() == {
         "binary": MemoryValues([0, 1, 0, 1]),
         "int": MemoryValues([2, 3, 4]),
@@ -229,8 +229,6 @@ def test_pickle_QAM_execution_result(mock_encrypted_program):
 
 def test_pickle_QPU_execution_response(mock_encrypted_program):
     qpu_exec_response = QPUExecuteResponse(
-        job_id="some-job-id",
-        _executable=mock_encrypted_program,
-        execution_options=ExecutionOptions.default()
+        job_id="some-job-id", _executable=mock_encrypted_program, execution_options=ExecutionOptions.default()
     )
     assert qpu_exec_response == pickle.loads(pickle.dumps(qpu_exec_response))

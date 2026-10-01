@@ -35,7 +35,7 @@ from pyquil.noise import (
     tensor_kraus_maps,
 )
 from pyquil.quil import Pragma, Program
-from pyquil.quilbase import DefGate, Gate
+from pyquil.quilbase import Gate, GateDefinition
 
 
 def test_pauli_kraus_map():
@@ -158,7 +158,7 @@ def test_decoherence_noise():
     # check that headers have been embedded
     headers = _noise_model_program_header(m3)
     assert all(
-        (isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]) or isinstance(i, DefGate)
+        (isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]) or isinstance(i, GateDefinition)
         for i in headers
     )
     assert headers.out() in new_prog.out()
@@ -349,7 +349,7 @@ def test_apply_noise_model():
     noise_model = _decoherence_noise_model(_get_program_gates(p))
     pnoisy = apply_noise_model(p, noise_model)
     for i in pnoisy:
-        if isinstance(i, DefGate):
+        if isinstance(i, GateDefinition):
             pass
         elif isinstance(i, Pragma):
             assert i.command in ["ADD-KRAUS", "READOUT-POVM"]
@@ -363,7 +363,7 @@ def test_apply_noise_model_perturbed_angles():
     noise_model = _decoherence_noise_model(_get_program_gates(p))
     pnoisy = apply_noise_model(p, noise_model)
     for i in pnoisy:
-        if isinstance(i, DefGate):
+        if isinstance(i, GateDefinition):
             pass
         elif isinstance(i, Pragma):
             assert i.command in ["ADD-KRAUS", "READOUT-POVM"]

@@ -376,9 +376,9 @@ class TestInstructionSupport:
     @pytest.mark.parametrize(
         "inst",
         [
-            Jump(Label("end")),
-            JumpWhen(Label("end"), MemoryReference("ro", 0)),
-            JumpUnless(Label("end"), MemoryReference("ro", 0)),
+            Jump(Label("end").target),
+            JumpWhen(Label("end").target, MemoryReference("ro", 0)),
+            JumpUnless(Label("end").target, MemoryReference("ro", 0)),
             NOT(("ro", 0)),
             AND(("ro", 0), 1),
             ADD(("x", 0), 1.0),
@@ -398,7 +398,7 @@ class TestInstructionSupport:
             Declare("n", "INTEGER", 1),
             H(0),
             inst,
-            JumpTarget(Label("end")),
+            JumpTarget(Label("end").target),
         )
         with pytest.raises(ValueError, match="cannot be simulated"):
             expand_program(program)
@@ -409,7 +409,7 @@ class TestInstructionSupport:
         program = Program(
             Declare("ro", "BIT", 1),
             Pragma("INITIAL_REWIRING", freeform_string='"NAIVE"'),
-            JumpTarget(Label("start")),
+            JumpTarget(Label("start").target),
             H(0),
             FENCE(0),
             DELAY(0, 1e-8),

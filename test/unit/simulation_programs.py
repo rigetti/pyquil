@@ -41,11 +41,12 @@ Three collections are exported:
 
 import jax
 import numpy as np
+from typing import Any
 
 from pyquil.gates import CCNOT, CNOT, CPHASE, CSWAP, CZ, FSIM, MEASURE, RESET, RX, RY, RZ, SWAP, XY, H, I, S, T, X, Y, Z
 from pyquil.quil import Program
-from pyquil.quilatom import Qubit
-from pyquil.quilbase import Declare, Gate, Measurement, ResetQubit
+from pyquil.quilatom import Qubit, qubit_index
+from pyquil.quilbase import Declare, Gate, Measurement, Reset
 from pyquil.simulation._simulator import (
     DensityMatrixSimulator,
     PureStateVectorSimulator,
@@ -250,17 +251,17 @@ def relabel_contiguous(program: Program) -> Program:
     """
     mapping = {q: i for i, q in enumerate(sorted(program.get_qubit_indices()))}
 
-    def relabel(qubit) -> Qubit:
-        return Qubit(mapping[qubit.index if isinstance(qubit, Qubit) else int(qubit)])
+    def relabel(qubit: Any) -> Qubit:
+        return Qubit(mapping[qubit_index(qubit)])
 
     relabelled = Program()
     for inst in program.instructions:
         if isinstance(inst, Gate):
             relabelled += Gate(inst.name, inst.params, [relabel(q) for q in inst.qubits])
         elif isinstance(inst, Measurement):
-            relabelled += Measurement(relabel(inst.qubit), inst.classical_reg)
-        elif isinstance(inst, ResetQubit):
-            relabelled += ResetQubit(relabel(inst.qubit))
+            relabelled += Measurement(relabel(inst.qubit), inst.target)
+        elif isinstance(inst, Reset) and inst.qubit is not None:
+            relabelled += Reset(relabel(inst.qubit))
         else:
             relabelled += inst
     return relabelled

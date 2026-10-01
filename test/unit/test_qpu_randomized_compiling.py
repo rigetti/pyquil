@@ -331,10 +331,10 @@ class ReadoutRandomization:
             program += Call(
                 "choose_random_real_sub_regions",
                 [
-                    inst.CallArgument.from_identifier(f"readout_randomization_q{qubit}"),
-                    inst.CallArgument.from_identifier("readout_source_angles"),
-                    inst.CallArgument.from_immediate(complex(rc._ANGLES_PER_UNITARY)),
-                    inst.CallArgument.from_memory_reference(inst.MemoryReference(f"readout_seed_q{qubit}", 0)),
+                    inst.CallArgument.Identifier(f"readout_randomization_q{qubit}"),
+                    inst.CallArgument.Identifier("readout_source_angles"),
+                    inst.CallArgument.Immediate(complex(rc._ANGLES_PER_UNITARY)),
+                    inst.CallArgument.MemoryReference(inst.MemoryReference(f"readout_seed_q{qubit}", 0)),
                 ],
             )
         return program

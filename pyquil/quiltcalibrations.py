@@ -4,23 +4,19 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-import quil.expression as quil_expr
-import quil.instructions as quil_rs
-from quil.program import CalibrationSet
-
-from pyquil.quilatom import (
-    ExpressionDesignator,
+from quil.expression import Expression, ExpressionDesignator, Parameter
+from quil.instructions import (
+    CalibrationDefinition,
+    FormalArgument,
+    Gate,
+    Instruction,
+    MeasureCalibrationDefinition,
+    Measurement,
     MemoryReference,
+    Qubit,
     QubitDesignator,
-    _convert_to_py_expression,
 )
-from pyquil.quilbase import (
-    AbstractInstruction,
-    DefCalibration,
-    DefMeasureCalibration,
-    _convert_to_py_qubit,
-    _convert_to_rs_instruction,
-)
+from quil.program import CalibrationSet
 
 
 class CalibrationError(Exception):
@@ -39,42 +35,40 @@ class CalibrationDoesntMatch(CalibrationError):
 class CalibrationMatch:
     """A match between a calibration definition and an instruction."""
 
-    cal: DefCalibration | DefMeasureCalibration
+    cal: CalibrationDefinition | MeasureCalibrationDefinition
     settings: dict[QubitDesignator | ExpressionDesignator, Any]
 
 
 def _convert_to_calibration_match(
-    instruction: quil_rs.Gate | quil_rs.Measurement,
-    calibration: quil_rs.CalibrationDefinition | quil_rs.MeasureCalibrationDefinition | None,
+    instruction: Gate | Measurement,
+    calibration: CalibrationDefinition | MeasureCalibrationDefinition | None,
 ) -> CalibrationMatch | None:
-    if isinstance(instruction, quil_rs.Gate) and isinstance(calibration, quil_rs.CalibrationDefinition):
+    if isinstance(instruction, Gate) and isinstance(calibration, CalibrationDefinition):
         target_qubits = instruction.qubits
-        target_values: Sequence[quil_expr.Expression | MemoryReference] = instruction.parameters
+        target_values: Sequence[Expression | MemoryReference] = instruction.parameters
         parameter_qubits = calibration.identifier.qubits
-        parameter_values: Sequence[quil_expr.Expression | MemoryReference] = calibration.identifier.parameters
-        py_calibration: DefCalibration | DefMeasureCalibration = DefCalibration._from_rs_calibration(calibration)
-    elif isinstance(instruction, quil_rs.Measurement) and isinstance(calibration, quil_rs.MeasureCalibrationDefinition):
+        parameter_values: Sequence[Expression | MemoryReference] = calibration.identifier.parameters
+        py_calibration: CalibrationDefinition | MeasureCalibrationDefinition = calibration
+    elif isinstance(instruction, Measurement) and isinstance(calibration, MeasureCalibrationDefinition):
         target_qubits = [instruction.qubit]
-        target_values = (
-            [] if not instruction.target else [MemoryReference._from_rs_memory_reference(instruction.target)]
-        )
+        target_values = [] if not instruction.target else [instruction.target]
         calibration_qubit = calibration.identifier.qubit
         parameter_qubits = [] + [calibration_qubit] if calibration_qubit else []
-        parameter_values = [MemoryReference._from_parameter_str(calibration.identifier.target)]
-        py_calibration = DefMeasureCalibration._from_rs_measure_calibration_definition(calibration)
+        parameter_values = [MemoryReference(calibration.identifier.target)]
+        py_calibration = calibration
     else:
         return None
 
-    settings: dict[QubitDesignator | ExpressionDesignator, QubitDesignator | ExpressionDesignator] = {
-        _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
+    settings: dict[MemoryReference | FormalArgument | Parameter, Expression | MemoryReference | Qubit] = {
+        param: qubit
         for param, qubit in zip(parameter_qubits, target_qubits, strict=False)
-        if isinstance(param, MemoryReference) or isinstance(param, quil_rs.Qubit.Variable)
+        if isinstance(param, MemoryReference) or isinstance(param, FormalArgument)
     }
     settings.update(
         {
-            _convert_to_py_expression(param): _convert_to_py_expression(value)
+            param: value
             for param, value in zip(parameter_values, target_values, strict=False)
-            if isinstance(param, MemoryReference) or isinstance(param, quil_expr.Expression.Variable)
+            if isinstance(param, MemoryReference) or isinstance(param, Parameter)
         }
     )
 
@@ -82,7 +76,7 @@ def _convert_to_calibration_match(
 
 
 def match_calibration(
-    instr: AbstractInstruction, cal: DefCalibration | DefMeasureCalibration
+    instr: Instruction, cal: CalibrationDefinition | MeasureCalibrationDefinition
 ) -> CalibrationMatch | None:
     """Match a calibration definition to an instruction.
 
@@ -91,21 +85,13 @@ def match_calibration(
 
     On a failure, return None.
     """
-    calibration = _convert_to_rs_instruction(cal)
-    instruction = _convert_to_rs_instruction(instr)
-
-    match (calibration, instruction):
-        case (quil_rs.Instruction.CalibrationDefinition(definition), quil_rs.Instruction.Gate(gate)):
-            calibration_set = CalibrationSet([definition], [])
-            matched_calibration = calibration_set.get_match_for_gate(gate)
-            return _convert_to_calibration_match(gate, matched_calibration)
-
-        case (
-            quil_rs.Instruction.MeasureCalibrationDefinition(definition),
-            quil_rs.Instruction.Measurement(measurement),
-        ):
-            calibration_set = CalibrationSet([], [definition])
-            matched_calibration = calibration_set.get_match_for_measurement(measurement)
-            return _convert_to_calibration_match(measurement, matched_calibration)
+    if isinstance(cal, CalibrationDefinition) and isinstance(instr, Gate):
+        calibration_set = CalibrationSet([cal], [])
+        matched_calibration = calibration_set.get_match_for_gate(instr)
+        return _convert_to_calibration_match(instr, matched_calibration)
+    elif isinstance(cal, MeasureCalibrationDefinition) and isinstance(instr, Measurement):
+        calibration_set = CalibrationSet([], [cal])
+        matched_calibration = calibration_set.get_match_for_measurement(instr)
+        return _convert_to_calibration_match(instr, matched_calibration)
 
     return None

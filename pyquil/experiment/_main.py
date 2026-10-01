@@ -49,7 +49,7 @@ from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import Program
-from pyquil.quilbase import Reset, ResetQubit
+from pyquil.quilbase import Reset
 
 log = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ def _remove_reset_from_program(program: Program) -> Program:
     p = program.copy_everything_except_instructions()
 
     for inst in program:
-        if not isinstance(inst, (Reset, ResetQubit)):
+        if not isinstance(inst, Reset):
             p.inst(inst)
 
     return p
@@ -313,7 +313,7 @@ class Experiment:
         p = Program()
 
         if self.reset:
-            if any(isinstance(instr, (Reset, ResetQubit)) for instr in self.program):
+            if any(isinstance(instr, Reset) for instr in self.program):
                 raise ValueError("RESET already added to program")
             p += RESET()
 

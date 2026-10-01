@@ -59,7 +59,7 @@ def add_leading_delay_to_first_pulse_block(
     if leading_delay_seconds is not None:
         if delays is not None:
             raise ValueError("must specify only one of `leading_delay_seconds` and `delays`")
-        delays = [qb.Delay([], [q], leading_delay_seconds) for q in program.get_qubit_indices()]
+        delays = [qb.Delay(leading_delay_seconds, [q], []) for q in program.get_qubit_indices()]
     elif delays is None:
         raise ValueError("must specify at least one of `leading_delay_seconds` and `delays`")
 
@@ -81,9 +81,9 @@ def add_leading_delay_to_first_pulse_block(
     block = blocks[first_gate_or_pulse_block_index]
     fence_index = next(i for i in range(len(block)) if isinstance(block[i], _GATE_OR_PULSE_INSTRUCTION))
     if len(block) > 0 and isinstance(block[0], _QUIL_BLOCK_DELIMITERS):
-        block = (block[0],) + tuple(delays) + block[1:fence_index] + (qb.FenceAll(),) + block[fence_index:]
+        block = (block[0],) + tuple(delays) + block[1:fence_index] + (qb.Fence([]),) + block[fence_index:]
     else:
-        block = tuple(delays) + block[0:fence_index] + (qb.FenceAll(),) + block[fence_index:]
+        block = tuple(delays) + block[0:fence_index] + (qb.Fence([]),) + block[fence_index:]
 
     blocks = list(blocks)
     blocks[first_gate_or_pulse_block_index] = block
@@ -102,29 +102,27 @@ def build_extern_function_signatures() -> dict[str, qb.Pragma]:
     destination = inst.ExternParameter(
         "destination",
         True,
-        inst.ExternParameterType.from_variable_length_vector(inst.ScalarType.Real),
+        inst.ExternParameterType.VariableLengthVector(inst.ScalarType.REAL),
     )
     unitary_angles = inst.ExternParameter(
         "unitary_angles",
         False,
-        inst.ExternParameterType.from_variable_length_vector(inst.ScalarType.Real),
+        inst.ExternParameterType.VariableLengthVector(inst.ScalarType.REAL),
     )
     angle_offset = inst.ExternParameter(
         "angle_offset",
         False,
-        inst.ExternParameterType.from_scalar(inst.ScalarType.Integer),
+        inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER),
     )
-    pauli_set = inst.ExternParameterType.from_scalar(inst.ScalarType.Integer)
-    pauli_index = inst.ExternParameterType.from_scalar(inst.ScalarType.Integer)
-    is_pauli_left = inst.ExternParameter(
-        "is_pauli_left", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Bit)
-    )
+    pauli_set = inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER)
+    pauli_index = inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER)
+    is_pauli_left = inst.ExternParameter("is_pauli_left", False, inst.ExternParameterType.Scalar(inst.ScalarType.BIT))
     pauli_conjugates_map = inst.ExternParameter(
         "pauli_conjugates_map",
         False,
-        inst.ExternParameterType.from_fixed_length_vector(inst.Vector(inst.ScalarType.Integer, _NUMBER_PAULI_PAIRS)),
+        inst.ExternParameterType.FixedLengthVector(inst.Vector(inst.ScalarType.INTEGER, _NUMBER_PAULI_PAIRS)),
     )
-    pauli_literal = inst.ExternParameterType.from_scalar(inst.ScalarType.Integer)
+    pauli_literal = inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER)
     signatures = [
         (
             "merge_zxzxz_unitary_with_paulis_reference_conjugate",
@@ -223,46 +221,40 @@ def build_extern_function_signatures() -> dict[str, qb.Pragma]:
             "prng_set_seed_and_step",
             inst.ExternSignature(
                 parameters=[
-                    inst.ExternParameter("seed", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Integer))
+                    inst.ExternParameter("seed", False, inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER))
                 ],
-                return_type=inst.ScalarType.Integer,
+                return_type=inst.ScalarType.INTEGER,
             ).to_quil(),
         ),
         (
             "prng_step",
             inst.ExternSignature(
                 parameters=[],
-                return_type=inst.ScalarType.Integer,
+                return_type=inst.ScalarType.INTEGER,
             ).to_quil(),
         ),
         (
             "if_then_else_integer",
             inst.ExternSignature(
                 parameters=[
-                    inst.ExternParameter("condition", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Bit)),
+                    inst.ExternParameter("condition", False, inst.ExternParameterType.Scalar(inst.ScalarType.BIT)),
+                    inst.ExternParameter("true_value", False, inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER)),
                     inst.ExternParameter(
-                        "true_value", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Integer)
-                    ),
-                    inst.ExternParameter(
-                        "false_value", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Integer)
+                        "false_value", False, inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER)
                     ),
                 ],
-                return_type=inst.ScalarType.Integer,
+                return_type=inst.ScalarType.INTEGER,
             ).to_quil(),
         ),
         (
             "if_then_else_real",
             inst.ExternSignature(
                 parameters=[
-                    inst.ExternParameter("condition", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Bit)),
-                    inst.ExternParameter(
-                        "true_value", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Real)
-                    ),
-                    inst.ExternParameter(
-                        "false_value", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Real)
-                    ),
+                    inst.ExternParameter("condition", False, inst.ExternParameterType.Scalar(inst.ScalarType.BIT)),
+                    inst.ExternParameter("true_value", False, inst.ExternParameterType.Scalar(inst.ScalarType.REAL)),
+                    inst.ExternParameter("false_value", False, inst.ExternParameterType.Scalar(inst.ScalarType.REAL)),
                 ],
-                return_type=inst.ScalarType.Real,
+                return_type=inst.ScalarType.REAL,
             ).to_quil(),
         ),
         (
@@ -270,15 +262,15 @@ def build_extern_function_signatures() -> dict[str, qb.Pragma]:
             inst.ExternSignature(
                 parameters=[
                     inst.ExternParameter(
-                        "destination", True, inst.ExternParameterType.from_variable_length_vector(inst.ScalarType.Real)
+                        "destination", True, inst.ExternParameterType.VariableLengthVector(inst.ScalarType.REAL)
                     ),
                     inst.ExternParameter(
-                        "source", False, inst.ExternParameterType.from_variable_length_vector(inst.ScalarType.Real)
+                        "source", False, inst.ExternParameterType.VariableLengthVector(inst.ScalarType.REAL)
                     ),
                     inst.ExternParameter(
-                        "sub_region_size", False, inst.ExternParameterType.from_scalar(inst.ScalarType.Integer)
+                        "sub_region_size", False, inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER)
                     ),
-                    inst.ExternParameter("seed", True, inst.ExternParameterType.from_scalar(inst.ScalarType.Integer)),
+                    inst.ExternParameter("seed", True, inst.ExternParameterType.Scalar(inst.ScalarType.INTEGER)),
                 ],
                 return_type=None,
             ).to_quil(),

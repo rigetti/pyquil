@@ -3,11 +3,56 @@ import pickle
 from collections.abc import Iterable
 from math import pi
 from numbers import Complex, Number
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 import pytest
-from quil.instructions import CallArgument
+import quil
+from quil.instructions import (
+    Arithmetic,
+    ArithmeticOperator, BinaryLogic, BinaryOperator, CallArgument, Instruction, Qubit, UnaryLogic, UnaryOperator, WaveformInvocation, GateDefinition,
+    Comparison,
+    ComparisonOperator,
+    Convert, Exchange, Load, Move, Store, Declaration, CalibrationDefinition,
+    CircuitDefinition, FrameDefinition, MeasureCalibrationDefinition,
+    WaveformDefinition,
+    FrameIdentifier,
+
+    FixedQubit,
+    FormalArgument,
+    Label,
+    Call,
+    Capture,
+    Delay,
+    Fence,
+    Gate,
+    GateDefinition,
+    GateSpecification,
+    Halt,
+    Include,
+    BinaryLogic,
+    Measurement,
+    MemoryReference,
+    Nop,
+    Pragma,
+    Pulse,
+    QubitDesignator,
+    RawCapture,
+    Reset,
+    SetFrequency,
+    SetPhase,
+    SetScale,
+    ShiftFrequency,
+    ShiftPhase,
+    SwapPhases,
+    Wait,
+)
+
+from quil.expression import (
+    Address, InfixExpression, Number, Parameter,
+    quil_cos, quil_sin
+)
+
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil.api._compiler import QPUCompiler
@@ -15,83 +60,27 @@ from pyquil.gates import X
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import (
-    BinaryExp,
+
     Expression,
     Frame,
-    Mul,
-    Qubit,
     TemplateWaveform,
     Waveform,
-    WaveformReference,
-    quil_cos,
-    quil_sin,
+    qubit_index,
 )
+
 from pyquil.quilbase import (
     AbstractInstruction,
-    ArithmeticBinaryOp,
-    Call,
-    Capture,
-    ClassicalAdd,
-    ClassicalAnd,
-    ClassicalComparison,
-    ClassicalConvert,
-    ClassicalDiv,
-    ClassicalEqual,
-    ClassicalExchange,
-    ClassicalExclusiveOr,
-    ClassicalGreaterEqual,
-    ClassicalGreaterThan,
-    ClassicalInclusiveOr,
-    ClassicalLessEqual,
-    ClassicalLessThan,
-    ClassicalLoad,
-    ClassicalMove,
-    ClassicalMul,
-    ClassicalNeg,
-    ClassicalNot,
-    ClassicalStore,
-    ClassicalSub,
     Declare,
     DefCalibration,
     DefCircuit,
     DefFrame,
-    DefGate,
-    DefGateByPaulis,
     DefMeasureCalibration,
-    DefPermutationGate,
-    _integer_base_and_exponent,
     DefWaveform,
-    DelayFrames,
-    DelayQubits,
-    Fence,
-    FenceAll,
-    FormalArgument,
-    Gate,
-    Halt,
-    Include,
-    LogicalBinaryOp,
-    Measurement,
-    MemoryReference,
-    Nop,
-    Parameter,
     ParameterDesignator,
-    Pragma,
-    Pulse,
-    QubitDesignator,
-    RawCapture,
-    Reset,
     ResetQubit,
-    SetFrequency,
-    SetPhase,
-    SetScale,
-    ShiftFrequency,
-    ShiftPhase,
-    SwapPhases,
-    UnaryClassicalInstruction,
-    Wait,
-    _convert_to_py_instruction,
-    _convert_to_rs_instruction,
+    FenceAll,
 )
+
 from pyquil.quiltwaveforms import (
     BoxcarAveragerKernel,
     DragGaussianWaveform,
@@ -102,34 +91,61 @@ from pyquil.quiltwaveforms import (
 )
 
 
+def _unwrap_operand(operand: Any) -> Any:
+    """Unwrap an ``ArithmeticOperand``/``BinaryOperand``/``ComparisonOperand``-style enum value.
+
+    These enums wrap bare ``int``/``float``/``MemoryReference`` values in a nested
+    ``LiteralInteger``/``LiteralReal``/``MemoryReference`` variant with a ``._0`` field.
+    """
+    return getattr(operand, "_0", operand)
+
+
+_OPERAND_WRAPPER_PICKLE_BUG_REASON = (
+    "quil-rs's PyO3 bindings don't support copy/deepcopy/pickle for several enum types used as "
+    "instruction operands: *Operator enums (e.g. UnaryOperator, BinaryOperator) aren't copyable/"
+    "picklable at all, and *Operand-style wrapper enums (e.g. ArithmeticOperand.LiteralInteger) "
+    "have a generated __getnewargs__/__new__ that double-wraps the inner value in an extra tuple, "
+    "breaking their round-trip too. This is a quil-rs bug, not a pyquil issue."
+)
+
+
+def _unwrap_param(param: Any) -> Any:
+    """Unwrap a ``Gate``/``Pulse``-style ``Expression`` parameter for comparison with the original value.
+
+    ``Gate.params`` always returns ``Expression`` instances, wrapping bare ``float``/``MemoryReference``
+    values in ``Number``/``Address`` variants. Other ``Expression`` variants
+    (e.g. ``InfixExpression``) are returned unchanged, since the pyquil-side arithmetic operators
+    already produce the equivalent native ``Expression`` value.
+    """
+    if isinstance(param, Number):
+        value = param.value
+        return value.real if value.imag == 0 else value
+    if isinstance(param, Address):
+        return param.memory_reference
+    return param
+
+
 @pytest.mark.parametrize(
-    ("name", "params", "qubits"),
+    ("name", "params", "qubits", "declarations"),
     [
-        ("X", [], [Qubit(0)]),
-        ("CPHASE", [pi / 2], [Qubit(0), Qubit(1)]),
-        ("RZ", [MemoryReference("theta", 0, 1)], [Qubit(0)]),
-        ("RZ", [MemoryReference("alpha", 0) - MemoryReference("beta")], [Qubit(0)]),
+        ("X", [], [Qubit(0)], []),
+        ("CPHASE", [pi / 2], [Qubit(0), Qubit(1)], []),
+        ("RZ", [MemoryReference("theta", 0, 1)], [Qubit(0)], ["theta"]),
+        ("RZ", [MemoryReference("alpha", 0) - MemoryReference("beta")], [Qubit(0)], ["alpha", "beta"]),
     ],
     ids=("X-Gate", "CPHASE-Expression", "RZ-MemoryReference", "RZ-MemoryReference-Expression"),
 )
 class TestGate:
     @pytest.fixture
-    def gate(self, name: str, params: List[ParameterDesignator], qubits: List[Qubit]) -> Gate:
+    def gate(self, name: str, params: list[ParameterDesignator], qubits: list[Qubit], declarations: list[str]) -> Gate:
         return Gate(name, params, qubits)
 
     @pytest.fixture
-    def program(self, params: List[ParameterDesignator], gate: Gate) -> Program:
-        """Creates a valid quil program using the gate and declaring memory regions for any of it's parameters"""
+    def program(self, gate: Gate, declarations: list[str]) -> Program:
+        """Creates a valid quil program using the gate, with declared memory regions."""
         program = Program(gate)
-        for param in params:
-            if isinstance(param, MemoryReference):
-                program.declare(param.name, "REAL", param.declared_size or 1)
-            if isinstance(param, BinaryExp):
-                if isinstance(param.op1, MemoryReference):
-                    program.declare(param.op1.name, "REAL", param.op1.declared_size or 1)
-                if isinstance(param.op2, MemoryReference):
-                    program.declare(param.op2.name, "REAL", param.op2.declared_size or 1)
-
+        for name in declarations:
+            program.declare(name, "REAL", 1)
         return program
 
     def test_str(self, gate: Gate, snapshot: SnapshotAssertion):
@@ -138,24 +154,24 @@ class TestGate:
     def test_name(self, gate: Gate, name: str):
         assert gate.name == name
 
-    def test_params(self, gate: Gate, params: List[ParameterDesignator]):
-        assert gate.params == params
+    def test_params(self, gate: Gate, params: list[ParameterDesignator]):
+        assert [_unwrap_param(p) for p in gate.params] == params
 
-    def test_qubits(self, gate: Gate, qubits: List[Qubit]):
+    def test_qubits(self, gate: Gate, qubits: list[Qubit]):
         assert gate.qubits == qubits
 
-    def test_get_qubits(self, gate: Gate, qubits: List[Qubit]):
-        assert gate.get_qubit_indices() == [q.index for q in qubits]
-        assert gate.get_qubits(indices=False) == qubits
+    def test_get_qubits(self, gate: Gate, qubits: list[Qubit]):
+        assert gate.get_qubit_indices() == [qubit_index(q) for q in qubits]
+        assert gate.qubits == qubits
 
     def test_controlled_modifier(self, gate: Gate, snapshot: SnapshotAssertion):
-        assert str(gate.controlled([Qubit(5)])) == snapshot
+        assert str(gate.controlled(Qubit(5))) == snapshot
 
     def test_dagger_modifier(self, gate: Gate, snapshot: SnapshotAssertion):
         assert str(gate.dagger()) == snapshot
 
-    def test_forked_modifier(self, gate: Gate, params: List[ParameterDesignator], snapshot: SnapshotAssertion):
-        alt_params: List[ParameterDesignator] = [n for n in range(len(params))]
+    def test_forked_modifier(self, gate: Gate, params: list[ParameterDesignator], snapshot: SnapshotAssertion):
+        alt_params: list[ParameterDesignator] = [n for n in range(len(params))]
         assert str(gate.forked(Qubit(5), alt_params)) == snapshot
 
     def test_modifiers(self, gate: Gate):
@@ -164,16 +180,12 @@ class TestGate:
     def test_repr(self, gate: Gate, snapshot: SnapshotAssertion):
         assert repr(gate) == snapshot
 
-    def test_eq(self, gate: Gate, name: str, params: List[ParameterDesignator], qubits: List[Qubit]):
+    def test_eq(self, gate: Gate, name: str, params: list[ParameterDesignator], qubits: list[Qubit]):
         assert gate == Gate(name, params, qubits)
         assert not gate != Gate(name, params, qubits)
         not_eq_gate = Gate(f"not-{name}", params, qubits)
         assert not (gate == not_eq_gate)
         assert gate != not_eq_gate
-
-    def test_convert(self, gate: Gate):
-        rs_gate = _convert_to_rs_instruction(gate)
-        assert gate == _convert_to_py_instruction(rs_gate)
 
     def test_copy(self, gate: Gate):
         c = copy.copy(gate)
@@ -184,10 +196,7 @@ class TestGate:
         assert isinstance(d, Gate)
 
     def test_compile(self, program: Program, compiler: QPUCompiler):
-        try:
-            compiler.quil_to_native_quil(program)
-        except Exception as e:
-            raise AssertionError(f"Failed to compile the program: \n{program}") from e
+        compiler.quil_to_native_quil(program)
 
     def test_pickle(self, gate: Gate):
         pickled = pickle.dumps(gate)
@@ -196,30 +205,31 @@ class TestGate:
         assert unpickled == gate
 
 
+# TODO: Restore tests for old constructor to help migration checks.
+# TODO(migration-guide): np.diag([Expression(1)] * 4) can't work the way it used to
+# if `Expression` is to implement the __array__ interface.
+
 @pytest.mark.parametrize(
-    ("name", "matrix", "parameters"),
+    ("name", "parameters", "n_args", "specification"),
     [
-        ("NoParamGate", np.eye(4), []),
-        ("ParameterizedGate", np.diag([quil_cos(Parameter("X"))] * 4), [Parameter("X")]),
+        ("NoParamGate", [], 2, np.eye(4)),
+        ("ParameterizedGate", [Parameter("X")], 2, [
+            [quil_cos(Parameter("X")), 0, 0, 0],
+            [0, quil_cos(Parameter("X")), 0, 0],
+            [0, 0, quil_cos(Parameter("X")), 0],
+            [0, 0, 0, quil_cos(Parameter("X"))],
+        ]),
         (
-            "MixedTypes",
-            np.array(
-                [
-                    [0, quil_sin(Parameter("X"))],
-                    [0, 0],
-                ]
-            ),
-            [Parameter("X")],
+            "MixedTypes", [Parameter("X")], 1, [
+                [0, quil_sin(Parameter("X"))],
+                [0, 0],
+            ],
         ),
         (
-            "ParameterlessExpressions",
-            np.array(
-                [
+            "ParameterlessExpressions", [], 1, np.array([
                     [-quil_cos(np.pi), quil_sin(np.pi)],
                     [quil_sin(np.pi), quil_cos(np.pi)],
-                ]
-            ),
-            [],
+                ], dtype=object),
         ),
     ],
     ids=("No-Params", "Params", "MixedTypes", "ParameterlessExpression"),
@@ -227,87 +237,88 @@ class TestGate:
 class TestDefGate:
     @pytest.fixture
     def def_gate(
-        self, name: str, matrix: Union[List[List[Any]], np.ndarray, np.matrix], parameters: Optional[List[Parameter]]
-    ) -> DefGate:
-        return DefGate(name, matrix, parameters)
+        self, name: str, parameters: list[Parameter] | None, n_args: int, specification: list[list[Any]] | np.ndarray | np.matrix
+    ) -> GateDefinition:
+        return GateDefinition(name, parameters, specification)
 
-    def test_out(self, def_gate: DefGate, snapshot: SnapshotAssertion):
-        assert def_gate.out() == snapshot
+    def test_out(self, def_gate: GateDefinition, snapshot: SnapshotAssertion):
+        assert def_gate.to_quil() == snapshot
 
-    def test_str(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+    def test_str(self, def_gate: GateDefinition, snapshot: SnapshotAssertion):
         assert str(def_gate) == snapshot
 
-    def test_get_constructor(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+    def test_get_constructor(self, def_gate: GateDefinition, snapshot: SnapshotAssertion):
         constructor = def_gate.get_constructor()
         if def_gate.parameters:
             g = constructor(Parameter("theta"))(Qubit(123))  # type: ignore
-            assert g.out() == snapshot
+            assert g.to_quil() == snapshot
         else:
             g = constructor(Qubit(123))
-            assert g.out() == snapshot
+            assert g.to_quil() == snapshot
 
-    def test_num_args(self, def_gate: DefGate, matrix: Union[List[List[Any]], np.ndarray, np.matrix]):
-        assert def_gate.num_args() == np.log2(len(matrix))
+    def test_num_args(self, def_gate: GateDefinition, n_args: int, specification: list[list[Any]] | np.ndarray | np.matrix):
+        assert def_gate.num_args() == n_args
 
-    def test_name(self, def_gate: DefGate, name: str):
+    def test_name(self, def_gate: GateDefinition, name: str):
         assert def_gate.name == name
 
-    def test_matrix(self, def_gate: DefGate, matrix: Union[List[List[Any]], np.ndarray, np.matrix]):
-        assert np.array_equal(def_gate.matrix, matrix)
+    def test_matrix(self, def_gate: GateDefinition, specification: list[list[Any]] | np.ndarray | np.matrix):
+        assert np.array_equal(def_gate.matrix, GateSpecification.Matrix(specification)._0)
 
-    def test_parameters(self, def_gate: DefGate, parameters: Optional[List[Parameter]]):
+    def test_parameters(self, def_gate: GateDefinition, parameters: list[Parameter] | None):
         assert def_gate.parameters == parameters
 
-    def test_copy(self, def_gate: DefGate):
+    def test_copy(self, def_gate: GateDefinition):
         c = copy.copy(def_gate)
         d = copy.deepcopy(def_gate)
-        assert isinstance(c, DefGate)
-        assert isinstance(d, DefGate)
+        assert isinstance(c, GateDefinition)
+        assert isinstance(d, GateDefinition)
         assert c == d == def_gate
 
-    def test_pickle(self, def_gate: DefGate, snapshot: SnapshotAssertion):
+    def test_pickle(self, def_gate: GateDefinition, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(def_gate)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, DefGate)
+        assert isinstance(unpickled, GateDefinition)
         assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(
-    ("name", "permutation"),
+    ("name", "permutation", "expected_num_args"),
     [
-        ("PermGate", np.asarray([4, 3, 2, 1])),
+        ("PermGate", np.asarray([4, 3, 2, 1]), 2),
     ],
 )
 class TestDefPermutationGate:
     @pytest.fixture
-    def def_permutation_gate(self, name: str, permutation: np.ndarray) -> DefPermutationGate:
-        return DefPermutationGate(name, permutation)
+    def def_permutation_gate(self, name: str, permutation: np.ndarray, expected_num_args: int) -> GateDefinition:
+        return GateDefinition(name, None, permutation)
 
-    def test_out(self, def_permutation_gate: DefPermutationGate, snapshot: SnapshotAssertion):
-        assert def_permutation_gate.out() == snapshot
+    def test_out(self, def_permutation_gate: GateDefinition, snapshot: SnapshotAssertion):
+        assert def_permutation_gate.to_quil() == snapshot
 
-    def test_str(self, def_permutation_gate: DefPermutationGate, snapshot: SnapshotAssertion):
+    def test_str(self, def_permutation_gate: GateDefinition, snapshot: SnapshotAssertion):
         assert str(def_permutation_gate) == snapshot
 
-    def test_get_constructor(self, def_permutation_gate: DefPermutationGate, snapshot: SnapshotAssertion):
+    def test_get_constructor(self, def_permutation_gate: GateDefinition, snapshot: SnapshotAssertion):
         constructor = def_permutation_gate.get_constructor()
         g = constructor(Qubit(123))
-        assert g.out() == snapshot
+        assert g.to_quil() == snapshot
 
     def test_num_args(
-        self, def_permutation_gate: DefPermutationGate, permutation: Union[List[List[Any]], np.ndarray, np.matrix]
+        self, def_permutation_gate: GateDefinition, permutation: list[list[Any]] | np.ndarray | np.matrix,
+        expected_num_args: int
     ):
-        assert def_permutation_gate.num_args() == np.log2(len(permutation))
+        assert def_permutation_gate.num_args() == expected_num_args
 
-    def test_name(self, def_permutation_gate: DefPermutationGate, name: str):
+    def test_name(self, def_permutation_gate: GateDefinition, name: str):
         assert def_permutation_gate.name == name
 
     def test_permutation(
-        self, def_permutation_gate: DefPermutationGate, permutation: Union[List[List[Any]], np.ndarray, np.matrix]
+        self, def_permutation_gate: GateDefinition, permutation: list[list[Any]] | np.ndarray | np.matrix
     ):
         assert np.array_equal(def_permutation_gate.permutation, permutation)
 
-    def test_parameters(self, def_permutation_gate: DefPermutationGate):
+    def test_parameters(self, def_permutation_gate: GateDefinition):
         assert not def_permutation_gate.parameters
 
 
@@ -338,14 +349,14 @@ class TestQuditGateDefinitions:
         ],
     )
     def test_num_args_for_prime_power_dimensions(self, dimension: int, expected_num_args: int):
-        def_gate = DefGate(f"QUDIT{dimension}", self._identity(dimension))
+        def_gate = GateDefinition(f"QUDIT{dimension}", [], self._identity(dimension))
         assert def_gate.num_args() == expected_num_args
 
     @pytest.mark.parametrize("dimension", [1, 6, 10, 12, 15, 18, 20, 24])
     def test_rejects_non_prime_power_dimensions(self, dimension: int):
         """6 = 2*3 is ambiguous: a qubit-qutrit pair, or a single six-level system?"""
-        with pytest.raises(ValueError, match="prime"):
-            DefGate(f"BAD{dimension}", self._identity(dimension))
+        with pytest.raises(quil.ValueError, match="prime"):
+            GateDefinition(f"BAD{dimension}", [], self._identity(dimension))
 
     @pytest.mark.parametrize(
         ("levels", "expected_num_args"),
@@ -353,57 +364,37 @@ class TestQuditGateDefinitions:
     )
     def test_permutation_gate_num_args_matches_def_gate(self, levels: int, expected_num_args: int):
         """DefPermutationGate must read its length the way DefGate reads its matrix size."""
-        def_gate = DefPermutationGate(f"PERM{levels}", list(reversed(range(levels))))
+        def_gate = GateDefinition(f"PERM{levels}", [], list(reversed(range(levels))))
         assert def_gate.num_args() == expected_num_args
 
     @pytest.mark.parametrize("levels", [6, 10, 12])
     def test_permutation_gate_rejects_non_prime_power_length(self, levels: int):
-        def_gate = DefPermutationGate(f"PERM{levels}", list(reversed(range(levels))))
-        with pytest.raises(ValueError, match="prime"):
+        def_gate = GateDefinition(f"PERM{levels}", [], list(reversed(range(levels))))
+        with pytest.raises(quil.ValueError, match="prime"):
             def_gate.num_args()
 
     def test_qutrit_gate_constructor_takes_one_argument(self):
         """A 3x3 definition builds a single-qudit gate."""
-        def_gate = DefGate("QUTRIT_X", np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]], dtype=complex))
+        def_gate = GateDefinition("QUTRIT_X", [], np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]], dtype=complex))
         gate = def_gate.get_constructor()(Qubit(7))
-        assert gate.out() == "QUTRIT_X 7"  # type: ignore[union-attr]
-
-    @pytest.mark.parametrize(
-        ("value", "expected"),
-        [
-            (1, None),
-            (2, (2, 1)),
-            (3, (3, 1)),
-            (4, (2, 2)),
-            (6, None),
-            (8, (2, 3)),
-            (9, (3, 2)),
-            (12, None),
-            (64, (2, 6)),  # composite exponent: 64 = 8**2 = 4**3 = 2**6; the maximal exponent wins
-            (729, (3, 6)),  # composite exponent for an odd prime
-            (1024, (2, 10)),
-            (2**61, (2, 61)),  # large enough to be slow if the search were linear in n
-        ],
-    )
-    def test_integer_base_and_exponent(self, value: int, expected: Optional[Tuple[int, int]]):
-        assert _integer_base_and_exponent(value) == expected
+        assert gate.to_quil() == "QUTRIT_X 7"  # type: ignore[union-attr]
 
 
 @pytest.mark.parametrize(
     ("gate_name", "parameters", "arguments", "body"),
     [
-        ("PauliGate", [], [FormalArgument("p")], PauliSum([])),
-        ("PauliGate", [Parameter("theta")], [FormalArgument("p")], PauliSum([])),
-        ("PauliGate", [], [FormalArgument("p")], PauliSum([PauliTerm("Y", FormalArgument("p"), 2.0)])),
+        ("PauliGate", [], [Qubit("p")], PauliSum([])),
+        ("PauliGate", [Parameter("theta")], [Qubit("p")], PauliSum([])),
+        ("PauliGate", [], [Qubit("p")], PauliSum([PauliTerm("Y", Qubit("p"), 2.0)])),
         (
             "PauliGate",
             [Parameter("theta")],
-            [FormalArgument("p"), FormalArgument("q")],
+            [Qubit("p"), Qubit("q")],
             PauliSum(
                 [
-                    PauliTerm("Z", FormalArgument("p"), Mul(1.0, Parameter("theta"))),
-                    PauliTerm("Y", FormalArgument("p"), 2.0),
-                    PauliTerm("X", FormalArgument("q"), 3.0),
+                    PauliTerm("Z", Qubit("p"), 1.0 * Parameter("theta")),
+                    PauliTerm("Y", Qubit("p"), 2.0),
+                    PauliTerm("X", Qubit("q"), 3.0),
                     PauliTerm("I", None, 3.0),
                 ]
             ),
@@ -414,42 +405,43 @@ class TestQuditGateDefinitions:
 class TestDefGateByPaulis:
     @pytest.fixture
     def def_gate_pauli(
-        self, gate_name: str, parameters: List[Parameter], arguments: List[QubitDesignator], body: PauliSum
-    ) -> DefGateByPaulis:
-        return DefGateByPaulis(gate_name, parameters, arguments, body)
+        self, gate_name: str, parameters: list[Parameter], arguments: list[QubitDesignator], body: PauliSum
+    ) -> GateDefinition:
+        specification = GateSpecification.PauliSum(body._to_rs_pauli_sum(arguments))
+        return GateDefinition(gate_name, parameters, specification)
 
-    def test_out(self, def_gate_pauli: DefGateByPaulis, snapshot: SnapshotAssertion):
-        assert def_gate_pauli.out() == snapshot
+    def test_out(self, def_gate_pauli: GateDefinition, snapshot: SnapshotAssertion):
+        assert def_gate_pauli.to_quil() == snapshot
 
-    def test_str(self, def_gate_pauli: DefGateByPaulis, snapshot: SnapshotAssertion):
+    def test_str(self, def_gate_pauli: GateDefinition, snapshot: SnapshotAssertion):
         assert str(def_gate_pauli) == snapshot
 
-    def test_get_constructor(self, def_gate_pauli: DefGateByPaulis, snapshot: SnapshotAssertion):
+    def test_get_constructor(self, def_gate_pauli: GateDefinition, snapshot: SnapshotAssertion):
         constructor = def_gate_pauli.get_constructor()
         if def_gate_pauli.parameters:
             g = constructor(Parameter("theta"))(Qubit(123))  # type: ignore
-            assert g.out() == snapshot
+            assert g.to_quil() == snapshot
         else:
             g = constructor(Qubit(123))
-            assert g.out() == snapshot
+            assert g.to_quil() == snapshot
 
     def test_num_args(
         self,
-        def_gate_pauli: DefGateByPaulis,
-        arguments: List[QubitDesignator],
+        def_gate_pauli: GateDefinition,
+        arguments: list[QubitDesignator],
     ):
         assert def_gate_pauli.num_args() == len(arguments)
 
-    def test_name(self, def_gate_pauli: DefGateByPaulis, gate_name: str):
+    def test_name(self, def_gate_pauli: GateDefinition, gate_name: str):
         assert def_gate_pauli.name == gate_name
 
-    def test_parameters(self, def_gate_pauli: DefGate, parameters: Optional[List[Parameter]]):
+    def test_parameters(self, def_gate_pauli: GateDefinition, parameters: list[Parameter] | None):
         assert def_gate_pauli.parameters == parameters
 
-    def test_arguments(self, def_gate_pauli: DefGateByPaulis, arguments: List[QubitDesignator]):
+    def test_arguments(self, def_gate_pauli: GateDefinition, arguments: list[QubitDesignator]):
         assert def_gate_pauli.arguments == arguments
 
-    def test_body(self, def_gate_pauli: DefGateByPaulis, body: PauliSum):
+    def test_body(self, def_gate_pauli: GateDefinition, body: PauliSum):
         if all([isinstance(term.coefficient, Number) for term in body.terms]):
             # PauliTerm equality is only defined for terms with Numbered coefficients
             assert def_gate_pauli.body == body
@@ -466,32 +458,36 @@ class TestDefGateByPaulis:
 class TestDefCalibration:
     @pytest.fixture
     def calibration(
-        self, name: str, parameters: List[ParameterDesignator], qubits: List[Qubit], instrs: List[AbstractInstruction]
+        self,
+        name: str,
+        parameters: list[ParameterDesignator],
+        qubits: list[Qubit],
+        instrs: list[AbstractInstruction],
     ) -> DefCalibration:
-        return DefCalibration(name, parameters, qubits, instrs)
+        return DefCalibration.from_parts(name, parameters, qubits, instrs, None)
 
     def test_str(self, calibration: DefCalibration, snapshot: SnapshotAssertion):
         assert str(calibration) == snapshot
 
     def test_out(self, calibration: DefCalibration, snapshot: SnapshotAssertion):
-        assert calibration.out() == snapshot
+        assert calibration.to_quil() == snapshot
 
     def test_name(self, calibration: DefCalibration, name: str):
         assert calibration.name == name
         calibration.name = "new_name"
         assert calibration.name == "new_name"
 
-    def test_parameters(self, calibration: DefCalibration, parameters: List[ParameterDesignator]):
+    def test_parameters(self, calibration: DefCalibration, parameters: list[ParameterDesignator]):
         assert calibration.parameters == parameters
         calibration.parameters = [pi / 2]
-        assert calibration.parameters == [pi / 2]
+        assert calibration.parameters == [Number(complex(pi / 2))]
 
-    def test_qubits(self, calibration: DefCalibration, qubits: List[QubitDesignator]):
+    def test_qubits(self, calibration: DefCalibration, qubits: list[QubitDesignator]):
         assert calibration.qubits == qubits
         calibration.qubits = [Qubit(123)]
         assert calibration.qubits == [Qubit(123)]
 
-    def test_instrs(self, calibration: DefCalibration, instrs: List[AbstractInstruction]):
+    def test_instrs(self, calibration: DefCalibration, instrs: list[AbstractInstruction]):
         assert calibration.instrs == instrs
         calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
         assert calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]
@@ -499,10 +495,6 @@ class TestDefCalibration:
     def test_copy(self, calibration: DefCalibration):
         assert isinstance(copy.copy(calibration), DefCalibration)
         assert isinstance(copy.deepcopy(calibration), DefCalibration)
-
-    def test_convert(self, calibration: DefCalibration):
-        rs_calibration = _convert_to_rs_instruction(calibration)
-        assert calibration == _convert_to_py_instruction(rs_calibration)
 
     def test_pickle(self, calibration: DefCalibration):
         pickled = pickle.dumps(calibration)
@@ -518,12 +510,12 @@ class TestDefCalibration:
 class TestDefMeasureCalibration:
     @pytest.fixture
     def measure_calibration(
-        self, qubit: Qubit, memory_reference: MemoryReference, instrs: List[AbstractInstruction]
+        self, qubit: Qubit, memory_reference: MemoryReference, instrs: list[AbstractInstruction]
     ) -> DefMeasureCalibration:
         return DefMeasureCalibration(qubit, memory_reference, instrs)
 
     def test_out(self, measure_calibration: DefMeasureCalibration, snapshot: SnapshotAssertion):
-        assert measure_calibration.out() == snapshot
+        assert measure_calibration.to_quil() == snapshot
 
     def test_qubit(self, measure_calibration: DefMeasureCalibration, qubit: Qubit):
         assert measure_calibration.qubit == qubit
@@ -535,7 +527,7 @@ class TestDefMeasureCalibration:
         measure_calibration.memory_reference = MemoryReference("new_mem_ref")
         assert measure_calibration.memory_reference == MemoryReference("new_mem_ref")
 
-    def test_instrs(self, measure_calibration: DefMeasureCalibration, instrs: List[AbstractInstruction]):
+    def test_instrs(self, measure_calibration: DefMeasureCalibration, instrs: list[AbstractInstruction]):
         assert measure_calibration.instrs == instrs
         measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
         assert isinstance(measure_calibration.instrs[0], Gate)
@@ -544,7 +536,7 @@ class TestDefMeasureCalibration:
         assert not isinstance(measure_calibration.instrs[1], Gate)
         assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
 
-    def test_instructions(self, measure_calibration: DefMeasureCalibration, instrs: List[AbstractInstruction]):
+    def test_instructions(self, measure_calibration: DefMeasureCalibration, instrs: list[AbstractInstruction]):
         assert measure_calibration.instructions == instrs
         measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
         assert isinstance(measure_calibration.instrs[0], Gate)
@@ -556,10 +548,6 @@ class TestDefMeasureCalibration:
     def test_copy(self, measure_calibration: DefMeasureCalibration):
         assert isinstance(copy.copy(measure_calibration), DefMeasureCalibration)
         assert isinstance(copy.deepcopy(measure_calibration), DefMeasureCalibration)
-
-    def test_convert(self, measure_calibration: DefMeasureCalibration):
-        rs_measure_calibration = _convert_to_rs_instruction(measure_calibration)
-        assert measure_calibration == _convert_to_py_instruction(rs_measure_calibration)
 
     def test_pickle(self, measure_calibration: DefMeasureCalibration):
         pickled = pickle.dumps(measure_calibration)
@@ -578,11 +566,11 @@ class TestDefMeasureCalibration:
 )
 class TestMeasurement:
     @pytest.fixture
-    def measurement(self, qubit: Qubit, classical_reg: Optional[MemoryReference]):
+    def measurement(self, qubit: Qubit, classical_reg: MemoryReference | None):
         return Measurement(qubit, classical_reg)
 
     def test_out(self, measurement: Measurement, snapshot: SnapshotAssertion):
-        assert measurement.out() == snapshot
+        assert measurement.to_quil() == snapshot
 
     def test_str(self, measurement: Measurement, snapshot: SnapshotAssertion):
         assert str(measurement) == snapshot
@@ -591,20 +579,17 @@ class TestMeasurement:
         assert measurement.qubit == qubit
 
     def test_get_qubits(self, measurement: Measurement, qubit: Qubit):
-        assert measurement.get_qubits(False) == set([qubit])
-        if isinstance(qubit, Qubit):
-            assert measurement.get_qubits(True) == set([qubit.index])
+        assert {measurement.qubit} == {qubit}
+        match qubit:
+            case FixedQubit(index):
+                assert measurement.get_qubit_indices() == {index}
 
     def test_classical_reg(self, measurement: Measurement, classical_reg: MemoryReference):
-        assert measurement.classical_reg == classical_reg
+        assert measurement.target == classical_reg
 
     def test_copy(self, measurement: Measurement):
         assert isinstance(copy.copy(measurement), Measurement)
         assert isinstance(copy.deepcopy(measurement), Measurement)
-
-    def test_convert(self, measurement: Measurement):
-        rs_measurement = _convert_to_rs_instruction(measurement)
-        assert measurement == _convert_to_py_instruction(rs_measurement)
 
     def test_pickle(self, measurement: Measurement):
         pickled = pickle.dumps(measurement)
@@ -626,28 +611,28 @@ class TestDefFrame:
     def def_frame(
         self,
         frame: Frame,
-        direction: Optional[str],
-        initial_frequency: Optional[float],
-        hardware_object: Optional[str],
-        sample_rate: Optional[float],
-        center_frequency: Optional[float],
-        channel_delay: Optional[float],
+        direction: str | None,
+        initial_frequency: float | None,
+        hardware_object: str | None,
+        sample_rate: float | None,
+        center_frequency: float | None,
+        channel_delay: float | None,
     ) -> DefFrame:
         args = dict(
-            direction=direction,
-            initial_frequency=initial_frequency,
-            hardware_object=hardware_object,
-            sample_rate=sample_rate,
-            center_frequency=center_frequency,
-            channel_delay=channel_delay,
+            DIRECTION=direction,
+            **{"INITIAL-FREQUENCY": initial_frequency},
+            **{"HARDWARE-OBJECT": hardware_object},
+            **{"SAMPLE-RATE": sample_rate},
+            **{"CENTER-FREQUENCY": center_frequency},
+            **{"CHANNEL-DELAY": channel_delay},
         )
-        return DefFrame(frame, **{k: v for k, v in args.items() if v is not None})
+        return DefFrame(frame, {k: v for k, v in args.items() if v is not None})
 
     def test_out(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
         # The ordering of attributes isn't stable and can be printed in different orders across calls.
         # We assert that the first line is definitely the `DEFFRAME` line, and that the following
         # attributes are the same, regardless of their order.
-        quil_lines = def_frame.out().splitlines()
+        quil_lines = def_frame.to_quil().splitlines()
         assert quil_lines[0] == snapshot
         assert set(quil_lines[1:]) == snapshot
 
@@ -657,41 +642,41 @@ class TestDefFrame:
         assert set(quil_lines[1:]) == snapshot
 
     def test_frame(self, def_frame: DefFrame, frame: Frame):
+        # Note: `FrameDefinition.frame`/`.identifier` has no setter in the native API (no mutable
+        # backing storage reachable from Python); this is a known gap, see MIGRATION-NOTES.md.
         assert def_frame.frame == frame
-        def_frame.frame = Frame([Qubit(123)], "new_frame")
-        assert def_frame.frame == Frame([Qubit(123)], "new_frame")
 
-    def test_direction(self, def_frame: DefFrame, direction: Optional[str]):
+    def test_direction(self, def_frame: DefFrame, direction: str | None):
         assert def_frame.direction == direction
         def_frame.direction = "tx"
         assert def_frame.direction == "tx"
 
-    def test_initial_frequency(self, def_frame: DefFrame, initial_frequency: Optional[float]):
+    def test_initial_frequency(self, def_frame: DefFrame, initial_frequency: float | None):
         assert def_frame.initial_frequency == initial_frequency
         def_frame.initial_frequency = 3.14
         assert def_frame.initial_frequency == 3.14
 
-    def test_hardware_object(self, def_frame: DefFrame, hardware_object: Optional[str]):
+    def test_hardware_object(self, def_frame: DefFrame, hardware_object: str | None):
         assert def_frame.hardware_object == hardware_object
         def_frame.hardware_object = "bfg"
         assert def_frame.hardware_object == "bfg"
 
-    def test_hardware_object_json(self, def_frame: DefFrame, hardware_object: Optional[str]):
+    def test_hardware_object_json(self, def_frame: DefFrame, hardware_object: str | None):
         assert def_frame.hardware_object == hardware_object
         def_frame.hardware_object = '{"string": "str", "int": 1, "float": 3.14}'
         assert def_frame.hardware_object == '{"string": "str", "int": 1, "float": 3.14}'
 
-    def test_sample_rate(self, def_frame: DefFrame, sample_rate: Optional[float]):
+    def test_sample_rate(self, def_frame: DefFrame, sample_rate: float | None):
         assert def_frame.sample_rate == sample_rate
         def_frame.sample_rate = 96.0
         assert def_frame.sample_rate == 96.0
 
-    def test_center_frequency(self, def_frame: DefFrame, center_frequency: Optional[float]):
+    def test_center_frequency(self, def_frame: DefFrame, center_frequency: float | None):
         assert def_frame.center_frequency == center_frequency
         def_frame.center_frequency = 432.0
         assert def_frame.center_frequency == 432.0
 
-    def test_channel_delay(self, def_frame: DefFrame, channel_delay: Optional[float]):
+    def test_channel_delay(self, def_frame: DefFrame, channel_delay: float | None):
         assert def_frame.channel_delay == channel_delay
         def_frame.channel_delay = 571.0
         assert def_frame.channel_delay == 571.0
@@ -699,10 +684,6 @@ class TestDefFrame:
     def test_copy(self, def_frame: DefFrame):
         assert isinstance(copy.copy(def_frame), DefFrame)
         assert isinstance(copy.deepcopy(def_frame), DefFrame)
-
-    def test_convert(self, def_frame: DefFrame):
-        rs_def_frame = _convert_to_rs_instruction(def_frame)
-        assert def_frame == _convert_to_py_instruction(rs_def_frame)
 
     def test_pickle(self, def_frame: DefFrame):
         pickled = pickle.dumps(def_frame)
@@ -728,13 +709,13 @@ class TestDeclare:
         name: str,
         memory_type: str,
         memory_size: int,
-        shared_region: Optional[str],
-        offsets: Optional[Iterable[Tuple[int, str]]],
+        shared_region: str | None,
+        offsets: Iterable[tuple[int, str]] | None,
     ) -> Declare:
         return Declare(name, memory_type, memory_size, shared_region, offsets)
 
     def test_out(self, declare: Declare, snapshot: SnapshotAssertion):
-        assert declare.out() == snapshot
+        assert declare.to_quil() == snapshot
 
     def test_str(self, declare: Declare, snapshot: SnapshotAssertion):
         assert str(declare) == snapshot
@@ -745,26 +726,22 @@ class TestDeclare:
     def test_name(self, declare: Declare, name: str):
         assert declare.name == name
 
-    def test_memory_type(self, declare: Declare, memory_type: Optional[str]):
+    def test_memory_type(self, declare: Declare, memory_type: str | None):
         assert declare.memory_type == memory_type
 
-    def test_memory_size(self, declare: Declare, memory_size: Optional[int]):
+    def test_memory_size(self, declare: Declare, memory_size: int | None):
         assert declare.memory_size == memory_size
 
-    def test_shared_region(self, declare: Declare, shared_region: Optional[str]):
+    def test_shared_region(self, declare: Declare, shared_region: str | None):
         assert declare.shared_region == shared_region
 
-    def test_offsets(self, declare: Declare, offsets: Optional[Iterable[Tuple[int, str]]]):
+    def test_offsets(self, declare: Declare, offsets: Iterable[tuple[int, str]] | None):
         expected_offsets = offsets or []
-        assert declare.offsets == expected_offsets
+        assert declare.offsets() == expected_offsets
 
     def test_copy(self, declare: Declare):
         assert isinstance(copy.copy(declare), Declare)
         assert isinstance(copy.deepcopy(declare), Declare)
-
-    def test_convert(self, declare: Declare):
-        rs_declare = _convert_to_rs_instruction(declare)
-        assert declare == _convert_to_py_instruction(rs_declare)
 
     def test_pickle(self, declare: Declare):
         pickled = pickle.dumps(declare)
@@ -776,20 +753,23 @@ class TestDeclare:
 @pytest.mark.parametrize(
     ("command", "args", "freeform_string"),
     [
-        ("NO-NOISE", [], ""),
-        ("DOES-A-THING", [Qubit(0), FormalArgument("b")], ""),
+        ("NO-NOISE", [], None),
+        ("DOES-A-THING", [0, "b"], None),
         ("INITIAL_REWIRING", [], "GREEDY"),
-        ("READOUT-POVM", [Qubit(1)], "(0.9 0.19999999999999996 0.09999999999999998 0.8)"),
+        ("READOUT-POVM", [1], "(0.9 0.19999999999999996 0.09999999999999998 0.8)"),
     ],
     ids=("Command-Only", "With-Arg", "With-String", "With-Arg-And-String"),
 )
 class TestPragma:
+    # Note: unlike pre-v5 pyQuil, PRAGMA arguments no longer accept `Qubit`/`FormalArgument` objects
+    # directly (only bare `str`/`int`), and `.args`/`.freeform_string` have been superseded by
+    # `.arguments`/`.data` (the old names still work but are deprecated). See MIGRATION-NOTES.md.
     @pytest.fixture
-    def pragma(self, command: str, args: List[Union[QubitDesignator, str]], freeform_string: str) -> Pragma:
+    def pragma(self, command: str, args: list[int | str], freeform_string: str | None) -> Pragma:
         return Pragma(command, args, freeform_string)
 
     def test_out(self, pragma: Pragma, snapshot: SnapshotAssertion):
-        assert pragma.out() == snapshot
+        assert pragma.to_quil() == snapshot
 
     def test_str(self, pragma: Pragma, snapshot: SnapshotAssertion):
         assert str(pragma) == snapshot
@@ -797,19 +777,15 @@ class TestPragma:
     def test_command(self, pragma: Pragma, command: str):
         assert pragma.command == command
 
-    def test_args(self, pragma: Pragma, args: List[Union[QubitDesignator, str]]):
-        assert pragma.args == tuple(args)
+    def test_args(self, pragma: Pragma, args: list[int | str]):
+        assert [arg._0 for arg in pragma.arguments] == args
 
-    def test_freeform_string(self, pragma: Pragma, freeform_string: str):
+    def test_freeform_string(self, pragma: Pragma, freeform_string: str | None):
         assert pragma.freeform_string == freeform_string
 
     def test_copy(self, pragma: Pragma):
         assert isinstance(copy.copy(pragma), Pragma)
         assert isinstance(copy.deepcopy(pragma), Pragma)
-
-    def test_convert(self, pragma: Pragma):
-        rs_pragma = _convert_to_rs_instruction(pragma)
-        assert pragma == _convert_to_py_instruction(rs_pragma)
 
     def test_pickle(self, pragma: Pragma):
         pickled = pickle.dumps(pragma)
@@ -822,50 +798,50 @@ class TestPragma:
     ("qubit"),
     [
         (Qubit(0)),
-        (FormalArgument("a")),
+        (Qubit("a")),
         (None),
     ],
     ids=("Qubit", "FormalArgument", "None"),
 )
 class TestReset:
     @pytest.fixture
-    def reset_qubit(self, qubit: Qubit) -> Union[Reset, ResetQubit]:
-        if qubit is None:
-            with pytest.raises(TypeError):
+    def reset_qubit(self, qubit: Qubit) -> Reset:
+        return Reset(qubit)
+
+    def test_deprecated(self, qubit: Qubit):
+        if qubit is not None:
+            with pytest.deprecated_call():
                 ResetQubit(qubit)
-            return Reset(None)
-        return ResetQubit(qubit)
+        else:
+            with pytest.raises(TypeError):
+                ResetQubit(None)
 
-    def test_out(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):
-        assert reset_qubit.out() == snapshot
+    def test_out(self, reset_qubit: Reset, snapshot: SnapshotAssertion):
+        assert reset_qubit.to_quil() == snapshot
 
-    def test_str(self, reset_qubit: ResetQubit, snapshot: SnapshotAssertion):
+    def test_str(self, reset_qubit: Reset, snapshot: SnapshotAssertion):
         assert str(reset_qubit) == snapshot
 
-    def test_qubit(self, reset_qubit: ResetQubit, qubit: Qubit):
+    def test_qubit(self, reset_qubit: Reset, qubit: Qubit):
         assert reset_qubit.qubit == qubit
 
-    def test_get_qubits(self, reset_qubit: ResetQubit, qubit: Qubit):
+    def test_get_qubits(self, reset_qubit: Reset, qubit: Qubit):
         if qubit is None:
-            assert reset_qubit.get_qubits(False) is None
+            assert reset_qubit.qubit is None
             assert reset_qubit.get_qubit_indices() is None
         else:
-            assert reset_qubit.get_qubits(False) == {qubit}
-            if isinstance(qubit, Qubit):
+            assert {reset_qubit.qubit} == {qubit}
+            if isinstance(qubit, FixedQubit):
                 assert reset_qubit.get_qubit_indices() == {qubit.index}
 
-    def test_copy(self, reset_qubit: Union[Reset, ResetQubit]):
+    def test_copy(self, reset_qubit: Reset):
         assert isinstance(copy.copy(reset_qubit), type(reset_qubit))
         assert isinstance(copy.deepcopy(reset_qubit), type(reset_qubit))
-
-    def test_convert(self, reset_qubit: Reset):
-        rs_reset_qubit = _convert_to_rs_instruction(reset_qubit)
-        assert reset_qubit == _convert_to_py_instruction(rs_reset_qubit)
 
     def test_pickle(self, reset_qubit: Reset):
         pickled = pickle.dumps(reset_qubit)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, (Reset, ResetQubit))
+        assert isinstance(unpickled, Reset)
         assert unpickled == reset_qubit
 
 
@@ -877,30 +853,26 @@ class TestReset:
 )
 class TestDelayFrames:
     @pytest.fixture
-    def delay_frames(self, frames: List[Frame], duration: float) -> DelayFrames:
-        return DelayFrames(frames, duration)
+    def delay_frames(self, frames: list[Frame], duration: float) -> Delay:
+        return Delay.from_frames(duration, frames)
 
-    def test_out(self, delay_frames: DelayFrames, snapshot: SnapshotAssertion):
-        assert delay_frames.out() == snapshot
+    def test_out(self, delay_frames: Delay, snapshot: SnapshotAssertion):
+        assert delay_frames.to_quil() == snapshot
 
-    def test_frames(self, delay_frames: DelayFrames, frames: List[Frame]):
+    def test_frames(self, delay_frames: Delay, frames: list[Frame]):
         assert delay_frames.frames == frames
 
-    def test_duration(self, delay_frames: DelayFrames, duration: float):
-        assert delay_frames.duration == duration
+    def test_duration(self, delay_frames: Delay, duration: float):
+        assert _unwrap_param(delay_frames.duration) == duration
 
-    def test_copy(self, delay_frames: DelayFrames):
-        assert isinstance(copy.copy(delay_frames), DelayFrames)
-        assert isinstance(copy.deepcopy(delay_frames), DelayFrames)
+    def test_copy(self, delay_frames: Delay):
+        assert isinstance(copy.copy(delay_frames), Delay)
+        assert isinstance(copy.deepcopy(delay_frames), Delay)
 
-    def test_convert(self, delay_frames: DelayFrames):
-        rs_delay_frames = _convert_to_rs_instruction(delay_frames)
-        assert delay_frames == _convert_to_py_instruction(rs_delay_frames)
-
-    def test_pickle(self, delay_frames: DelayFrames):
+    def test_pickle(self, delay_frames: Delay):
         pickled = pickle.dumps(delay_frames)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, DelayFrames)
+        assert isinstance(unpickled, Delay)
         assert unpickled == delay_frames
 
 
@@ -908,36 +880,32 @@ class TestDelayFrames:
     ("qubits", "duration"),
     [
         ([Qubit(0)], 5.0),
-        ([FormalArgument("a")], 2.5),
+        ([Qubit("a")], 2.5),
     ],
     ids=("Qubit", "FormalArgument"),
 )
 class TestDelayQubits:
     @pytest.fixture
-    def delay_qubits(self, qubits: List[Union[Qubit, FormalArgument]], duration: float) -> DelayQubits:
-        return DelayQubits(qubits, duration)
+    def delay_qubits(self, qubits: list[Qubit], duration: float) -> Delay:
+        return Delay(duration, qubits)
 
-    def test_out(self, delay_qubits: DelayQubits, snapshot: SnapshotAssertion):
-        assert delay_qubits.out() == snapshot
+    def test_out(self, delay_qubits: Delay, snapshot: SnapshotAssertion):
+        assert delay_qubits.to_quil() == snapshot
 
-    def test_qubits(self, delay_qubits: DelayQubits, qubits: List[Qubit]):
+    def test_qubits(self, delay_qubits: Delay, qubits: list[Qubit]):
         assert delay_qubits.qubits == qubits
 
-    def test_duration(self, delay_qubits: DelayQubits, duration: float):
-        assert delay_qubits.duration == duration
+    def test_duration(self, delay_qubits: Delay, duration: float):
+        assert _unwrap_param(delay_qubits.duration) == duration
 
-    def test_copy(self, delay_qubits: DelayQubits):
-        assert isinstance(copy.copy(delay_qubits), DelayQubits)
-        assert isinstance(copy.deepcopy(delay_qubits), DelayQubits)
+    def test_copy(self, delay_qubits: Delay):
+        assert isinstance(copy.copy(delay_qubits), Delay)
+        assert isinstance(copy.deepcopy(delay_qubits), Delay)
 
-    def test_convert(self, delay_qubits: DelayQubits):
-        rs_delay_qubits = _convert_to_rs_instruction(delay_qubits)
-        assert delay_qubits == _convert_to_py_instruction(rs_delay_qubits)
-
-    def test_pickle(self, delay_qubits: DelayQubits):
+    def test_pickle(self, delay_qubits: Delay):
         pickled = pickle.dumps(delay_qubits)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, DelayQubits)
+        assert isinstance(unpickled, Delay)
         assert unpickled == delay_qubits
 
 
@@ -945,28 +913,24 @@ class TestDelayQubits:
     ("qubits"),
     [
         ([Qubit(0)]),
-        ([FormalArgument("a")]),
+        ([Qubit("a")]),
     ],
     ids=("Qubit", "FormalArgument"),
 )
 class TestFence:
     @pytest.fixture
-    def fence(self, qubits: List[Union[Qubit, FormalArgument]]) -> Fence:
+    def fence(self, qubits: list[Qubit]) -> Fence:
         return Fence(qubits)
 
     def test_out(self, fence: Fence, snapshot: SnapshotAssertion):
-        assert fence.out() == snapshot
+        assert fence.to_quil() == snapshot
 
-    def test_qubits(self, fence: Fence, qubits: List[Union[Qubit, FormalArgument]]):
+    def test_qubits(self, fence: Fence, qubits: list[Qubit]):
         assert fence.qubits == qubits
 
     def test_copy(self, fence: Fence):
         assert isinstance(copy.copy(fence), Fence)
         assert isinstance(copy.deepcopy(fence), Fence)
-
-    def test_convert(self, fence: Fence):
-        rs_fence = _convert_to_rs_instruction(fence)
-        assert fence == _convert_to_py_instruction(rs_fence)
 
     def test_pickle(self, fence: Fence):
         pickled = pickle.dumps(fence)
@@ -977,7 +941,7 @@ class TestFence:
 
 def test_fence_all():
     fa = FenceAll()
-    assert fa.out() == "FENCE"
+    assert fa.to_quil() == "FENCE"
     assert fa.qubits == []
 
 
@@ -988,35 +952,32 @@ def test_fence_all():
         (
             "Wavey",
             [Parameter("x"), Parameter("y")],
-            [complex(1.0, 2.0), Parameter("x"), Mul(complex(3.0, 0.0), Parameter("y"))],
+            [1.0+2.0j, Parameter("x"), (3.0+0.0j)*Parameter("y")],
         ),
     ],
     ids=("With-Param", "With-Params-Complex"),
 )
 class TestDefWaveform:
     @pytest.fixture
-    def def_waveform(self, name: str, parameters: List[Parameter], entries: List[Union[complex, Expression]]):
-        return DefWaveform(name, parameters, entries)
+    def def_waveform(self, name: str, parameters: list[Parameter], entries: list[complex | Expression]):
+        return WaveformDefinition(name, parameters, entries)
 
     def test_out(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
-        assert def_waveform.out() == snapshot
+        assert def_waveform.to_quil() == snapshot
 
     def test_name(self, def_waveform: DefWaveform, name: str):
         assert def_waveform.name == name
 
-    def test_parameters(self, def_waveform: DefWaveform, parameters: List[Parameter]):
-        assert def_waveform.parameters == parameters
+    def test_parameters(self, def_waveform: DefWaveform, parameters: list[Parameter]):
+        assert def_waveform.parameters == [p.name for p in parameters]
 
-    def test_entries(self, def_waveform: DefWaveform, entries: List[Union[Complex, Expression]]):
-        assert def_waveform.entries == entries
+    def test_entries(self, def_waveform: DefWaveform, entries: list[Complex | Expression]):
+        expected = [Number(complex(e)) if isinstance(e, complex) else e for e in entries]
+        assert def_waveform.entries == expected
 
     def test_copy(self, def_waveform: DefWaveform):
         assert isinstance(copy.copy(def_waveform), DefWaveform)
         assert isinstance(copy.deepcopy(def_waveform), DefWaveform)
-
-    def test_convert(self, def_waveform: DefWaveform):
-        rs_def_waveform = _convert_to_rs_instruction(def_waveform)
-        assert def_waveform == _convert_to_py_instruction(rs_def_waveform)
 
     def test_pickle(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(def_waveform)
@@ -1028,14 +989,14 @@ class TestDefWaveform:
 @pytest.mark.parametrize(
     ("name", "parameters", "qubit_variables", "instructions"),
     [
-        ("NiftyCircuit", [], [FormalArgument("a")], [Measurement(FormalArgument("a"), None)]),
+        ("NiftyCircuit", [], [Qubit("a")], [Measurement(Qubit("a"), None)]),
         (
             "NiftyCircuit",
             [Parameter("theta")],
-            [FormalArgument("a")],
+            [Qubit("a")],
             [
                 Declare("ro", "BIT", 1),
-                Measurement(FormalArgument("a"), MemoryReference("ro")),
+                Measurement(Qubit("a"), MemoryReference("ro")),
             ],
         ),
     ],
@@ -1046,31 +1007,36 @@ class TestDefCircuit:
     def def_circuit(
         self,
         name: str,
-        parameters: List[Parameter],
-        qubit_variables: List[FormalArgument],
-        instructions: List[AbstractInstruction],
+        parameters: list[Parameter],
+        qubit_variables: list[Qubit],
+        instructions: list[Instruction],
     ):
-        return DefCircuit(name, parameters, qubit_variables, instructions)
+        return DefCircuit(
+            name,
+            parameters,
+            qubit_variables,
+            instructions,
+        )
 
     def test_out(self, def_circuit: DefCircuit, snapshot: SnapshotAssertion):
-        assert def_circuit.out() == snapshot
+        assert def_circuit.to_quil() == snapshot
 
     def test_name(self, def_circuit: DefCircuit, name: str):
         assert def_circuit.name == name
         def_circuit.name = "new_name"
         assert def_circuit.name == "new_name"
 
-    def test_parameters(self, def_circuit: DefCircuit, parameters: List[Parameter]):
-        assert def_circuit.parameters == parameters
-        def_circuit.parameters = [Parameter("z")]
-        assert def_circuit.parameters == [Parameter("z")]
+    def test_parameters(self, def_circuit: DefCircuit, parameters: list[Parameter]):
+        assert def_circuit.parameters == [p.name for p in parameters]
+        def_circuit.parameters = ["z"]
+        assert def_circuit.parameters == ["z"]
 
-    def test_qubit_variables(self, def_circuit: DefCircuit, qubit_variables: List[FormalArgument]):
-        assert def_circuit.qubit_variables == qubit_variables
-        def_circuit.qubit_variables = [FormalArgument("qubit")]
-        assert def_circuit.qubit_variables == [FormalArgument("qubit")]
+    def test_qubit_variables(self, def_circuit: DefCircuit, qubit_variables: list[Qubit]):
+        assert def_circuit.qubit_variables == [q.name for q in qubit_variables]
+        def_circuit.qubit_variables = ["qubit"]
+        assert def_circuit.qubit_variables == ["qubit"]
 
-    def test_instructions(self, def_circuit: DefCircuit, instructions: List[AbstractInstruction]):
+    def test_instructions(self, def_circuit: DefCircuit, instructions: list[AbstractInstruction]):
         assert def_circuit.instructions == instructions
         def_circuit.instructions = [Gate("new_gate", [], [Qubit(0)], [])]
         assert def_circuit.instructions == [Gate("new_gate", [], [Qubit(0)], [])]
@@ -1078,10 +1044,6 @@ class TestDefCircuit:
     def test_copy(self, def_circuit: DefCircuit):
         assert isinstance(copy.copy(def_circuit), DefCircuit)
         assert isinstance(copy.deepcopy(def_circuit), DefCircuit)
-
-    def test_convert(self, def_circuit: DefCircuit):
-        rs_def_circuit = _convert_to_rs_instruction(def_circuit)
-        assert def_circuit == _convert_to_py_instruction(rs_def_circuit)
 
     def test_pickle(self, def_circuit: DefCircuit):
         pickled = pickle.dumps(def_circuit)
@@ -1094,19 +1056,19 @@ class TestDefCircuit:
     ("frame", "kernel", "memory_region", "nonblocking"),
     [
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
-            WaveformReference("WAVEFORMY"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
+            WaveformInvocation("WAVEFORMY"),
             MemoryReference("ro"),
             False,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
-            WaveformReference("WAVEFORMY"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
+            WaveformInvocation("WAVEFORMY"),
             MemoryReference("ro"),
             True,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
             MemoryReference("ro"),
             True,
@@ -1117,10 +1079,10 @@ class TestDefCircuit:
 class TestCapture:
     @pytest.fixture
     def capture(self, frame: Frame, kernel: Waveform, memory_region: MemoryReference, nonblocking: bool):
-        return Capture(frame, kernel, memory_region, nonblocking)
+        return Capture(frame, kernel, memory_region, nonblocking=nonblocking)
 
     def test_out(self, capture: Capture, snapshot: SnapshotAssertion):
-        assert capture.out() == snapshot
+        assert capture.to_quil() == snapshot
 
     def test_frame(self, capture: Capture, frame: Frame):
         assert capture.frame == frame
@@ -1128,27 +1090,23 @@ class TestCapture:
         assert capture.frame == Frame([Qubit(123)], "new-frame")
 
     def test_kernel(self, capture: Capture, kernel: Waveform):
-        assert capture.kernel == kernel
-        capture.kernel = WaveformReference("new-waveform")
-        assert capture.kernel == WaveformReference("new-waveform")
+        assert capture.waveform == kernel
+        capture.waveform = WaveformInvocation("new-waveform")
+        assert capture.waveform == WaveformInvocation("new-waveform")
 
     def test_memory_region(self, capture: Capture, memory_region: MemoryReference):
-        assert capture.memory_region == memory_region
-        capture.memory_region = MemoryReference("new-memory-reference")
-        assert capture.memory_region == MemoryReference("new-memory-reference")
+        assert capture.memory_reference == memory_region
+        capture.memory_reference = MemoryReference("new-memory-reference")
+        assert capture.memory_reference == MemoryReference("new-memory-reference")
 
     def test_nonblocking(self, capture: Capture, nonblocking: bool):
         assert capture.nonblocking == nonblocking
-        capture.nonblocking = not nonblocking
+        capture.blocking = nonblocking
         assert capture.nonblocking == (not nonblocking)
 
     def test_copy(self, capture: Capture):
         assert isinstance(copy.copy(capture), Capture)
         assert isinstance(copy.deepcopy(capture), Capture)
-
-    def test_convert(self, capture: Capture):
-        rs_capture = _convert_to_rs_instruction(capture)
-        assert capture == _convert_to_py_instruction(rs_capture)
 
     def test_pickle(self, capture: Capture, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(capture)
@@ -1161,42 +1119,42 @@ class TestCapture:
     ("frame", "waveform", "nonblocking"),
     [
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
-            WaveformReference("WAVEFORMY"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
+            WaveformInvocation("WAVEFORMY"),
             False,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
-            WaveformReference("WAVEFORMY"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
+            WaveformInvocation("WAVEFORMY"),
             True,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             FlatWaveform(duration=2.5, iq=complex(1.0, 2.0)),
             True,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             GaussianWaveform(duration=2.5, fwhm=1.0, t0=1.0, phase=0.1),
             True,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             DragGaussianWaveform(duration=2.5, fwhm=1.0, t0=1.0, anh=0.1, alpha=1.0),
             True,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             HrmGaussianWaveform(duration=2.5, fwhm=1.0, t0=1.0, anh=0.1, alpha=1.0, second_order_hrm_coeff=0.5),
             True,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             ErfSquareWaveform(duration=2.5, risetime=1.0, pad_left=1.0, pad_right=0.1, scale=1.0),
             True,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             BoxcarAveragerKernel(duration=2.5, scale=1.0),
             True,
         ),
@@ -1215,10 +1173,10 @@ class TestCapture:
 class TestPulse:
     @pytest.fixture
     def pulse(self, frame: Frame, waveform: Waveform, nonblocking: bool):
-        return Pulse(frame, waveform, nonblocking)
+        return Pulse(frame, waveform, nonblocking=nonblocking)
 
     def test_out(self, pulse: Pulse, snapshot: SnapshotAssertion):
-        assert pulse.out() == snapshot
+        assert pulse.to_quil() == snapshot
 
     def test_frame(self, pulse: Pulse, frame: Frame):
         assert pulse.frame == frame
@@ -1230,21 +1188,17 @@ class TestPulse:
         if isinstance(waveform, TemplateWaveform):
             assert isinstance(pulse.waveform, type(waveform))
             pulse.waveform.samples(0.5)
-        pulse.waveform = WaveformReference("new-waveform")
-        assert pulse.waveform == WaveformReference("new-waveform")
+        pulse.waveform = WaveformInvocation("new-waveform")
+        assert pulse.waveform == WaveformInvocation("new-waveform")
 
     def test_nonblocking(self, pulse: Pulse, nonblocking: bool):
         assert pulse.nonblocking == nonblocking
-        pulse.nonblocking = not nonblocking
+        pulse.blocking = nonblocking
         assert pulse.nonblocking == (not nonblocking)
 
     def test_copy(self, pulse: Pulse):
         assert isinstance(copy.copy(pulse), Pulse)
         assert isinstance(copy.deepcopy(pulse), Pulse)
-
-    def test_convert(self, pulse: Pulse):
-        rs_pulse = _convert_to_rs_instruction(pulse)
-        assert pulse == _convert_to_py_instruction(rs_pulse)
 
     def test_pickle(self, pulse: Pulse, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(pulse)
@@ -1257,19 +1211,19 @@ class TestPulse:
     ("frame", "duration", "memory_region", "nonblocking"),
     [
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             0.5,
             MemoryReference("ro"),
             False,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             2.5,
             MemoryReference("ro"),
             True,
         ),
         (
-            Frame([Qubit(123), FormalArgument("q")], "FRAMEX"),
+            Frame([Qubit(123), Qubit("q")], "FRAMEX"),
             2.5,
             MemoryReference("ro"),
             True,
@@ -1280,19 +1234,19 @@ class TestPulse:
 class TestRawCapture:
     @pytest.fixture
     def raw_capture(self, frame: Frame, duration: float, memory_region: MemoryReference, nonblocking: bool):
-        return RawCapture(frame, duration, memory_region, nonblocking)
+        return RawCapture(frame, duration, memory_region, nonblocking=nonblocking)
 
     def test_out(self, raw_capture: RawCapture, snapshot: SnapshotAssertion):
-        assert raw_capture.out() == snapshot
+        assert raw_capture.to_quil() == snapshot
 
     def test_frame(self, raw_capture: RawCapture, frame: Frame):
         assert raw_capture.frame == frame
 
     def test_duration(self, raw_capture: RawCapture, duration: float):
-        assert raw_capture.duration == duration
+        assert raw_capture.duration.evaluate({}, {}) == duration
 
     def test_memory_region(self, raw_capture: RawCapture, memory_region: MemoryReference):
-        assert raw_capture.memory_region == memory_region
+        assert raw_capture.memory_reference == memory_region
 
     def test_nonblocking(self, raw_capture: RawCapture, nonblocking: bool):
         assert raw_capture.nonblocking == nonblocking
@@ -1300,10 +1254,6 @@ class TestRawCapture:
     def test_copy(self, raw_capture: RawCapture):
         assert isinstance(copy.copy(raw_capture), RawCapture)
         assert isinstance(copy.deepcopy(raw_capture), RawCapture)
-
-    def test_convert(self, raw_capture: RawCapture):
-        rs_raw_capture = _convert_to_rs_instruction(raw_capture)
-        assert raw_capture == _convert_to_py_instruction(rs_raw_capture)
 
     def test_pickle(self, raw_capture: RawCapture):
         pickled = pickle.dumps(raw_capture)
@@ -1343,12 +1293,12 @@ class TestFrameMutations:
     @pytest.fixture
     def frame_mutation_instructions(
         self, set_frequency, set_phase, shift_frequency, shift_phase, set_scale
-    ) -> Tuple[SetFrequency, SetPhase, ShiftFrequency, ShiftPhase, SetScale]:
+    ) -> tuple[SetFrequency, SetPhase, ShiftFrequency, ShiftPhase, SetScale]:
         return (set_frequency, set_phase, shift_frequency, shift_phase, set_scale)
 
     def test_out(self, frame_mutation_instructions, snapshot: SnapshotAssertion):
         for instr in frame_mutation_instructions:
-            assert instr.out() == snapshot
+            assert instr.to_quil() == snapshot
 
     def test_frame(self, frame_mutation_instructions, frame: Frame):
         for instr in frame_mutation_instructions:
@@ -1356,23 +1306,19 @@ class TestFrameMutations:
 
     def test_get_qubits(self, frame_mutation_instructions, frame: Frame):
         for instr in frame_mutation_instructions:
-            assert instr.get_qubits() == set([q.index for q in frame.qubits if isinstance(q, Qubit)])
-            assert instr.get_qubits(False) == set(frame.qubits)
+            assert instr.get_qubit_indices() == set([q.index for q in frame.qubits
+                                                     if isinstance(q, FixedQubit)])
+            assert set(instr.frame.qubits) == set(frame.qubits)
 
     def test_expression(self, frame_mutation_instructions, expression: ParameterDesignator):
         expression_names = ["freq", "phase", "freq", "phase", "scale"]
-        for instr, expression_name in zip(frame_mutation_instructions, expression_names):
-            assert getattr(instr, expression_name) == expression
+        for instr, expression_name in zip(frame_mutation_instructions, expression_names, strict=False):
+            assert _unwrap_param(getattr(instr, expression_name)) == expression
 
     def test_copy(self, frame_mutation_instructions):
         for instr in frame_mutation_instructions:
             assert isinstance(copy.copy(instr), type(instr))
             assert isinstance(copy.deepcopy(instr), type(instr))
-
-    def test_convert(self, frame_mutation_instructions):
-        for instr in frame_mutation_instructions:
-            rs_instr = _convert_to_rs_instruction(instr)
-            assert instr == _convert_to_py_instruction(rs_instr)
 
 
 @pytest.mark.parametrize(
@@ -1385,7 +1331,7 @@ class TestSwapPhases:
         return SwapPhases(frame_a, frame_b)
 
     def test_out(self, swap_phases: SwapPhases, snapshot: SnapshotAssertion):
-        assert swap_phases.out() == snapshot
+        assert swap_phases.to_quil() == snapshot
 
     def test_frames(self, swap_phases: SwapPhases, frame_a: Frame, frame_b: Frame):
         assert swap_phases.frameA == frame_a
@@ -1393,16 +1339,12 @@ class TestSwapPhases:
 
     def test_get_qubits(self, swap_phases: SwapPhases, frame_a: Frame, frame_b: Frame):
         expected_qubits = set(frame_a.qubits + frame_b.qubits)
-        assert swap_phases.get_qubits() == set([q.index for q in expected_qubits if isinstance(q, Qubit)])
-        assert swap_phases.get_qubits(False) == expected_qubits
+        assert swap_phases.get_qubit_indices() == {q.index for q in expected_qubits if isinstance(q, FixedQubit)}
+        assert set(swap_phases.frameA.qubits + swap_phases.frameB.qubits) == expected_qubits
 
     def test_copy(self, swap_phases: SwapPhases):
         assert isinstance(copy.copy(swap_phases), SwapPhases)
         assert isinstance(copy.deepcopy(swap_phases), SwapPhases)
-
-    def test_convert(self, swap_phases: SwapPhases):
-        rs_swap_phase = _convert_to_rs_instruction(swap_phases)
-        assert swap_phases == _convert_to_py_instruction(rs_swap_phase)
 
     def test_pickle(self, swap_phases: SwapPhases):
         pickled = pickle.dumps(swap_phases)
@@ -1412,39 +1354,35 @@ class TestSwapPhases:
 
 
 @pytest.mark.parametrize(
-    ("left", "right"),
+    ("destination", "source"),
     [
         (MemoryReference("ro"), MemoryReference("bar")),
         (MemoryReference("foo", 5, 10), 5),
         (MemoryReference("bar"), 3.2),
     ],
 )
-class TestClassicalMove:
+class TestMove:
     @pytest.fixture
-    def move(self, left: MemoryReference, right: Union[MemoryReference, int, float]) -> ClassicalMove:
-        return ClassicalMove(left, right)
+    def move(self, destination: MemoryReference, source: MemoryReference | int | float) -> Move:
+        return Move(destination, source)
 
-    def test_out(self, move: ClassicalMove, snapshot: SnapshotAssertion):
-        assert move.out() == snapshot
+    def test_out(self, move: Move, snapshot: SnapshotAssertion):
+        assert move.to_quil() == snapshot
 
-    def test_left(self, move: ClassicalMove, left: MemoryReference):
-        assert move.left == left
+    def test_destination(self, move: Move, destination: MemoryReference):
+        assert move.destination == destination
 
-    def test_right(self, move: ClassicalMove, right: Union[MemoryReference, int, float]):
-        assert move.right == right
+    def test_source(self, move: Move, source: MemoryReference | int | float):
+        assert _unwrap_operand(move.source) == source
 
-    def test_copy(self, move: ClassicalMove):
-        assert isinstance(copy.copy(move), ClassicalMove)
-        assert isinstance(copy.deepcopy(move), ClassicalMove)
+    def test_copy(self, move: Move):
+        assert isinstance(copy.copy(move), Move)
+        assert isinstance(copy.deepcopy(move), Move)
 
-    def test_convert(self, move: ClassicalMove):
-        rs_classical_move = _convert_to_rs_instruction(move)
-        assert move == _convert_to_py_instruction(rs_classical_move)
-
-    def test_pickle(self, move: ClassicalMove):
+    def test_pickle(self, move: Move):
         pickled = pickle.dumps(move)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, ClassicalMove)
+        assert isinstance(unpickled, Move)
         assert unpickled == move
 
 
@@ -1452,193 +1390,165 @@ class TestClassicalMove:
     ("left", "right"),
     [(MemoryReference("ro"), MemoryReference("bar")), (MemoryReference("foo", 5, 10), MemoryReference("bar"))],
 )
-class TestClassicalExchange:
+class TestExchange:
     @pytest.fixture
-    def exchange(self, left: MemoryReference, right: MemoryReference) -> ClassicalExchange:
-        return ClassicalExchange(left, right)
+    def exchange(self, left: MemoryReference, right: MemoryReference) -> Exchange:
+        return Exchange(left, right)
 
-    def test_out(self, exchange: ClassicalExchange, snapshot: SnapshotAssertion):
-        assert exchange.out() == snapshot
+    def test_out(self, exchange: Exchange, snapshot: SnapshotAssertion):
+        assert exchange.to_quil() == snapshot
 
-    def test_left(self, exchange: ClassicalExchange, left: MemoryReference):
+    def test_left(self, exchange: Exchange, left: MemoryReference):
         assert exchange.left == left
 
-    def test_right(self, exchange: ClassicalExchange, right: MemoryReference):
+    def test_right(self, exchange: Exchange, right: MemoryReference):
         assert exchange.right == right
 
-    def test_copy(self, exchange: ClassicalExchange):
-        assert isinstance(copy.copy(exchange), ClassicalExchange)
-        assert isinstance(copy.deepcopy(exchange), ClassicalExchange)
+    def test_copy(self, exchange: Exchange):
+        assert isinstance(copy.copy(exchange), Exchange)
+        assert isinstance(copy.deepcopy(exchange), Exchange)
 
-    def test_convert(self, exchange: ClassicalExchange):
-        rs_classical_exchange = _convert_to_rs_instruction(exchange)
-        assert exchange == _convert_to_py_instruction(rs_classical_exchange)
-
-    def test_pickle(self, exchange: ClassicalExchange):
+    def test_pickle(self, exchange: Exchange):
         pickled = pickle.dumps(exchange)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, ClassicalExchange)
+        assert isinstance(unpickled, Exchange)
         assert unpickled == exchange
 
 
 @pytest.mark.parametrize(
-    ("left", "right"),
+    ("destination", "source"),
     [(MemoryReference("ro"), MemoryReference("bar")), (MemoryReference("foo", 5, 10), MemoryReference("bar"))],
 )
-class TestClassicalConvert:
+class TestConvert:
     @pytest.fixture
-    def convert(self, left: MemoryReference, right: MemoryReference) -> ClassicalConvert:
-        return ClassicalConvert(left, right)
+    def convert(self, destination: MemoryReference, source: MemoryReference) -> Convert:
+        return Convert(destination, source)
 
-    def test_out(self, convert: ClassicalConvert, snapshot: SnapshotAssertion):
-        assert convert.out() == snapshot
+    def test_out(self, convert: Convert, snapshot: SnapshotAssertion):
+        assert convert.to_quil() == snapshot
 
-    def test_left(self, convert: ClassicalConvert, left: MemoryReference):
-        assert convert.left == left
+    def test_destination(self, convert: Convert, destination: MemoryReference):
+        assert convert.destination == destination
 
-    def test_right(self, convert: ClassicalConvert, right: MemoryReference):
-        assert convert.right == right
+    def test_source(self, convert: Convert, source: MemoryReference):
+        assert convert.source == source
 
-    def test_copy(self, convert: ClassicalConvert):
-        assert isinstance(copy.copy(convert), ClassicalConvert)
-        assert isinstance(copy.deepcopy(convert), ClassicalConvert)
+    def test_copy(self, convert: Convert):
+        assert isinstance(copy.copy(convert), Convert)
+        assert isinstance(copy.deepcopy(convert), Convert)
 
-    def test_convert(self, convert: ClassicalConvert):
-        rs_classical_convert = _convert_to_rs_instruction(convert)
-        assert convert == _convert_to_py_instruction(rs_classical_convert)
-
-    def test_pickle(self, convert: ClassicalConvert):
+    def test_pickle(self, convert: Convert):
         pickled = pickle.dumps(convert)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, ClassicalConvert)
+        assert isinstance(unpickled, Convert)
         assert unpickled == convert
 
 
 @pytest.mark.parametrize(
-    ("target", "left", "right"),
+    ("destination", "source", "offset"),
     [(MemoryReference("t"), "y", MemoryReference("z")), (MemoryReference("t", 5, 10), "y", MemoryReference("bar", 1))],
 )
-class TestClassicalLoad:
+class TestLoad:
     @pytest.fixture
-    def load(self, target: MemoryReference, left: str, right: MemoryReference) -> ClassicalLoad:
-        return ClassicalLoad(target, left, right)
+    def load(self, destination: MemoryReference, source: str, offset: MemoryReference) -> Load:
+        return Load(destination, source, offset)
 
-    def test_out(self, load: ClassicalLoad, snapshot: SnapshotAssertion):
-        assert load.out() == snapshot
+    def test_out(self, load: Load, snapshot: SnapshotAssertion):
+        assert load.to_quil() == snapshot
 
-    def test_target(self, load: ClassicalLoad, target: MemoryReference):
-        assert load.target == target
+    def test_destination(self, load: Load, destination: MemoryReference):
+        assert load.destination == destination
 
-    def test_left(self, load: ClassicalLoad, left: MemoryReference):
-        assert load.left == left
+    def test_source(self, load: Load, source: MemoryReference):
+        assert load.source == source
 
-    def test_right(self, load: ClassicalLoad, right: MemoryReference):
-        assert load.right == right
+    def test_offset(self, load: Load, offset: MemoryReference):
+        assert load.offset == offset
 
-    def test_copy(self, load: ClassicalLoad):
-        assert isinstance(copy.copy(load), ClassicalLoad)
-        assert isinstance(copy.deepcopy(load), ClassicalLoad)
+    def test_copy(self, load: Load):
+        assert isinstance(copy.copy(load), Load)
+        assert isinstance(copy.deepcopy(load), Load)
 
-    def test_convert(self, load: ClassicalLoad):
-        rs_classical_load = _convert_to_rs_instruction(load)
-        assert load == _convert_to_py_instruction(rs_classical_load)
-
-    def test_pickle(self, load: ClassicalLoad):
+    def test_pickle(self, load: Load):
         pickled = pickle.dumps(load)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, ClassicalLoad)
+        assert isinstance(unpickled, Load)
         assert unpickled == load
 
 
 @pytest.mark.parametrize(
-    ("target", "left", "right"),
+    ("destination", "offset", "source"),
     [
         ("t", MemoryReference("y"), MemoryReference("z")),
         ("t", MemoryReference("y", 5, 10), 2),
         ("t", MemoryReference("y", 5, 10), 3.14),
     ],
 )
-class TestClassicalStore:
+class TestStore:
     @pytest.fixture
-    def store(self, target: str, left: MemoryReference, right: MemoryReference) -> ClassicalStore:
-        return ClassicalStore(target, left, right)
+    def store(self, destination: str, offset: MemoryReference, source: MemoryReference) -> Store:
+        return Store(destination, offset, source)
 
-    def test_out(self, store: ClassicalStore, snapshot: SnapshotAssertion):
-        assert store.out() == snapshot
+    def test_out(self, store: Store, snapshot: SnapshotAssertion):
+        assert store.to_quil() == snapshot
 
-    def test_target(self, store: ClassicalStore, target: str):
-        assert store.target == target
+    def test_destination(self, store: Store, destination: str):
+        assert store.destination == destination
 
-    def test_left(self, store: ClassicalStore, left: MemoryReference):
-        assert store.left == left
+    def test_offset(self, store: Store, offset: MemoryReference):
+        assert store.offset == offset
 
-    def test_right(self, store: ClassicalStore, right: Union[MemoryReference, int, float]):
-        assert store.right == right
+    def test_source(self, store: Store, source: MemoryReference | int | float):
+        assert _unwrap_operand(store.source) == source
 
-    def test_copy(self, store: ClassicalStore):
-        assert isinstance(copy.copy(store), ClassicalStore)
-        assert isinstance(copy.deepcopy(store), ClassicalStore)
+    def test_copy(self, store: Store):
+        assert isinstance(copy.copy(store), Store)
+        assert isinstance(copy.deepcopy(store), Store)
 
-    def test_convert(self, store: ClassicalStore):
-        rs_classical_store = _convert_to_rs_instruction(store)
-        assert store == _convert_to_py_instruction(rs_classical_store)
-
-    def test_pickle(self, store: ClassicalStore):
+    def test_pickle(self, store: Store):
         pickled = pickle.dumps(store)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, ClassicalStore)
+        assert isinstance(unpickled, Store)
         assert unpickled == store
 
 
 @pytest.mark.parametrize(
     ("op", "target", "left", "right"),
     [
-        ("EQ", MemoryReference("t"), MemoryReference("y"), MemoryReference("z")),
-        ("LT", MemoryReference("t"), MemoryReference("y", 5, 10), 2),
-        ("LE", MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
-        ("GT", MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
-        ("GE", MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
+        (ComparisonOperator.EQUAL, MemoryReference("t"), MemoryReference("y"), MemoryReference("z")),
+        (ComparisonOperator.LESS_THAN, MemoryReference("t"), MemoryReference("y", 5, 10), 2),
+        (ComparisonOperator.LESS_THAN_OR_EQUAL, MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
+        (ComparisonOperator.GREATER_THAN, MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
+        (ComparisonOperator.GREATER_THAN_OR_EQUAL, MemoryReference("t", 2, 4), MemoryReference("y"), 3.14),
     ],
 )
-class TestClassicalComparison:
+class TestComparison:
     @pytest.fixture
     def comparison(
-        self, op: str, target: MemoryReference, left: MemoryReference, right: Union[MemoryReference, int, float]
-    ) -> ClassicalComparison:
-        if op == "EQ":
-            return ClassicalEqual(target, left, right)
-        if op == "LT":
-            return ClassicalLessThan(target, left, right)
-        if op == "LE":
-            return ClassicalLessEqual(target, left, right)
-        if op == "GT":
-            return ClassicalGreaterThan(target, left, right)
-        return ClassicalGreaterEqual(target, left, right)
+        self, op: ComparisonOperator, target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float
+    ) -> Comparison:
+        return Comparison(op, target, left, right)
 
-    def test_out(self, comparison: ClassicalComparison, snapshot: SnapshotAssertion):
-        assert comparison.out() == snapshot
+    def test_out(self, comparison: Comparison, snapshot: SnapshotAssertion):
+        assert comparison.to_quil() == snapshot
 
-    def test_target(self, comparison: ClassicalComparison, target: MemoryReference):
+    def test_target(self, comparison: Comparison, target: MemoryReference):
         assert comparison.target == target
 
-    def test_left(self, comparison: ClassicalComparison, left: MemoryReference):
+    def test_left(self, comparison: Comparison, left: MemoryReference):
         assert comparison.left == left
 
-    def test_right(self, comparison: ClassicalComparison, right: Union[MemoryReference, int, float]):
-        assert comparison.right == right
+    def test_right(self, comparison: Comparison, right: MemoryReference | int | float):
+        assert _unwrap_operand(comparison.right) == right
 
-    def test_copy(self, comparison: ClassicalComparison):
+    def test_copy(self, comparison: Comparison):
         assert isinstance(copy.copy(comparison), type(comparison))
         assert isinstance(copy.deepcopy(comparison), type(comparison))
 
-    def test_convert(self, comparison: ClassicalComparison):
-        rs_classical_comparison = _convert_to_rs_instruction(comparison)
-        assert comparison == _convert_to_py_instruction(rs_classical_comparison)
-
-    def test_pickle(self, comparison: ClassicalComparison):
+    def test_pickle(self, comparison: Comparison):
         pickled = pickle.dumps(comparison)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, ClassicalComparison)
+        assert isinstance(unpickled, Comparison)
         assert isinstance(unpickled, type(comparison))
         assert unpickled == comparison
 
@@ -1651,35 +1561,33 @@ class TestClassicalComparison:
         ("NEG", MemoryReference("c", 2, 4)),
     ],
 )
-class TestUnaryClassicalInstruction:
+class TestUnaryLogic:
     @pytest.fixture
-    def unary(self, op: str, target: MemoryReference) -> UnaryClassicalInstruction:
+    def unary(self, op: str, target: MemoryReference) -> UnaryLogic:
         if op == "NEG":
-            return ClassicalNeg(target)
-        return ClassicalNot(target)
+            return UnaryLogic(UnaryOperator.NEG, target)
+        if op == "NOT":
+            return UnaryLogic(UnaryOperator.NOT, target)
+        raise ValueError(f"Unknown unary classical operator: {op}")
 
-    def test_out(self, unary: UnaryClassicalInstruction, snapshot: SnapshotAssertion):
-        assert unary.out() == snapshot
+    def test_out(self, unary: UnaryLogic, snapshot: SnapshotAssertion):
+        assert unary.to_quil() == snapshot
 
-    def test_target(self, unary: UnaryClassicalInstruction, target: MemoryReference):
+    def test_target(self, unary: UnaryLogic, target: MemoryReference):
         assert unary.target == target
 
-    def test_copy(self, unary: UnaryClassicalInstruction):
+    def test_copy(self, unary: UnaryLogic):
         assert isinstance(copy.copy(unary), type(unary))
         assert isinstance(copy.deepcopy(unary), type(unary))
 
-    def test_convert(self, unary: UnaryClassicalInstruction):
-        rs_classical_unary = _convert_to_rs_instruction(unary)
-        assert unary == _convert_to_py_instruction(rs_classical_unary)
-
-    def test_pickle(self, unary: UnaryClassicalInstruction):
+    def test_pickle(self, unary: UnaryLogic):
         pickled = pickle.dumps(unary)
         unpickled = pickle.loads(pickled)
         assert unpickled == unary
 
 
 @pytest.mark.parametrize(
-    ("op", "left", "right"),
+    ("op", "destination", "source"),
     [
         ("ADD", MemoryReference("a"), MemoryReference("b")),
         ("SUB", MemoryReference("b", 1), 1),
@@ -1687,29 +1595,29 @@ class TestUnaryClassicalInstruction:
         ("DIV", MemoryReference("c", 2, 4), 4.2),
     ],
 )
-class TestArithmeticBinaryOp:
+class TestArithmetic:
     @pytest.fixture
-    def arithmetic(
-        self, op: str, left: MemoryReference, right: Union[MemoryReference, int, float]
-    ) -> ArithmeticBinaryOp:
+    def arithmetic(self, op: str, destination: MemoryReference, source: MemoryReference | int | float) -> Arithmetic:
         if op == "ADD":
-            return ClassicalAdd(left, right)
+            return Arithmetic(ArithmeticOperator.ADD, destination, source)
         if op == "SUB":
-            return ClassicalSub(left, right)
+            return Arithmetic(ArithmeticOperator.SUBTRACT, destination, source)
         if op == "MUL":
-            return ClassicalMul(left, right)
-        return ClassicalDiv(left, right)
+            return Arithmetic(ArithmeticOperator.MULTIPLY, destination, source)
+        if op == "DIV":
+            return Arithmetic(ArithmeticOperator.DIVIDE, destination, source)
+        raise ValueError(f"Unknown arithmetic operator: {op}")
 
-    def test_out(self, arithmetic: ArithmeticBinaryOp, snapshot: SnapshotAssertion):
-        assert arithmetic.out() == snapshot
+    def test_out(self, arithmetic: Arithmetic, snapshot: SnapshotAssertion):
+        assert arithmetic.to_quil() == snapshot
 
-    def test_left(self, arithmetic: ArithmeticBinaryOp, left: MemoryReference):
-        assert arithmetic.left == left
+    def test_destination(self, arithmetic: Arithmetic, destination: MemoryReference):
+        assert arithmetic.destination == destination
 
-    def test_right(self, arithmetic: ArithmeticBinaryOp, right: Union[MemoryReference, float, int]):
-        assert arithmetic.right == right
+    def test_source(self, arithmetic: Arithmetic, source: MemoryReference | float | int):
+        assert _unwrap_operand(arithmetic.source) == source
 
-    def test_copy(self, arithmetic: ArithmeticBinaryOp):
+    def test_copy(self, arithmetic: Arithmetic):
         assert isinstance(copy.copy(arithmetic), type(arithmetic))
         assert isinstance(copy.deepcopy(arithmetic), type(arithmetic))
 
@@ -1718,53 +1626,47 @@ class TestArithmeticBinaryOp:
             p = Program(arithmetic)
             p[0] = arithmetic
         except Exception:
-            pytest.fail("ArithmeticBinaryOp not valid in Program")
+            pytest.fail("Arithmetic not valid in Program")
 
-    def test_convert(self, arithmetic: UnaryClassicalInstruction):
-        rs_classical_arithmetic = _convert_to_rs_instruction(arithmetic)
-        assert arithmetic == _convert_to_py_instruction(rs_classical_arithmetic)
-
-    def test_pickle(self, arithmetic: UnaryClassicalInstruction, snapshot: SnapshotAssertion):
+    def test_pickle(self, arithmetic: UnaryLogic, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(arithmetic)
         unpickled = pickle.loads(pickled)
         assert unpickled == snapshot
 
 
 @pytest.mark.parametrize(
-    ("op", "left", "right"),
+    ("op", "destination", "source"),
     [
         ("AND", MemoryReference("a"), MemoryReference("b")),
         ("IOR", MemoryReference("b", 1), 1),
         ("XOR", MemoryReference("c", 2, 4), 2),
     ],
 )
-class TestLogicalBinaryOp:
+class TestBinaryLogic:
     @pytest.fixture
-    def logical(self, op: str, left: MemoryReference, right: Union[MemoryReference, int]) -> LogicalBinaryOp:
+    def logical(self, op: str, destination: MemoryReference, source: MemoryReference | int) -> BinaryLogic:
         if op == "AND":
-            return ClassicalAnd(left, right)
+            return BinaryLogic(BinaryOperator.AND, destination, source)
         if op == "IOR":
-            return ClassicalInclusiveOr(left, right)
-        return ClassicalExclusiveOr(left, right)
+            return BinaryLogic(BinaryOperator.IOR, destination, source)
+        if op == "XOR":
+            return BinaryLogic(BinaryOperator.XOR, destination, source)
+        raise ValueError(f"Unknown logical operator: {op}")
 
-    def test_out(self, logical: LogicalBinaryOp, snapshot: SnapshotAssertion):
-        assert logical.out() == snapshot
+    def test_out(self, logical: BinaryLogic, snapshot: SnapshotAssertion):
+        assert logical.to_quil() == snapshot
 
-    def test_left(self, logical: LogicalBinaryOp, left: MemoryReference):
-        assert logical.left == left
+    def test_destination(self, logical: BinaryLogic, destination: MemoryReference):
+        assert logical.destination == destination
 
-    def test_right(self, logical: LogicalBinaryOp, right: Union[MemoryReference, float, int]):
-        assert logical.right == right
+    def test_source(self, logical: BinaryLogic, source: MemoryReference | float | int):
+        assert _unwrap_operand(logical.source) == source
 
-    def test_copy(self, logical: LogicalBinaryOp):
+    def test_copy(self, logical: BinaryLogic):
         assert isinstance(copy.copy(logical), type(logical))
         assert isinstance(copy.deepcopy(logical), type(logical))
 
-    def test_convert(self, logical: LogicalBinaryOp):
-        rs_classical_logical = _convert_to_rs_instruction(logical)
-        assert logical == _convert_to_py_instruction(rs_classical_logical)
-
-    def test_pickle(self, logical: LogicalBinaryOp):
+    def test_pickle(self, logical: BinaryLogic):
         pickled = pickle.dumps(logical)
         unpickled = pickle.loads(pickled)
         assert unpickled == logical
@@ -1772,28 +1674,20 @@ class TestLogicalBinaryOp:
 
 def test_include():
     include = Include("my-cool-file.quil")
-    assert include.out() == 'INCLUDE "my-cool-file.quil"'
+    assert include.to_quil() == 'INCLUDE "my-cool-file.quil"'
     assert include.filename == "my-cool-file.quil"
-    rs_include = _convert_to_rs_instruction(include)
-    assert include == _convert_to_py_instruction(rs_include)
 
 
 def test_wait():
-    assert Wait().out() == str(Wait()) == "WAIT"
-    rs_wait = _convert_to_rs_instruction(Wait())
-    assert Wait() == _convert_to_py_instruction(rs_wait)
+    assert Wait.to_quil() == str(Wait) == "WAIT"
 
 
 def test_halt():
-    assert Halt().out() == str(Halt()) == "HALT"
-    rs_halt = _convert_to_rs_instruction(Halt())
-    assert Halt() == _convert_to_py_instruction(rs_halt)
+    assert Halt.to_quil() == str(Halt) == "HALT"
 
 
 def test_nop():
-    assert Nop().out() == str(Nop()) == "NOP"
-    rs_nop = _convert_to_rs_instruction(Nop())
-    assert Nop() == _convert_to_py_instruction(rs_nop)
+    assert Nop.to_quil() == str(Nop) == "NOP"
 
 
 def test_pragma_extern():
@@ -1814,13 +1708,8 @@ class TestCall:
     def call(self) -> Call:
         return Call("example", [CallArgument.Immediate(complex(1.234))])
 
-    def test_roundtrip(self, call: Call):
-        rs_call = _convert_to_rs_instruction(call)
-        assert call == _convert_to_py_instruction(rs_call)
-        assert rs_call == _convert_to_rs_instruction(call)
-
     def test_out(self, call: Call):
-        assert call.out() == "CALL example 1.234"
+        assert call.to_quil() == "CALL example 1.234"
 
     def test_str(self, call: Call):
         assert str(call) == "CALL example 1.234"

@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from qcs_sdk.qpu.isa import InstructionSetArchitecture
 
@@ -27,7 +27,7 @@ def test_qcs_isa_to_compiler_isa(qcs_aspen8_isa: InstructionSetArchitecture, asp
     assert compiler_isa == aspen8_compiler_isa
 
 
-def test_qcs_noise_model(qcs_aspen8_isa: InstructionSetArchitecture, noise_model_dict: Dict[str, Any]):
+def test_qcs_noise_model(qcs_aspen8_isa: InstructionSetArchitecture, noise_model_dict: dict[str, Any]):
     """Test that ``NoiseModel.from_dict`` initializes a ``NoiseModel``, which users may, in turn,
     pass to ``QCSQuantumProcessor`` for later initializing a noisy QVM.
     """

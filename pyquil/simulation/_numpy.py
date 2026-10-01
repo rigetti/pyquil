@@ -23,6 +23,7 @@ from numpy.random.mtrand import RandomState
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._pyqvm import AbstractQuantumSimulator
 from pyquil.paulis import PauliSum, PauliTerm
+from pyquil.quilatom import Expression
 from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import QUANTUM_GATES
 
@@ -169,7 +170,8 @@ def _get_gate_tensor_and_qubits(gate: Gate) -> tuple[np.ndarray, list[int]]:
     :return: tensor, qubit_inds.
     """
     if len(gate.params) > 0:
-        matrix = QUANTUM_GATES[gate.name](*gate.params)
+        params = [p.evaluate({}, {}) if isinstance(p, Expression) else p for p in gate.params]
+        matrix = QUANTUM_GATES[gate.name](*params)
     else:
         matrix = QUANTUM_GATES[gate.name]
 

@@ -55,7 +55,7 @@ from pyquil.noise._channels import (
     SuperopChannel,
     SuperopResetChannel,
 )
-from pyquil.quilbase import Gate, Measurement, ResetQubit
+from pyquil.quilbase import Gate, Measurement, Reset
 
 if TYPE_CHECKING:
     from qcs_sdk.qpu.isa import InstructionSetArchitecture
@@ -74,7 +74,7 @@ ChannelType: TypeAlias = (
 )
 """Any noise channel that :meth:`NoiseModelLike.get_channel` may return."""
 
-NoiseInstruction: TypeAlias = Gate | Measurement | ResetQubit
+NoiseInstruction: TypeAlias = Gate | Measurement | Reset
 """Any instruction a noise channel may be attached to."""
 
 
@@ -102,9 +102,9 @@ class NoiseModelLike(Protocol):
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
 
     @overload
-    def get_channel(self, inst: ResetQubit) -> SuperopResetChannel | ResetChannel | None: ...
+    def get_channel(self, inst: Reset) -> SuperopResetChannel | ResetChannel | None: ...
 
-    def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
+    def get_channel(self, inst: Gate | Measurement | Reset) -> ChannelType | None:
         """Retrieve the noise channel for a specific instruction.
 
         :param inst: A gate, measurement, or reset instruction.
@@ -160,9 +160,9 @@ class NoiseModel:
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
 
     @overload
-    def get_channel(self, inst: ResetQubit) -> SuperopResetChannel | ResetChannel | None: ...
+    def get_channel(self, inst: Reset) -> SuperopResetChannel | ResetChannel | None: ...
 
-    def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
+    def get_channel(self, inst: Gate | Measurement | Reset) -> ChannelType | None:
         """Retrieve the noise channel associated with a specific instruction.
 
         :param inst: The instruction (gate, measurement, or reset) for which to retrieve the noise channel.
@@ -421,9 +421,9 @@ class DepolarizingNoiseModel:
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
 
     @overload
-    def get_channel(self, inst: ResetQubit) -> SuperopResetChannel | ResetChannel | None: ...
+    def get_channel(self, inst: Reset) -> SuperopResetChannel | ResetChannel | None: ...
 
-    def get_channel(self, inst: Gate | Measurement | ResetQubit) -> ChannelType | None:
+    def get_channel(self, inst: Gate | Measurement | Reset) -> ChannelType | None:
         """Return a depolarizing channel for gates; ``None`` for measurements/resets."""
         if isinstance(inst, Gate):
             return _depolarizing_channel(inst, self.depolarizing_constant)

@@ -1,5 +1,6 @@
 import itertools
 import random
+from test.unit.utils import DummyCompiler
 from typing import cast
 
 import networkx as nx
@@ -16,7 +17,6 @@ from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
     QuantumComputer,
     _check_min_num_trials_for_symmetrized_readout,
-    _get_min_num_trials_for_symmetrized_readout,
     _consolidate_symmetrization_outputs,
     _construct_orthogonal_array,
     _construct_strength_three_orthogonal_array,
@@ -37,7 +37,6 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
-from test.unit.utils import DummyCompiler
 
 
 def test_flip_array_to_prog(snapshot: SnapshotAssertion):
@@ -67,18 +66,18 @@ def test_symmetrization():
     assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0"]
     assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([0, 1]), np.array([1, 0]), np.array([1, 1])]
-    assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
+    assert all([np.allclose(x, y) for x, y in zip(flip_array, right, strict=False)])
     # strength 0 i.e. no symm
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=-1)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
     right = [np.array([0, 0])]
-    assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
+    assert all([np.allclose(x, y) for x, y in zip(flip_array, right, strict=False)])
     # strength 1
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=1)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
     assert sym_progs[1].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([1, 1])]
-    assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
+    assert all([np.allclose(x, y) for x, y in zip(flip_array, right, strict=False)])
     # strength 2
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=2)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1"]
@@ -86,7 +85,7 @@ def test_symmetrization():
     assert sym_progs[2].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
     assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
     right = [np.array([0, 0]), np.array([1, 0]), np.array([0, 1]), np.array([1, 1])]
-    assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
+    assert all([np.allclose(x, y) for x, y in zip(flip_array, right, strict=False)])
     # strength 3
     sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=3)
     assert sym_progs[0].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 0", "RX(3.141592653589793) 1"]
@@ -94,7 +93,7 @@ def test_symmetrization():
     assert sym_progs[2].out().splitlines() == ["I 0", "I 1"]
     assert sym_progs[3].out().splitlines() == ["I 0", "I 1", "RX(3.141592653589793) 1"]
     right = [np.array([1, 1]), np.array([1, 0]), np.array([0, 0]), np.array([0, 1])]
-    assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
+    assert all([np.allclose(x, y) for x, y in zip(flip_array, right, strict=False)])
 
 
 def test_construct_orthogonal_array():
@@ -153,10 +152,10 @@ def test_measure_bitstrings(client_configuration: QCSClient, qvm_client: QVMClie
     results = _measure_bitstrings(qc_pyqvm, sym_progs, meas_qubits, num_shots=1)
     # test with pyQVM
     answer = [np.array([[0, 0]]), np.array([[0, 1]]), np.array([[1, 0]]), np.array([[1, 1]])]
-    assert all([np.allclose(x, y) for x, y in zip(results, answer)])
+    assert all([np.allclose(x, y) for x, y in zip(results, answer, strict=False)])
     # test with regular QVM
     results = _measure_bitstrings(qc_forest, sym_progs, meas_qubits, num_shots=1)
-    assert all([np.allclose(x, y) for x, y in zip(results, answer)])
+    assert all([np.allclose(x, y) for x, y in zip(results, answer, strict=False)])
 
 
 def test_consolidate_symmetrization_outputs():
@@ -282,17 +281,15 @@ def test_readout_symmetrization(client_configuration: QCSClient, qvm_client: QVM
     assert diff_s < 0.05
 
 
-@pytest.mark.slow(reason = (
-    "This test checks if the function runs for any possible input on a small number of qubits. "
-    "Locally this test was run on all 8 qubits, but it was slow."
-))
-def test_run_symmetrized_readout_error(client_configuration: QCSClient):
+@pytest.mark.slow
+def test_run_symmetrized_readout_error(client_configuration: QCSClient, qvm_client: QVMClient):
+    # This test checks if the function runs for any possible input on a small number of qubits.
+    # Locally this test was run on all 8 qubits, but it was slow.
     qc = get_qc("8q-qvm", client_configuration=client_configuration)
     sym_type_vec = [-1, 0, 1, 2, 3]
     prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(1, 4)]
-    trials_vec = [0, 1, 2, 4]
+    trials_vec = list(range(0, 5))
     for prog, trials, sym_type in itertools.product(prog_vec, trials_vec, sym_type_vec):
-        trials = max(trials, _get_min_num_trials_for_symmetrized_readout(len(prog), sym_type))
         print(qc.run_symmetrized_readout(prog, trials, sym_type))
 
 
@@ -542,17 +539,21 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClient, qvm_client: QV
         execution_timeout=5.0,
         client_configuration=client_configuration,
     )
-    results = qc.run(
-        qc.compile(
-            Program(
-                Declare("ro", "BIT", 3),
-                X(5),
-                MEASURE(5, ("ro", 0)),
-                MEASURE(6, ("ro", 1)),
-                MEASURE(7, ("ro", 2)),
-            ).wrap_in_numshots_loop(5)
+    results = (
+        qc.run(
+            qc.compile(
+                Program(
+                    Declare("ro", "BIT", 3),
+                    X(5),
+                    MEASURE(5, ("ro", 0)),
+                    MEASURE(6, ("ro", 1)),
+                    MEASURE(7, ("ro", 2)),
+                ).wrap_in_numshots_loop(5)
+            )
         )
-    ).get_register_map().get("ro")
+        .get_register_map()
+        .get("ro")
+    )
     assert results.shape == (5, 3)
     assert all(r[0] == 1 for r in results)
 
@@ -633,7 +634,9 @@ def test_qc_expectation(client_configuration: QCSClient, qvm_client: QVMClient, 
     assert results[2].total_counts == 40
 
 
-def test_qc_expectation_larger_lattice(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
+def test_qc_expectation_larger_lattice(
+    client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler
+):
     qc = QuantumComputer(name="testy!", qam=QVM(client=qvm_client), compiler=dummy_compiler)
 
     q0 = 2
@@ -671,12 +674,7 @@ def test_qc_expectation_larger_lattice(client_configuration: QCSClient, qvm_clie
     assert results[2].total_counts == 40
 
 
-def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> NoiseModel:
-    aprobs = np.array([[p00, 1 - p00], [1 - p11, p11]])
-    aprobs = {q: aprobs for q in qubits}
-    return NoiseModel([], aprobs)
-
-
+@pytest.mark.skip(reason="This test crashes the QVM, and the API is being deprecated.")
 def test_qc_calibration_1q(client_configuration: QCSClient, qvm_client: QVMClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0], 0.945, 0.955)
@@ -701,6 +699,7 @@ def test_qc_calibration_1q(client_configuration: QCSClient, qvm_client: QVMClien
     assert results[0].total_counts == 20000
 
 
+@pytest.mark.skip(reason="This test crashes the QVM, and the API is being deprecated.")
 def test_qc_calibration_2q(client_configuration: QCSClient, qvm_client: QVMClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
@@ -754,6 +753,12 @@ def test_qc_joint_expectation(client_configuration: QCSClient, qvm_client: QVMCl
     assert results[0].additional_results[1].total_counts == 40
 
 
+def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> NoiseModel:
+    aprobs = np.array([[p00, 1 - p00], [1 - p11, p11]])
+    aprobs = {q: aprobs for q in qubits}
+    return NoiseModel([], aprobs)
+
+
 def test_get_qc_noisy_qpu_error(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
     expected_message = (
         "pyQuil currently does not support initializing a noisy QuantumComputer "
@@ -763,6 +768,7 @@ def test_get_qc_noisy_qpu_error(client_configuration: QCSClient, qvm_client: QVM
         get_qc("Aspen-8", noisy=True)
 
 
+@pytest.mark.skip(reason="This test crashes the QVM, and the API is being deprecated.")
 def test_qc_joint_calibration(client_configuration: QCSClient, qvm_client: QVMClient):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
@@ -794,6 +800,7 @@ def test_qc_joint_calibration(client_configuration: QCSClient, qvm_client: QVMCl
     assert results[0].additional_results[1].total_counts == 40000
 
 
+@pytest.mark.skip(reason="This test crashes the QVM, and the API is being deprecated.")
 def test_qc_expectation_on_qvm(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
     # regression test for https://github.com/rigetti/forest-tutorials/issues/2
     qc = QuantumComputer(name="testy!", qam=QVM(client=qvm_client), compiler=dummy_compiler)
@@ -829,9 +836,10 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClient, qvm_client: QVMC
     assert results[2][0].total_counts == 20000
 
 
-def test_undeclared_memory_region(client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler):
-    """Test for https://github.com/rigetti/pyquil/issues/1596
-    """
+def test_undeclared_memory_region(
+    client_configuration: QCSClient, qvm_client: QVMClient, dummy_compiler: DummyCompiler
+):
+    """Test for https://github.com/rigetti/pyquil/issues/1596"""
     program = Program(
         """
 DECLARE beta REAL[1]
@@ -850,9 +858,11 @@ MEASURE 1 ro[1]
     qc.run(executable)
 
 
-@pytest.mark.skip(reason="qcs_sdk client profiles do not support group accounts")
+@pytest.mark.skip  # qcs_sdk client profiles do not support group accounts
 @respx.mock
-def test_get_qc_with_group_account(client_configuration: QCSClient, qvm_client: QVMClient, qcs_aspen8_isa: InstructionSetArchitecture):
+def test_get_qc_with_group_account(
+    client_configuration: QCSClient, qvm_client: QVMClient, qcs_aspen8_isa: InstructionSetArchitecture
+):
     """Assert that a client may specify a ``QCSClientSettingsProfile`` representing a QCS group
     account.
     """

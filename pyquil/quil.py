@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2018 Rigetti Computing
+# Copyright 2016-2026 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -27,23 +27,35 @@ from typing import (
     Optional,
     TypeVar,
     Union,
-    cast,
 )
 
 import numpy as np
-import quil.instructions as quil_rs
 from deprecated.sphinx import deprecated
-import qcs_sdk
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
+
+from quil.instructions import (
+    CalibrationDefinition,
+    FixedQubit,
+    GateSpecification,
+    Instruction,
+    Jump,
+    JumpUnless,
+    JumpWhen,
+    MeasureCalibrationDefinition,
+    QubitPlaceholder,
+    TargetPlaceholder,
+    Qubit,
+)
+
 from quil.program import CalibrationSet
 from quil.program import Program as RSProgram
+
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.control_flow_graph import ControlFlowGraph
 from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
-    FormalArgument,
     Frame,
     Label,
     LabelPlaceholder,
@@ -51,42 +63,33 @@ from pyquil.quilatom import (
     MemoryReferenceDesignator,
     Parameter,
     ParameterDesignator,
-    Qubit,
     QubitDesignator,
-    QubitPlaceholder,
-    format_parameter,
+    _convert_to_py_target,
+    _convert_to_rs_target,
     unpack_classical_reg,
     unpack_qubit,
 )
+
 from pyquil.quilbase import (
-    AbstractInstruction,
     Declare,
     DefCalibration,
     DefFrame,
-    DefGate,
     DefMeasureCalibration,
     DefWaveform,
     Gate,
-    Jump,
+    GateDefinition,
     JumpTarget,
-    JumpUnless,
-    JumpWhen,
     Measurement,
     Pragma,
-    _convert_to_py_instruction,
-    _convert_to_py_instructions,
-    _convert_to_py_qubits,
-    _convert_to_rs_instruction,
-    _convert_to_rs_instructions,
 )
+
 from pyquil.quiltcalibrations import (
     CalibrationMatch,
     _convert_to_calibration_match,
 )
 
 InstructionDesignator = Union[
-    AbstractInstruction,
-    quil_rs.Instruction,
+    Instruction,
     "Program",
     RSProgram,
     Sequence[Any],
@@ -153,21 +156,18 @@ class Program:
     @functools.cached_property
     def calibrations(self) -> list[DefCalibration]:
         """A list of Quil-T calibration definitions."""
-        return [DefCalibration._from_rs_calibration(cal) for cal in self._program.calibrations.calibrations]
+        return list(self._program.calibrations.calibrations)
 
     @functools.cached_property
     def measure_calibrations(self) -> list[DefMeasureCalibration]:
         """A list of measure calibrations."""
-        return [
-            DefMeasureCalibration._from_rs_measure_calibration_definition(cal)
-            for cal in self._program.calibrations.measure_calibrations
-        ]
+        return list(self._program.calibrations.measure_calibrations)
 
     @functools.cached_property
     def waveforms(self) -> dict[str, DefWaveform]:
         """A mapping from waveform names to their corresponding definitions."""
         return {
-            name: DefWaveform._from_rs_waveform_definition(quil_rs.WaveformDefinition(name, waveform))
+            name: DefWaveform(name, waveform.parameters, waveform.matrix)
             for name, waveform in self._program.waveforms.items()
         }
 
@@ -175,14 +175,25 @@ class Program:
     def frames(self) -> dict[Frame, DefFrame]:
         """A mapping from Quil-T frames to their definitions."""
         return {
-            Frame._from_rs_frame_identifier(frame): DefFrame._from_rs_attribute_values(frame, attributes)
+            frame: DefFrame(
+                frame,
+                {
+                    # TODO: Check whether this is still true
+                    # Work around a quil-rs bug: ``AttributeValue`` wrapper instances aren't
+                    # accepted as ``attributes`` values by ``FrameDefinition.__new__`` (PyO3
+                    # fails to re-extract them as their own variant type), so unwrap to the raw
+                    # inner value before re-constructing.
+                    name: value._0
+                    for name, value in attributes.items()
+                },
+            )
             for frame, attributes in self._program.frames.get_all_frames().items()
         }
 
     @functools.cached_property
     def declarations(self) -> dict[str, Declare]:
         """A mapping from declared region names to their declarations."""
-        return {name: Declare._from_rs_declaration(inst) for name, inst in self._program.declarations.items()}
+        return dict(self._program.declarations)
 
     def copy_everything_except_instructions(self) -> "Program":
         """Copy all the members that live on a Program object.
@@ -195,7 +206,7 @@ class Program:
             self.calibrations,
             self.defined_gates,
             self.measure_calibrations,
-            [quil_rs.Instruction.Pragma(pragma) for pragma in self._program.pragma_extern_map.values()],
+            [pragma for pragma in self._program.pragma_extern_map.values()],
         )
         if self.native_quil_metadata is not None:
             new_prog.native_quil_metadata = deepcopy(self.native_quil_metadata)
@@ -213,23 +224,23 @@ class Program:
         return new_program
 
     @property
-    def defined_gates(self) -> list[DefGate]:
+    def defined_gates(self) -> list[GateDefinition]:
         """A list of defined gates on the program."""
-        return [DefGate._from_rs_gate_definition(gate) for gate in self._program.gate_definitions.values()]
+        return list(self._program.gate_definitions.values())
 
     @property
-    def instructions(self) -> list[AbstractInstruction]:
-        """Fill in any placeholders and return a list of quil AbstractInstructions."""
+    def instructions(self) -> list[Instruction]:
+        """Fill in any placeholders and return a list of quil Instructions."""
         return list(self)
 
     @instructions.setter
-    def instructions(self, instructions: list[AbstractInstruction]) -> None:
+    def instructions(self, instructions: list[Instruction]) -> None:
         new_program = self.copy_everything_except_instructions()
         new_program.inst(instructions)
         self._program = new_program._program
 
     @_invalidates_cached_properties
-    def inst(self, *instructions: InstructionDesignator | RSProgram) -> "Program":
+    def inst(self, *instructions: InstructionDesignator) -> "Program":
         """Mutates the Program object by appending new instructions.
 
         This function accepts a number of different valid forms, e.g.
@@ -296,26 +307,20 @@ class Program:
                 self._program += instruction
             elif isinstance(instruction, Program):
                 self.inst(instruction._program)
-            elif isinstance(instruction, quil_rs.Instruction):
+            elif isinstance(instruction, Instruction):
                 self._add_instruction(instruction)
-            elif isinstance(instruction, AbstractInstruction):
-                self._add_instruction(_convert_to_rs_instruction(instruction))
             elif isinstance(instruction, str):
                 self.inst(RSProgram.parse(instruction.strip()))
             elif hasattr(instruction, "to_quil"):
                 self.inst(RSProgram.parse(instruction.to_quil().strip()))
             else:
-                try:
-                    instruction = _convert_to_rs_instruction(instruction)
-                    self.inst(instruction)
-                except ValueError as e:
-                    raise ValueError(f"Invalid instruction: {instruction}, type: {type(instruction)}") from e
+                raise ValueError(f"Invalid instruction: {instruction}, type: {type(instruction)}")
 
         return self
 
     def control_flow_graph(self) -> ControlFlowGraph:
         """Return the :py:class:`~pyquil.control_flow_graph.ControlFlowGraph` of the program."""
-        return ControlFlowGraph._from_rs(self._program.control_flow_graph())
+        return self._program.control_flow_graph()
 
     def with_loop(
         self,
@@ -374,7 +379,7 @@ class Program:
         label_resolver: Callable[[LabelPlaceholder], str | None] | None = None,
         qubit_resolver: Callable[[QubitPlaceholder], int | None] | None = None,
     ) -> None:
-        r"""Resolve ``LabelPlaceholder``\\s and ``QubitPlaceholder``\\s within the program using a function.
+        r"""Resolve ``LabelPlaceholder``\\s and qubit placeholders within the program using a function.
 
         If you provide ``label_resolver`` and/or ``qubit_resolver``, they will be used to resolve those values
         respectively. If your resolver returns `None` for a particular placeholder, it will not be replaced but
@@ -384,20 +389,14 @@ class Program:
         value for that placeholder within the scope of the program using an auto-incrementing value (for qubit) or
         suffix (for target) while ensuring that unique value is not already in use within the program.
         """
-        rs_qubit_resolver = None
-        if qubit_resolver is not None:
-
-            def rs_qubit_resolver(placeholder: quil_rs.QubitPlaceholder) -> int | None:
-                return qubit_resolver(QubitPlaceholder(placeholder=placeholder))
-
         rs_label_resolver = None
         if label_resolver is not None:
 
-            def rs_label_resolver(placeholder: quil_rs.TargetPlaceholder) -> str | None:
+            def rs_label_resolver(placeholder: TargetPlaceholder) -> str | None:
                 return label_resolver(LabelPlaceholder(placeholder=placeholder))
 
         self._program.resolve_placeholders_with_custom_resolvers(
-            target_resolver=rs_label_resolver, qubit_resolver=rs_qubit_resolver
+            target_resolver=rs_label_resolver, qubit_resolver=qubit_resolver
         )
 
     @_invalidates_cached_properties
@@ -407,12 +406,12 @@ class Program:
 
     @_invalidates_cached_properties
     def resolve_qubit_placeholders_with_mapping(self, qubit_mapping: dict[QubitPlaceholder, int]) -> None:
-        r"""Resolve all qubit placeholders using a mapping of ``QubitPlaceholder``\\s to the index they resolve to."""
+        r"""Resolve all qubit placeholders using a mapping of qubit placeholders to the index they resolve to."""
 
-        def qubit_resolver(placeholder: quil_rs.QubitPlaceholder) -> int | None:
-            return qubit_mapping.get(QubitPlaceholder(placeholder), None)
+        def qubit_resolver(placeholder: QubitPlaceholder) -> int | None:
+            return qubit_mapping.get(placeholder, None)
 
-        def label_resolver(_: quil_rs.TargetPlaceholder) -> None:
+        def label_resolver(_: TargetPlaceholder) -> None:
             return None
 
         self._program.resolve_placeholders_with_custom_resolvers(
@@ -424,82 +423,73 @@ class Program:
         """Resolve all label placeholders in the program."""
         self._program.resolve_placeholders_with_custom_resolvers(qubit_resolver=lambda _: None)
 
-    def _add_instruction(self, instruction: quil_rs.Instruction) -> None:
-        """Add an instruction to the Program after normalizing to a `quil_rs.Instruction`.
+    def _add_instruction(self, instruction: Instruction) -> None:
+        """Add an instruction to the Program after normalizing to a `Instruction`.
 
         For backwards compatibility, it also prevents duplicate calibration, measurement, and gate definitions from
         being added. Users of ``Program`` should use ``inst`` or ``Program`` addition instead.
         """
-        match instruction:
-            case quil_rs.Instruction.CalibrationDefinition(defcal):
-                idx, existing_calibration = next(
-                    (
-                        (i, existing_calibration)
-                        for i, existing_calibration in enumerate(self._program.calibrations.calibrations)
-                        if defcal.name == existing_calibration.name
-                        and defcal.parameters == existing_calibration.parameters
-                        and defcal.qubits == existing_calibration.qubits
-                    ),
-                    (0, None),
-                )
-                if existing_calibration is None:
-                    self._program.add_instruction(instruction)
-
-                elif (
-                    existing_calibration.instructions != defcal.instructions
-                    or existing_calibration.modifiers != defcal.modifiers
-                ):
-                    warnings.warn(f"Redefining calibration {defcal.name}", stacklevel=2)
-                    current_calibrations = self._program.calibrations
-                    new_calibrations = CalibrationSet(
-                        current_calibrations.calibrations[:idx]
-                        + [defcal]
-                        + current_calibrations.calibrations[idx + 1 :],
-                        current_calibrations.measure_calibrations,
-                    )
-                    self._program.calibrations = new_calibrations
-
-            case quil_rs.Instruction.MeasureCalibrationDefinition(defmeasure):
-                idx, existing_measure_calibration = next(
-                    (
-                        (i, existing_measure_calibration)
-                        for i, existing_measure_calibration in enumerate(
-                            self._program.calibrations.measure_calibrations
-                        )
-                        if existing_measure_calibration.target == defmeasure.target
-                        and existing_measure_calibration.qubit == defmeasure.qubit
-                    ),
-                    (0, None),
-                )
-                if existing_measure_calibration is None:
-                    self._program.add_instruction(instruction)
-
-                else:
-                    warnings.warn(f"Redefining DefMeasureCalibration {instruction}", stacklevel=2)
-                    current_calibrations = self._program.calibrations
-                    new_calibrations = CalibrationSet(
-                        current_calibrations.calibrations,
-                        current_calibrations.measure_calibrations[:idx]
-                        + [defmeasure]
-                        + current_calibrations.measure_calibrations[idx + 1 :],
-                    )
-
-                    self._program.calibrations = new_calibrations
-            case _:
+        if isinstance(instruction, CalibrationDefinition):
+            defcal = instruction
+            idx, existing_calibration = next(
+                (
+                    (i, existing_calibration)
+                    for i, existing_calibration in enumerate(self._program.calibrations.calibrations)
+                    if defcal.name == existing_calibration.name
+                    and defcal.parameters == existing_calibration.parameters
+                    and defcal.qubits == existing_calibration.qubits
+                ),
+                (0, None),
+            )
+            if existing_calibration is None:
                 self._program.add_instruction(instruction)
+            elif (
+                existing_calibration.instructions != defcal.instructions
+                or existing_calibration.modifiers != defcal.modifiers
+            ):
+                warnings.warn(f"Redefining calibration {defcal.name}", stacklevel=2)
+                current_calibrations = self._program.calibrations
+                new_calibrations = CalibrationSet(
+                    current_calibrations.calibrations[:idx] + [defcal] + current_calibrations.calibrations[idx + 1 :],
+                    current_calibrations.measure_calibrations,
+                )
+                self._program.calibrations = new_calibrations
 
-    def filter_instructions(self, predicate: Callable[[AbstractInstruction], bool]) -> "Program":
+        elif isinstance(instruction, MeasureCalibrationDefinition):
+            defmeasure = instruction
+            idx, existing_measure_calibration = next(
+                (
+                    (i, existing_measure_calibration)
+                    for i, existing_measure_calibration in enumerate(self._program.calibrations.measure_calibrations)
+                    if existing_measure_calibration.target == defmeasure.target
+                    and existing_measure_calibration.qubit == defmeasure.qubit
+                ),
+                (0, None),
+            )
+            if existing_measure_calibration is None:
+                self._program.add_instruction(instruction)
+            else:
+                warnings.warn(f"Redefining DefMeasureCalibration {instruction}", stacklevel=2)
+                current_calibrations = self._program.calibrations
+                new_calibrations = CalibrationSet(
+                    current_calibrations.calibrations,
+                    current_calibrations.measure_calibrations[:idx]
+                    + [defmeasure]
+                    + current_calibrations.measure_calibrations[idx + 1 :],
+                )
+
+                self._program.calibrations = new_calibrations
+        else:
+            self._program.add_instruction(instruction)
+
+    def filter_instructions(self, predicate: Callable[[Instruction], bool]) -> "Program":
         """Return a new ``Program`` containing only the instructions for which ``predicate`` returns ``True``.
 
         :param predicate: A function that takes an instruction and returns ``True`` if the instruction should not be
             removed from the program, ``False`` otherwise.
         :return: A new ``Program`` object with the filtered instructions.
         """
-
-        def rs_predicate(inst: quil_rs.Instruction) -> bool:
-            return predicate(_convert_to_py_instruction(inst))
-
-        filtered_program = Program(self._program.filter_instructions(rs_predicate))
+        filtered_program = Program(self._program.filter_instructions(predicate))
         filtered_program.num_shots = self.num_shots
         return filtered_program
 
@@ -513,7 +503,7 @@ class Program:
         self,
         name: str,
         params: Sequence[ParameterDesignator],
-        qubits: Sequence[Qubit | QubitPlaceholder],
+        qubits: Sequence[QubitDesignator],
     ) -> "Program":
         """Add a gate to the program.
 
@@ -552,7 +542,7 @@ class Program:
         :param parameters: list of parameters that are used in this gate
         :return: The Program instance.
         """
-        return self.inst(DefGate(name, matrix, parameters))
+        return self.inst(GateDefinition(name, parameters or [], GateSpecification.Matrix(matrix)))
 
     @deprecated(
         version=PENDING_DEPRECATION_RELEASE,
@@ -610,7 +600,7 @@ class Program:
         p00 = float(p00)
         p11 = float(p11)
         aprobs = [p00, 1.0 - p11, 1.0 - p00, p11]
-        aprobs_str = "({})".format(" ".join(format_parameter(p) for p in aprobs))
+        aprobs_str = "({})".format(" ".join(repr(float(p)) for p in aprobs))
         pragma = Pragma("READOUT-POVM", [qubit], aprobs_str)
         return self.inst(pragma)
 
@@ -657,20 +647,9 @@ class Program:
                   MEASURE 2 [3]
         """
         if qubit_reg_pairs == ():
-            qubits = self.get_qubits(indices=True)
-            if len(qubits) == 0:
+            qubit_inds = self.get_qubit_indices()
+            if len(qubit_inds) == 0:
                 return self
-            if any(isinstance(q, QubitPlaceholder) for q in qubits):
-                raise ValueError(
-                    "Attempted to call measure_all on a Program that contains QubitPlaceholders. "
-                    "You must either provide the qubit_reg_pairs argument to describe how to map "
-                    "these QubitPlaceholders to memory registers, or else first call "
-                    "pyquil.quil.address_qubits to instantiate the QubitPlaceholders."
-                )
-            if any(isinstance(q, FormalArgument) for q in qubits):
-                raise ValueError("Cannot call measure_all on a Program that contains FormalArguments.")
-            # Help mypy determine that qubits does not contain any QubitPlaceholders.
-            qubit_inds = cast(list[int], qubits)
             ro = self.declare("ro", "BIT", max(qubit_inds) + 1)
             for qi in qubit_inds:
                 self.inst(MEASURE(qi, ro[qi]))
@@ -679,7 +658,7 @@ class Program:
                 self.inst(MEASURE(qubit_index, classical_reg))
         return self
 
-    def prepend_instructions(self, instructions: Iterable[AbstractInstruction]) -> "Program":
+    def prepend_instructions(self, instructions: Iterable[Instruction]) -> "Program":
         """Prepend instructions to the beginning of the program."""
         new_prog = Program(*instructions)
         return new_prog + self
@@ -706,11 +685,11 @@ class Program:
         """
         label_start = LabelPlaceholder("START")
         label_end = LabelPlaceholder("END")
-        self.inst(JumpTarget(label_start))
-        self.inst(JumpUnless(target=label_end, condition=unpack_classical_reg(classical_reg)))
+        self.inst(JumpTarget(label_start.target))
+        self.inst(JumpUnless(target=label_end.target, condition=unpack_classical_reg(classical_reg)))
         self.inst(q_program)
-        self.inst(Jump(label_start))
-        self.inst(JumpTarget(label_end))
+        self.inst(Jump(label_start.target))
+        self.inst(JumpTarget(label_end.target))
         return self
 
     def if_then(
@@ -747,13 +726,13 @@ class Program:
 
         label_then = LabelPlaceholder("THEN")
         label_end = LabelPlaceholder("END")
-        jump_when = JumpWhen(target=label_then, condition=unpack_classical_reg(classical_reg))
+        jump_when = JumpWhen(target=label_then.target, condition=unpack_classical_reg(classical_reg))
         self.inst(jump_when)
         self.inst(else_program)
-        self.inst(Jump(label_end))
-        self.inst(JumpTarget(label_then))
+        self.inst(Jump(label_end.target))
+        self.inst(JumpTarget(label_then.target))
         self.inst(if_program)
-        self.inst(JumpTarget(label_end))
+        self.inst(JumpTarget(label_end.target))
         return self
 
     def declare(
@@ -818,7 +797,7 @@ class Program:
             return self._program.to_quil()
         else:
             return self.filter_instructions(
-                lambda inst: not isinstance(inst, (DefCalibration, DefMeasureCalibration))
+                lambda inst: not isinstance(inst, DefCalibration | DefMeasureCalibration)
             ).out()
 
     @deprecated(
@@ -848,16 +827,19 @@ class Program:
         """
         if indices:
             return self.get_qubit_indices()
-        return set(_convert_to_py_qubits(self._program.used_qubits))
+        return set(self._program.used_qubits)
 
     def get_qubit_indices(self) -> set[int]:
         """Return the index of each qubit used in the program.
 
-        Will raise an exception if any of the qubits are placeholders.
+        Will raise an exception if any of the qubits are not `FixedQubit`s.
         """
-        return {q._0 for q in self._program.used_qubits}
+        try:
+            return {q.index for q in self._program.used_qubits}
+        except AttributeError:
+            raise ValueError("Program contains non-`FixedQubit`s")
 
-    def match_calibrations(self, instr: AbstractInstruction) -> CalibrationMatch | None:
+    def match_calibrations(self, instr: Instruction) -> CalibrationMatch | None:
         """Attempt to match a calibration to the provided instruction.
 
         Note: preference is given to later calibrations, i.e. in a program with
@@ -873,20 +855,15 @@ class Program:
         :param instr: An instruction.
         :returns: a CalibrationMatch object, if one can be found.
         """
-        if not isinstance(instr, (Gate, Measurement)):
-            return None
-
-        match _convert_to_rs_instruction(instr):
-            case quil_rs.Instruction.Gate(gate):
-                gate_match = self._program.calibrations.get_match_for_gate(gate)
-                return _convert_to_calibration_match(gate, gate_match)
-            case quil_rs.Instruction.Measurement(measurement):
-                measure_match = self._program.calibrations.get_match_for_measurement(measurement)
-                return _convert_to_calibration_match(measurement, measure_match)
-
+        if isinstance(instr, Gate):
+            gate_match = self._program.calibrations.get_match_for_gate(instr)
+            return _convert_to_calibration_match(instr, gate_match)
+        elif isinstance(instr, Measurement):
+            measure_match = self._program.calibrations.get_match_for_measurement(instr)
+            return _convert_to_calibration_match(instr, measure_match)
         return None
 
-    def get_calibration(self, instr: AbstractInstruction) -> DefCalibration | DefMeasureCalibration | None:
+    def get_calibration(self, instr: Instruction) -> DefCalibration | DefMeasureCalibration | None:
         """Get the calibration corresponding to the provided instruction.
 
         :param instr: An instruction.
@@ -900,9 +877,9 @@ class Program:
 
     def calibrate(
         self,
-        instruction: AbstractInstruction,
-        previously_calibrated_instructions: set[AbstractInstruction] | None = None,
-    ) -> list[AbstractInstruction]:
+        instruction: Instruction,
+        previously_calibrated_instructions: set[Instruction] | None = None,
+    ) -> list[Instruction]:
         """Expand an instruction into its calibrated definition.
 
         If a calibration definition matches the provided instruction, then the definition
@@ -923,27 +900,11 @@ class Program:
             previously_calibrated_instructions = set()
 
         calibrated_instructions = self._program.calibrations.expand(
-            _convert_to_rs_instruction(instruction),
-            _convert_to_rs_instructions(previously_calibrated_instructions),
+            instruction,
+            list(previously_calibrated_instructions),
         )
 
-        return [instruction] if not calibrated_instructions else _convert_to_py_instructions(calibrated_instructions)
-
-    @deprecated(
-        version="4.0",
-        reason="This function always returns True and will be removed.",
-    )
-    def is_protoquil(self, quilt: bool = False) -> bool:
-        """Return True, this method is deprecated."""
-        return True
-
-    @deprecated(
-        version="4.0",
-        reason="This function always returns True and will be removed.",
-    )
-    def is_supported_on_qpu(self) -> bool:
-        """Return True, this method is deprecated."""
-        return True
+        return calibrated_instructions or [instruction]
 
     def dagger(self) -> "Program":
         """Create the conjugate transpose of the Quil program. The program must contain only gate applications.
@@ -968,16 +929,17 @@ class Program:
         self.inst(other)
         return self
 
-    def __getitem__(self, index: slice | int) -> Union[AbstractInstruction, "Program"]:
+    def __getitem__(self, index: slice | int) -> Union[Instruction, "Program"]:
         """Get the instruction at the given index, or a Program from a slice."""
         return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
 
-    def __iter__(self) -> Iterator[AbstractInstruction]:
+    def __iter__(self) -> Iterator[Instruction]:
         """Iterate through a program's instructions, e.g. [a for a in Program(X(0))]."""
         return iter(
             chain(
-                (Declare._from_rs_declaration(instr) for instr in self._program.declarations.values()),
-                (_convert_to_py_instruction(instr) for instr in self._program.body_instructions),
+                self._program.declarations.values(),
+                self._program.circuits.values(),
+                self._program.body_instructions,
             )
         )
 
@@ -990,10 +952,6 @@ class Program:
     def __len__(self) -> int:
         """Get the number of instructions in the program."""
         return len(self._program.declarations) + len(self._program.body_instructions)
-
-    def __hash__(self) -> int:
-        """Hash the program."""
-        return hash(self.out())
 
     def __repr__(self) -> str:
         """Get a string representation of the Quil program for inspection.
@@ -1011,9 +969,9 @@ class Program:
         """
         return self._program.to_quil_or_debug()
 
-    def get_all_instructions(self) -> list[AbstractInstruction]:
+    def get_all_instructions(self) -> list[Instruction]:
         """Get _all_ instructions that makeup the program."""
-        return _convert_to_py_instructions(self._program.to_instructions())
+        return self._program.to_instructions()
 
 
 @deprecated(
@@ -1062,11 +1020,11 @@ def get_classical_addresses_from_program(program: Program) -> dict[str, list[int
     addresses: dict[str, list[int]] = defaultdict(list)
     flattened_addresses = {}
 
-    # Required to use the `classical_reg.address` int attribute.
+    # Required to use the `target.index` int attribute.
     # See https://github.com/rigetti/pyquil/issues/388.
     for instr in program:
-        if isinstance(instr, Measurement) and instr.classical_reg:
-            addresses[instr.classical_reg.name].append(instr.classical_reg.offset)
+        if isinstance(instr, Measurement) and instr.target:
+            addresses[instr.target.name].append(instr.target.index)
 
     # flatten duplicates
     for k, v in addresses.items():
@@ -1085,8 +1043,7 @@ def address_qubits(program: Program, qubit_mapping: dict[QubitPlaceholder, int] 
     to actual qubits. If a mapping is not provided, integers 0 through N are used.
     This function will also instantiate any label placeholders.
     :param program: The program.
-    :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
-    to :py:class:`Qubit` or ``int`` (but not both).
+    :param qubit_mapping: A dictionary-like object that maps from qubit placeholders to ``int``s.
     :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
     """
     new_program = program.copy()
@@ -1115,68 +1072,28 @@ def _get_label(
     return new_target, label_mapping, label_i
 
 
-def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> list[AbstractInstruction]:
+def instantiate_labels(instructions: Iterable[Instruction]) -> list[Instruction]:
     """Take an iterable of instructions which may contain label placeholders and assigns them all defined values.
 
     :return: list of instructions with all label placeholders assigned to real labels.
     """
     label_i = 1
-    result: list[AbstractInstruction] = []
+    result: list[Instruction] = []
     label_mapping: dict[LabelPlaceholder, Label] = dict()
     for instr in instructions:
-        if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
-            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
-            result.append(Jump(new_target))
-        elif isinstance(instr, (JumpWhen, JumpUnless)) and isinstance(instr.target, LabelPlaceholder):
-            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+        if isinstance(instr, Jump) and isinstance(_convert_to_py_target(instr.target), LabelPlaceholder):
+            new_target, label_mapping, label_i = _get_label(_convert_to_py_target(instr.target), label_mapping, label_i)
+            result.append(Jump(_convert_to_rs_target(new_target)))
+        elif isinstance(instr, JumpWhen | JumpUnless) and isinstance(
+            _convert_to_py_target(instr.target), LabelPlaceholder
+        ):
+            new_target, label_mapping, label_i = _get_label(_convert_to_py_target(instr.target), label_mapping, label_i)
             cls = instr.__class__  # Make the correct subclass
-            result.append(cls(new_target, instr.condition))
-        elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
-            new_label, label_mapping, label_i = _get_label(instr.label, label_mapping, label_i)
-            result.append(JumpTarget(new_label))
+            result.append(cls(_convert_to_rs_target(new_target), instr.condition))
+        elif isinstance(instr, JumpTarget) and isinstance(_convert_to_py_target(instr.target), LabelPlaceholder):
+            new_label, label_mapping, label_i = _get_label(_convert_to_py_target(instr.target), label_mapping, label_i)
+            result.append(JumpTarget(_convert_to_rs_target(new_label)))
         else:
             result.append(instr)
 
     return result
-
-
-@deprecated(
-    version="4.0",
-    reason="The Program class now sorts instructions automatically. This function will be removed.",
-)
-def percolate_declares(program: Program) -> Program:
-    """As of pyQuil v4.0, the Program class does this automatically.
-
-    This function is deprecated and just immediately returns the passed in program.
-
-    :param program: A program.
-    """
-    return program
-
-
-@deprecated(
-    version="4.0",
-    reason="This function will be removed. Use Program addition instead.",
-)
-def merge_programs(prog_list: Sequence[Program]) -> Program:
-    """Merge a list of pyQuil programs into a single one by appending them in sequence."""
-    merged_program = Program()
-    for prog in prog_list:
-        merged_program += prog
-    return merged_program
-
-
-@deprecated(
-    version="4.0",
-    reason="This is now a no-op and will be removed in future versions of pyQuil.",
-)
-def validate_protoquil(program: Program, quilt: bool = False) -> None:  # noqa: D103 - deprecated no-op
-    pass
-
-
-@deprecated(
-    version="4.0",
-    reason="This is now a no-op and will be removed in future versions of pyQuil.",
-)
-def validate_supported_quil(program: Program) -> None:  # noqa: D103 - deprecated no-op
-    pass

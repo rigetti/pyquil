@@ -248,7 +248,7 @@ class QuantumComputer:
             for merged_memory_map in merged_memory_maps:
                 final_memory_map = {**memory_map, **merged_memory_map}
                 executable_copy = executable.copy()
-                bitstrings = self.run(executable_copy, memory_map=final_memory_map).get_register_map().get("ro")
+                bitstrings = self.run(executable_copy, memory_map=final_memory_map).readout_data.get("ro")
                 if bitstrings is None:
                     raise ValueError("No readout data returned.")
 
@@ -1004,14 +1004,14 @@ def local_forest_runtime(
 
     # If the host we should listen to is 0.0.0.0, we replace it
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
-    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):  # noqa: S104: prevents connection to 0.0.0.0
+    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):  # noqa: S104  # prevents connection to 0.0.0.0
         warning_msg = f"Unable to start qvm server, since the specified port {qvm_port} is in use."
         warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
         qvm_cmd = ["qvm", "-S", "--host", host, "-p", str(qvm_port)]
         qvm = subprocess.Popen(qvm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603: input valid
 
-    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):  # noqa: S104: prevents connection to 0.0.0.0
+    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):  # noqa: S104 # prevents connection to 0.0.0.0
         warning_msg = f"Unable to start quilc server, since the specified port {quilc_port} is in use."
         warnings.warn(RuntimeWarning(warning_msg), stacklevel=2)
     else:
@@ -1164,7 +1164,7 @@ def _measure_bitstrings(
         prog = qc.compiler.quil_to_native_quil(prog)
         executable = qc.compiler.native_quil_to_executable(prog)
         result = qc.run(executable)
-        shot_values = result.readout_data.get("ro")
+        shot_values = result.get_register_map().get("ro")
         if shot_values is None:
             raise RuntimeError("Got no readout data from the quantum computer.")
         results.append(shot_values)

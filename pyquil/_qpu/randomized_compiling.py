@@ -34,12 +34,15 @@ from quil import instructions as inst
 
 from pyquil.quil import InstructionDesignator, Program
 from pyquil.quilbase import (
+    ArithmeticBinaryOp,
+    ArithmeticOperator,
+    BinaryLogic,
+    BinaryOperator,
     Call,
-    ClassicalAdd,
-    ClassicalGreaterEqual,
     ClassicalLoad,
     ClassicalMove,
-    ClassicalShiftRight,
+    Comparison,
+    ComparisonOperator,
     Declare,
     Delay,
     Jump,
@@ -354,11 +357,13 @@ class ShotsPerRandomization:
 
     def generate_mod_shot_count_block(self, qubits_sorted: Sequence[int]) -> tuple[InstructionDesignator, ...]:
         instructions: list[InstructionDesignator] = [
-            ClassicalAdd(
+            ArithmeticBinaryOp(
+                ArithmeticOperator.ADD,
                 MemoryReference(self.variables.modulo_counter, 0),
                 1,
             ),
-            ClassicalGreaterEqual(
+            Comparison(
+                ComparisonOperator.GREATER_THAN_OR_EQUAL,
                 MemoryReference(self.variables.is_mod_zero, 0),
                 MemoryReference(self.variables.modulo_counter, 0),
                 self.shots_per_randomization,
@@ -367,13 +372,13 @@ class ShotsPerRandomization:
                 "if_then_else_integer",
                 [
                     # destination
-                    inst.CallArgument.from_memory_reference(inst.MemoryReference(self.variables.modulo_counter, 0)),
+                    inst.CallArgument.MemoryReference(inst.MemoryReference(self.variables.modulo_counter, 0)),
                     # condition
-                    inst.CallArgument.from_memory_reference(inst.MemoryReference(self.variables.is_mod_zero, 0)),
+                    inst.CallArgument.MemoryReference(inst.MemoryReference(self.variables.is_mod_zero, 0)),
                     # true value
-                    inst.CallArgument.from_immediate(complex(0, 0)),
+                    inst.CallArgument.Immediate(complex(0, 0)),
                     # false value
-                    inst.CallArgument.from_memory_reference(inst.MemoryReference(self.variables.modulo_counter, 0)),
+                    inst.CallArgument.MemoryReference(inst.MemoryReference(self.variables.modulo_counter, 0)),
                 ],
             ),
             JumpWhen(
@@ -383,7 +388,7 @@ class ShotsPerRandomization:
         ]
         if self.non_randomization_delay_seconds is not None:
             for qubit in qubits_sorted:
-                instructions.append(Delay([], [qubit], self.non_randomization_delay_seconds))
+                instructions.append(Delay(self.non_randomization_delay_seconds, [qubit], []))
         instructions.append(Jump(Label(self.variables.pulse_program_label)))
         instructions.append(JumpTarget(Label(self.variables.randomization_label)))
         return tuple(instructions)
@@ -429,7 +434,7 @@ class PauliLiteral(Enum):
             raise ValueError(f"invalid pauli name: {name}")
 
     def to_call_arguments(self) -> tuple[inst.CallArgument, ...]:
-        return (inst.CallArgument.from_immediate(complex(self.value, 0)),)
+        return (inst.CallArgument.Immediate(complex(self.value, 0)),)
 
     def __mul__(self, rhs: "PauliLiteral") -> "tuple[complex, PauliLiteral]":
         if self == PauliLiteral.I:
@@ -537,8 +542,8 @@ class _PauliReference(_ToQuilCallArguments):
 
     def to_call_arguments(self) -> tuple[inst.CallArgument, inst.CallArgument]:
         return (
-            inst.CallArgument.from_memory_reference(self.memory_reference),
-            inst.CallArgument.from_immediate(complex(self.pauli_index, 0)),
+            inst.CallArgument.MemoryReference(self.memory_reference),
+            inst.CallArgument.Immediate(complex(self.pauli_index, 0)),
         )
 
 
@@ -562,8 +567,8 @@ class _PauliConjugate(_ToQuilCallArguments):
         arguments.extend(self.pauli_left.to_call_arguments())
         arguments.extend(self.pauli_right.to_call_arguments())
 
-        arguments.append(inst.CallArgument.from_immediate(complex(1 if self.is_left_conjugate else 0, 0)))
-        arguments.append(inst.CallArgument.from_identifier(self.pauli_conjugates_map))
+        arguments.append(inst.CallArgument.Immediate(complex(1 if self.is_left_conjugate else 0, 0)))
+        arguments.append(inst.CallArgument.Identifier(self.pauli_conjugates_map))
         return tuple(arguments)
 
 
@@ -1071,9 +1076,9 @@ class RandomizedCompilingConfiguration:
                     next=next_,
                 )
                 call = pauli_pair.build_quil_call_instruction(
-                    inst.CallArgument.from_identifier(self.variables.twirled_unitaries(qubit)),
-                    inst.CallArgument.from_identifier(self.variables.source_unitaries(qubit)),
-                    inst.CallArgument.from_memory_reference(
+                    inst.CallArgument.Identifier(self.variables.twirled_unitaries(qubit)),
+                    inst.CallArgument.Identifier(self.variables.source_unitaries(qubit)),
+                    inst.CallArgument.MemoryReference(
                         inst.MemoryReference(self.variables.unitary_angle_offset, 0)
                     ),
                 )
@@ -1082,7 +1087,8 @@ class RandomizedCompilingConfiguration:
 
             if not (is_final_cycle and is_final_base_cycle):
                 instructions.append(
-                    ClassicalAdd(
+                    ArithmeticBinaryOp(
+                        ArithmeticOperator.ADD,
                         MemoryReference(self.variables.unitary_angle_offset, 0),
                         _ANGLES_PER_UNITARY,
                     ),
@@ -1091,7 +1097,8 @@ class RandomizedCompilingConfiguration:
                 if not requires_seed_transition:
                     for q in self.qubits_sorted:
                         instructions.append(
-                            ClassicalShiftRight(
+                            BinaryLogic(
+                                BinaryOperator.SHR,
                                 MemoryReference(self.variables.current_seeds(q), 0),
                                 _BITS_PER_PAULI,
                             )
@@ -1124,7 +1131,8 @@ class RandomizedCompilingConfiguration:
                 ]
             )
             instructions.append(
-                ClassicalAdd(
+                ArithmeticBinaryOp(
+                    ArithmeticOperator.ADD,
                     MemoryReference(self.variables.seed_index, 0),
                     1,
                 )
@@ -1146,13 +1154,15 @@ class RandomizedCompilingConfiguration:
         loop_instructions.extend(instructions)
         if loop_index_increment is not None:
             loop_instructions.append(
-                ClassicalAdd(
+                ArithmeticBinaryOp(
+                    ArithmeticOperator.ADD,
                     MemoryReference(loop_index_variable, 0),
                     loop_index_increment,
                 )
             )
         loop_instructions.append(
-            ClassicalGreaterEqual(
+            Comparison(
+                ComparisonOperator.GREATER_THAN_OR_EQUAL,
                 MemoryReference(self.variables.loop_break, 0),
                 MemoryReference(loop_index_variable, 0),
                 loop_index_end,
@@ -1174,10 +1184,10 @@ class RandomizedCompilingConfiguration:
                     Call(
                         "prng_set_seed_and_step",
                         [
-                            inst.CallArgument.from_memory_reference(
+                            inst.CallArgument.MemoryReference(
                                 inst.MemoryReference(self.variables.pauli_seed(q), i)
                             ),
-                            inst.CallArgument.from_memory_reference(
+                            inst.CallArgument.MemoryReference(
                                 inst.MemoryReference(self.variables.pauli_seed(q), i)
                             ),
                         ],
@@ -1193,9 +1203,9 @@ class RandomizedCompilingConfiguration:
                     ),
                 )
                 call = pauli_pair.build_quil_call_instruction(
-                    inst.CallArgument.from_identifier(self.variables.twirled_unitaries(q)),
-                    inst.CallArgument.from_identifier(self.variables.source_unitaries(q)),
-                    inst.CallArgument.from_immediate(complex(0, 0)),
+                    inst.CallArgument.Identifier(self.variables.twirled_unitaries(q)),
+                    inst.CallArgument.Identifier(self.variables.source_unitaries(q)),
+                    inst.CallArgument.Immediate(complex(0, 0)),
                 )
                 if call is not None:
                     instructions.append(call)
@@ -1346,21 +1356,21 @@ class RandomizedCompilingConfiguration:
             next=next_pauli,
         )
         if unitary_offset is None:
-            unitary_offset_argument = inst.CallArgument.from_memory_reference(
+            unitary_offset_argument = inst.CallArgument.MemoryReference(
                 inst.MemoryReference(self.variables.unitary_angle_offset, 0)
             )
         elif isinstance(unitary_offset, int):
-            unitary_offset_argument = inst.CallArgument.from_immediate(complex(unitary_offset))
+            unitary_offset_argument = inst.CallArgument.Immediate(complex(unitary_offset))
         elif isinstance(unitary_offset, MemoryReference):
-            unitary_offset_argument = inst.CallArgument.from_memory_reference(
+            unitary_offset_argument = inst.CallArgument.MemoryReference(
                 inst.MemoryReference(unitary_offset.name, unitary_offset.offset)
             )
         else:
-            unitary_offset_argument = inst.CallArgument.from_immediate(complex(unitary_offset))
+            unitary_offset_argument = inst.CallArgument.Immediate(complex(unitary_offset))
 
         return pauli_pair.build_quil_call_instruction(
-            inst.CallArgument.from_identifier(source_unitaries or self.variables.source_unitaries(qubit)),
-            inst.CallArgument.from_identifier(target_unitaries or self.variables.twirled_unitaries(qubit)),
+            inst.CallArgument.Identifier(source_unitaries or self.variables.source_unitaries(qubit)),
+            inst.CallArgument.Identifier(target_unitaries or self.variables.twirled_unitaries(qubit)),
             unitary_offset_argument,
         )
 

@@ -41,7 +41,7 @@ from pyquil.quilbase import (
     LogicalBinaryOp,
     Measurement,
     Pragma,
-    ResetQubit,
+    Reset,
     UnaryClassicalInstruction,
     Wait,
 )
@@ -302,7 +302,7 @@ def split_on_terminal_measures(
             seen_qubits.add(instr.qubit)
         else:
             remaining.insert(0, instr)
-            if isinstance(instr, (Gate, ResetQubit)):
+            if isinstance(instr, (Gate, Reset)):
                 seen_qubits |= set(instr.get_qubit_indices() or {})
             elif isinstance(instr, Pragma):
                 if instr.command == PRAGMA_END_GROUP:

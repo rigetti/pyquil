@@ -44,25 +44,27 @@ import numpy as np
 import quax as qx
 from jax import Array
 from jax.scipy.linalg import expm as jax_expm
-from quil.expression import Expression as QuilExpression
+from quil.expression import (EvaluationError, ExpressionFunction, InfixOperator, PrefixOperator,
+                            InfixExpression, PrefixExpression, FunctionCallExpression, Number, Pi)
 from quil.instructions import Instruction as RSInstruction
 from scipy.linalg import logm as scipy_logm
 from scipy.optimize import brentq
 
 from pyquil.quilatom import (
-    Add,
-    BinaryExp,
-    Div,
     Expression,
     FormalArgument,
-    Function,
-    Mul,
     Parameter,
     ParameterDesignator,
-    Pow,
-    Sub,
 )
-from pyquil.quilbase import DefCircuit, DefGate, Gate, Measurement, Reset, ResetQubit, _integer_base_and_exponent
+from pyquil.quilbase import (
+    DefCircuit,
+    Gate,
+    GateDefinition,
+    Measurement,
+    Reset,
+    _integer_base_and_exponent,
+    gate_definition_matrix,
+)
 
 if TYPE_CHECKING:
     from plotly.graph_objs import Figure
@@ -96,15 +98,8 @@ def _parse_quil_instruction(quil_str: str) -> Gate | Measurement | Reset:
     Uses the ``quil`` Rust parser directly, avoiding a dependency on ``pyquil.Program``.
     """
     rs_inst = RSInstruction.parse(quil_str)
-    if rs_inst.is_gate():
-        return Gate._from_rs_gate(rs_inst.to_gate())
-    elif rs_inst.is_measurement():
-        return Measurement._from_rs_measurement(rs_inst.to_measurement())
-    elif rs_inst.is_reset():
-        reset = rs_inst.to_reset()
-        if reset.qubit is None:
-            return Reset._from_rs_reset(reset)
-        return ResetQubit._from_rs_reset(reset)
+    if isinstance(rs_inst, (Gate, Measurement, Reset)):
+        return rs_inst
     raise ValueError(f"Unsupported instruction type in: {quil_str}")
 
 
@@ -167,20 +162,16 @@ def _evaluate_parameter_designators(params: Sequence[ParameterDesignator]) -> li
 
     :param params: The gate parameters (numbers, or expressions over them).
     :return: A list of concrete float values.
-    :raises ValueError: If a parameter is unbound, or has a non-negligible imaginary part.
-    :raises quil.EvaluationError: If a ``quil`` expression cannot be evaluated to a single number.
+    :raises ValueError: If a parameter is unbound, has a non-negligible imaginary part, or a ``quil``
+        expression cannot be evaluated to a single number.
     """
     fixed_params = []
     for p in params:
-        if isinstance(p, (Parameter, Expression)):
-            value: Any = p._evaluate()
-            if isinstance(value, (Parameter, Expression)):
-                raise ValueError(
-                    f"Cannot resolve symbolic parameter {p}. Provide a gate with concrete numeric parameters."
-                )
-        elif isinstance(p, QuilExpression):
-            # QuilExpression.evaluate returns a plain complex when fully resolved.
-            value = p.evaluate({}, {})
+        if isinstance(p, Expression):
+            try:
+                value: Any = p.evaluate({}, {})
+            except EvaluationError as e:
+                raise ValueError(f"Cannot evaluate expression {p!r} to a concrete number: {e}") from e
         else:
             value = p
 
@@ -311,25 +302,25 @@ def _random_coherent_error_unitary(
 
 
 #: The Quil arithmetic functions, as JAX functions.  ``CIS(x)`` is ``exp(i x)``.
-QUIL_FUNCTIONS: dict[str, Callable[[Any], Any]] = {
-    "SIN": jnp.sin,
-    "COS": jnp.cos,
-    "SQRT": jnp.sqrt,
-    "EXP": jnp.exp,
-    "CIS": lambda x: jnp.exp(1j * x),
+QUIL_FUNCTIONS: dict["ExpressionFunction", Callable[[Any], Any]] = {
+    ExpressionFunction.SINE: jnp.sin,
+    ExpressionFunction.COSINE: jnp.cos,
+    ExpressionFunction.SQUARE_ROOT: jnp.sqrt,
+    ExpressionFunction.EXPONENT: jnp.exp,
+    ExpressionFunction.CIS: lambda x: jnp.exp(1j * x),
 }
 
-#: The Quil binary operators, as JAX functions.
-QUIL_BINARY_OPERATORS: dict[type[BinaryExp], Callable[[Any, Any], Any]] = {
-    Add: jnp.add,
-    Sub: jnp.subtract,
-    Mul: jnp.multiply,
-    Div: jnp.divide,
-    Pow: jnp.power,
+#: The Quil infix operators, as JAX functions.
+QUIL_INFIX_OPERATORS: dict["InfixOperator", Callable[[Any, Any], Any]] = {
+    InfixOperator.PLUS: jnp.add,
+    InfixOperator.MINUS: jnp.subtract,
+    InfixOperator.STAR: jnp.multiply,
+    InfixOperator.SLASH: jnp.divide,
+    InfixOperator.CARET: jnp.power,
 }
 
 
-def evaluate_expression(node: Any, bindings: Mapping[Parameter, Any]) -> Any:
+def evaluate_expression(node: Expression, bindings: Mapping[Parameter, Any]) -> Any:
     """Evaluate a Quil arithmetic expression in JAX, binding ``DEFGATE`` parameters to values.
 
     :func:`pyquil.quilatom.substitute` does the same job in NumPy, which is fine for a concrete
@@ -339,25 +330,34 @@ def evaluate_expression(node: Any, bindings: Mapping[Parameter, Any]) -> Any:
     instead keeps the whole matrix traceable, which is what lets a parametric ``DEFGATE`` be
     simulated, jitted and differentiated like any other gate.
 
-    :param node: A node of the expression tree: a ``Parameter``, a ``BinaryExp``, a ``Function``,
-        or a literal.
+    :param node: A node of the native ``Expression`` tree.
     :param bindings: Values for the ``DEFGATE``'s formal parameters.  Values may be traced.
     :return: The evaluated value, as a JAX array when any input is traced.
     :raises ValueError: If the expression names a parameter with no binding, or an unknown
         Quil function.
     """
-    if isinstance(node, Parameter):
-        if node not in bindings:
-            raise ValueError(f"No value supplied for DEFGATE parameter {node}.")
-        return bindings[node]
-    if isinstance(node, BinaryExp):
-        operator = QUIL_BINARY_OPERATORS[type(node)]
-        return operator(evaluate_expression(node.op1, bindings), evaluate_expression(node.op2, bindings))
-    if isinstance(node, Function):
-        if node.name not in QUIL_FUNCTIONS:
-            raise ValueError(f"Unknown Quil function {node.name!r}.")
-        return QUIL_FUNCTIONS[node.name](evaluate_expression(node.expression, bindings))
-    return node
+    match node:
+        case Parameter():
+            try:
+                return bindings[node]
+            except KeyError:
+                raise ValueError(f"No value supplied for DEFGATE parameter {node}.")
+        case InfixExpression(left, operator, right):
+            operator = QUIL_INFIX_OPERATORS[operator]
+            return operator(evaluate_expression(left, bindings), evaluate_expression(right, bindings))
+        case PrefixExpression(operator):
+            value = evaluate_expression(prefix.expression, bindings)
+            return -value if prefix.operator == PrefixOperator.MINUS else value
+        case FunctionCallExpression(function, expression):
+            if function not in QUIL_FUNCTIONS:
+                raise ValueError(f"Unknown Quil function {function!r}.")
+            return QUIL_FUNCTIONS[function](evaluate_expression(expression, bindings))
+        case Number(value):
+            return complex(value)
+        case n if n is Pi:
+            return jnp.pi
+        case _:
+            return node
 
 
 def get_custom_gates_from_program(program: Program) -> CustomGateMap:
@@ -374,8 +374,8 @@ def get_custom_gates_from_program(program: Program) -> CustomGateMap:
     for defgate in program.defined_gates:
         if defgate.parameters:
 
-            def parametric_gate(*args: Any, defgate: DefGate = defgate) -> qx.Unitary:
-                bindings = {Parameter(p.name): arg for p, arg in zip(defgate.parameters, args, strict=False)}
+            def parametric_gate(*args: Any, defgate: GateDefinition = defgate) -> qx.Unitary:
+                bindings = {param: arg for param, arg in zip(defgate.parameters, args, strict=False)}
                 # Built row by row through ``jnp.stack`` rather than one ``jnp.asarray`` over a
                 # nested list, so that traced entries stay traced instead of being forced into a
                 # NumPy object array.
@@ -384,14 +384,15 @@ def get_custom_gates_from_program(program: Program) -> CustomGateMap:
                         jnp.stack(
                             [jnp.asarray(evaluate_expression(element, bindings), dtype=complex) for element in row]
                         )
-                        for row in defgate.matrix
+                        for row in gate_definition_matrix(defgate)
                     ]
                 )
                 return qx.Unitary.from_matrix(matrix, _operator_dims_from_dimension(matrix.shape[0]))
 
             custom_gates[defgate.name] = parametric_gate
         else:
-            matrix = jnp.asarray(defgate.matrix, dtype=complex)
+            rows = gate_definition_matrix(defgate)
+            matrix = jnp.asarray([[complex(cell.evaluate({}, {})) for cell in row] for row in rows], dtype=complex)
             custom_gates[defgate.name] = qx.Unitary.from_matrix(matrix, _operator_dims_from_dimension(matrix.shape[0]))
     return custom_gates
 
@@ -473,7 +474,7 @@ def _reject_gate_modifiers(inst: Gate) -> None:
     if inst.modifiers:
         names = ", ".join(sorted({str(modifier).upper() for modifier in inst.modifiers}))
         raise ValueError(
-            f"Gate modifiers are not supported, but {inst.out()!r} carries {names}. Expand the "
+            f"Gate modifiers are not supported, but {inst.to_quil()!r} carries {names}. Expand the "
             "modifier into an explicit gate (e.g. a DEFGATE, or the inverse rotation angle for "
             "DAGGER) before simulating."
         )
@@ -790,7 +791,7 @@ class ChannelBase(ABC):
         fig = qx.plot(channel)
         fig.update_layout(
             title=(
-                f"{title_prefix} for {self.inst.out()}<br>"
+                f"{title_prefix} for {self.inst.to_quil()}<br>"
                 f"𝜀={self.process_infidelity * 100:.2f}%, "
                 f"𝜀<sub>u</sub>={self.coherent_infidelity * 100:.2f}%, "
                 f"𝜀<sub>s</sub>={self.stochastic_infidelity * 100:.2f}%"
@@ -804,7 +805,7 @@ class ChannelBase(ABC):
 
     def __str__(self) -> str:
         """Return a simplified string representation showing the gate and process fidelity."""
-        return f"<{self.inst.out()} ~ ({100 * self.process_fidelity:.2f}%)>"
+        return f"<{self.inst.to_quil()} ~ ({100 * self.process_fidelity:.2f}%)>"
 
     def __eq__(self, other: object) -> bool:
         """Check equality by concrete type, instruction, and (approximate) process/unitary matrices.
@@ -847,7 +848,9 @@ class ChannelBase(ABC):
         if not isinstance(other, ChannelBase):
             return NotImplemented
         if self.inst != other.inst:
-            raise ValueError(f"Cannot compose channels for different gates: {self.inst.out()} vs {other.inst.out()}")
+            raise ValueError(
+                f"Cannot compose channels for different gates: {self.inst.to_quil()} vs {other.inst.to_quil()}"
+            )
         # E_B @ U† @ E_A  (factor out one gate unitary between the two channels)
         u_dag_superop = qx.to_superop(self.ideal_unitary.h)
         composed_superop = qx.to_superop(self.process @ u_dag_superop @ other.process)
@@ -971,7 +974,7 @@ class SuperopChannel(ChannelBase):
         :return: JSON string representation.
         """
         data = {
-            "inst": self.inst.out(),
+            "inst": self.inst.to_quil(),
             "superop": _pack_operator(self.process),
             "unitary": _pack_operator(self.ideal_unitary),
         }
@@ -1257,11 +1260,11 @@ class Channel(_LindbladianBacked, ChannelBase):
         qubits = inst.get_qubit_indices()
         num_sys = len(qubits)
         if num_sys != len(t1s):
-            raise ValueError(f"Expected {num_sys} T1 values for {inst.out()}, got {len(t1s)}.")
+            raise ValueError(f"Expected {num_sys} T1 values for {inst.to_quil()}, got {len(t1s)}.")
         if t2s is None:
             t2s = [2 * t1 for t1 in t1s]
         elif num_sys != len(t2s):
-            raise ValueError(f"Expected {num_sys} T2 values for {inst.out()}, got {len(t2s)}.")
+            raise ValueError(f"Expected {num_sys} T2 values for {inst.to_quil()}, got {len(t2s)}.")
 
         per_qubit = [
             qx.lindbladians.thermal_relaxation(t1, tphi)
@@ -1355,7 +1358,7 @@ class Channel(_LindbladianBacked, ChannelBase):
         for constituent in constituents:
             if constituent.dims != ideal.dims:
                 raise ValueError(
-                    f"Constituent unitary has dims {constituent.dims}, expected {ideal.dims} " f"to match {inst.out()}."
+                    f"Constituent unitary has dims {constituent.dims}, expected {ideal.dims} to match {inst.to_quil()}."
                 )
 
         d = int(np.prod(ideal.dims[0]))
@@ -1461,7 +1464,9 @@ class Channel(_LindbladianBacked, ChannelBase):
         if not isinstance(other, Channel):
             return NotImplemented
         if self.inst != other.inst:
-            raise ValueError(f"Cannot combine channels for different gates: {self.inst.out()} vs {other.inst.out()}")
+            raise ValueError(
+                f"Cannot combine channels for different gates: {self.inst.to_quil()} vs {other.inst.to_quil()}"
+            )
         if self.gate_time != other.gate_time:
             raise ValueError(
                 f"Cannot combine channels with different gate times ({self.gate_time} vs {other.gate_time}): "
@@ -1484,7 +1489,7 @@ class Channel(_LindbladianBacked, ChannelBase):
         """Serialize Channel to a JSON string."""
         hamiltonian = self.lindbladian.hamiltonian
         data = {
-            "inst": self.inst.out(),
+            "inst": self.inst.to_quil(),
             "gate_time": self.gate_time,
             "unitary": _pack_operator(self.ideal_unitary),
             "hamiltonian": None if hamiltonian is None else _pack_operator(hamiltonian),
@@ -1805,7 +1810,7 @@ class MeasurementChannel:
             instrument_data.append(_pack_operator(superop_i))
 
         data = {
-            "inst": self.inst.out(),
+            "inst": self.inst.to_quil(),
             "instruments": instrument_data,
             "measured_qudits": list(self.process.measured_qudits),
         }
@@ -1871,7 +1876,7 @@ class MeasurementChannel:
             return NotImplemented
         if self.inst != other.inst:
             raise ValueError(
-                f"Cannot compose measurement channels for different qubits: {self.inst.out()} vs {other.inst.out()}"
+                f"Cannot compose measurement channels for different qubits: {self.inst.to_quil()} vs {other.inst.to_quil()}"
             )
         composed = self.process @ other.process
         return replace(self, process=composed)
@@ -1906,7 +1911,7 @@ class ResetChannelBase(ABC):
     # Declared under TYPE_CHECKING rather than as abstract properties for the same reason as in
     # :class:`ChannelBase` — an abstract property collides with the subclass dataclass field.
     if TYPE_CHECKING:
-        inst: ResetQubit
+        inst: Reset
         process: qx.SuperOp
 
     @abstractmethod
@@ -1922,8 +1927,8 @@ class ResetChannelBase(ABC):
 
     def __post_init__(self) -> None:
         """Validate that the channel is attached to a targeted reset."""
-        if not isinstance(self.inst, ResetQubit):
-            raise TypeError(f"{type(self).__name__} only supports targeted ResetQubit instructions.")
+        if not (isinstance(self.inst, Reset) and self.inst.qubit is not None):
+            raise TypeError(f"{type(self).__name__} only supports targeted Reset instructions.")
 
     @property
     def qubits(self) -> list[int]:
@@ -2018,7 +2023,7 @@ class SuperopResetChannel(ResetChannelBase):
     replaces the reset instruction rather than being applied after it.
     """
 
-    inst: ResetQubit
+    inst: Reset
     """The reset operation to which the channel applies."""
 
     process: qx.SuperOp
@@ -2031,7 +2036,7 @@ class SuperopResetChannel(ResetChannelBase):
     @classmethod
     def from_reset_fidelity(
         cls: type[SuperopResetChannel],
-        inst: ResetQubit,
+        inst: Reset,
         fidelity: float,
         dim: int = 2,
     ) -> SuperopResetChannel:
@@ -2056,8 +2061,8 @@ class SuperopResetChannel(ResetChannelBase):
         :return: A SuperopResetChannel instance.
         :raises ValueError: If ``dim < 2`` or ``fidelity`` lies outside :math:`[1/d, 1]`.
         """
-        if not isinstance(inst, ResetQubit):
-            raise TypeError("SuperopResetChannel only supports targeted ResetQubit instructions.")
+        if not (isinstance(inst, Reset) and inst.qubit is not None):
+            raise TypeError("SuperopResetChannel only supports targeted Reset instructions.")
         if dim < 2:
             raise ValueError(f"Reset dimension must be at least 2, got dim={dim}.")
         minimum_fidelity = 1.0 / dim
@@ -2087,7 +2092,7 @@ class SuperopResetChannel(ResetChannelBase):
         :return: JSON string representation.
         """
         data = {
-            "inst": self.inst.out(),
+            "inst": self.inst.to_quil(),
             "superop": _pack_operator(self.process),
         }
         return json.dumps(data)
@@ -2101,7 +2106,7 @@ class SuperopResetChannel(ResetChannelBase):
         """
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
-        if not isinstance(inst, ResetQubit):
+        if not (isinstance(inst, Reset) and inst.qubit is not None):
             raise TypeError(
                 f"SuperopResetChannel JSON must contain a targeted reset instruction, got {type(inst).__name__}."
             )
@@ -2122,7 +2127,7 @@ class ResetChannel(_LindbladianBacked, ResetChannelBase):
     gate Hamiltonian to preserve).
     """
 
-    inst: ResetQubit
+    inst: Reset
     """The reset operation to which the channel applies."""
 
     lindbladian: qx.Lindbladian
@@ -2134,7 +2139,7 @@ class ResetChannel(_LindbladianBacked, ResetChannelBase):
     @classmethod
     def from_lindbladian(
         cls: type[ResetChannel],
-        inst: ResetQubit,
+        inst: Reset,
         lindbladian: qx.Lindbladian,
         gate_time: float = _DEFAULT_GATE_TIME,
     ) -> ResetChannel:
@@ -2144,7 +2149,7 @@ class ResetChannel(_LindbladianBacked, ResetChannelBase):
     @classmethod
     def from_amplitude_damping(
         cls: type[ResetChannel],
-        inst: ResetQubit,
+        inst: Reset,
         gamma: float,
         gate_time: float = _DEFAULT_GATE_TIME,
         dim: int = 2,
@@ -2159,7 +2164,7 @@ class ResetChannel(_LindbladianBacked, ResetChannelBase):
     @classmethod
     def from_coherence_times(
         cls: type[ResetChannel],
-        inst: ResetQubit,
+        inst: Reset,
         duration: float,
         t1: float,
         t2: float | None = None,
@@ -2187,7 +2192,7 @@ class ResetChannel(_LindbladianBacked, ResetChannelBase):
         """Serialize ResetChannel to a JSON string."""
         hamiltonian = self.lindbladian.hamiltonian
         data = {
-            "inst": self.inst.out(),
+            "inst": self.inst.to_quil(),
             "gate_time": self.gate_time,
             "hamiltonian": None if hamiltonian is None else _pack_operator(hamiltonian),
             "jump_operators": _pack_operator(self.lindbladian.jump_operators),
@@ -2199,7 +2204,7 @@ class ResetChannel(_LindbladianBacked, ResetChannelBase):
         """Deserialize a ResetChannel from a JSON string."""
         data = json.loads(json_str)
         inst = _parse_quil_instruction(data["inst"])
-        if not isinstance(inst, ResetQubit):
+        if not (isinstance(inst, Reset) and inst.qubit is not None):
             raise TypeError(f"ResetChannel JSON must contain a targeted reset instruction, got {type(inst).__name__}.")
         ham_data = data["hamiltonian"]
         hamiltonian = (
@@ -2264,7 +2269,7 @@ class CycleChannel:
     # ──────────────────────────────────────────────
 
     @cached_property
-    def expanded_instructions(self) -> tuple[Gate | Measurement | ResetQubit, ...]:
+    def expanded_instructions(self) -> tuple[Gate | Measurement | Reset, ...]:
         """The defcircuit's body with its formal arguments substituted for concrete qubits.
 
         Returns a tuple rather than a list: this is a cached property on a frozen dataclass, so a
@@ -2274,27 +2279,28 @@ class CycleChannel:
         cycle_qubits = self.inst.get_qubit_indices()
         if len(formal_arguments) != len(cycle_qubits):
             raise ValueError(
-                f"Cycle instruction {self.inst.out()} supplies {len(cycle_qubits)} qubit(s) but "
+                f"Cycle instruction {self.inst.to_quil()} supplies {len(cycle_qubits)} qubit(s) but "
                 f"DEFCIRCUIT {self.defcircuit.name} declares {len(formal_arguments)} formal "
                 f"argument(s) ({[str(a) for a in formal_arguments]})."
             )
         qarg_to_qubit = dict(zip(formal_arguments, cycle_qubits, strict=True))
 
         def resolve(qubit: Any) -> int:
-            if qubit not in qarg_to_qubit:
+            name = qubit.name if isinstance(qubit, FormalArgument) else qubit
+            if name not in qarg_to_qubit:
                 raise ValueError(
                     f"DEFCIRCUIT {self.defcircuit.name} body references {qubit}, which is not one "
                     f"of its formal arguments ({[str(a) for a in formal_arguments]})."
                 )
-            return qarg_to_qubit[qubit]
+            return qarg_to_qubit[name]
 
-        instructions: list[Gate | Measurement | ResetQubit] = []
+        instructions: list[Gate | Measurement | Reset] = []
         for inst in self.defcircuit.instructions:
             match inst:
                 case Measurement():
-                    instructions.append(Measurement(qubit=resolve(inst.qubit), classical_reg=inst.classical_reg))
-                case ResetQubit():
-                    instructions.append(ResetQubit(resolve(inst.qubit)))
+                    instructions.append(Measurement(qubit=resolve(inst.qubit), classical_reg=inst.target))
+                case Reset() if inst.qubit is not None:
+                    instructions.append(Reset(resolve(inst.qubit)))
                 case Gate():
                     instructions.append(Gate(inst.name, inst.params, [resolve(q) for q in inst.qubits]))
                 case _:
@@ -2377,8 +2383,8 @@ class CycleChannel:
         :return: JSON string representation.
         """
         data = {
-            "inst": self.inst.out(),
-            "defcircuit": self.defcircuit.out(),
+            "inst": self.inst.to_quil(),
+            "defcircuit": self.defcircuit.to_quil(),
             "channels": [{"type": type(ch).__name__, "data": ch.to_json()} for ch in self.channels],
         }
         return json.dumps(data)
@@ -2418,7 +2424,7 @@ class CycleChannel:
 
     def __str__(self) -> str:
         """Return a simplified string representation showing the gate and process fidelity."""
-        return f"<{self.inst.out()} ~ ({100 * self.process_fidelity:.2f}%)>"
+        return f"<{self.inst.to_quil()} ~ ({100 * self.process_fidelity:.2f}%)>"
 
     def __eq__(self, other: object) -> bool:
         """Check equality by cycle instruction, DefCircuit, and constituent channels."""
@@ -2441,7 +2447,7 @@ class CycleChannel:
         return _tensor_into_cycle(self, other)
 
 
-def _channel_to_formal_inst(channel: CycleConstituent) -> Gate | Measurement | ResetQubit:
+def _channel_to_formal_inst(channel: CycleConstituent) -> Gate | Measurement | Reset:
     """Convert a channel's instruction to use formal arguments for DefCircuit."""
     if isinstance(channel, ChannelBase):
         inst = channel.inst
@@ -2453,7 +2459,7 @@ def _channel_to_formal_inst(channel: CycleConstituent) -> Gate | Measurement | R
         )
     elif isinstance(channel, ResetChannelBase):
         qubit_idx = channel.qubits[0]
-        return ResetQubit(qubit=FormalArgument(f"q{qubit_idx}"))
+        return Reset(qubit=FormalArgument(f"q{qubit_idx}"))
     elif isinstance(channel, MeasurementChannel):
         qubit_idx = channel.qubits[0]
         return Measurement(
@@ -2474,7 +2480,7 @@ def _build_cycle_channel(
     defcircuit = DefCircuit(
         name=cycle_name,
         parameters=[],
-        qubits=[FormalArgument(f"q{q}") for q in all_qubits],
+        qubit_variables=[f"q{q}" for q in all_qubits],
         instructions=list(formal_insts),
     )
     inst = Gate(name=cycle_name, params=[], qubits=all_qubits)
@@ -2509,6 +2515,6 @@ def _tensor_into_cycle(
 def _parse_defcircuit(quil_str: str) -> DefCircuit:
     """Parse a ``DEFCIRCUIT`` block back into a pyquil :class:`~pyquil.quilbase.DefCircuit`."""
     rs_inst = RSInstruction.parse(quil_str)
-    if not rs_inst.is_circuit_definition():
+    if not isinstance(rs_inst, DefCircuit):
         raise ValueError(f"Expected a DEFCIRCUIT definition, got: {quil_str}")
-    return DefCircuit._from_rs_circuit_definition(rs_inst.to_circuit_definition())
+    return rs_inst

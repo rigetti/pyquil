@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import networkx as nx
 
@@ -39,7 +39,7 @@ def test_compiler_isa_to_graph(compiler_isa: CompilerISA):
     assert nx.is_isomorphic(graph, nx_quantum_processor.qubit_topology())
 
 
-def test_graph_to_compiler_isa(compiler_isa: CompilerISA, noise_model_dict: Dict[str, Any]):
+def test_graph_to_compiler_isa(compiler_isa: CompilerISA, noise_model_dict: dict[str, Any]):
     """Test that ```compiler_isa_to_graph``` transforms ``CompilerISA`` to an ``nx.Graph`` and that
     ``graph_to_compiler_isa`` transforms an ``nx.Device`` to a ``CompilerISA`` with default
     gates.

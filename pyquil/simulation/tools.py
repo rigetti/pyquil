@@ -16,20 +16,16 @@
 """Miscellaneous tools that are helpful for simulation."""
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 import numpy as np
+from quil.instructions import GateModifier
 
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
-from pyquil.quilatom import Parameter
+from pyquil.quilatom import Expression, Parameter
 from pyquil.quilbase import Gate, Halt, _strip_modifiers
 from pyquil.simulation.matrices import QUANTUM_GATES, STATES, SWAP
-
-if TYPE_CHECKING:
-    # ``pyquil.experiment`` is deprecated. It is not imported at runtime, so that importing this
-    # module does not import it (see ``pyquil._deprecation``).
-    from pyquil.experiment._setting import TensorProductState
 
 
 def all_bitstrings(n_bits: int) -> np.ndarray:
@@ -279,7 +275,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
     one = np.eye(2)
     one[0, 0] = 0
 
-    if any(isinstance(param, Parameter) for param in gate.params):
+    if any(isinstance(param, Parameter) for param in gate.parameters):
         raise TypeError("Cannot produce a matrix from a gate with non-constant parameters.")
 
     # The main source of complexity is in handling handling FORKED gates. Given
@@ -298,23 +294,27 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
 
     def _gate_matrix(gate: Gate) -> np.ndarray:
         if len(gate.modifiers) == 0:  # base case
-            if len(gate.params) > 0:
-                return QUANTUM_GATES[gate.name](*gate.params)  # type: ignore
+            if len(gate.parameters) > 0:
+                params = [p.evaluate({}, {}) if isinstance(p, Expression) else p for p in gate.parameters]
+                return QUANTUM_GATES[gate.name](*params)  # type: ignore
             else:
                 return QUANTUM_GATES[gate.name]  # type: ignore
         else:
             mod = gate.modifiers[0]
-            if mod == "DAGGER":
+            if mod == GateModifier.DAGGER:
                 child = _strip_modifiers(gate, limit=1)
                 return _gate_matrix(child).conj().T
-            elif mod == "CONTROLLED":
+            elif mod == GateModifier.CONTROLLED:
                 child = _strip_modifiers(gate, limit=1)
                 matrix = _gate_matrix(child)
-                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)
-            elif mod == "FORKED":
-                if len(gate.params) % 2 != 0:
+                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)  # type: ignore
+            elif mod == GateModifier.FORKED:
+                if len(gate.parameters) % 2 != 0:
                     raise ValueError("FORKED gates must have an even number of parameters.")
-                p0, p1 = gate.params[: len(gate.params) // 2], gate.params[len(gate.params) // 2 :]
+                p0, p1 = (
+                    gate.parameters[: len(gate.parameters) // 2],
+                    gate.parameters[len(gate.parameters) // 2 :],
+                )
                 child = _strip_modifiers(gate, limit=1)
                 # handle the first half of the FORKED params
                 mat0 = _gate_matrix(Gate(child.name, p0, child.qubits, child.modifiers))
@@ -340,7 +340,7 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
         if isinstance(instruction, Gate):
             unitary = lifted_gate(gate=instruction, n_qubits=n_qubits)
             umat = unitary.dot(umat)
-        elif isinstance(instruction, Halt):
+        elif instruction is Halt:
             pass
         else:
             raise ValueError(
@@ -402,27 +402,6 @@ def tensor_up(pauli_sum: PauliSum | PauliTerm, qubits: list[int]) -> np.ndarray:
     :return: matrix representation of the pauli_sum operator
     """
     return lifted_pauli(pauli_sum=pauli_sum, qubits=qubits)
-
-
-def lifted_state_operator(state: "TensorProductState", qubits: list[int]) -> np.ndarray:
-    """Return a matrix corresponding to the tensored-up representation of the given state and qubits.
-
-    Developer note: Quil and the QVM like qubits to be ordered such that qubit 0 is on the right.
-    Therefore, in ``qubit_adjacent_lifted_gate``, ``lifted_pauli``, and ``lifted_state_operator``,
-    we build up the lifted matrix by using the *left* kronecker product.
-
-    :param state: The state
-    :param qubits: list of qubits in the order they will be represented in the resultant matrix.
-    """
-    mat: np.ndarray = np.eye(1)
-    for qubit in qubits:
-        oneq_state = state[qubit]
-        if oneq_state.qubit != qubit:
-            raise ValueError(f"State qubit mismatch: {oneq_state.qubit} != {qubit}")
-        state_vector = STATES[oneq_state.label][oneq_state.index][:, np.newaxis]
-        state_matrix = state_vector @ state_vector.conj().T
-        mat = np.kron(state_matrix, mat)
-    return mat
 
 
 def scale_out_phase(unitary1: np.ndarray, unitary2: np.ndarray) -> np.ndarray:

@@ -23,10 +23,7 @@ from collections.abc import Callable, Hashable, Iterable, Iterator, Sequence
 from functools import reduce
 from itertools import product
 from numbers import Complex, Number
-from typing import (
-    Union,
-    cast,
-)
+from typing import TypeAlias, Union, cast
 
 import numpy as np
 import quil.instructions as quil_rs
@@ -39,16 +36,13 @@ from pyquil.quilatom import (
     FormalArgument,
     QubitDesignator,
     QubitPlaceholder,
-    _convert_to_py_expression,
-    _convert_to_py_qubits,
-    _convert_to_rs_expression,
 )
 
 from .gates import CNOT, PHASE, QUANTUM_GATES, RX, RZ, H, X
 from .quil import Program
 
-PauliTargetDesignator = QubitDesignator
-PauliDesignator = Union["PauliTerm", "PauliSum"]
+PauliTargetDesignator: TypeAlias = QubitDesignator
+PauliDesignator: TypeAlias = Union["PauliTerm", "PauliSum"]
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
 PAULI_PROD = {
@@ -157,13 +151,11 @@ class PauliTerm:
     @classmethod
     def _from_rs_pauli_term(cls, term: quil_rs.PauliTerm) -> "PauliTerm":
         term_list = [(str(gate), FormalArgument(arg)) for (gate, arg) in term.arguments]
-        coefficient = _convert_to_py_expression(term.expression.into_simplified())
-
-        return cls.from_list(term_list, coefficient)
+        return cls.from_list(term_list, term.expression.into_simplified())
 
     def _to_rs_pauli_term(self) -> quil_rs.PauliTerm:
         arguments = [(quil_rs.PauliGate.parse(gate), str(arg)) for arg, gate in self._ops.items()]
-        return quil_rs.PauliTerm(arguments, _convert_to_rs_expression(self.coefficient))
+        return quil_rs.PauliTerm(arguments, self.coefficient)
 
     def id(self, sort_ops: bool = True) -> str:
         """Return an identifier string for the PauliTerm (ignoring the coefficient).
@@ -737,7 +729,7 @@ class PauliSum:
         all_qubits: set[PauliTargetDesignator] = set()
         for term in self.terms:
             all_qubits.update(term.get_qubits())
-        return _convert_to_py_qubits(set(all_qubits))
+        return list(all_qubits)
 
     def simplify(self) -> "PauliSum":
         """Simplify the sum of Pauli operators according to Pauli algebra rules."""

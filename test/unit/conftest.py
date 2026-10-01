@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any
 
 import jax
 
@@ -119,7 +119,7 @@ def qcs_aspen8_quantum_processor(qcs_aspen8_isa: InstructionSetArchitecture) -> 
 
 
 @pytest.fixture
-def noise_model_dict() -> Dict[str, Any]:
+def noise_model_dict() -> dict[str, Any]:
     return {
         "gates": [
             {
