@@ -23,7 +23,7 @@ import pytest
 import quax as qx
 
 from pyquil.external.rpcq import CompilerISA
-from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, RZ, X
+from pyquil.gates import CNOT, CZ, MEASURE, RESET, RX, RY, RZ, X
 from pyquil.noise._channels import (
     Channel,
     ChannelBase,
@@ -335,6 +335,25 @@ class TestMeasurementChannel:
         meas_inst = MEASURE(0, None)
         with pytest.raises(ValueError, match="threshold"):
             MeasurementChannel.from_binary_discriminator(inst=meas_inst, dim=2, threshold=2)
+
+    def test_from_confusion_and_transition_takes_the_levels_from_the_columns(self):
+        """A (2, 3) confusion matrix is a two-outcome readout of a qutrit, QND by default."""
+        confusion = np.array([[0.97, 0.03, 0.1], [0.03, 0.97, 0.9]])
+        ch = MeasurementChannel.from_confusion_and_transition(MEASURE(0, None), confusion)
+        assert ch.process.dims == ((3,), (3,))
+        assert np.allclose(np.asarray(ch.confusion_matrix), confusion)
+        assert np.allclose(np.asarray(ch.transition_matrix), np.eye(3))
+
+    def test_from_confusion_and_transition_agrees_with_the_binary_discriminator(self):
+        """The leaked level read as 1 is the discriminator that thresholds at 1."""
+        ideal = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 1.0]])
+        ch = MeasurementChannel.from_confusion_and_transition(MEASURE(0, None), ideal)
+        discriminator = MeasurementChannel.from_binary_discriminator(MEASURE(0, None), dim=3, threshold=1)
+        assert jnp.allclose(ch.process.matrix, discriminator.process.matrix)
+
+    def test_from_confusion_and_transition_checks_the_transition_shape(self):
+        with pytest.raises(ValueError, match="must be"):
+            MeasurementChannel.from_confusion_and_transition(MEASURE(0, None), np.eye(3)[:2], np.eye(2))
 
     def test_json_roundtrip_preserves_qutrit_dims(self):
         """MeasurementChannel JSON includes explicit dims for non-qubit instruments."""
@@ -1298,6 +1317,32 @@ class TestQuditSupport:
             ch.is_pauli()
         with pytest.raises(ValueError, match="qubits only"):
             ch.to_pauli_vector()
+
+    def test_qubit_gate_promotes_to_qutrit_noise(self):
+        """Leakage noise on a qubit gate makes a qutrit channel whose gate is the identity on |2>."""
+        noise = qx.lindbladians.leakage(0.1)
+        ch = Channel.from_lindbladian(RZ(np.pi / 2, 0), noise)
+        assert ch.dims == (3,)
+        assert jnp.allclose(ch.ideal_unitary.matrix, qx.promote(qx.gates.RZ(np.pi / 2), (3,)).matrix)
+        # A diagonal gate commutes with the |2><1| jump, so the error is the noise alone.
+        assert jnp.allclose(ch.error_process.matrix, qx.evolve(noise, 1.0).matrix, atol=1e-6)
+
+    def test_two_qubit_gate_promotes_to_two_qutrit_noise(self):
+        # |11> -> |20>: big-endian flat indices 4 and 6 of two qutrits.
+        jump = jnp.zeros((1, 9, 9), dtype=complex).at[0, 6, 4].set(np.sqrt(0.05))
+        noise = qx.Lindbladian(hamiltonian=None, jump_operators=qx.Operator.from_matrix(jump, ((3, 3), (3, 3))))
+        ch = Channel.from_lindbladian(CZ(0, 1), noise)
+        assert ch.dims == (3, 3)
+        assert jnp.allclose(ch.error_process.matrix, qx.evolve(noise, 1.0).matrix, atol=1e-6)
+
+    def test_noise_that_cannot_hold_the_gate_is_rejected(self):
+        with pytest.raises(ValueError, match="cannot act on"):
+            Channel.from_lindbladian(RX(np.pi / 2, 0), qx.lindbladians.depolarizing(0.01, (2, 2)))
+
+    def test_from_mixture_promotes_to_qutrit_constituents(self):
+        shift = qx.Unitary.from_matrix(jnp.asarray(self.QUTRIT_X), _operator_dims_from_dimension(3))
+        ch = Channel.from_mixture(X(0), constituents=[shift], rates=[0.01])
+        assert ch.dims == (3,)
 
     def test_error_message_names_the_operation_and_the_dims(self, qutrit_gate):
         gate, custom_gates = qutrit_gate

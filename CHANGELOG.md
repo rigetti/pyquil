@@ -11,6 +11,17 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Changed
+
+- A `Channel` whose noise generator acts on more levels than its gate promotes the gate to the
+  generator's dims, as the identity on the levels above its own: `Channel.from_lindbladian(RX(theta, q),
+  qx.lindbladians.leakage(rate))` is a qutrit channel without a hand-promoted gate in `custom_gates`.
+  `Channel.from_mixture` does the same for constituents on more levels. Noise that cannot hold the gate
+  raises a `ValueError` naming both dims.
+- `MeasurementChannel.from_confusion_and_transition` takes a `(num_outcomes, d)` confusion matrix, so a
+  two-state discriminator on a qutrit is a `(2, 3)` matrix, and its transition matrix defaults to the
+  identity (a quantum non-demolition measurement).
+
 ### Deprecated
 
 APIs that pyQuil v5 removes now emit a `PyQuilDeprecationWarning` when used, and a deprecated
