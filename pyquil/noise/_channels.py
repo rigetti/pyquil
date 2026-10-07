@@ -480,7 +480,7 @@ def _reject_gate_modifiers(inst: Gate) -> None:
 
 
 def _promote_gate(inst: Gate, unitary: qx.Unitary, dims: tuple[int, ...]) -> qx.Unitary:
-    """The gate's unitary on *dims*, the identity on the levels above the gate's own.
+    """Return the gate's unitary on *dims*, as the identity on the levels above the gate's own.
 
     :raises ValueError: If *dims* has a different number of qudits, or fewer levels on any.
     """
