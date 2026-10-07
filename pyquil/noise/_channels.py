@@ -479,22 +479,6 @@ def _reject_gate_modifiers(inst: Gate) -> None:
         )
 
 
-def _promote_gate(inst: Gate, unitary: qx.Unitary, dims: tuple[int, ...]) -> qx.Unitary:
-    """Return the gate's unitary on *dims*, as the identity on the levels above the gate's own.
-
-    :raises ValueError: If *dims* has a different number of qudits, or fewer levels on any.
-    """
-    gate_dims = tuple(unitary.dims[0])
-    if gate_dims == dims:
-        return unitary
-    if len(gate_dims) != len(dims) or any(d < g for d, g in zip(dims, gate_dims, strict=True)):
-        raise ValueError(
-            f"Noise on dims {dims} cannot act on {inst.out()}, whose unitary has dims {gate_dims}: it must have "
-            "as many qudits, each with at least as many levels."
-        )
-    return qx.promote(unitary, dims)
-
-
 class ChannelBase(ABC):
     """Shared behavior for noise channels backed by a superoperator ``process``.
 
@@ -1152,7 +1136,14 @@ class Channel(_LindbladianBacked, ChannelBase):
         the gate to the generator's dims: a gate calibrated on the lowest levels of each qudit acts
         as the identity on the levels above them, as in quax's ``Unitary + Lindbladian``.
         """
-        unitary = _promote_gate(inst, unitary, tuple(noise_lindbladian.dims[0]))
+        dims, gate_dims = tuple(noise_lindbladian.dims[0]), tuple(unitary.dims[0])
+        if dims != gate_dims:
+            if len(dims) != len(gate_dims) or any(d < g for d, g in zip(dims, gate_dims, strict=True)):
+                raise ValueError(
+                    f"Noise on dims {dims} cannot act on {inst.out()}, whose unitary has dims {gate_dims}: it must "
+                    "have as many qudits, each with at least as many levels."
+                )
+            unitary = qx.promote(unitary, dims)
         gate_hamiltonian = qx.unitary_to_hamiltonian(unitary) * (1.0 / gate_time)
         noise_hamiltonian = noise_lindbladian.hamiltonian
         total_hamiltonian = gate_hamiltonian if noise_hamiltonian is None else noise_hamiltonian + gate_hamiltonian
