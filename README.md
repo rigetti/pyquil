@@ -13,8 +13,8 @@ the quantum instruction language developed at [Rigetti Computing](https://www.ri
 PyQuil serves three main functions:
 
 - Easily generating Quil programs from quantum gates and classical operations
-- Compiling and simulating Quil programs using the [Quil Compiler](https://github.com/rigetti/quilc)
-  (quilc) and the [Quantum Virtual Machine](https://github.com/rigetti/qvm) (QVM)
+- Compiling Quil programs using the [Quil Compiler](https://github.com/rigetti/quilc) (quilc), and
+  simulating them in-process, with or without noise, using JAX-based simulators
 - Executing Quil programs on real quantum processors (QPUs) using
   [Quantum Cloud Services][qcs-paper] (QCS)
 
@@ -55,31 +55,30 @@ pip install -e .
 
 If you choose to use `pip`, we highly recommend installing pyQuil within a virtual environment.
 
-PyQuil, along with quilc, the QVM, and other libraries, make up what is called the Forest
-SDK. To make full use of pyQuil, you will need to additionally have installed
-[quilc](https://github.com/quil-lang/quilc) and the [QVM](https://github.com/quil-lang/qvm).
+PyQuil, along with quilc and other libraries, make up what is called the Forest SDK. To compile
+programs with pyQuil, you will need to additionally have installed
+[quilc](https://github.com/quil-lang/quilc). Simulating programs needs nothing else.
 For more information, check out the docs!
 
 Running your first quantum program
 ----------------------------------
 
-In just a few lines, we can use pyQuil with the Forest SDK to simulate a Bell state!
+In just a few lines, we can use pyQuil to simulate a Bell state!
 
 ```python
-from pyquil import get_qc, Program
+import jax
+from pyquil import Program
 from pyquil.gates import CNOT, H, MEASURE
- 
-qvm = get_qc('2q-qvm')
- 
+from pyquil.simulation import TrajectorySimulator
+
 p = Program()
 p += H(0)
 p += CNOT(0, 1)
 ro = p.declare('ro', 'BIT', 2)
 p += MEASURE(0, ro[0])
 p += MEASURE(1, ro[1])
-p.wrap_in_numshots_loop(10)
 
-qvm.run(p).get_register_map()['ro'].tolist()
+TrajectorySimulator(p).sample(num_trajectories=10, key=jax.random.key(0)).tolist()
 ```
 
 The output of the above program should look something like the following,
@@ -87,18 +86,19 @@ the statistics of which are consistent with a two-qubit entangled state.
 
 ```
 [[0, 0],
+ [0, 0],
  [1, 1],
- [1, 1],
+ [0, 0],
  [1, 1],
  [1, 1],
  [0, 0],
  [0, 0],
  [1, 1],
- [0, 0],
  [0, 0]]
 ```
 
-Using the Forest SDK, you can simulate the operation of a real quantum processor (QPU). If you
+To simulate a program as it will run on a real quantum processor (QPU), compile it with quilc
+first, and add a noise model; the [docs](http://pyquil.readthedocs.io/en/latest/) show how. If you
 would like to run on the real QPUs in our lab in Berkeley, you can sign up for an account
 on [Quantum Cloud Services][qcs-request-access] (QCS)!
 

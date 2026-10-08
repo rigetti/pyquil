@@ -24,12 +24,10 @@ Timeout in execution
 --------------------
 
 This may occur due to one of several different problems. Often, it's because you don't have network access
-to the execution endpoint.
+to the execution endpoint. (Simulating a program locally, as in :ref:`simulation`, involves no endpoint, so it can't
+time out this way.)
 
-If you're running against the QVM, ensure that it's running: :ref:`server`. If you're using docker,
-you can check this using ``docker ps``.
-
-If you're running against the QPU, ensure that you are running your program from a supported environment.
+Ensure that you are running your program from a supported environment.
 Live Rigetti QPUs are **only accessible from Rigetti-provided environments**, such as
 `JupyterHub <https://jupyterhub.qcs.rigetti.com>`_. If you are running from anywhere else, such as a
 script on your local computer or a public cloud virtual machine,
@@ -58,7 +56,7 @@ Collect debug information
 
 
 2. pyQuil exposes a diagnostics report that prints helpful debugging information, including
-   whether you have connectivity to ``quilc``, ``QVM`` and access to QCS services. You can
+   whether you have connectivity to ``quilc`` and access to QCS services. You can
    use it by importing a function from the ``diagnostics`` module:
 
    .. testcode:: version

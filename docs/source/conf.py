@@ -54,7 +54,20 @@ autosummary_generate = True
 autoclass_content = "both"
 pygments_style = "sphinx"
 todo_include_todos = True
-# intersphinx_mapping = { "python": ("https://docs.python.org/3/", None) }
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "jax": ("https://docs.jax.dev/en/latest/", None),
+    "quax": ("https://rigetti.gitlab.io/application_benchmarking/quax/", None),
+}
+
+# The simulators and noise model are built on JAX, and converting channels to Kraus form needs 64-bit
+# precision (see simulation_architecture.rst, "Numerical precision"). Every doctest group runs this first.
+doctest_global_setup = """
+import jax
+
+jax.config.update("jax_enable_x64", True)
+"""
 autodoc_type_aliases = {"QPUCompilerAPIOptions": "pyquil.api._qpu_compiler.QPUCompilerAPIOptions"}
 
 # -- Options for HTML output -------------------------------------------------

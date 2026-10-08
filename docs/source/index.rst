@@ -9,10 +9,10 @@
 Welcome to the docs for pyQuil!
 ===============================
 
-As a part of the Quil SDK, pyQuil allows you to build and execute Quil programs using Python. pyQuil
-requires installation of the other components of the Quil SDK, namely the Quil compiler (quilc) and the Quantum Virtual
-Machine (QVM), used for simulating quantum computers. You can also use pyQuil to run programs on real quantum computers
-using `Rigetti's Quantum Cloud Services (QCS) <https://docs.rigetti.com/qcs/>`_.
+As a part of the Quil SDK, pyQuil allows you to build, compile, simulate and execute Quil programs using Python. pyQuil
+compiles programs with the Quil compiler (quilc), which is the other component of the Quil SDK you'll need to install,
+and simulates them itself, with JAX-based simulators that support noise models, gradients and qudits. You can also use
+pyQuil to run programs on real quantum computers using `Rigetti's Quantum Cloud Services (QCS) <https://docs.rigetti.com/qcs/>`_.
 
 To learn more about Quil, the Quil SDK, and QCS, see `Rigetti's documentation <https://docs.rigetti.com>`_.
 
@@ -20,7 +20,7 @@ If you’re new to pyQuil, head to the `getting started <getting_started>`_ guid
 
 .. note::
 
-   If you've used pyQuil before, be sure to check out :ref:`introducing_v4` to help get oriented on the key changes in v4.
+   If you've used pyQuil before, be sure to check out :ref:`introducing_v5` to help get oriented on the key changes in v5.
 
 .. toctree::
    :maxdepth: 2
@@ -29,12 +29,14 @@ If you’re new to pyQuil, head to the `getting started <getting_started>`_ guid
    getting_started
    programs_and_gates
    the_quantum_computer
-   wavefunction_simulator
+   simulation
+   simulation-demo
    compiler
    noise
    simulation_architecture
    advanced_usage
    troubleshooting
+   introducing_v5
    introducing_v4
    exercises
    changes

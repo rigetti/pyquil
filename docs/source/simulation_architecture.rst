@@ -6,25 +6,13 @@ Noisy simulation architecture
 
 .. note::
 
-   **Experimental.** The simulators described here live in the private modules
-   ``pyquil.simulation._simulator``, ``pyquil.simulation._resolver`` and
-   ``pyquil.simulation._circuit`` (and the noise model in ``pyquil.noise``).
-   The API is not stable: names, signatures and return types may change in any
-   release before pyQuil 5, and the import paths are private on purpose. It is
-   documented here because the design is intended to become the default
-   simulation backend in pyQuil v5, and because using it in real work is how the
-   API will be settled.
+   This page describes how the simulators work. To learn how to use them, start with :ref:`simulation`; to build
+   noise models, see :ref:`noise`.
 
-   In pyQuil v5 these simulators replace the QVM, ``PyQVM``, the
-   ``WavefunctionSimulator`` and the NumPy reference simulators, and the Quax-based
-   noise model replaces the Kraus-map noise model; all of those are deprecated in
-   pyQuil v4. Because the simulators described here are private and experimental,
-   we recommend that users keep using the deprecated APIs until they upgrade to
-   pyQuil v5.
-
-   These modules depend on `JAX <https://jax.readthedocs.io>`_ (via the
-   ``rigetti-quax`` package), which provides the operator algebra and the
-   ``jit``/``grad``/``vmap`` machinery the simulators are built on.
+The simulators in :mod:`pyquil.simulation` and the noise model in :mod:`pyquil.noise` are built on
+`JAX <https://jax.readthedocs.io>`_, through the ``rigetti-quax`` package
+(`documentation <https://rigetti.gitlab.io/application_benchmarking/quax/>`_). That package provides the operator
+algebra and the ``jit``/``grad``/``vmap`` machinery the simulators rely on.
 
 
 Goal of the module
@@ -32,7 +20,7 @@ Goal of the module
 
 The module simulates the action of a (possibly noisy) Quil program on a quantum
 register and returns the resulting quantum state or measurement statistics. It
-is designed to solve two problems with the existing simulators simultaneously:
+is designed around three goals:
 
 * **Expressiveness.** Device-realistic noise is not limited to a fixed menu of
   Kraus channels. The module represents noise as arbitrary completely-positive,
@@ -57,7 +45,7 @@ is designed to solve two problems with the existing simulators simultaneously:
   ``jax.vmap`` and sharded across devices.
 
 The unit of noise is a **channel** keyed to a program instruction. A
-:class:`~pyquil.noise._noise_model.NoiseModel` is, conceptually, a partial map
+:class:`~pyquil.noise.NoiseModel` is, conceptually, a partial map
 from instructions to channels,
 
 .. math::
@@ -146,13 +134,13 @@ Construction runs four conceptual stages, each materialized as a closure:
         ▼
    StateVector / DensityMatrix / (StateVector, outcomes)
 
-The linearizer and resolver are Quil-specific and live in ``_resolver.py``. The
+The linearizer and resolver are Quil-specific and live in ``pyquil/simulation/_resolver.py``. The
 compressor is not: merge planning and operator fusion are quantum information,
-not language, so they live in quax (:class:`~pyquil.simulation._circuit.Circuit`,
-:class:`~pyquil.simulation._circuit.MergePlan`) and are shared with any other caller. The calculator is
-specialized per simulator in ``_simulator.py``.
+not language, so :class:`~pyquil.simulation.Circuit` and
+:class:`~pyquil.simulation.MergePlan` are expressed over quax operators alone and know nothing about
+programs. The calculator is specialized per simulator in ``pyquil/simulation/_simulator.py``.
 
-The dividing line is the :class:`~pyquil.simulation._circuit.Circuit` the resolver produces. A circuit
+The dividing line is the :class:`~pyquil.simulation.Circuit` the resolver produces. A circuit
 carries concrete operators and their placements and nothing else — no gate
 names, no memory references, no control flow — so quax never needs a notion of
 a program, and pyquil keeps sole ownership of what a program means.
@@ -188,7 +176,7 @@ memory directly.
 Resolver
 --------
 
-The resolver turns :math:`\theta` into a :class:`~pyquil.simulation._circuit.Circuit`: an ordered
+The resolver turns :math:`\theta` into a :class:`~pyquil.simulation.Circuit`: an ordered
 sequence of concrete operators, each placed on a tuple of (zero-based) qudit
 indices, over a register of inferred dimensions. It is produced by
 :func:`~pyquil.simulation._resolver.resolve_program`, which returns a
@@ -235,7 +223,7 @@ Expansion does several things at once:
 
 * **DEFCIRCUIT and cycle expansion.** ``DEFCIRCUIT`` bodies are expanded with
   formal-argument substitution. When a circuit invocation matches a
-  :class:`~pyquil.noise._channels.CycleChannel` in the noise model — a single
+  :class:`~pyquil.noise.CycleChannel` in the noise model — a single
   channel describing the joint noise of a whole parallel cycle — the cycle is
   replaced by the channel's constituent operators directly.
 
@@ -307,12 +295,12 @@ Compressor
 Applying operators one at a time is wasteful: a depth-:math:`D`,
 :math:`N`-qubit program issues many small one- and two-qubit operators, and
 under ``jit`` each distinct operator shape becomes a distinct branch in the
-compiled graph. The compressor (:meth:`~pyquil.simulation._circuit.MergePlan.greedy`) performs **greedy
+compiled graph. The compressor (:meth:`~pyquil.simulation.MergePlan.greedy`) performs **greedy
 edge contraction** on the DAG, fusing adjacent operators into a single operator
 on the union of their qubits, up to a cap of ``max_subsystem_size`` qubits.
 
 Planning is separated from merging, and this matters more than it looks.
-:meth:`~pyquil.simulation._circuit.MergePlan.greedy` consumes only the subsystem list and the size cap
+:meth:`~pyquil.simulation.MergePlan.greedy` consumes only the subsystem list and the size cap
 — no operators, no dimensions, no parameters — and returns a plan as *data*:
 which operations fuse into which group, the distinct base subsystems, and each
 group's base index. The vectorized construction described under `Calculator`_
@@ -320,11 +308,11 @@ reads that plan and builds the fused operator stack under ``jax.vmap`` **without
 ever materialising the individual operators**, which is what makes its compile
 time proportional to the number of gate kinds rather than the number of gates.
 Had the plan been hidden inside an opaque ``optimize()`` call, that path would
-not be expressible from outside quax. :meth:`~pyquil.simulation._circuit.MergePlan.apply` performs the
+not be expressible from outside the compressor. :meth:`~pyquil.simulation.MergePlan.apply` performs the
 eager merge for callers that want the operators themselves.
 
 Greedy contraction is one strategy, not the definition of a plan.
-:meth:`~pyquil.simulation._circuit.MergePlan.from_partition` accepts *any* partition of the
+:meth:`~pyquil.simulation.MergePlan.from_partition` accepts *any* partition of the
 operations into groups, checks that every group is convex (the quotient DAG of the partition
 must be acyclic) and within budget, and emits the groups in topological order. ``greedy``
 computes its partition and hands it over, and a future strategy — layer-wise fusion,
@@ -358,7 +346,7 @@ Key properties:
   they are pinned automatically because they are still there.
 
   Collapsing an instrument to its total channel is exactly
-  :meth:`~pyquil.simulation._circuit.Circuit.to_superops`, which is why expansion needs no mode parameter: resolving a
+  :meth:`~pyquil.simulation.Circuit.to_superops`, which is why expansion needs no mode parameter: resolving a
   measurement as a dephasing superoperator up front and collapsing an instrument afterwards give
   bit-identical results, so the choice belongs to whoever evolves the circuit.
 
@@ -369,7 +357,7 @@ Key properties:
   Since operations sharing no qubit commute, this is physically harmless — but it means a
   caller must **not** use a group's position as an operation's identity. Measurement outcome
   columns are labelled from the operation indices carried in
-  :attr:`~pyquil.simulation._circuit.MergePlan.groups`, which are unaffected by fusion.
+  :attr:`~pyquil.simulation.MergePlan.groups`, which are unaffected by fusion.
 
 Setting ``max_subsystem_size=0`` disables merging entirely (useful for
 debugging or for exact per-instruction inspection).
@@ -388,10 +376,10 @@ runs the whole pipeline -- ``resolve``, ``compress``, ``adapt`` -- in one call:
   outcome distribution can be read off the pre-measurement state; see `Density matrix`_. The
   differentiable family does this inside its vectorized stack constructor rather than by
   walking a circuit, so it leaves ``adapt`` as the identity;
-  :meth:`~pyquil.simulation._circuit.Circuit.to_superops` performs the same conversion when you
+  :meth:`~pyquil.simulation.Circuit.to_superops` performs the same conversion when you
   want the circuit itself.
 
-* **Trajectory** (:meth:`~pyquil.simulation._circuit.Circuit.to_kraus_maps`): a ``SuperOp`` is
+* **Trajectory** (:meth:`~pyquil.simulation.Circuit.to_kraus_maps`): a ``SuperOp`` is
   converted to a ``KrausMap``; ``Unitary``, ``KrausMap``, and ``QuantumInstrument`` pass
   through unchanged, each already being applicable to a state vector either deterministically
   or by sampling. The Kraus set has the full size :math:`d^2` -- components below the
@@ -426,8 +414,8 @@ trajectories, a PRNG key), ``jax.jit`` and ``jax.grad`` compose with it directly
 
 The parameter vector is **optional**. ``compute()`` may be called with no argument for a
 program that declares no runtime parameters; for a parametric program the vector is required,
-must have one entry per parametric gate *occurrence*, and is most easily built with
-``sim.linearize(memory_map)``. A wrong length or a missing vector is reported as such rather
+must have one entry per distinct memory reference (``sim.num_parameters`` of them), and is most easily
+built with ``sim.linearize(memory_map)``. A wrong length or a missing vector is reported as such rather
 than surfacing as an indexing error from JAX.
 
 
@@ -477,8 +465,8 @@ Cirq, Qiskit and PennyLane where the design allows it:
 * **Parameters**: ``parameters``, ``parameter_index`` and ``linearize`` describe
   and build the flat parameter vector (see `Linearizer`_).
 * **Introspection**: ``resolve(params)`` returns the program's
-  :class:`~pyquil.simulation._circuit.Circuit`, ``compress(circuit)`` the merged one,
-  and ``plan`` the :class:`~pyquil.simulation._circuit.MergePlan` behind it.
+  :class:`~pyquil.simulation.Circuit`, ``compress(circuit)`` the merged one,
+  and ``plan`` the :class:`~pyquil.simulation.MergePlan` behind it.
 * **Evaluation**: ``compute(params)`` is the entry point and returns a quax state
   (``StateVector`` or ``DensityMatrix``); ``params`` may be omitted for a program
   with no runtime parameters. The density-matrix simulator adds
@@ -613,7 +601,7 @@ full program unitary in addition to the state.
    import jax.numpy as jnp
    from pyquil import Program
    from pyquil.gates import H, CNOT, RX
-   from pyquil.simulation._simulator import PureStateVectorSimulator
+   from pyquil.simulation import PureStateVectorSimulator
 
    # A Bell state (no runtime parameters).
    sim = PureStateVectorSimulator(Program(H(0), CNOT(0, 1)))
@@ -662,9 +650,8 @@ its total channel, and is not read out.
    import jax.numpy as jnp
    from pyquil import Program
    from pyquil.gates import MEASURE, RX
-   from pyquil.noise._channels import Channel
-   from pyquil.noise._noise_model import NoiseModel
-   from pyquil.simulation._simulator import DensityMatrixSimulator
+   from pyquil.noise import Channel, NoiseModel
+   from pyquil.simulation import DensityMatrixSimulator
 
    gate = RX(jnp.pi, 0)
    noise = NoiseModel.from_channels([
@@ -680,12 +667,9 @@ its total channel, and is not read out.
    probs = sim.outcome_probabilities()        # P(0), P(1) for the terminal MEASURE
 
 A device-realistic model can be built directly from an instruction set
-architecture with :meth:`NoiseModel.from_isa <pyquil.noise._noise_model.NoiseModel.from_isa>`,
+architecture with :meth:`NoiseModel.from_isa <pyquil.noise.NoiseModel.from_isa>`,
 which takes a QCS ``InstructionSetArchitecture`` and converts per-gate fidelities to
-depolarizing channels and per-qubit readout fidelities to symmetric confusion.  (For the
-legacy rpcq-derived ``CompilerISA``, use
-:meth:`NoiseModel.from_compiler_isa <pyquil.noise._noise_model.NoiseModel.from_compiler_isa>`,
-which is deprecated for removal in pyQuil v5.)
+depolarizing channels and per-qubit readout fidelities to symmetric confusion. See :ref:`noise`.
 
 Trajectory
 ----------
@@ -751,7 +735,7 @@ at trace time rather than return zeros. Use ``DensityMatrixSimulator`` for gradi
    from pyquil.gates import H, MEASURE
    from pyquil.quilatom import MemoryReference
    from pyquil.quilbase import Declare
-   from pyquil.simulation._simulator import TrajectorySimulator
+   from pyquil.simulation import TrajectorySimulator
 
    p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
    sim = TrajectorySimulator(p)
@@ -790,7 +774,7 @@ The simulators never change JAX's global precision settings; two of them matter 
 * **64-bit arithmetic.** JAX computes in 32 bits unless ``jax_enable_x64`` is set
   (``jax.config.update("jax_enable_x64", True)`` or ``JAX_ENABLE_X64=1``). State evolution
   at 32 bits is usually adequate, but Kraus decomposition is not: :meth:`Circuit.to_kraus_maps
-  <pyquil.simulation._circuit.Circuit.to_kraus_maps>` diagonalises each channel's Choi matrix,
+  <pyquil.simulation.Circuit.to_kraus_maps>` diagonalises each channel's Choi matrix,
   and at float32 an eigenvalue below roughly ``1e-6`` is indistinguishable from round-off --
   the resolution of the arithmetic itself. Error components weaker than that are lost, which
   matters most for the correlated multi-error branches of a merged channel. It therefore warns

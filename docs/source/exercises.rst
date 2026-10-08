@@ -32,7 +32,7 @@ We can use the full generality of NumPy to construct new gate matrices.
    with the first argument being the *control qubit*.
 
 2. Write a Quil program to define a controlled-\ :math:`Y` gate in this
-   manner. Find the wavefunction when applying this gate to qubit 1
+   manner. Find the state when applying this gate to qubit 1
    controlled by qubit 0.
 
 Exercise 3: Grover's Algorithm
@@ -84,7 +84,7 @@ Fourier transform can be used to transform a function from the time domain into 
 Compute the discrete Fourier transform of ``[0, 1, 0, 0, 0, 0, 0, 0]``, using pyQuil:
  a. Write a state preparation quantum program.
  b. Write a function to make a 3-qubit QFT program, taking qubit indices as arguments.
- c. Combine your solutions to part a and b into one program and use the ``WavefunctionSimulator`` to get the solution.
+ c. Combine your solutions to part a and b into one program and use the ``PureStateVectorSimulator`` to get the solution.
 
 .. note:: For a more challenging initial state, try ``01100100``.
 
@@ -98,8 +98,9 @@ We are going to apply the QFT on the *amplitudes* of the states.
 We want to prepare a state that corresponds to the sequence for which we
 want to compute the discrete Fourier transform. As the exercise hinted in part b, we need 3 qubits to transform
 an 8 bit sequence. It is simplest to understand if we think of the qubits as three digits in a binary string
-(aka bitstring). There are 8 possible values the bitstring can have, and in our quantum state, each of these
-possibilities has an amplitude. Our 8 indices in the QFT sequence label each of these states. For clarity:
+(aka bitstring), with qubit 0 as the leftmost digit (see :ref:`basis_ordering`). There are 8 possible values the
+bitstring can have, and in our quantum state, each of these possibilities has an amplitude. Our 8 indices in the QFT
+sequence label each of these states. For clarity:
 
 :math:`|000\rangle` => ``10000000``
 
@@ -113,34 +114,33 @@ The sequence we want to compute is ``01000000``, so our initial state is simply 
 than one ``1``, we would want an equal superposition over all the selected states. (E.g. ``01100000`` would be an
 equal superposition of :math:`|001\rangle` and :math:`|010\rangle`).
 
-To set up the :math:`|001\rangle` state, we only have to apply one :math:`X`-gate to the zeroth qubit.
+To set up the :math:`|001\rangle` state, we only have to apply one :math:`X`-gate to qubit 2, the rightmost digit.
 
 .. testcode:: qft
+
+    import numpy as np
 
     from pyquil import Program
     from pyquil.gates import *
 
-    state_prep = Program(X(0))
+    state_prep = Program(X(2))
 
-We can verify that this works by computing its wavefunction with the
-:ref:`Wavefunction Simulator <wavefunction_simulator>`. However, we need to add some "dummy" qubits,
-because otherwise ``wavefunction`` would return a two-element vector for only qubit 0.
+We can verify that this works by computing its state with a :ref:`simulator <simulation>`. However, we need to add
+some "dummy" qubits, because the simulator's register holds only the qubits a program acts on, so it would otherwise
+return a two-element vector for only qubit 2.
 
 .. testcode:: qft
 
-    from pyquil.api import WavefunctionSimulator
+    from pyquil.simulation import PureStateVectorSimulator
 
-    add_dummy_qubits = Program(I(1), I(2))  # The identity gate I has no effect
+    add_dummy_qubits = Program(I(0), I(1))  # The identity gate I has no effect
 
-    wf_sim = WavefunctionSimulator()
-    wavefunction = wf_sim.wavefunction(state_prep + add_dummy_qubits)
-    print(wavefunction)
+    state = PureStateVectorSimulator(state_prep + add_dummy_qubits).compute()
+    print(state.matrix.reshape(-1).real)
 
 .. testoutput:: qft
 
-    (1+0j)|001>
-
-We'll need ``wf_sim`` for part c, too.
+    [0. 1. 0. 0. 0. 0. 0. 0.]
 
 Part b: Three qubit QFT program
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -156,19 +156,19 @@ It is a mix of Hadamard and CPHASE gates, with a SWAP gate for bit reversal corr
     def qft3(q0, q1, q2):
         p = Program()
         p += [SWAP(q0, q2),
-              H(q0),
-              CPHASE(-pi / 2.0, q0, q1),
+              H(q2),
+              CPHASE(-pi / 2.0, q2, q1),
               H(q1),
-              CPHASE(-pi / 4.0, q0, q2),
-              CPHASE(-pi / 2.0, q1, q2),
-              H(q2)]
+              CPHASE(-pi / 4.0, q2, q0),
+              CPHASE(-pi / 2.0, q1, q0),
+              H(q0)]
         return p
 
 There is a very important detail to recognize here: The function
 ``qft3`` doesn't *compute* the QFT, but rather it *makes a quantum
-program* to compute the QFT on qubits ``q0``, ``q1``, and ``q2``.
+program* to compute the QFT on qubits ``q0``, ``q1``, and ``q2``, with ``q0`` the most significant.
 
-We can see what this program looks like in Quil notation with ``print(qft(0, 1, 2))``.
+We can see what this program looks like in Quil notation with ``print(qft3(0, 1, 2))``.
 
 .. testcode:: qft
     :hide:
@@ -178,12 +178,12 @@ We can see what this program looks like in Quil notation with ``print(qft(0, 1, 
 .. testoutput:: qft
 
     SWAP 0 2
-    H 0
-    CPHASE(-1.5707963267948966) 0 1
-    H 1
-    CPHASE(-0.7853981633974483) 0 2
-    CPHASE(-1.5707963267948966) 1 2
     H 2
+    CPHASE(-1.5707963267948966) 2 1
+    H 1
+    CPHASE(-0.7853981633974483) 2 0
+    CPHASE(-1.5707963267948966) 1 0
+    H 0
 
 Part c: Execute the QFT
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -193,33 +193,28 @@ Combining parts a and b:
 .. testcode:: qft
 
     compute_qft_prog = state_prep + qft3(0, 1, 2)
-    wavefunction = wf_sim.wavefunction(compute_qft_prog)
-    print(wavefunction.amplitudes)
+    amplitudes = PureStateVectorSimulator(compute_qft_prog).compute().matrix.reshape(-1)
+    print(np.round(amplitudes, 3) + 0.0)
 
 .. testoutput:: qft
 
-    [ 3.53553391e-01+0.j          2.50000000e-01-0.25j      
-      2.16489014e-17-0.35355339j -2.50000000e-01-0.25j      
-     -3.53553391e-01+0.j         -2.50000000e-01+0.25j      
-     -2.16489014e-17+0.35355339j  2.50000000e-01+0.25j      ]
+    [ 0.354+0.j     0.25 -0.25j   0.   -0.354j -0.25 -0.25j  -0.354+0.j
+     -0.25 +0.25j   0.   +0.354j  0.25 +0.25j ]
 
 
 We can verify this works by computing the *inverse* FFT on the output with NumPy and seeing that we get back our input
-(with some floating point error).
+(up to floating point error, which the rounding hides).
 
 .. testcode:: qft
 
     from numpy.fft import ifft
-    print(ifft(wavefunction.amplitudes, norm="ortho"))
+    print(np.round(ifft(amplitudes, norm="ortho").real, 3) + 0.0)
 
 .. testoutput:: qft
 
-    [ 0.00000000e+00+0.00000000e+00j  1.00000000e+00+4.30636606e-17j
-      0.00000000e+00+0.00000000e+00j  0.00000000e+00-1.53080850e-17j
-      0.00000000e+00+0.00000000e+00j -7.85046229e-17-1.24474906e-17j
-      0.00000000e+00+0.00000000e+00j  0.00000000e+00-1.53080850e-17j]
+    [0. 1. 0. 0. 0. 0. 0. 0.]
 
-After ignoring the terms that are on the order of ``1e-17``, we get ``[0, 1, 0, 0, 0, 0, 0, 0]``, which was our input!
+We get ``[0, 1, 0, 0, 0, 0, 0, 0]``, which was our input!
 
 Example: The Meyer-Penny Game
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -278,12 +273,14 @@ We first import and initialize the necessary tools [3]_
 
 .. testcode:: meyer-penny
 
-    from pyquil import Program
-    from pyquil.api import WavefunctionSimulator
-    from pyquil.gates import *
+    import jax
 
-    wf_sim = WavefunctionSimulator()
+    from pyquil import Program
+    from pyquil.gates import *
+    from pyquil.simulation import TrajectorySimulator
+
     p = Program()
+    ro = p.declare("ro", "BIT", 2)
 
 and then wire it all up into the overall measurement circuit; remember that qubit 0 is the penny, and qubit 1
 represents Picard's choice.
@@ -296,43 +293,39 @@ represents Picard's choice.
     p += CNOT(1, 0)
     p += H(0)
 
-We use the quantum mechanics principle of deferred measurement to keep all the measurement logic separate from the gates.
-Our method call to the ``WavefunctionSimulator`` will handle measuring for us [4]_.
-
-Finally, we play the game several times. (Remember to run your :ref:`qvm server <server>`.)
+We use the quantum mechanics principle of deferred measurement to keep all the measurement logic separate from the gates,
+and measure both qubits at the end [4]_:
 
 .. testcode:: meyer-penny
 
-    results = wf_sim.run_and_measure(p, trials=10)
-    print(results)
+    p += MEASURE(0, ro[0])
+    p += MEASURE(1, ro[1])
+
+Finally, we play the game several times, by sampling the program with a :ref:`simulator <simulation>`.
+
+.. testcode:: meyer-penny
+
+    results = TrajectorySimulator(p).sample(num_trajectories=10, key=jax.random.key(0))
+    print(results[:, 0])
 
 .. testoutput:: meyer-penny
-    :hide:
 
-    [[1 ...]
-     [1 ...]
-     [1 ...]
-     [1 ...]
-     [1 ...]
-     [1 ...]
-     [1 ...]
-     [1 ...]
-     [1 ...]
-     [1 ...]]
+    [1 1 1 1 1 1 1 1 1 1]
+
+``results`` has one row per game; printed in full, it looks like
 
 .. code:: python
 
     [[1 1]
-     [1 1]
-     [1 1]
-     [1 1]
-     [1 1]
+     [1 0]
      [1 0]
      [1 1]
      [1 1]
+     [1 0]
+     [1 0]
+     [1 0]
      [1 1]
-     [1 0]]
-
+     [1 1]]
 
 In each trial, the first number is the outcome of the game, whereas the second number represents Picard's choice to flip
 or not flip the penny.

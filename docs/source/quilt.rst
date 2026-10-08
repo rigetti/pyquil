@@ -29,6 +29,5 @@ the `Quil project homepage <https://github.com/rigetti/quil>`_.
 
 .. warning::
 
-   Quil-T instructions are not supported by `quilc` or the QVM. See
-   :ref:`this note <quil_t_qvm_warning>` for a pattern you can use to
-   dynamically remove them before testing your program against a QVM.
+   Quil-T instructions are not supported by ``quilc``, and pyQuil's simulators ignore them. See
+   :ref:`this note <quil_t_compilation>` for how to remove them before compiling a program with ``quilc``.
