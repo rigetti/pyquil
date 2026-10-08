@@ -28,7 +28,7 @@ from typing import Any
 import numpy as np
 from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
-from qcs_sdk import ExecutionData, RegisterData, ResultData
+from qcs_sdk import ExecutionData, RegisterData
 from qcs_sdk.qvm import QVMResultData
 
 from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
@@ -290,7 +290,6 @@ class PyQVM(QAM["PyQVM"]):
         result_data = QVMResultData.from_memory_map(
             {key: RegisterData(matrix.tolist()) for key, matrix in self._memory_results.items()}
         )
-        result_data = ResultData(result_data)
         data = ExecutionData(result_data=result_data, duration=None)
         return QAMExecutionResult(
             executable=self.program.copy(),

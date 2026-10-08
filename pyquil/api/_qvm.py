@@ -19,7 +19,7 @@ from typing import Any
 
 import numpy as np
 from deprecated.sphinx import deprecated
-from qcs_sdk import ExecutionData, QCSClient, ResultData, qvm
+from qcs_sdk import ExecutionData, QCSClient, qvm
 from qcs_sdk.qvm import QVMClient, QVMOptions, QVMResultData
 
 from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
@@ -176,8 +176,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """Return the results of execution on the QVM."""
-        result_data = ResultData(execute_response.data)
-        data = ExecutionData(result_data=result_data, duration=None)
+        data = ExecutionData(result_data=execute_response.data, duration=None)
         return QAMExecutionResult(executable=execute_response.executable, data=data)
 
     def get_version_info(self) -> str:

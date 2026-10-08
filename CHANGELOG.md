@@ -11,6 +11,11 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Changed
+
+- Updated QCS SDK to 0.30.0. Update QCS SDK for benchmarking campaign. Required for single-use
+  refresh tokens.
+
 ## 4.22.0 (2026-10-08)
 
 ### Changed
