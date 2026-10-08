@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from qcs_sdk import ExecutionData
 from qcs_sdk.qpu import MemoryValues, QPUResultData, ReadoutValues
-from qcs_sdk.qpu.api import ExecutionResult, ExecutionResults, Register
+from qcs_sdk.qpu.api import ExecutionResult, ExecutionResults
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import (
@@ -76,8 +76,8 @@ def test_qpu_execute(
 
     mock_retrieve_results.return_value = ExecutionResults(
         {
-            "q0": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
-            "q1": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
+            "q0": ExecutionResult.from_register([1, 1, 1, 1]),
+            "q1": ExecutionResult.from_register([1, 1, 1, 1]),
         },
         {
             "binary": MemoryValues.from_binary([0, 1, 0, 1]),
@@ -109,8 +109,8 @@ def test_qpu_execute_jagged_results(
 
     mock_retrieve_results.return_value = ExecutionResults(
         {
-            "q0": ExecutionResult.from_register(Register.from_i32([1, 1])),
-            "q1": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
+            "q0": ExecutionResult.from_register([1, 1]),
+            "q1": ExecutionResult.from_register([1, 1, 1, 1]),
         },
         {
             "binary": MemoryValues.from_binary([0, 1, 0, 1]),
@@ -158,8 +158,8 @@ class TestQPUExecutionOptions:
 
         mock_retrieve_results.return_value = ExecutionResults(
             {
-                "q0": ExecutionResult.from_register(Register.from_i32([1, 1])),
-                "q1": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
+                "q0": ExecutionResult.from_register([1, 1]),
+                "q1": ExecutionResult.from_register([1, 1, 1, 1]),
             },
             {"stash": MemoryValues.from_binary([0, 1, 0, 1])},
         )
@@ -193,8 +193,8 @@ class TestQPUExecutionOptions:
 
         mock_retrieve_results.return_value = ExecutionResults(
             {
-                "q0": ExecutionResult.from_register(Register.from_i32([1, 1])),
-                "q1": ExecutionResult.from_register(Register.from_i32([1, 1, 1, 1])),
+                "q0": ExecutionResult.from_register([1, 1]),
+                "q1": ExecutionResult.from_register([1, 1, 1, 1]),
             },
             {"stash": MemoryValues.from_binary([0, 1, 0, 1])},
         )

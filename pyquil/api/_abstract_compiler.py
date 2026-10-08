@@ -27,7 +27,7 @@ from qcs_sdk.compiler.quilc import CompilationResult, CompilerOpts, QuilcClient,
 from rpcq.messages import ParameterSpec
 
 from pyquil._version import pyquil_version
-from pyquil.api._compiler_client import CompilerClient
+from pyquil.api._compiler_client import CompilerClient, _metadata_from_sdk
 from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
 from pyquil.paulis import PauliTerm
 from pyquil.quantum_processor import AbstractQuantumProcessor
@@ -129,7 +129,7 @@ class AbstractCompiler(ABC):
         )
 
         native_program = program.copy_everything_except_instructions()
-        native_program.native_quil_metadata = result.native_quil_metadata
+        native_program.native_quil_metadata = _metadata_from_sdk(result.native_quil_metadata)
         native_program.inst(result.program)
 
         return native_program

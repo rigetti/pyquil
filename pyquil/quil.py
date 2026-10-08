@@ -22,6 +22,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
 from copy import deepcopy
 from typing import (
+    TYPE_CHECKING,
     Any,
     Optional,
     TypeVar,
@@ -32,7 +33,6 @@ from typing import (
 import numpy as np
 import quil.instructions as quil_rs
 from deprecated.sphinx import deprecated
-from qcs_sdk.compiler.quilc import NativeQuilMetadata
 from quil.program import CalibrationSet
 from quil.program import Program as RSProgram
 
@@ -81,6 +81,9 @@ from pyquil.quiltcalibrations import (
     CalibrationMatch,
     _convert_to_calibration_match,
 )
+
+if TYPE_CHECKING:
+    from pyquil.api._compiler_client import NativeQuilMetadataResponse
 
 InstructionDesignator = Union[
     AbstractInstruction,
@@ -139,7 +142,7 @@ class Program:
         # default number of shots to loop through
         self.num_shots = 1
 
-        self.native_quil_metadata: NativeQuilMetadata | None = None
+        self.native_quil_metadata: NativeQuilMetadataResponse | None = None
 
     # The following properties are cached on the first call and won't be re-built unless cleared.
     # Any method that mutates the state program should use the `@_invalidates_cached_properties`
