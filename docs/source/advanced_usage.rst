@@ -6,8 +6,7 @@ Advanced usage
 
 .. note::
 
-    If you're running locally, remember set up the QVM and quilc in server mode before trying to use
-    them: :ref:`server`.
+    The examples that compile programs need ``quilc`` running in server mode: :ref:`server`.
 
 .. _pyquil_configuration:
 
@@ -16,7 +15,7 @@ pyQuil configuration
 ********************
 
 :py:class:`~pyquil.api.QCSClient` instructs pyQuil on how to connect with the components needed to compile and run
-programs (``quilc``, ``qvm``, and QCS). Any APIs that take a configuration object as input
+programs (``quilc`` and QCS). Any APIs that take a configuration object as input
 (e.g. :py:func:`~pyquil.api.get_qc`) typically do so optionally, so that a default configuration can be loaded
 for you if one is not provided. You can override this default configuration by either instantiating your own
 :py:class:`~pyquil.api.QCSClient` object and providing it as input to the function in question,
@@ -24,15 +23,10 @@ or by setting the ``QCS_SETTINGS_FILE_PATH`` and/or ``QCS_SECRETS_FILE_PATH`` en
 pyQuil load its settings and secrets from specific locations. By default, configuration will be loaded from
 ``$HOME/.qcs/settings.toml`` and ``$HOME/.qcs/secrets.toml``.
 
-Additionally, you can override whichever QVM and quilc URLs are loaded from ``settings.toml``
-(``profiles.<profile>.applications.pyquil.qvm_url`` and ``profiles.<profile>.applications.pyquil.quilc_url`` fields)
-by setting the ``QCS_SETTINGS_APPLICATIONS_QVM_URL`` and/or ``QCS_SETTINGS_APPLICATIONS_QUILC_URL``
-environment variables. If these URLs are missing from ``settings.toml`` and are not set by environment variables,
-the following defaults will be used (as they correspond to the default behavior of the QVM and quilc when running
-locally):
-
-- QVM URL: ``http://127.0.0.1:5000``
-- quilc URL: ``tcp://127.0.0.1:5555``
+Additionally, you can override the quilc URL loaded from ``settings.toml``
+(the ``profiles.<profile>.applications.pyquil.quilc_url`` field) by setting the ``QCS_SETTINGS_APPLICATIONS_QUILC_URL``
+environment variable. If the URL is missing from ``settings.toml`` and is not set by the environment variable,
+``tcp://127.0.0.1:5555`` is used, which corresponds to the default behavior of quilc when running locally.
 
 **************
 Multithreading
@@ -44,13 +38,12 @@ results for multiple programs or parameter values at once.  Note that :py:class:
 concurrent context.
 
 .. note::
-    The QVM processes incoming requests in parallel, while a QPU may process them sequentially or in parallel
-    (depending on the qubits used). If you encounter timeouts while trying to run large numbers of programs against a
+    A QPU may process incoming requests sequentially or in parallel (depending on the qubits used). If you encounter timeouts while trying to run large numbers of programs against a
     QPU, try increasing the ``execution_timeout`` parameter on calls  to :py:func:`~pyquil.get_qc` (specified in
     seconds).
 
 .. note::
-    We suggest running jobs with a minimum of 2x parallelism, so that the QVM or QPU
+    We suggest running jobs with a minimum of 2x parallelism, so that the QPU
     is fully occupied while your program runs and no time is wasted in between jobs.
 
 .. note::
@@ -111,20 +104,15 @@ After doing so, for all intents and purposes - compilation, optimization, etc - 
 as when using "default" endpoint for a given quantum processor, except that it will be executed by an
 alternate QCS service, and the results of execution should not be treated as correct or meaningful.
 
-*******************************
-Using libquil for Quilc and QVM
-*******************************
-
-.. note::
-
-   pyQuil's use of the QVM, including through ``libquil``, is deprecated and will be removed in pyQuil v5; see
-   :ref:`the deprecation note <qvm_use>`.
+***************************
+Using libquil for ``quilc``
+***************************
 
 .. note::
     This feature is experimental and may not work for all platforms.
 
-`libquil <https://github.com/rigetti/libquil>`_ provides the functionality of Quilc and QVM in a library
-that can be used without having to run Quilc and QVM as servers, which can make developing with pyQuil
+`libquil <https://github.com/rigetti/libquil>`_ provides the functionality of ``quilc`` in a library
+that can be used without having to run ``quilc`` as a server, which can make developing with pyQuil
 easier.
 
 To use ``libquil``, first follow its `installation instructions <https://github.com/rigetti/libquil#libquil>`_.
@@ -149,20 +137,19 @@ Towards the end of the output, you will see a ``libquil`` section like below
     libquil:
         available: true
         quilc version: 1.27.0
-        qvm version: 1.17.2 (077ba23)
 
 If you do not see ``available: true`` then re-try installation. If you continue to have issues, please report them
 on `github <https://github.com/rigetti/pyquil/issues/new/choose>`_.
 
-If installation was successful, you can now use libquil in pyQuil: the ``get_qc`` function provides two keyword parameters ``quilc_client`` and ``qvm_client`` which can be set to use ``libquil``:
+If installation was successful, you can now use libquil in pyQuil: the ``get_qc`` function's ``quilc_client`` keyword
+parameter can be set to use ``libquil``:
 
 .. code:: python
 
     from pyquil import get_qc
     from qcs_sdk.compiler.quilc import QuilcClient
-    from qcs_sdk.qvm import QVMClient
 
-    qc = get_qc("8q-qvm", quilc_client=QuilcClient.new_libquil(), qvm_client=QVMClient.new_libquil())
+    qc = get_qc("8q", quilc_client=QuilcClient.new_libquil())
 
 Please report issues on `github <https://github.com/rigetti/pyquil/issues/new/choose>`_.
 
@@ -265,7 +252,7 @@ This method accepts any function that takes a placeholder as an argument, and re
 .. testsetup:: placeholders
 
     from typing import Optional
-    from pyquil import Program, get_qc
+    from pyquil import Program
     from pyquil.gates import H, CNOT
     from pyquil.quilatom import QubitPlaceholder
 
@@ -274,7 +261,6 @@ This method accepts any function that takes a placeholder as an argument, and re
     q0 = QubitPlaceholder()
     q1 = QubitPlaceholder()
     p = Program(H(q0), CNOT(q0, q1))
-    qc = get_qc("2q-qvm")
 
     def qubit_resolver(placeholder: QubitPlaceholder) -> Optional[int]:
         if placeholder == q0:
@@ -450,30 +436,20 @@ method.
     LABEL @END_0
     MEASURE 0 ro[0]
 
-We can run this program a few times to see what we get in the readout register ``ro``.
+We can run this program a few times to see what we get in the readout register ``ro``. pyQuil's local simulators
+evaluate straight-line programs only and reject ``JUMP`` instructions (see :ref:`simulation`), so a program with
+classical control flow runs on a QPU:
 
-.. testcode:: control-flow
+.. code:: python
 
     from pyquil import get_qc
 
-    qc = get_qc("2q-qvm")
+    qc = get_qc("Ankaa-3")
     branching_prog.wrap_in_numshots_loop(10)
-    result = qc.run(branching_prog)
+    result = qc.run(qc.compile(branching_prog))
     print(result.get_register_map()['test_register'])
 
-.. testoutput:: control-flow
-    :hide:
-
-    [[...]
-     [...]
-     [...]
-     [...]
-     [...]
-     [...]
-     [...]
-     [...]
-     [...]
-     [...]]
+which prints something like
 
 .. parsed-literal::
 
@@ -506,8 +482,8 @@ To start, let's import everything we'll need:
     # We'll use numpy to help us validate our results
     import numpy as np
 
-    # We'll need to create a program and define an executor
-    from pyquil import Program, get_qc
+    # We'll need to create a program
+    from pyquil import Program
     # We'll use these gates in our program
     from pyquil.gates import CNOT, H, X
     # We'll also need the help of a few control flow instructions
@@ -612,22 +588,14 @@ With each component of our program ready, we just need to compose all the pieces
 Testing our program
 ^^^^^^^^^^^^^^^^^^^
 
-Now that we have our program, let's test it out. We'll use the ``sentinel_program`` function to construct the program
-and run it against a QVM for 1000 shots. We'll use numpy to assert that the measures register contains only 0s. Over
-1000 trials, this result would be improbable if our program didn't work as intended.
+Now that we have our program, let's test it out. We'll use the ``sentinel_program`` function to construct the program:
 
 .. testcode:: sentinel-based-loop
 
     qubits = (Qubit(0), Qubit(1))
 
-    qc = get_qc("2q-qvm")
     program = sentinel_program(qubits)
-    program.wrap_in_numshots_loop(1000)
     print(program.out())
-    results = qc.run(program)
-    measures = results.get_register_map()["measures"] 
-
-    assert np.all(measures == 0)
 
 .. testoutput:: sentinel-based-loop
 
@@ -653,6 +621,21 @@ and run it against a QVM for 1000 shots. We'll use numpy to assert that the meas
     LABEL @END_2
     JUMP @start-loop
     LABEL @END_0
+
+Then we run it on a QPU for 1000 shots, and use numpy to assert that the measures register contains only 0s. Over 1000
+trials, this result would be improbable if our program didn't work as intended. As above, the local simulators can't
+run a program with classical control flow.
+
+.. code:: python
+
+    from pyquil import get_qc
+
+    qc = get_qc("Ankaa-3")
+    program.wrap_in_numshots_loop(1000)
+    results = qc.run(qc.compile(program))
+    measures = results.get_register_map()["measures"]
+
+    assert np.all(measures == 0)
 
 
 **********************

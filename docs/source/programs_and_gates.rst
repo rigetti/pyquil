@@ -6,8 +6,8 @@ Programs and gates
 
 .. note::
 
-    If you're running locally, remember set up the QVM and quilc in server mode before trying to use
-    them: :ref:`server`.
+    The examples that compile programs need ``quilc`` running in server mode: :ref:`server`. Building and simulating
+    programs needs no server.
 
 ************
 Introduction
@@ -72,29 +72,29 @@ it, write:
 We've instantiated a program, declared a memory space named ``ro`` with one single bit of memory, applied
 an ``X`` gate on qubit 0, and finally measured qubit 0 into the zeroth index of the memory space named ``ro``.
 
-Awesome! That's all we need to get results back. Now we can actually see what happens if we run this
-program on the Quantum Virtual Machine (QVM). We just have to add a few lines to do this.
+Awesome! That's all we need to get results back. Now we can actually see what happens if we simulate this
+program. We just have to add a few lines to do this.
 
 .. testcode:: intro
 
-    from pyquil import get_qc
+    import jax
+
+    from pyquil.simulation import TrajectorySimulator
 
     ...
 
-    qc = get_qc('1q-qvm')  # You can make any 'nq-qvm' this way for any reasonable 'n'
-    executable = qc.compile(p)
-    result = qc.run(executable)
-    bitstrings = result.get_register_map().get('ro')
+    sim = TrajectorySimulator(p)
+    bitstrings = sim.sample(num_trajectories=1, key=jax.random.key(0))
     print(bitstrings)
 
-Congratulations! You just ran your program on the QVM. The returned value should be:
+Congratulations! You just simulated your program. The returned value should be:
 
 .. testoutput:: intro
 
     [[1]]
 
-For more information on what the above result means, and on executing quantum programs on the QVM in
-general, see :ref:`the_quantum_computer`. The remainder of this section of the docs will be dedicated to constructing
+Each row is one run of the program and each column one ``MEASURE``. For more on simulating programs, see
+:ref:`simulation`, and for running them on a quantum processor, see :ref:`the_quantum_computer`. The remainder of this section of the docs will be dedicated to constructing
 programs in detail, an essential part of becoming fluent in quantum programming.
 
 
@@ -259,7 +259,7 @@ Quil loop.
 
 .. testcode:: with_loop
 
-    from pyquil import Program, get_qc
+    from pyquil import Program
     from pyquil.quilatom import Label
     from pyquil.gates import H, CNOT
 
@@ -280,10 +280,6 @@ Quil loop.
     looped_program = p.with_loop(1000, shot_count, Label("start-loop"), Label("end-loop"))
     print(looped_program.out())
 
-    qc = get_qc("2q-qvm")
-    # Specify your desired shot count in the memory map.
-    results = qc.run(looped_program)
-
 .. testoutput:: with_loop
 
     DECLARE ro BIT[2]
@@ -298,6 +294,10 @@ Quil loop.
     JUMP-UNLESS @end-loop shot_count[0]
     JUMP @start-loop
     LABEL @end-loop
+
+The looped program runs on a QPU like any other. pyQuil's local simulators evaluate straight-line programs only, so they
+reject the ``JUMP`` instructions that implement the loop; to sample a program locally, use the simulator's
+``num_trajectories`` instead (see :ref:`simulation`).
 
 
 .. _parametric_compilation:
@@ -345,33 +345,49 @@ rotates it around the Z axis for some variable angle theta before applying anoth
 
     This program is actually more than a toy example. It's similar to an experiment which measures the qubit frequency.
 
-Notice how ``theta`` hasn't been specified yet. The next steps will have to involve a ``QuantumComputer`` or a compiler
-implementation. For simplicity, we will demonstrate with a ``QuantumComputer`` instance.
+Notice how ``theta`` hasn't been specified yet. The next step is to compile the program, which needs a compiler. We'll
+use the one belonging to a :py:class:`~pyquil.api.QuantumComputer`:
 
 .. testcode:: parametric
 
     from pyquil import get_qc
 
-    # Get a Quantum Virtual Machine to simulate execution
-    qc = get_qc("1q-qvm")
-    executable = qc.compile(p)
+    # A generic one-qubit quantum computer: it compiles programs, but can't run them
+    qc = get_qc("1q")
+    native = qc.compiler.quil_to_native_quil(p)
 
-We are able to compile our program, even with ``theta`` still not specified. Now we want to run our program with ``theta``
-filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrate this below.
+We are able to compile our program, even with ``theta`` still not specified. Now we want to evaluate our program with
+``theta`` filled in for, say, 200 values between :math:`0` and :math:`2\pi`. A simulator is built once from the
+program and then evaluated for any number of parameter values; ``linearize`` turns a memory map into the parameter
+vector it takes:
 
 .. testcode:: parametric
 
-    # Generate a memory map for each set of parameters we want to execute with
-    memory_maps = [{"theta": [theta] for theta in np.linspace(0, 2 * np.pi, 200)}]
+    import jax
 
-    # Batch execute of the program using each set of parameters.
-    # This returns a list of results for each execution, the length and order of which correspond to the memory maps we
-    # pass in.
+    from pyquil.simulation import DensityMatrixSimulator
+
+    sim = DensityMatrixSimulator(native)
+    thetas = np.linspace(0, 2 * np.pi, 200)
+
+    def probabilities(theta):
+        return sim.outcome_probabilities(sim.linearize({"theta": [theta]}))
+
+    # One row of P(0), P(1) per value of theta
+    parametric_probabilities = jax.vmap(probabilities)(thetas)
+
+On a QPU, the compiled program is executed with each memory map instead:
+
+.. code-block:: python
+
+    qc = get_qc("Ankaa-3")
+    executable = qc.compile(p)
+    memory_maps = [{"theta": [theta]} for theta in np.linspace(0, 2 * np.pi, 200)]
     parametric_measurements = qc.run_with_memory_map_batch(executable, memory_maps)
 
 .. note::
 
-   :py:meth:`~QAM.run` and :py:meth:`~QAM.execute` both support executing a program a single memory map. We chose 
+   :py:meth:`~QAM.run` and :py:meth:`~QAM.execute` both support executing a program with a single memory map. We chose
    :py:meth:`~QAM.batch_execute_with_memory_map` for this example since we had multiple sets of parameters to run.
 
 .. note::
@@ -519,9 +535,8 @@ rather than one, since it operates on two qubits.
 
 .. tip::
 
-    To inspect the wavefunction that will result from applying your new gate, you can use
-    the :ref:`Wavefunction Simulator <wavefunction_simulator>`
-    (e.g. ``print(WavefunctionSimulator().wavefunction(p))``).
+    To inspect the state that will result from applying your new gate, you can use a simulator
+    (e.g. ``PureStateVectorSimulator(p).compute()``; see :ref:`simulation`).
 
 
 *************************
@@ -534,7 +549,6 @@ defining it than in the previous section.
 .. testcode:: parametric
 
     from pyquil import Program
-    from pyquil.api import WavefunctionSimulator
     from pyquil.gates import H
     from pyquil.quilatom import Parameter, quil_sin, quil_cos
     from pyquil.quilbase import DefGate
@@ -564,9 +578,8 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
 
 .. tip::
 
-    To inspect the wavefunction that will result from applying your new gate, you can use
-    the :ref:`Wavefunction Simulator <wavefunction_simulator>`
-    (e.g. ``print(WavefunctionSimulator().wavefunction(p))``).
+    To inspect the state that will result from applying your new gate, you can use a simulator
+    (e.g. ``PureStateVectorSimulator(p).compute()``; see :ref:`simulation`).
 
 
 **************************
@@ -605,6 +618,89 @@ It can equivalently be defined by the permutation
    ccnot_gate = DefPermutationGate("PERMUTATION_CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
 
    # etc
+
+.. _basis_ordering:
+
+*****************************
+Multi-qubit basis enumeration
+*****************************
+
+pyQuil orders multi-qubit states and operators **big-endian**: the lowest-index qubit is the *most* significant, and
+so the leftmost digit of a bitstring, as is usual in the quantum computing literature.
+
+.. list-table::
+   :header-rows: 1
+
+   * - bitstring
+     - qubit_0
+     - qubit_1
+     - qubit_2
+     - ...
+     - qubit_(n-1)
+   * - ``101...1``
+     - 1
+     - 0
+     - 1
+     - ...
+     - 1
+   * - ``011...0``
+     - 0
+     - 1
+     - 1
+     - ...
+     - 0
+
+The vector representation of a state uses the canonical ordering of these bitstrings: for two qubits, ``00, 01, 10,
+11``. So the state with qubit 0 excited and qubit 1 in the ground state is
+
+.. math::
+
+    \ket{1}_0 \otimes \ket{0}_1 = \ket{10}_{0,1} \equiv \begin{pmatrix} 0 \\ 0 \\ 1 \\ 0 \end{pmatrix},
+
+and a gate's matrix is the Kronecker product of its factors in the same order. The matrix of ``CNOT 0 1``, controlled
+on qubit 0, is the textbook one:
+
+.. math::
+
+    U_{\rm CNOT(0,1)} \equiv
+    \begin{pmatrix}
+        1 & 0 & 0 & 0 \\
+        0 & 1 & 0 & 0 \\
+        0 & 0 & 0 & 1 \\
+        0 & 0 & 1 & 0
+    \end{pmatrix}
+
+The simulators follow this convention (see :ref:`simulation`):
+
+.. testcode:: basis-ordering
+
+    from pyquil import Program
+    from pyquil.gates import CNOT, I, X
+    from pyquil.simulation import PureStateVectorSimulator
+
+    state = PureStateVectorSimulator(Program(X(0), I(1))).compute()
+    print(state.matrix.reshape(-1).real)
+
+    unitary = PureStateVectorSimulator(Program(CNOT(0, 1))).unitary()
+    print(unitary.matrix.real.astype(int))
+
+.. testoutput:: basis-ordering
+
+    [0. 0. 1. 0.]
+    [[1 0 0 0]
+     [0 1 0 0]
+     [0 0 0 1]
+     [0 0 1 0]]
+
+A simulator's register holds exactly the qubits its program acts on, in ascending order unless you pass ``qubits`` to
+choose another order; the first qubit listed is the most significant. A program acting on qubits 3 and 5, for instance,
+gives a two-qubit state with qubit 3 as the leftmost digit.
+
+.. note::
+
+    pyQuil v4 and earlier, the QVM and the ``WavefunctionSimulator`` used the opposite, little-endian, convention, in
+    which qubit 0 is the *least* significant bit. Code that reads amplitudes or bitstrings by index needs updating; see
+    :ref:`introducing_v5`.
 
 *******
 Pragmas
@@ -645,7 +741,7 @@ Consider the following program.
 
     p = Program(X(3))
 
-We've tested this on the QVM, and we've targeted a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
+We've tested this in simulation, and we've targeted a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
 Rather than rewrite our program, we modify our program to tell the compiler to do this for us.
 
 .. testcode:: rewiring
@@ -691,31 +787,28 @@ any other instruction:
 
    ...
 
-.. _quil_t_qvm_warning:
+.. _quil_t_compilation:
 
-.. warning::
+.. note::
 
-   ``DELAY`` and other Quil-T instructions are not supported by the QVM or ``quilc``. If you want to test the validity
-   of a Quil-T containing program on a QVM you should remove all Quil-T instructions before running it. You can do this 
-   dynamically by checking the ``qam`` property on your requested :py:class:`~pyquil.api.QuantumComputer`:
+   ``DELAY`` and other Quil-T instructions describe how a program is physically realised, not what it computes, so
+   pyQuil's simulators ignore them (see :ref:`simulation`). ``quilc`` does not accept them, however. To compile a
+   program that contains Quil-T, remove those instructions first with
+   :py:meth:`~pyquil.quil.Program.remove_quil_t_instructions`:
 
    .. testcode:: remove-quil-t
 
     from pyquil.quil import Program
     from pyquil.gates import DELAY, H
-    from pyquil.api import QVM, get_qc
 
-    qc = get_qc("2q-qvm")
     p = Program(H(0))
     p += DELAY(0, 200e-9)
 
-    # If we're using a QVM, remove the Quil-T instructions
-    if isinstance(qc.qam, QVM):
-        p = p.remove_quil_t_instructions()
-    else: # Otherwise, compile to native Quil
-        p = qc.compiler.native_quil_to_executable(p)
+    print(p.remove_quil_t_instructions())
 
-    qc.run(p)
+   .. testoutput:: remove-quil-t
+
+    H 0
 
 .. warning::
    In pyQuil v3 and below, it was common to specify a delay using ``PRAGMA DELAY``. This is no longer supported in v4 because it

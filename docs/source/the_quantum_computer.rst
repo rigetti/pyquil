@@ -4,53 +4,34 @@
 The quantum computer
 ====================
 
-pyQuil is used to build Quil (Quantum Instruction Language) programs and execute them on simulated or real quantum processors. Quil is an opinionated
-quantum instruction language: its basic belief is that in the near term quantum computers will
-operate as coprocessors, working in concert with traditional CPUs. This means that Quil is designed to execute on
-a Quantum Abstract Machine (QAM) that has a shared classical/quantum architecture at its core.
+pyQuil is used to build Quil (Quantum Instruction Language) programs, simulate them, and execute them on real quantum
+processors. Quil is an opinionated quantum instruction language: its basic belief is that in the near term quantum
+computers will operate as coprocessors, working in concert with traditional CPUs. This means that Quil is designed to
+execute on a Quantum Abstract Machine (QAM) that has a shared classical/quantum architecture at its core.
 
 A QAM must, therefore, implement certain abstract methods to manipulate classical and quantum states, such as loading
-programs, writing to shared classical memory, and executing programs.
+programs, writing to shared classical memory, and executing programs. Within pyQuil, the :py:class:`~pyquil.api.QPU`
+object implements the QAM by using the APIs of a Quantum Processing Unit (QPU) through Rigetti's Quantum Cloud Services.
 
-The program execution itself is sent from pyQuil to quantum computer endpoints, which will be one of two options:
-
-  - A Quantum Virtual Machine (QVM)
-  - A Quantum Processing Unit (QPU)
-
-Within pyQuil, there is a :py:class:`~pyquil.api.QVM` object and a :py:class:`~pyquil.api.QPU` object which use
-the exposed APIs of the QVM and QPU servers, respectively.
-
-On this page, we'll learn a bit about the :ref:`QVM <qvm_use>` and :ref:`QPU <qpu>`. Then we will
-show you how to use them from pyQuil with a :ref:`QuantumComputer <quantum_computer>` object.
+On this page, we'll learn a bit about the :ref:`QPU <qpu>`, and then show you how to use it from pyQuil with a
+:ref:`QuantumComputer <quantum_computer>` object. To simulate programs on your own machine instead, see
+:ref:`local_simulation`.
 
 For information on constructing quantum programs, please refer back to :ref:`basics`.
 
-.. _qvm_use:
+.. _local_simulation:
 
-*********************************
-The Quantum Virtual Machine (QVM)
-*********************************
+****************
+Local simulation
+****************
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+pyQuil simulates programs in-process, with no server, using the JAX-based simulators described in :ref:`simulation`.
+A simulator is constructed from a program, not from a :py:class:`~pyquil.api.QuantumComputer`, and returns either the
+final quantum state or sampled measurement outcomes. Noise is added with a noise model (see :ref:`noise`).
 
-   The QVM is deprecated in pyQuil: :py:class:`~pyquil.api.QVM`, :py:class:`~pyquil.pyqvm.PyQVM`,
-   :py:class:`~pyquil.api.QVMCompiler`, :py:class:`~pyquil.api.WavefunctionSimulator`, and getting a QVM-backed
-   ``QuantumComputer`` from :py:func:`~pyquil.api.get_qc` (a ``-qvm`` or ``-pyqvm`` name, or ``as_qvm=True``) will
-   be removed in pyQuil v5 in favor of the Quax-based simulators described in :ref:`simulation_architecture`. Those
-   simulators are available in pyQuil v4, but are private, experimental and subject to change, so we recommend
-   continuing to use the QVM until you upgrade to pyQuil v5.
-
-The Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from *A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
-executes programs specified in Quil.
-
-As we learned in the :ref:`pre-requisites<prerequisites>` the QVM is part of the Quil SDK, and it's available for you
-to use on your local machine.
-
-For a detailed description of how to use the ``qvm`` from the command line, see the QVM `README
-<https://github.com/rigetti/qvm>`_ or type ``man qvm`` in your terminal.
-
-We also offer a wavefunction simulator, which allows users to contruct and inspect wavefunctions of quantum programs.
-You can learn more about the wavefunction simulator :ref:`here <wavefunction_simulator>`.
+To check that a program will compile for a particular quantum processor, compile it with that processor's
+:py:class:`~pyquil.api.QuantumComputer` (see :ref:`compiler`) and simulate the result; a compiled program is an
+ordinary :py:class:`~pyquil.Program`.
 
 .. _qpu:
 
@@ -72,15 +53,15 @@ The ``QuantumComputer``
 ***********************
 
 The :py:class:`~pyquil.api.QuantumComputer` abstraction offered by pyQuil provides an easy access point to the most
-critical objects used in pyQuil for building and executing your quantum programs. We will cover the main methods and attributes
+critical objects used in pyQuil for compiling and executing your quantum programs. We will cover the main methods and attributes
 on this page. The `QuantumComputer API Reference <apidocs/pyquil.api.html#pyquil.api.QuantumComputer>`_ provides a reference for all of its methods
 and options.
 
 At a high level, the :py:class:`~pyquil.api.QuantumComputer` wraps around our favorite quantum computing tools:
 
   - **A quantum abstract machine** ``.qam`` : this is our general purpose quantum computing device,
-    which implements the required abstract methods described :ref:`above <the_quantum_computer>`. It is implemented as a
-    :py:class:`~pyquil.api.QVM` or :py:class:`~pyquil.api.QPU` object in pyQuil.
+    which implements the required abstract methods described :ref:`above <the_quantum_computer>`. For a real quantum
+    processor it is a :py:class:`~pyquil.api.QPU` object.
   - **A compiler** ``.compiler`` : this determines how we manipulate the Quil input to something more efficient when possible,
     and then into a form which our QAM can accept as input.
   - **A quantum processor** ``.quantum_processor`` : this specifies the topology and Instruction Set Architecture (ISA) of
@@ -88,7 +69,7 @@ At a high level, the :py:class:`~pyquil.api.QuantumComputer` wraps around our fa
 
 When you instantiate a :py:class:`~pyquil.api.QuantumComputer` instance, these subcomponents will be compatible with
 each other. So, if you get a ``QPU`` implementation for the ``.qam``, you will have a ``QPUCompiler`` for the
-``.compiler``, and your ``.quantum_processor`` will match the processor used by the ``.compiler.``
+``.compiler``, and your ``.quantum_processor`` will match the processor used by the ``.compiler``.
 
 The :py:class:`~pyquil.api.QuantumComputer` instance makes methods available which are built on the above objects. If
 you need more fine grained controls for your work, you might try exploring what is offered by these objects.
@@ -107,36 +88,29 @@ A decent amount of information needs to be provided to initialize the ``compiler
 much of which is already in your :ref:`config files <advanced_usage>` (or provided reasonable defaults when running locally).
 Typically, you will want a :py:class:`~pyquil.api.QuantumComputer` which either:
 
-  - pertains to a real, available QPU
-  - is a QVM but mimics the topology of a QPU
-  - is some generic QVM
+  - pertains to a real, available QPU, to compile and run programs on it, or
+  - is a generic lattice, such as a fully connected or square lattice of qubits, to compile programs against locally.
 
-All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
-
-.. code:: python
-
-    def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None, ...) -> QuantumComputer:
+Both can be accomplished with :py:func:`~pyquil.api.get_qc`.
 
 .. testcode:: instantiation
 
     from pyquil import get_qc
 
-    QPU_NAME="Aspen-M-3"
+    QPU_NAME = "Ankaa-3"
 
     # Get a QPU
     # qc = get_qc(QPU_NAME)  # QPU_NAME is just a string naming the quantum_processor
 
-    # Get a QVM with the same topology as the QPU
-    # qc = get_qc(QPU_NAME, as_qvm=True)
-
-    # A fully connected QVM
+    # A fully connected lattice of 10 qubits, for compiling only
     number_of_qubits = 10
-    qc = get_qc(f"{number_of_qubits}q-qvm")
+    qc = get_qc(f"{number_of_qubits}q")
+
+A generic lattice such as ``"10q"`` or ``"9q-square"`` has a compiler and a quantum processor, but no QAM: it compiles
+programs, which you can then simulate (see :ref:`simulation`), but it can't run them.
 
 As a reminder, you will have to join QCS to get access to a specific quantum processor.
 Check out our `documentation for QCS <https://docs.rigetti.com>`_ and `join the waitlist <https://www.rigetti.com/>`_ if you don't have access already.
-
-For more information about creating and adding your own noise models, check out :ref:`noise`.
 
 .. note::
 
@@ -145,8 +119,7 @@ For more information about creating and adding your own noise models, check out 
 
 .. note::
 
-    When connecting to a QVM locally (such as with ``get_qc(..., as_qvm=True)``) you'll have to set up the QVM
-    in :ref:`server mode <server>`.
+    Compiling, with a QPU or a generic lattice, needs a running ``quilc``; see :ref:`server mode <server>`.
 
 Methods
 =======
@@ -154,12 +127,12 @@ Methods
 Now that you have your ``qc``, there's a lot you can do with it. Most users will want to use ``compile``, ``run`` very
 regularly. The general flow of use would look like this:
 
-.. testcode:: methods
+.. code:: python
 
     from pyquil import get_qc, Program
     from pyquil.gates import *
 
-    qc = get_qc('9q-square-qvm')            # not general to any number of qubits, 9q-square-qvm is special
+    qc = get_qc("Ankaa-3")
 
     qubits = qc.qubits()                    # this information comes from qc.quantum_processor
     p = Program()
@@ -169,23 +142,18 @@ regularly. The general flow of use would look like this:
 
     results = qc.run(compiled_program)      # this makes multiple calls to qc.qam
 
-.. note::
-
-    In addition to a running QVM server, you will need a running ``quilc`` server to compile your program. Setting
-    up both of these is explained :ref:`here <server>`.
-
 The ``.run(...)`` method
 ------------------------
 
 When using the ``.run(...)`` method, **you are responsible for compiling your program before running it.**
 For example:
 
-.. testcode:: methods
+.. code:: python
 
     from pyquil import Program, get_qc
     from pyquil.gates import X, MEASURE
 
-    qc = get_qc("8q-qvm")
+    qc = get_qc("Ankaa-3")
 
     p = Program()
     ro = p.declare('ro', 'BIT', 2)
@@ -199,9 +167,9 @@ For example:
     bitstrings = result.get_register_map().get("ro")
     print(bitstrings)
 
-The results returned is a *list of lists of integers*. In the above case, that's
+The results returned is a *list of lists of integers*. In the above case, on a noiseless device, that would be
 
-.. testoutput:: methods
+.. code:: text
 
     [[1 0]
      [1 0]
@@ -222,8 +190,6 @@ for more details about declaring and accessing classical memory regions.
 In addition to readout data, the result of ``.run(...)`` includes other information about the job's execution, such
 as the run duration. See :py:class:`~pyquil.api.QAMExecutionResult` for details.
 
-.. _new_topology:
-
 ``.execute`` and ``.get_result``
 --------------------------------
 
@@ -232,59 +198,26 @@ The ``.run(...)`` method is itself a convenience wrapper around two other method
 when in reality on some backends (such as a live QPU), execution is in fact asynchronous (request execution,
 then request results at a later time). For finer-grained control over your program execution process,
 you can use these two methods in place of ``.run``. This is most useful when you want to execute work
-concurrently - for that, please see "Advanced Usage."
+concurrently - for that, please see :ref:`advanced_usage`.
 
-********************************
-Simulating the QPU using the QVM
-********************************
+QPU-specific features
+=====================
 
-.. note::
-
-   The QVM is deprecated and will be removed in pyQuil v5; see :ref:`the deprecation note above <qvm_use>`.
-
-The :py:class:`~pyquil.api.QAM` methods are intended to be used in the same way, whether a QVM or QPU is being targeted.
-For everywhere on this page, you can swap out the type of the QAM (QVM <=> QPU) and you will still
-get reasonable results back. As long as the topologies of the quantum processors are the same, programs compiled and run on the QVM
-will be able to run on the QPU and vice versa. Since :py:class:`~pyquil.api.QuantumComputer` is built on the ``QAM``
-abstract class, its methods will also work for both QAM implementations.
-
-This makes the QVM a powerful tool for testing quantum programs before executing them on the QPU.
-
-.. code:: python
-
-    QPU_NAME="Aspen-M-3"
-    qpu = get_qc(QPU_NAME)
-    qvm = get_qc(QPU_NAME, as_qvm=True)
-
-By simply providing ``as_qvm=True``, we get a QVM which will have the same topology as
-the named QPU. It's a good idea to run your programs against the QVM before booking QPU time to iron out
-bugs. To learn more about how to add noise models to your virtual ``QuantumComputer`` instance, check out
-:ref:`noise`.
-
-Differences between a QVM and a QPU based ``QuantumComputer``
-=============================================================
-
-As mentioned above, pyQuil is designed such that code based on a ``QuantumComputer`` can be used in more or less the same way,
-regardless of whether it is based on a QVM or QPU. However, depending on which you are using, the subcompoments have additional features
-worth knowing about.
-
-For instance, if your code targets a QVM, ``qc.qam`` will be a :py:class:`~pyquil.api.QVM``` instance, and ``qc.compiler`` will
-be a :py:class:`~pyquil.api.QVMCompiler` instance. However, if your code targets a QPU, ``qc.qam`` will be a :py:class:`~pyquil.api.QPU` instance, and ``qc.compiler`` will be a :py:class:`~pyquil.api.QPUCompiler` instance.
-
-While these subcomponents follow common interfaces, namely :py:class:`~pyquil.api.QAM` and
-:py:class:`~pyquil.api.AbstractCompiler`, there may be some methods or properties that are accessible on the QPU-based instances
-but not on the QVM-based instances, and vice versa.
+The subcomponents of a :py:class:`~pyquil.api.QuantumComputer` follow common interfaces, namely
+:py:class:`~pyquil.api.QAM` and :py:class:`~pyquil.api.AbstractCompiler`, but a QPU-based ``QuantumComputer`` offers
+some methods and properties that a generic lattice does not: ``qc.qam`` is a :py:class:`~pyquil.api.QPU` instance and
+``qc.compiler`` is a :py:class:`~pyquil.api.QPUCompiler` instance.
 
 You can access these features and keep your code robust by performing type checks on ``qc.qam`` and/or ``qc.compiler``.
 For example, if you wanted to refresh the calibration program, which only applies to QPU-based ``QuantumComputers``, but still
-want a script that works for both QVM and QPU targets, you could do the following:
+want a script that also compiles against a generic lattice, you could do the following:
 
 .. testcode:: differences
 
     from pyquil import get_qc
     from pyquil.api import QPUCompiler
 
-    qc = get_qc("2q-qvm")  # or "Aspen-M-3" 
+    qc = get_qc("2q")  # or "Ankaa-3"
 
     if isinstance(qc.compiler, QPUCompiler):
         # Working with a QPU - refresh calibrations
@@ -294,17 +227,16 @@ Requesting a job cancellation
 -----------------------------
 
 Jobs submitted to a QPU are queued for execution before they are run. While a job is pending execution, you can request
-that the job be cancelled with `:py:meth:~pyquil.api.QPU#cancel`. This functionality is unavailable on the QVM, so you
-can use a similar strategy to above to make sure the Quantum Abstract Machine (QAM) backing the QuantumComputer is
-indeed a QPU to safely call this method:
+that the job be cancelled with :py:meth:`~pyquil.api.QPU.cancel`. Use a similar strategy to the one above to make sure
+the Quantum Abstract Machine (QAM) backing the QuantumComputer is indeed a QPU before calling this method:
 
 .. code:: python
 
     from pyquil.api import QPU
 
-   job_handle = qc.qam.execute(p)
+    job_handle = qc.qam.execute(p)
 
-   if isinstance(qc.qam, QPU):
+    if isinstance(qc.qam, QPU):
         try:
             qc.qam.cancel(job_handle)
             print("Job was cancelled")
@@ -312,6 +244,7 @@ indeed a QPU to safely call this method:
             # If this error was raised, then the job failed to be cancelled.
             result = qc.qam.get_result(job_handle)
 
+.. _new_topology:
 
 Providing your own quantum processor topology
 =============================================
@@ -324,10 +257,10 @@ Rigetti QPU to specify a 16 qubit topology.
 
     import networkx as nx
     from pyquil import get_qc
+    from pyquil.api import QuilcCompiler
     from pyquil.quantum_processor import NxQuantumProcessor
-    from pyquil.noise import decoherence_noise_with_asymmetric_ro
-    
-    qpu = get_qc("Aspen-M-3")
+
+    qpu = get_qc("Ankaa-3")
     isa = qpu.to_compiler_isa()
     qubits = sorted(int(k) for k in isa.qubits.keys())[:16]
     edges = [(q1, q2) for q1 in qubits for q2 in qubits if f"{q1}-{q2}" in isa.edges]
@@ -337,9 +270,9 @@ Rigetti QPU to specify a 16 qubit topology.
     # You would uncomment the next line if you have disconnected qubits
     # topo.add_nodes_from(qubits)
     quantum_processor = NxQuantumProcessor(topo)
-    quantum_processor.noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())  # Optional
 
-Now that you have your quantum processor, you could set ``qc.compiler.quantum_processor`` to point to your new quantum processor,
-or use it to make new objects.
+    # A compiler that targets the new topology
+    compiler = QuilcCompiler(quantum_processor=quantum_processor)
 
-.. [1] https://arxiv.org/abs/1608.03355
+Programs compiled with ``compiler.quil_to_native_quil(program)`` respect the topology, and can be simulated as in
+:ref:`simulation`. To simulate a device's noise as well, build a noise model for it (see :ref:`noise`).

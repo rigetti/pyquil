@@ -35,7 +35,7 @@ as in the following:
     from pyquil.api import get_qc
     from pyquil.gates import CNOT, H
 
-    qc = get_qc("9q-square-qvm")
+    qc = get_qc("9q-square")
 
     executable = qc.compile(Program(H(0), CNOT(0,1), CNOT(1,2)))
 
@@ -67,11 +67,14 @@ with output (see note below)
     RX(-pi/2) 2
     RZ(pi/2) 2
 
-Note that printing ``executable`` here — the result of a ``qc.compile`` call — only results in a readable native Quil program like the above if the Quantum Computer is a QVM. When compiling for live QPU targets, this printed output will be encrypted and opaque because of program translation. See :ref:`Compilation metadata <compilation_metadata>` for instructions on how to convert a program to native gates independent of program translation.
+Here ``"9q-square"`` names a generic nine-qubit square lattice: a ``QuantumComputer`` that compiles programs but can't
+run them, which is handy for compiling locally and then simulating the result (see :ref:`simulation`).
+
+Note that printing ``executable`` here — the result of a ``qc.compile`` call — only results in a readable native Quil program like the above if the Quantum Computer is a generic lattice like this one. When compiling for live QPU targets, this printed output will be encrypted and opaque because of program translation. See :ref:`Compilation metadata <compilation_metadata>` for instructions on how to convert a program to native gates independent of program translation.
 
 The compiler connection is also available directly via the property ``qc.compiler``.  The
-precise class of this object changes based on context (e.g., :py:class:`~pyquil.api.QPUCompiler`,
-:py:class:`~pyquil.api.QVMCompiler`), but it always conforms to the interface laid out by :py:class:`~pyquil.api.AbstractCompiler`:
+precise class of this object changes based on context (e.g., :py:class:`~pyquil.api.QPUCompiler` for a QPU,
+:py:class:`~pyquil.api.QuilcCompiler` for a generic lattice), but it always conforms to the interface laid out by :py:class:`~pyquil.api.AbstractCompiler`:
 
 * ``compiler.quil_to_native_quil(program, *, protoquil)``: This method converts a Quil program into
   native Quil, according to the ISA that the compiler is initialized with.  The input parameter is
@@ -83,7 +86,8 @@ precise class of this object changes based on context (e.g., :py:class:`~pyquil.
   others).  This call blocks until Quil compilation finishes.
 * ``compiler.native_quil_to_executable(nq_program)``: This method converts a native Quil program, which
   is promised to consist only of native gates for a given ISA, into an executable suitable for
-  submission to one of a QVM or a QPU.  This call blocks until the executable is generated.
+  submission to a QPU. For a generic lattice, which can't execute programs, it returns the native
+  Quil program unchanged.  This call blocks until the executable is generated.
 
 The instance method ``qc.compile`` described above is a combination of these two methods: first the
 incoming Quil is nativized, and then that is immediately turned into an executable.  Accordingly,
@@ -95,14 +99,14 @@ the previous example snippet is identical to the following:
     from pyquil.api import get_qc
     from pyquil.gates import CNOT, H
 
-    qc = get_qc("9q-square-qvm")
+    qc = get_qc("9q-square")
 
     p = Program(H(0), CNOT(0,1), CNOT(1,2))
 
-    np = qc.compiler.quil_to_native_quil(p, protoquil=True)
-    print(np)
+    native = qc.compiler.quil_to_native_quil(p, protoquil=True)
+    print(native)
 
-    exe = qc.compiler.native_quil_to_executable(np)
+    exe = qc.compiler.native_quil_to_executable(native)
     print(exe)
 
 .. testoutput:: quilc
@@ -122,7 +126,7 @@ default. To change this timeout, use the `compiler_timeout` option on `get_qc`:
 
 .. testcode:: timeouts
 
-    qc = get_qc("2q-qvm", compiler_timeout=100) # 100 seconds
+    qc = get_qc("2q", compiler_timeout=100) # 100 seconds
 
 Legal compiler input
 ====================
@@ -179,9 +183,9 @@ For example, to inspect the ``qpu_runtime_estimation`` you might do the followin
     from pyquil import get_qc, Program
 
     # If you have a reserved QPU, use it here
-    # qc = get_qc("Aspen-X")
-    # Otherwise use a QVM
-    qc = get_qc("8q-qvm")
+    # qc = get_qc("Ankaa-3")
+    # Otherwise use a generic lattice
+    qc = get_qc("8q")
 
     # Likely you will have a more complex program:
     p = Program("RX(pi) 0")
@@ -338,29 +342,23 @@ can be costly. If, however, the swaps are inserted at the very beginning of the 
 compiler can treat them as `virtual` swaps which do not appear in the resulting program but instead
 affect the initial rewiring of the program.
 
-For example, consider running a ``CZ`` on non-neighboring qubits on a linear device:
+For example, consider running a ``CZ`` on non-neighboring qubits on a linear device. A
+:py:class:`~pyquil.api.QuilcCompiler` compiles against any topology you describe with a
+:py:class:`~pyquil.quantum_processor.NxQuantumProcessor` (see :ref:`new_topology`):
 
 .. testcode:: swaps
 
    import networkx as nx
-   from pyquil import Program, get_qc
-   from pyquil.api import QCSClient
-   from pyquil.api._quantum_computer import _get_qvm_with_topology
+   from pyquil import Program
+   from pyquil.api import QuilcCompiler
    from pyquil.gates import CZ
+   from pyquil.quantum_processor import NxQuantumProcessor
 
    graph = nx.from_edgelist([(0, 1), (1, 2)])
-   qc = _get_qvm_with_topology(
-       client_configuration=QCSClient(),
-       name="line",
-       topology=graph,
-       noisy=False,
-       qvm_type="qvm",
-       compiler_timeout=30.0,
-       execution_timeout=30.0
-   )
+   compiler = QuilcCompiler(quantum_processor=NxQuantumProcessor(graph), timeout=30.0)
 
    p = Program(CZ(0, 2))
-   print(qc.compile(p))
+   print(compiler.quil_to_native_quil(p))
 
 .. testoutput:: swaps
 
@@ -375,25 +373,10 @@ inserting swaps. For example, the following program requires a ``SWAP`` that inc
 
 .. testcode:: swaps
 
-   import networkx as nx
-   from pyquil import Program, get_qc
-   from pyquil.api import QCSClient
-   from pyquil.api._quantum_computer import _get_qvm_with_topology
-   from pyquil.gates import H, CZ
-
-   graph = nx.from_edgelist([(0, 1), (1, 2)])
-   qc = _get_qvm_with_topology(
-       client_configuration=QCSClient(),
-       name="line",
-       topology=graph,
-       noisy=False,
-       qvm_type="qvm",
-       compiler_timeout=30.0,
-       execution_timeout=30.0
-   )
+   from pyquil.gates import H
 
    p = Program(CZ(0, 1), H(0), CZ(1, 2), CZ(0, 2))
-   print(qc.compile(p))
+   print(compiler.quil_to_native_quil(p))
 
 .. testoutput:: swaps
    :hide:
@@ -463,7 +446,7 @@ For example, if your program consists of two-qubit instructions where the qubits
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-X", as_qvm=True)
+   qc = get_qc("Aspen-X")
    p = Program(CZ(3, 4))
 
    print(qc.compile(p))
@@ -484,24 +467,14 @@ partial strategy:
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-X", as_qvm=True)
-   p = Program(CZ(3, 4))
+   qc = get_qc("Aspen-X")
+   p = Program(CZ(0, 2))
 
    print(qc.compile(p))
 
-.. code:: text
-
-   RZ(-pi/2) 0
-   RX(pi/2) 0
-   RZ(-pi/2) 0
-   RZ(pi/2) 1
-   XY(pi) 1 0
-   RZ(pi/2) 1
-   RX(pi/2) 1
-   RZ(-pi/2) 1
-   XY(pi) 1 0
-   RZ(-pi/2) 0
-   RX(-pi/2) 0
+Qubits 0 and 2 are not neighbours, so the compiled program acts on a neighbouring pair instead: the
+compiler has remapped the program's qubits onto physical qubits that support the two-qubit gate. The
+exact output depends on the device's topology and calibrated gate set.
 
 .. _naive_rewiring:
 
@@ -519,7 +492,7 @@ compiling this program with naive rewiring will **not** move the ``CZ`` to a bet
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-X", as_qvm=True)
+   qc = get_qc("Aspen-X")
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 1))
 
    print(qc.compile(p))
@@ -538,7 +511,7 @@ logical-physical qubit mapping. For example,
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-X", as_qvm=True)
+   qc = get_qc("Aspen-X")
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 2))
 
    print(qc.compile(p))
@@ -572,7 +545,7 @@ the compiler can find an alternative that improves the program fidelity:
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-X", as_qvm=True)
+   qc = get_qc("Aspen-X")
    p = Program('PRAGMA INITIAL_REWIRING "PARTIAL"', CZ(0, 1))
 
    print(qc.compile(p))

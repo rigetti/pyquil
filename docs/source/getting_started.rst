@@ -9,8 +9,10 @@ Getting started
 **************
 Pre-requisites
 **************
-To make full use of pyQuil, you'll want to have both the Quantum Virtual Machine (QVM) and the Quil Compiler (quilc) installed. If you
-don't have those installed yet, refer to `Rigetti's guide on installing the Quil SDK locally <https://docs.rigetti.com/qcs/getting-started/installing-locally>`_.
+To make full use of pyQuil, you'll want to have the Quil Compiler (``quilc``) installed. If you don't have it installed yet,
+refer to `Rigetti's guide on installing the Quil SDK locally <https://docs.rigetti.com/qcs/getting-started/installing-locally>`_.
+pyQuil simulates programs itself, in-process, with the JAX-based simulators described in :ref:`simulation`, so no separate
+simulator needs to be installed or started.
 
 .. note::
 
@@ -68,43 +70,28 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 
 .. _server:
 
-Setting up requisite servers for pyQuil
-=======================================
+Setting up the compiler server
+==============================
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
-
-   pyQuil's use of the QVM is deprecated and will be removed in pyQuil v5 in favor of the Quax-based simulators
-   described in :ref:`simulation_architecture`, which run in-process and need no server. Those simulators are
-   available in pyQuil v4, but are private, experimental and subject to change, so we recommend continuing to use
-   the QVM until you upgrade to pyQuil v5.
-
-To get started with pyQuil, ``quilc`` and ``qvm`` should both be running in server mode. If you have them installed locally
-you can run them in their own terminal windows. First launch ``quilc``:
+pyQuil compiles programs to native Quil by making requests to ``quilc`` running in server mode. If you have it installed
+locally, launch it in its own terminal window:
 
 .. code:: sh
 
    quilc -S
 
-Then, in another terminal window, launch the QVM:
-
-.. code:: sh
-
-   qvm -S
-
 .. note::
 
-    For more information about the QVM and the compiler, refer to their respective manual pages by using ``man quilc`` and ``man qvm``.
+    For more information about the compiler, refer to its manual page by using ``man quilc``.
 
-That's it! You're all set up to run pyQuil locally. Your programs will make requests to these server endpoints to compile your Quil
-programs to native Quil, and to simulate those programs on the QVM.
+That's it! You're all set up to use pyQuil locally. ``quilc`` is only needed to compile programs; building and simulating
+programs works without it.
 
 .. _run_your_first_program:
 
 **********************
 Run your first program
 **********************
-Now that the QVM and the Quil compiler are running, you can start running pyQuil programs!
-
 The program we will create prepares a fully entangled state between two qubits, called a `Bell State <https://www.wikiwand.com/en/Bell_state>`_.
 This state is in an equal superposition between :math:`\ket{00}` and :math:`\ket{11}`, meaning that it's equally likely that a measurement will
 result in measuring both qubits in the ground state or both qubits in the excited state.
@@ -113,85 +100,105 @@ First, import the essentials:
 
 .. testcode:: first-program
 
-    from pyquil import Program, get_qc
-    from pyquil.gates import *
-    from pyquil.quilbase import Declare
+    import jax
+    import numpy as np
 
-The :py:class:`~pyquil.Program` class allows us to build a Quil program. :py:func:`~pyquil.get_qc` connects us to a
-:py:class:`~pyquil.api.QuantumComputer`, which specifies what our program should run on (see: :ref:`the_quantum_computer`). We've also imported all (``*``)
-gates from the ``pyquil.gates`` module, which allows us to add operations to our program (:ref:`basics`). :py:class:`~pyquil.quilbase.Declare`
-allows us to declare classical memory regions so that we can receive data from the :py:class:`~pyquil.api.QuantumComputer`.
+    from pyquil import Program
+    from pyquil.gates import *
+    from pyquil.simulation import PureStateVectorSimulator, TrajectorySimulator
+
+The :py:class:`~pyquil.Program` class allows us to build a Quil program. We've also imported all (``*``) gates from the
+``pyquil.gates`` module, which allows us to add operations to our program (:ref:`basics`), and two of pyQuil's simulators
+(:ref:`simulation`).
 
 Next, let's construct the Bell State program.
 
 .. testcode:: first-program
 
-    p = Program(
-        Declare("ro", "BIT", 2),
-        H(0),
-        CNOT(0, 1),
-        MEASURE(0, ("ro", 0)),
-        MEASURE(1, ("ro", 1)),
-    ).wrap_in_numshots_loop(10)
+    bell = Program(H(0), CNOT(0, 1))
 
 We've accomplished this by driving qubit 0 into a superposition state (that's what the "H" gate does), and then creating
-an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Finally, we'll want to run our program:
+an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). A simulator can show us the resulting state
+directly:
 
 .. testcode:: first-program
 
-    # run the program on a QVM
-    qc = get_qc('9q-square-qvm')
-    result = qc.run(qc.compile(p)).get_register_map().get("ro")
-    print(result[0])
-    print(result[1])
+    state = PureStateVectorSimulator(bell).compute()
+    print(np.round(state.matrix.reshape(-1), 3))
 
 .. testoutput:: first-program
-    :hide:
 
-    [...]
-    [...]
+    [0.707+0.j 0.   +0.j 0.   +0.j 0.707+0.j]
+
+The four amplitudes belong to the basis states :math:`\ket{00}, \ket{01}, \ket{10}, \ket{11}`, with qubit 0 as the
+leftmost (most significant) digit; see :ref:`basis_ordering`. On a real quantum computer we can't look at the state; we
+measure it. Let's add measurements and sample the program ten times:
+
+.. testcode:: first-program
+
+    p = Program()
+    ro = p.declare("ro", "BIT", 2)
+    p += bell
+    p += MEASURE(0, ro[0])
+    p += MEASURE(1, ro[1])
+
+    shots = TrajectorySimulator(p).sample(num_trajectories=10, key=jax.random.key(0))
+    print(shots.shape)
+    print(bool(np.all(shots[:, 0] == shots[:, 1])))
+
+.. testoutput:: first-program
+
+    (10, 2)
+    True
+
+Each row of ``shots`` is one run of the program, and each column one ``MEASURE``, in program order. The results are
+random from shot to shot, but always agree between the two qubits.
+
+Compiling for a quantum computer
+================================
+
+A quantum processor only implements a small set of *native* gates on the qubit pairs it physically connects. Before a
+program runs on one, ``quilc`` rewrites it into that native gate set. :py:func:`~pyquil.get_qc` returns a
+:py:class:`~pyquil.api.QuantumComputer`, and its compiler does the rewriting:
+
+.. testcode:: first-program
+
+    from pyquil import get_qc
+
+    qc = get_qc("9q-square")
+    native = qc.compiler.quil_to_native_quil(bell)
+
+``"9q-square"`` names a generic nine-qubit lattice, which is useful for compiling and simulating locally; it can't run
+programs. The name of a real quantum processor, such as ``"Ankaa-3"``, returns a :py:class:`~pyquil.api.QuantumComputer`
+that runs programs on that QPU through `Rigetti's Quantum Cloud Services <https://docs.rigetti.com/qcs/>`_ (see
+:ref:`the_quantum_computer`). The compiled program is still an ordinary :py:class:`~pyquil.Program`, so it can be
+simulated as well, and it prepares the same state:
+
+.. testcode:: first-program
+
+    native_state = PureStateVectorSimulator(native).compute()
 
 .. warning::
 
-   If you run into an error running your program, or it hangs indefinitely when compiling, make sure that the ``quilc`` and ``QVM``
-   servers are running and reachable. First, review the `pre-requisites section <prerequisites>`_ and if that fails, see the
-   `troubleshooting steps <timeouts>`_.
-
-Compare the two arrays of measurement results. The results will be consistent between the qubits and random from shot
-to shot.
-
-``qc`` is a simulated quantum computer. We've told our QVM to run the program specified above ten times and return
-the results to us.
-
-The calls to ``compile`` and ``run`` will make a request to the two servers we started up in the previous section:
-first, to the ``quilc`` server instance to compile the Quil program into native Quil optimized for the target device, and 
-then to the ``qvm`` server instance to simulate and return measurement results of the program 10 times. If you open up
-the terminal windows where your servers are running, you should see output printed to the console regarding the requests you just made.
+   If compiling hangs or fails, make sure the ``quilc`` server is running and reachable. First, review the
+   `pre-requisites section <prerequisites>`_ and if that fails, see the `troubleshooting steps <timeouts>`_.
 
 .. note::
 
-    pyQuil also provides the :py:func:`~pyquil.api.local_forest_runtime()` context manager to ensure both ``quilc`` and ``qvm`` servers are running
-    by starting them as subprocesses if they aren't already. Starting the ``qvm`` server is deprecated: in pyQuil v5,
-    ``local_forest_runtime()`` will start only ``quilc``.
+    pyQuil also provides the :py:func:`~pyquil.api.local_forest_runtime()` context manager to ensure the ``quilc`` server
+    is running by starting it as a subprocess if it isn't already.
 
     .. code:: python
 
         from pyquil import get_qc, Program
-        from pyquil.gates import CNOT, Z, MEASURE
+        from pyquil.gates import CNOT, Z
         from pyquil.api import local_forest_runtime
-        from pyquil.quilbase import Declare
 
-        prog = Program(
-            Declare("ro", "BIT", 2),
-            Z(0),
-            CNOT(0, 1),
-            MEASURE(0, ("ro", 0)),
-            MEASURE(1, ("ro", 1)),
-        ).wrap_in_numshots_loop(10)
+        prog = Program(Z(0), CNOT(0, 1))
 
         with local_forest_runtime():
-            qvm = get_qc('9q-square-qvm')
-            bitstrings = qvm.run(qvm.compile(prog)).get_register_map().get("ro")
+            qc = get_qc("9q-square")
+            native = qc.compiler.quil_to_native_quil(prog)
 
-In the following sections, we'll cover gates, program construction & execution, and go into detail about our Quantum
-Virtual Machine, our QPUs, noise models and more. Let's start with the :ref:`basics`.
+In the following sections, we'll cover gates, program construction & execution, and go into detail about simulation,
+our QPUs, noise models and more. Let's start with the :ref:`basics`.

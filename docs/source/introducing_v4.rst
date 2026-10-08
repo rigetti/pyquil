@@ -12,7 +12,7 @@ As a first step, read through the :doc:`changes` to get an overview of what's ne
 Parameters & memory
 *******************
 
-In order to provide more flexibility when executing parameterized Programs, the execution methods on ``QAM``, ``QVM``, ``QPU`` and the like now accept an optional ``memory_map`` keyword parameter. This parameter is defined as a mapping of a memory region's name to a sequence of values that will be used to initialize that memory region before executing the program. This replaces the ability to use the write_memory method on a Program.
+In order to provide more flexibility when executing parameterized Programs, the execution methods on ``QAM``, ``QPU`` and the like now accept an optional ``memory_map`` keyword parameter. This parameter is defined as a mapping of a memory region's name to a sequence of values that will be used to initialize that memory region before executing the program. This replaces the ability to use the write_memory method on a Program.
 Here is an example of how you might use a memory map in practice:
 
 .. code:: python
