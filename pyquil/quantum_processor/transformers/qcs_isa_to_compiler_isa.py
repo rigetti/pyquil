@@ -210,7 +210,7 @@ def _get_frb_sim_1q(node_id: int, benchmarks: Sequence[Operation]) -> float | No
     if site is None:
         return None
 
-    return site.value
+    return site.value  # type: ignore
 
 
 def _make_wildcard_1q_gates(node_id: int) -> list[GateInfo]:

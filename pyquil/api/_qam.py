@@ -97,7 +97,7 @@ class QAMExecutionResult:
         values should not be used to get readout data. Instead, use `get_register_map()` or `get_raw_readout_data()`.
         """
         if self.data.result_data.is_qpu():
-            return self.data.result_data.to_qpu().memory_values
+            return self.data.result_data.to_qpu().memory_values  # type: ignore
         return {}
 
     @property

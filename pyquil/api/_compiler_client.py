@@ -15,6 +15,7 @@
 ##############################################################################
 import json
 from dataclasses import dataclass
+from typing import cast
 
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import (
@@ -123,7 +124,7 @@ class CompilerClient:
 
     def get_version(self) -> str:
         """Get version info for compiler server."""
-        return get_version_info(client=self.quilc_client)
+        return cast(str, get_version_info(client=self.quilc_client))
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """Compile Quil program to native Quil."""

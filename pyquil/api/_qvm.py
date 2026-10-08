@@ -154,7 +154,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
         # Request all memory back from the QVM.
-        addresses = {address: qvm.api.AddressRequest.include_all() for address in executable.declarations.keys()}
+        addresses = {address: qvm.api.AddressRequest.IncludeAll() for address in executable.declarations.keys()}
 
         trials = executable.num_shots
         if self.noise_model is not None:
@@ -184,7 +184,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         :return: String with version information
         """
-        return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))
+        return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))  # type: ignore
 
 
 def validate_noise_probabilities(noise_parameter: tuple[float, float, float] | None) -> None:
