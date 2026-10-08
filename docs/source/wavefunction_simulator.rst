@@ -4,7 +4,7 @@
 The wavefunction simulator
 ==========================
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
 
    :py:class:`~pyquil.api.WavefunctionSimulator` and :py:class:`~pyquil.wavefunction.Wavefunction` are deprecated
    and will be removed in pyQuil v5 in favor of the Quax-based simulators described in

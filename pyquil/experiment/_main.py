@@ -31,7 +31,7 @@ from typing import (
 
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil._deprecation import PyQuilDeprecationWarning
 from pyquil.experiment._calibration import CalibrationMethod
 from pyquil.experiment._memory import (
     pauli_term_to_measurement_memory_map,
@@ -86,7 +86,7 @@ def _remove_reset_from_program(program: Program) -> Program:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -480,7 +480,7 @@ def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -497,7 +497,7 @@ class OperatorEncoder(JSONEncoder):
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -526,7 +526,7 @@ def _operator_object_hook(obj: Mapping[str, Any]) -> Mapping[str, Any] | Experim
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,

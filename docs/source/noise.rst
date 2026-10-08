@@ -4,7 +4,7 @@
 Noise and quantum computation
 =============================
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
 
    The QVM and the Kraus-map noise model used throughout this page (``NoiseModel``, ``KrausModel``,
    ``add_decoherence_noise``, ``pauli_kraus_map`` and the readout-noise helpers in ``pyquil.noise``, as well as

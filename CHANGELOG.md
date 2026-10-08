@@ -11,6 +11,8 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+## 4.22.0 (2026-10-08)
+
 ### Changed
 
 - A `Channel` whose noise generator acts on more levels than its gate promotes the gate to the

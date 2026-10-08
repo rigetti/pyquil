@@ -18,7 +18,7 @@
 .. deprecated:: 4.0
     This module has been moved: import from ``pyquil.latex`` instead.
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
     ``pyquil.latex`` is itself deprecated and will be removed in pyQuil v5, with no replacement in pyQuil.
 """
 
@@ -26,20 +26,20 @@ import warnings
 
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil._deprecation import PyQuilDeprecationWarning
 from pyquil.latex._diagram import DiagramSettings
 from pyquil.quil import Program
 
 warnings.warn(
     f"The module {__name__} is deprecated and will be removed in pyQuil v5, with no "
-    f"replacement in pyQuil. -- Deprecated since version {PENDING_DEPRECATION_RELEASE}.",
+    f"replacement in pyQuil. -- Deprecated since version 4.22.0.",
     PyQuilDeprecationWarning,
     stacklevel=2,
 )
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,

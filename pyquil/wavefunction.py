@@ -15,7 +15,7 @@
 ##############################################################################
 """Module containing the Wavefunction object and methods for working with wavefunctions.
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
     To be removed in pyQuil v5 in favor of the Quax-based simulators. They are already in pyQuil v4,
     but private and experimental (see the :ref:`simulation architecture documentation
     <simulation_architecture>`), so we recommend continuing to use this API until you upgrade to
@@ -26,7 +26,7 @@
 # imports of this module warn.
 import warnings
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._wavefunction import (
     OCTETS_PER_COMPLEX_DOUBLE,
     OCTETS_PER_DOUBLE_FLOAT,
@@ -39,7 +39,7 @@ __all__ = ["OCTETS_PER_COMPLEX_DOUBLE", "OCTETS_PER_DOUBLE_FLOAT", "Wavefunction
 
 warnings.warn(
     f"The module {__name__} is deprecated and will be removed in pyQuil v5, where the Quax-based "
-    f"simulators return quax states instead. {QUAX_REPLACEMENT_NOTE} -- Deprecated since version {PENDING_DEPRECATION_RELEASE}.",
+    f"simulators return quax states instead. {QUAX_REPLACEMENT_NOTE} -- Deprecated since version 4.22.0.",
     PyQuilDeprecationWarning,
     stacklevel=2,
 )

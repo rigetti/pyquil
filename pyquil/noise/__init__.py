@@ -18,7 +18,7 @@ This package provides:
   next major version, at which point the legacy Kraus-based model above is
   removed.
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
     The Kraus-map noise model re-exported here, used by the QVM, will be removed in pyQuil v5 in
     favor of the Quax-based noise model. It is already in pyQuil v4, but private and experimental
     (see the :ref:`simulation architecture documentation <simulation_architecture>`), so we

@@ -21,7 +21,7 @@ import numpy as np
 from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._pyqvm import AbstractQuantumSimulator
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilbase import Gate
@@ -72,7 +72,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=(
         "To be removed in pyQuil v5, where PureStateVectorSimulator computes a program's "
@@ -196,7 +196,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
@@ -213,7 +213,7 @@ def zero_state_matrix(n_qubits: int) -> np.ndarray:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5, where DensityMatrixSimulator replaces it. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
