@@ -2,7 +2,10 @@
 name = "pyquil"
 version = "4.22.0"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
-authors = ["Rigetti QPU Software <qpu-software@rigetti.com>"]
+authors = [
+    "Rigetti Benchmarking Software <benchmarking-software@rigetti.com>",
+    "Rigetti QPU Software <qpu-software@rigetti.com>",
+]
 readme = "README.md"
 repository = "https://github.com/rigetti/pyquil.git"
 documentation = "https://pyquil-docs.rigetti.com"
