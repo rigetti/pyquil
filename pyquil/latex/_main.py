@@ -17,13 +17,13 @@
 
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil._deprecation import PyQuilDeprecationWarning
 from pyquil.latex._diagram import DiagramBuilder, DiagramSettings
 from pyquil.quil import Program
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
@@ -66,7 +66,7 @@ def to_latex(circuit: Program, settings: DiagramSettings | None = None) -> str:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
@@ -91,7 +91,7 @@ def header() -> str:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
@@ -105,7 +105,7 @@ def footer() -> str:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,

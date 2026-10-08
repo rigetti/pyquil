@@ -1,6 +1,6 @@
 """A pure Python implementation of the Quantum Virtual Machine (QVM).
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
     This private module holds the implementation of the deprecated :py:mod:`pyquil.pyqvm`, so that
     pyQuil can use it internally without triggering that module's import warning.
 """
@@ -31,7 +31,7 @@ from numpy.random.mtrand import RandomState
 from qcs_sdk import ExecutionData, RegisterData, ResultData
 from qcs_sdk.qvm import QVMResultData
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
 from pyquil.paulis import PauliSum, PauliTerm
@@ -161,7 +161,7 @@ class AbstractQuantumSimulator(ABC):
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5, where TrajectorySimulator samples program outcomes instead. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,

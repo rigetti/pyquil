@@ -15,7 +15,7 @@
 ##############################################################################
 """Sub-package for facilitating connections to the QVM / QPU.
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
     :py:class:`QVM`, :py:class:`QVMCompiler` and :py:class:`WavefunctionSimulator`, along with
     getting a QVM-backed quantum computer from :py:func:`get_qc`, are deprecated. They will be
     removed in pyQuil v5 in favor of the Quax-based simulators. They are already in pyQuil v4, but

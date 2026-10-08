@@ -23,14 +23,14 @@ from typing import Any
 from deprecated.sphinx import deprecated
 from IPython.display import Image
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil._deprecation import PyQuilDeprecationWarning
 from pyquil.latex._diagram import DiagramSettings
 from pyquil.latex._main import to_latex
 from pyquil.quil import Program
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,

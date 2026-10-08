@@ -20,7 +20,7 @@ import numpy as np
 from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._pyqvm import AbstractQuantumSimulator
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilbase import Gate
@@ -47,7 +47,7 @@ from pyquil.simulation.tools import all_bitstrings
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
@@ -96,7 +96,7 @@ def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: list[int])
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
@@ -144,7 +144,7 @@ def targeted_tensordot(gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequenc
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
@@ -197,7 +197,7 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=(
         "To be removed in pyQuil v5, where PureStateVectorSimulator computes a program's "

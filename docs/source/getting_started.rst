@@ -71,7 +71,7 @@ If you would like to stay up to date with the latest changes and bug fixes, you 
 Setting up requisite servers for pyQuil
 =======================================
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
 
    pyQuil's use of the QVM is deprecated and will be removed in pyQuil v5 in favor of the Quax-based simulators
    described in :ref:`simulation_architecture`, which run in-process and need no server. Those simulators are

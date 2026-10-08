@@ -22,7 +22,7 @@ from deprecated.sphinx import deprecated
 from qcs_sdk import ExecutionData, QCSClient, ResultData, qvm
 from qcs_sdk.qvm import QVMClient, QVMOptions, QVMResultData
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._version import pyquil_version
 from pyquil.api import QAM, MemoryMap, QAMExecutionResult, QuantumExecutable
 from pyquil.noise import NoiseModel, apply_noise_model
@@ -60,7 +60,7 @@ class QVMExecuteResponse:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5, where TrajectorySimulator samples program outcomes instead. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,

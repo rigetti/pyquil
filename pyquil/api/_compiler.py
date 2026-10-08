@@ -29,7 +29,7 @@ from qcs_sdk.qpu.translation import (
 )
 from rpcq.messages import ParameterSpec
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
@@ -176,7 +176,7 @@ class QPUCompiler(AbstractCompiler):
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=(
         "To be removed in pyQuil v5 along with the QVM; the Quax-based simulators that replace the QVM "

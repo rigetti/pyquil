@@ -26,14 +26,14 @@ from typing import Any
 import numpy as np
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil._deprecation import PyQuilDeprecationWarning
 from pyquil.experiment._setting import ExperimentSetting
 
 log = logging.getLogger(__name__)
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -104,7 +104,7 @@ class ExperimentResult:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -139,7 +139,7 @@ def bitstrings_to_expectations(bitstrings: np.ndarray, joint_expectations: list[
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -194,7 +194,7 @@ def correct_experiment_result(
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,

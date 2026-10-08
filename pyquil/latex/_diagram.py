@@ -22,7 +22,7 @@ from warnings import warn
 
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil._deprecation import PyQuilDeprecationWarning
 from pyquil.quil import Program
 from pyquil.quilatom import ParameterDesignator, QubitDesignator, format_parameter
 from pyquil.quilbase import (
@@ -48,7 +48,7 @@ from pyquil.quilbase import (
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
@@ -205,7 +205,7 @@ SOURCE_TARGET_OP = {
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
@@ -274,7 +274,7 @@ class DiagramState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
@@ -317,7 +317,7 @@ def split_on_terminal_measures(
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,
@@ -528,7 +528,7 @@ class DiagramBuilder:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5, with no replacement in pyQuil.",
     category=PyQuilDeprecationWarning,

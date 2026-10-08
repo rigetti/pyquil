@@ -27,7 +27,7 @@ from typing import Any, cast
 
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil._deprecation import PyQuilDeprecationWarning
 from pyquil.paulis import PauliTerm, sI
 
 log = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class _OneQState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -116,7 +116,7 @@ class TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -126,7 +126,7 @@ def SIC0(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -136,7 +136,7 @@ def SIC1(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -146,7 +146,7 @@ def SIC2(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -156,7 +156,7 @@ def SIC3(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -166,7 +166,7 @@ def plusX(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -176,7 +176,7 @@ def minusX(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -186,7 +186,7 @@ def plusY(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -196,7 +196,7 @@ def minusY(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -206,7 +206,7 @@ def plusZ(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -216,7 +216,7 @@ def minusZ(q: int) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -226,7 +226,7 @@ def zeros_state(qubits: Iterable[int]) -> TensorProductState:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,

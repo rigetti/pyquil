@@ -19,13 +19,13 @@ from collections.abc import Sequence
 import numpy as np
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil._deprecation import PyQuilDeprecationWarning
 from pyquil.gates import MEASURE, RX, RZ
 from pyquil.quil import Program
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -88,7 +88,7 @@ def parameterized_euler_rotations(
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -104,7 +104,7 @@ def parameterized_single_qubit_state_preparation(qubits: Sequence[int], label: s
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -120,7 +120,7 @@ def parameterized_single_qubit_measurement_basis(qubits: Sequence[int], label: s
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,
@@ -143,7 +143,7 @@ def parameterized_readout_symmetrization(qubits: Sequence[int], label: str = "sy
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason="To be removed in pyQuil v5 in favor of rigetti-qpu-hybrid-benchmark.",
     category=PyQuilDeprecationWarning,

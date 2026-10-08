@@ -36,7 +36,7 @@ from qcs_sdk.compiler.quilc import NativeQuilMetadata
 from quil.program import CalibrationSet
 from quil.program import Program as RSProgram
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.control_flow_graph import ControlFlowGraph
 from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
@@ -544,7 +544,7 @@ class Program:
         return self.inst(DefGate(name, matrix, parameters))
 
     @deprecated(
-        version=PENDING_DEPRECATION_RELEASE,
+        version="4.22.0",
         line_length=0,
         reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
         category=PyQuilDeprecationWarning,
@@ -570,7 +570,7 @@ class Program:
         return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
 
     @deprecated(
-        version=PENDING_DEPRECATION_RELEASE,
+        version="4.22.0",
         line_length=0,
         reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
         category=PyQuilDeprecationWarning,
@@ -1004,7 +1004,7 @@ class Program:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5: it emits Kraus-map noise pragmas, which only the QVM understands. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,

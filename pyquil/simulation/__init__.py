@@ -1,6 +1,6 @@
 """Functions and classes for running simulations.
 
-.. deprecated:: PENDING_DEPRECATION_RELEASE
+.. deprecated:: 4.22.0
     The simulators exported here -- :py:class:`NumpyWavefunctionSimulator`,
     :py:class:`ReferenceWavefunctionSimulator` and :py:class:`ReferenceDensitySimulator` -- and the
     helper functions exported alongside them are deprecated. They will be removed in pyQuil v5 in

@@ -4,7 +4,7 @@ import logging
 
 from deprecated.sphinx import deprecated
 
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.external.rpcq import CompilerISA, Edge, GateInfo, Supported1QGate, Supported2QGate
 from pyquil.quilatom import Parameter, unpack_qubit
 from pyquil.quilbase import Gate
@@ -14,7 +14,7 @@ THETA = Parameter("theta")
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
@@ -54,7 +54,7 @@ def _get_qvm_noise_supported_gates(isa: CompilerISA) -> list[Gate]:
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
@@ -78,7 +78,7 @@ def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, g
 
 
 @deprecated(
-    version=PENDING_DEPRECATION_RELEASE,
+    version="4.22.0",
     line_length=0,
     reason=f"To be removed in pyQuil v5, along with the Kraus-map noise model. {QUAX_REPLACEMENT_NOTE}",
     category=PyQuilDeprecationWarning,
