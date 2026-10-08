@@ -1131,7 +1131,19 @@ class Channel(_LindbladianBacked, ChannelBase):
 
         The shared tail of every ``from_*`` constructor. Taking the resolved ``unitary`` means the
         gate is looked up exactly once per construction, rather than once per delegation hop.
+
+        A noise generator on more levels than the gate (qutrit noise on a qubit gate, say) promotes
+        the gate to the generator's dims: a gate calibrated on the lowest levels of each qudit acts
+        as the identity on the levels above them, as in quax's ``Unitary + Lindbladian``.
         """
+        dims, gate_dims = tuple(noise_lindbladian.dims[0]), tuple(unitary.dims[0])
+        if dims != gate_dims:
+            if len(dims) != len(gate_dims) or any(d < g for d, g in zip(dims, gate_dims, strict=True)):
+                raise ValueError(
+                    f"Noise on dims {dims} cannot act on {inst.out()}, whose unitary has dims {gate_dims}: it must "
+                    "have as many qudits, each with at least as many levels."
+                )
+            unitary = qx.promote(unitary, dims)
         gate_hamiltonian = qx.unitary_to_hamiltonian(unitary) * (1.0 / gate_time)
         noise_hamiltonian = noise_lindbladian.hamiltonian
         total_hamiltonian = gate_hamiltonian if noise_hamiltonian is None else noise_hamiltonian + gate_hamiltonian
@@ -1151,6 +1163,8 @@ class Channel(_LindbladianBacked, ChannelBase):
         :param inst: The gate to which the channel applies.
         :param noise_lindbladian: The noise generator (e.g. from ``qx.lindbladians``), *without*
             the gate Hamiltonian. Its rates are interpreted per unit time and evolved for ``gate_time``.
+            Its dims set the channel's: on more levels than the gate, say ``qx.lindbladians.leakage``
+            on an ``RX``, the gate is promoted to act as the identity on the levels above its own.
         :param gate_time: Evolution time (see :data:`_DEFAULT_GATE_TIME`).
         :param custom_gates: Optional dictionary of custom gate definitions.
         :return: A Channel instance.
@@ -1344,24 +1358,24 @@ class Channel(_LindbladianBacked, ChannelBase):
         :param gate_time: Evolution time (see :data:`_DEFAULT_GATE_TIME`).
         :param custom_gates: Optional dictionary of custom gate definitions.
         :return: A Channel instance.
-        :raises ValueError: If the lengths disagree, a rate is negative, or a constituent's dims
-            do not match the gate's.
+        :raises ValueError: If the lengths disagree, a rate is negative, or the constituents' dims
+            differ from each other or cannot hold the gate. Constituents on more levels than the gate
+            promote it, as in :meth:`from_lindbladian`.
         """
         ideal = get_instruction_unitary(inst, custom_gates)
+        dims = constituents[0].dims if constituents else ideal.dims
         if len(constituents) != len(rates):
             raise ValueError(f"Got {len(constituents)} constituents but {len(rates)} rates; they must match.")
         if any(r < 0.0 for r in rates):
             raise ValueError("Mixture rates must be non-negative.")
         for constituent in constituents:
-            if constituent.dims != ideal.dims:
-                raise ValueError(
-                    f"Constituent unitary has dims {constituent.dims}, expected {ideal.dims} " f"to match {inst.out()}."
-                )
+            if constituent.dims != dims:
+                raise ValueError(f"Constituent unitaries have dims {constituent.dims} and {dims}; they must match.")
 
-        d = int(np.prod(ideal.dims[0]))
+        d = int(np.prod(dims[0]))
         jump_matrices = [jnp.sqrt(r) * v.matrix for r, v in zip(rates, constituents, strict=True)]
         stacked = jnp.stack(jump_matrices) if jump_matrices else jnp.zeros((1, d, d), dtype=complex)
-        jump_operators = qx.Operator.from_matrix(stacked, ideal.dims)
+        jump_operators = qx.Operator.from_matrix(stacked, dims)
         noise = qx.Lindbladian(hamiltonian=None, jump_operators=jump_operators)
         return cls._from_noise_lindbladian(inst, ideal, noise, gate_time)
 
@@ -1611,7 +1625,7 @@ class MeasurementChannel:
         cls: type[MeasurementChannel],
         inst: Measurement,
         confusion_matrix: Array,
-        transition_matrix: Array,
+        transition_matrix: Array | None = None,
     ) -> MeasurementChannel:
         """Create a MeasurementChannel from a confusion matrix and a transition matrix.
 
@@ -1624,16 +1638,29 @@ class MeasurementChannel:
         - ``transition_matrix[k, j]``: P(ending in k | input j)
         - Columns sum to 1.0
 
+        The confusion matrix has one column per level of the measured qudit and one row per outcome,
+        and the two need not agree: a two-state discriminator on a transmon modelled as a qutrit is a
+        ``(2, 3)`` matrix whose last column is how the leaked level reads, and a readout that
+        resolves the leaked level is ``(3, 3)``.
+
         :param inst: The measurement instruction.
-        :param confusion_matrix: A (d, d) classification matrix.
-        :param transition_matrix: A (d, d) post-measurement transition matrix.
+        :param confusion_matrix: A (num_outcomes, d) classification matrix.
+        :param transition_matrix: A (d, d) post-measurement transition matrix; the identity, a
+            quantum non-demolition measurement, by default.
         :return: A MeasurementChannel instance.
+        :raises ValueError: If the transition matrix is not (d, d) for the confusion matrix's d.
         """
         confusion = jnp.asarray(confusion_matrix)
-        dim = confusion.shape[0]
+        dim = confusion.shape[1]
+        transition = jnp.eye(dim) if transition_matrix is None else jnp.asarray(transition_matrix)
+        if transition.shape != (dim, dim):
+            raise ValueError(
+                f"The transition matrix has shape {transition.shape}, but the confusion matrix "
+                f"{confusion.shape} measures a {dim}-level qudit, so it must be {(dim, dim)}."
+            )
         instrument = qx.instrument_from_confusion_and_transition(
             confusion_matrix=confusion,
-            transition_matrix=jnp.asarray(transition_matrix),
+            transition_matrix=transition,
             dims=(dim,),
             measured_qudits=(0,),
         )
