@@ -48,7 +48,7 @@ def test_default_execution_options():
 
     builder = ExecutionOptions.builder()
     builder.timeout_seconds = 15.0
-    builder.connection_strategy = ConnectionStrategy.endpoint_id("endpoint-id")
+    builder.connection_strategy = ConnectionStrategy.EndpointId("endpoint-id")
     expected = builder.build()
 
     assert qpu.execution_options == expected
@@ -57,7 +57,7 @@ def test_default_execution_options():
 def test_provided_execution_options():
     builder = ExecutionOptions.builder()
     builder.timeout_seconds = 15.0
-    builder.connection_strategy = ConnectionStrategy.direct_access()
+    builder.connection_strategy = ConnectionStrategy.DirectAccess()
     options = builder.build()
 
     qpu = QPU(quantum_processor_id="test", execution_options=options)
@@ -80,9 +80,9 @@ def test_qpu_execute(
             "q1": ExecutionResult.from_register([1, 1, 1, 1]),
         },
         {
-            "binary": MemoryValues.from_binary([0, 1, 0, 1]),
-            "int": MemoryValues.from_integer([2, 3, 4]),
-            "real": MemoryValues.from_real([5.0, 6.0, 7.0]),
+            "binary": MemoryValues.Binary([0, 1, 0, 1]),
+            "int": MemoryValues.Integer([2, 3, 4]),
+            "real": MemoryValues.Real([5.0, 6.0, 7.0]),
         },
     )
 
@@ -91,9 +91,9 @@ def test_qpu_execute(
     assert np.all(result.get_register_map()["ro"] == np.array([[1, 1], [1, 1], [1, 1], [1, 1]]))
     assert np.all(result.get_register_map()["ro"] == result.readout_data["ro"])
     assert result.get_memory_values() == {
-        "binary": MemoryValues.from_binary([0, 1, 0, 1]),
-        "int": MemoryValues.from_integer([2, 3, 4]),
-        "real": MemoryValues.from_real([5.0, 6.0, 7.0]),
+        "binary": MemoryValues.Binary([0, 1, 0, 1]),
+        "int": MemoryValues.Integer([2, 3, 4]),
+        "real": MemoryValues.Real([5.0, 6.0, 7.0]),
     }
 
 
@@ -113,9 +113,9 @@ def test_qpu_execute_jagged_results(
             "q1": ExecutionResult.from_register([1, 1, 1, 1]),
         },
         {
-            "binary": MemoryValues.from_binary([0, 1, 0, 1]),
-            "int": MemoryValues.from_integer([2, 3, 4]),
-            "real": MemoryValues.from_real([5.0, 6.0, 7.0]),
+            "binary": MemoryValues.Binary([0, 1, 0, 1]),
+            "int": MemoryValues.Integer([2, 3, 4]),
+            "real": MemoryValues.Real([5.0, 6.0, 7.0]),
         },
     )
 
@@ -148,7 +148,7 @@ class TestQPUExecutionOptions:
         qpu = QPU(quantum_processor_id="test")
         execution_options_builder = ExecutionOptionsBuilder()
         execution_options_builder.timeout_seconds = 10.0
-        execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id("some-endpoint-id")
+        execution_options_builder.connection_strategy = ConnectionStrategy.EndpointId("some-endpoint-id")
         execution_options = execution_options_builder.build()
         qpu.execution_options = execution_options
 
@@ -161,7 +161,7 @@ class TestQPUExecutionOptions:
                 "q0": ExecutionResult.from_register([1, 1]),
                 "q1": ExecutionResult.from_register([1, 1, 1, 1]),
             },
-            {"stash": MemoryValues.from_binary([0, 1, 0, 1])},
+            {"stash": MemoryValues.Binary([0, 1, 0, 1])},
         )
 
         qpu.get_result(execute_response)
@@ -186,7 +186,7 @@ class TestQPUExecutionOptions:
         mock_submit.return_value = ["some-job-id"]
         execution_options_builder = ExecutionOptionsBuilder()
         execution_options_builder.timeout_seconds = 10.0
-        execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id("some-endpoint-id")
+        execution_options_builder.connection_strategy = ConnectionStrategy.EndpointId("some-endpoint-id")
         execution_options = execution_options_builder.build()
         execute_response = qpu.execute(mock_encrypted_program, execution_options=execution_options)
         assert execute_response.execution_options == execution_options
@@ -196,7 +196,7 @@ class TestQPUExecutionOptions:
                 "q0": ExecutionResult.from_register([1, 1]),
                 "q1": ExecutionResult.from_register([1, 1, 1, 1]),
             },
-            {"stash": MemoryValues.from_binary([0, 1, 0, 1])},
+            {"stash": MemoryValues.Binary([0, 1, 0, 1])},
         )
 
         qpu.get_result(execute_response)
@@ -216,9 +216,9 @@ def test_pickle_QAM_execution_result(mock_encrypted_program):
             result_data=QPUResultData(
                 mappings={"ro[0]": "q0", "ro[1]": "q1"},
                 readout_values={
-                    "q0": ReadoutValues.from_integer([1, 1]),
-                    "q1": ReadoutValues.from_real([1.1, 1.2]),
-                    "q2": ReadoutValues.from_complex([complex(3, 4), complex(2.35, 4.21)]),
+                    "q0": ReadoutValues.Integer([1, 1]),
+                    "q1": ReadoutValues.Real([1.1, 1.2]),
+                    "q2": ReadoutValues.Complex([complex(3, 4), complex(2.35, 4.21)]),
                 },
                 memory_values={"int": MemoryValues([2, 3, 4]), "real": MemoryValues([5.0, 6.0, 7.0])},
             )

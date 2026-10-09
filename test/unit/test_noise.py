@@ -302,7 +302,7 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
             data=ExecutionData(
                 result_data=QVMResultData.from_memory_map(
                     {
-                        "ro": RegisterData.from_i16(
+                        "ro": RegisterData.I16(
                             (
                                 np.array([[0]]) * int(round(p00 * trials))
                                 + np.array([[1]]) * int(round((1 - p00) * trials))
@@ -318,7 +318,7 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
                 result_data=ResultData(
                     QVMResultData.from_memory_map(
                         {
-                            "ro": RegisterData.from_i16(
+                            "ro": RegisterData.I16(
                                 (
                                     np.array([[1]]) * int(round(p11 * trials))
                                     + np.array([[0]]) * int(round((1 - p11) * trials))

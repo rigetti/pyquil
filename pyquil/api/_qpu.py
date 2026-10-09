@@ -48,9 +48,9 @@ def decode_buffer(buffer: ExecutionResult) -> NDArray[np.complex64] | NDArray[np
     :return: NumPy array of decoded data
     """
     if buffer.dtype == "complex":
-        return np.array(buffer.data.to_complex32(), dtype=np.complex64)
+        return np.array(buffer.data, dtype=np.complex64)
     elif buffer.dtype == "integer":
-        return np.array(buffer.data.to_i32(), dtype=np.int32)
+        return np.array(buffer.data, dtype=np.int32)
     return np.array([], np.int32)
 
 
@@ -147,7 +147,7 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options_builder.timeout_seconds = timeout
             execution_options_builder.connection_strategy = ConnectionStrategy.default()
             if endpoint_id is not None:
-                execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id(endpoint_id)
+                execution_options_builder.connection_strategy = ConnectionStrategy.EndpointId(endpoint_id)
             execution_options = execution_options_builder.build()
         self.execution_options = execution_options
 
