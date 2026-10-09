@@ -21,7 +21,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from qcs_sdk import ExecutionData, QCSClient, ResultData
+from qcs_sdk import ExecutionData, QCSClient
 from qcs_sdk.qpu import QPUResultData, ReadoutValues
 from qcs_sdk.qpu.api import (
     ConnectionStrategy,
@@ -48,9 +48,9 @@ def decode_buffer(buffer: ExecutionResult) -> NDArray[np.complex64] | NDArray[np
     :return: NumPy array of decoded data
     """
     if buffer.dtype == "complex":
-        return np.array(buffer.data.to_complex32(), dtype=np.complex64)
+        return np.array(buffer.data, dtype=np.complex64)
     elif buffer.dtype == "integer":
-        return np.array(buffer.data.to_i32(), dtype=np.int32)
+        return np.array(buffer.data, dtype=np.int32)
     return np.array([], np.int32)
 
 
@@ -147,7 +147,7 @@ class QPU(QAM[QPUExecuteResponse]):
             execution_options_builder.timeout_seconds = timeout
             execution_options_builder.connection_strategy = ConnectionStrategy.default()
             if endpoint_id is not None:
-                execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id(endpoint_id)
+                execution_options_builder.connection_strategy = ConnectionStrategy.EndpointId(endpoint_id)
             execution_options = execution_options_builder.build()
         self.execution_options = execution_options
 
@@ -248,15 +248,13 @@ class QPU(QAM[QPUExecuteResponse]):
             client=self._client_configuration,
             execution_options=execute_response.execution_options,
         )
-
-        readout_values = {key: ReadoutValues(value.data.inner()) for key, value in results.buffers.items()}
+        readout_values = {key: ReadoutValues(value.data) for key, value in results.buffers.items()}
         mappings = {
             mref.out(): readout_name
             for mref, readout_name in execute_response._executable.ro_sources.items()
             if mref.name in execute_response._executable.memory_descriptors
         }
         result_data = QPUResultData(mappings=mappings, readout_values=readout_values, memory_values=results.memory)
-        result_data = ResultData(result_data)
         duration = None
         if results.execution_duration_microseconds is not None:
             # The result duration can be `None` to account for `QVM` runs, but should never

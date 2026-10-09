@@ -15,6 +15,7 @@
 ##############################################################################
 import json
 from dataclasses import dataclass
+from typing import cast
 
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import (
@@ -52,7 +53,7 @@ class CompileToNativeQuilRequest:
 class NativeQuilMetadataResponse:
     """Metadata for a native Quil program."""
 
-    final_rewiring: list[int]
+    final_rewiring: list[int] | None
     """Output qubit index relabeling due to SWAP insertion."""
 
     gate_depth: int | None
@@ -80,6 +81,20 @@ class NativeQuilMetadataResponse:
     """
 
 
+def _metadata_from_sdk(metadata: NativeQuilMetadata | None) -> NativeQuilMetadataResponse | None:
+    """Convert the ``qcs_sdk`` ``NativeQuilMetadata`` into a pyQuil ``NativeQuilMetadataResponse``.
+
+    FIXME: As of qcs-sdk-python 0.30.0, ``NativeQuilMetadata`` no longer exposes any of its fields as Python
+    attributes (e.g. ``metadata.qpu_runtime_estimation`` raises ``AttributeError``), though they are still
+    present in ``__repr__`` and ``__getnewargs__``. Until the SDK restores the getters, we unpack the fields via
+    ``__getnewargs__``, whose order matches the dataclass fields. Once fixed upstream, this conversion can be
+    removed and ``NativeQuilMetadata`` used directly again.
+    """
+    if metadata is None:
+        return None
+    return NativeQuilMetadataResponse(*metadata.__getnewargs__())
+
+
 @dataclass
 class CompileToNativeQuilResponse:
     """Compile to native Quil response."""
@@ -87,7 +102,7 @@ class CompileToNativeQuilResponse:
     native_program: str
     """Native Quil program."""
 
-    metadata: NativeQuilMetadata | None
+    metadata: NativeQuilMetadataResponse | None
     """Metadata for the returned Native Quil."""
 
 
@@ -123,7 +138,7 @@ class CompilerClient:
 
     def get_version(self) -> str:
         """Get version info for compiler server."""
-        return get_version_info(client=self.quilc_client)
+        return cast(str, get_version_info(client=self.quilc_client))
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """Compile Quil program to native Quil."""
@@ -136,7 +151,9 @@ class CompilerClient:
             client=self.quilc_client,
             options=CompilerOpts(protoquil=request.protoquil, timeout=self.timeout),
         )
-        return CompileToNativeQuilResponse(native_program=result.program, metadata=result.native_quil_metadata)
+        return CompileToNativeQuilResponse(
+            native_program=result.program, metadata=_metadata_from_sdk(result.native_quil_metadata)
+        )
 
     def conjugate_pauli_by_clifford(self, request: ConjugateByCliffordRequest) -> ConjugatePauliByCliffordResponse:
         """Conjugate a Pauli element by a Clifford element."""

@@ -19,7 +19,7 @@ from typing import Any
 
 import numpy as np
 from deprecated.sphinx import deprecated
-from qcs_sdk import ExecutionData, QCSClient, ResultData, qvm
+from qcs_sdk import ExecutionData, QCSClient, qvm
 from qcs_sdk.qvm import QVMClient, QVMOptions, QVMResultData
 
 from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
@@ -154,7 +154,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
         # Request all memory back from the QVM.
-        addresses = {address: qvm.api.AddressRequest.include_all() for address in executable.declarations.keys()}
+        addresses = {address: qvm.api.AddressRequest.IncludeAll() for address in executable.declarations.keys()}
 
         trials = executable.num_shots
         if self.noise_model is not None:
@@ -176,8 +176,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """Return the results of execution on the QVM."""
-        result_data = ResultData(execute_response.data)
-        data = ExecutionData(result_data=result_data, duration=None)
+        data = ExecutionData(result_data=execute_response.data, duration=None)
         return QAMExecutionResult(executable=execute_response.executable, data=data)
 
     def get_version_info(self) -> str:
@@ -185,7 +184,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         :return: String with version information
         """
-        return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))
+        return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))  # type: ignore
 
 
 def validate_noise_probabilities(noise_parameter: tuple[float, float, float] | None) -> None:
