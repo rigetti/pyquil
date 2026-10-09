@@ -315,17 +315,15 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
         QAMExecutionResult(
             executable=None,
             data=ExecutionData(
-                result_data=ResultData(
-                    QVMResultData.from_memory_map(
-                        {
-                            "ro": RegisterData.I16(
-                                (
-                                    np.array([[1]]) * int(round(p11 * trials))
-                                    + np.array([[0]]) * int(round((1 - p11) * trials))
-                                ).tolist()
-                            )
-                        }
-                    )
+                result_data=QVMResultData.from_memory_map(
+                    {
+                        "ro": RegisterData.I16(
+                            (
+                                np.array([[1]]) * int(round(p11 * trials))
+                                + np.array([[0]]) * int(round((1 - p11) * trials))
+                            ).tolist()
+                        )
+                    }
                 )
             ),
         ),  # X gate results
