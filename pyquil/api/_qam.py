@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 import numpy as np
 from deprecated import deprecated
@@ -98,7 +98,7 @@ class QAMExecutionResult:
         """
         result_data = self.data.result_data
         if isinstance(result_data, QPUResultData):
-            return result_data.memory_values
+            return cast(Mapping[str, MemoryValues], result_data.memory_values)
         return {}
 
     @property
