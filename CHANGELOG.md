@@ -16,6 +16,10 @@ A pull request that changes something a user would notice adds a bullet under
 - Updated QCS SDK to 0.30.0. Update QCS SDK for benchmarking campaign. Required for single-use
   refresh tokens.
 
+### Fixes
+
+- `bitstrings_to_expectations` maps `1` to `-1` correctly for unsigned bitstring arrays.
+
 ## 4.22.0 (2026-10-08)
 
 ### Changed
