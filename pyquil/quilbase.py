@@ -20,6 +20,7 @@ import math
 from collections.abc import Container, Sequence
 from typing import TYPE_CHECKING, TypeAlias
 from warnings import deprecated
+import warnings
 
 import numpy as np
 from quil.expression import Expression, ExpressionDesignator, Parameter, ParameterDesignator
@@ -346,9 +347,91 @@ RESERVED_WORDS: Container[str] = [
     "OR",
 ]
 
-# TODO: Find a way to raise deprecation warnings for these.
-# Aliases for backwards compatibility.
-ArithmeticBinaryOp: TypeAlias = Arithmetic
+
+class DeprecatedSubclass(type):
+    def __new__(mcls, name, bases, namespace, *,
+                base_cls: type,
+                deprecation_msg: str | None = None,
+                base_class_name: str | None = None,
+                constructor: type | None = None,
+                constructor_name: str | None = None,
+                constructor_args: tuple[str, ...] | None = None,
+                constructor_msg: str | None = None,
+                instance_check_msg: str | None = None,
+                subclass_check_msg: str | None = None,
+    ):
+        cls = super().__new__(mcls, name, bases, namespace)
+
+        if deprecation_msg is None:
+            deprecation_msg = f"`pyquil.quilbase.{name}` is deprecated"
+        if base_class_name is None:
+            module = base_cls.__module__.replace("quil._quil", "quil")
+            base_class_name = f"{module}.{base_cls.__name__}"
+        if constructor_name is None:
+            constructor_name = base_class_name
+
+        if constructor is None:
+            constructor = base_cls.__new__
+
+        if constructor_msg is None:
+            constructor_args_str = ", ".join(constructor_args or ())
+            constructor_msg = f"use `{constructor_name}({constructor_args_str})` instead."
+        if instance_check_msg is None:
+            instance_check_msg = f"use `isinstance(obj, {base_class_name})` instead."
+        if subclass_check_msg is None:
+            subclass_check_msg = f"use `issubclass(cls, {base_class_name})` instead."
+
+        cls._base_cls = base_cls
+        cls._constructor = constructor
+        cls._constructor_dep = f"{deprecation_msg}; {constructor_msg}"
+        cls._isinstance_dep = f"{deprecation_msg}; {instance_check_msg}"
+        cls._issubclass_dep = f"{deprecation_msg}; {subclass_check_msg}"
+        return cls
+
+    def __call__(cls, *args, **kwargs):
+        warnings.warn(cls._constructor_dep, category=DeprecationWarning, stacklevel=2)
+        return cls._constructor(cls._base_cls, *args, **kwargs)
+
+    def __instancecheck__(cls, instance) -> bool:
+        warnings.warn(cls._isinstance_dep, category=DeprecationWarning, stacklevel=2)
+        return isinstance(instance, cls._base_cls)
+
+    def __subclasscheck__(cls, subclass) -> bool:
+        warnings.warn(cls._issubclass_dep, category=DeprecationWarning, stacklevel=2)
+        return issubclass(subclass, cls._base_cls)
+
+
+def _dep_args[T](base: type[T], *consts: str, **kwargs: str):
+    """Return a dict of arguments for DeprecatedSubclass metaclass."""
+
+    base_name = base.__name__
+    constructor_args = ", ".join(f"{k}={v}" for k, v in kwargs.items())
+
+    isinstance_check_msg = f"(isinstance(obj, {base_name})"
+    if consts:
+        isinstance_check_msg += "".join(f" and obj.{c} == {kwargs[c]}" for c in consts)
+    isinstance_check_msg += "\n".join((
+        ")",
+        "--or--",
+        "match obj:",
+        f"    case {base_name}({constructor_args}): ...",
+    ))
+
+    return dict(
+        constructor=base.__new__,
+        constructor_args=tuple(f"{k}={v}" for k, v in kwargs.items()),
+        instance_check_msg=isinstance_check_msg,
+    )
+
+
+# TODO: Add deprecation warnings on import of these names.
+
+# These are essentially aliases for backwards compatibility.
+@deprecated("`quil` classes should not be subclassed; use them directly instead")
+class ArithmeticBinaryOp(metaclass=DeprecatedSubclass, base_cls=Arithmetic,
+                         constructor_args=("operator", "destination", "source")): ...
+
+# ArithmeticBinaryOp: TypeAlias = Arithmetic
 ClassicalComparison: TypeAlias = Comparison
 ClassicalConvert: TypeAlias = Convert
 ClassicalExchange: TypeAlias = Exchange
@@ -367,19 +450,26 @@ JumpTarget: TypeAlias = Label
 LogicalBinaryOp: TypeAlias = BinaryLogic
 UnaryClassicalInstruction: TypeAlias = UnaryLogic
 
-# These functions are for backwards compatibility with older classes,
-# which is why they are named using CamelCase instead of snake_case.
+
+
+# These are also for backwards compatibility with older classes,
+# but in these cases, the original subclasses were essentially partial functions. 
 # The older classes were removed because they can't round-trip through quil-based functions.
 @deprecated("UnaryLogic subclasses are deprecated")
-def ClassicalNeg(target: MemoryReference) -> UnaryLogic:
-    """Return a NEG instruction."""
-    return UnaryLogic(UnaryOperator.NEG, target)
+class ClassicalNeg(metaclass=DeprecatedSubclass,
+                   base_cls=UnaryLogic,
+                   **_dep_args(UnaryLogic, "operator", operator="UnaryOperator.NEG", operand="target")):
+    def __new__(cls, target: MemoryReference) -> UnaryLogic:
+        return UnaryLogic(UnaryOperator.NEG, target)
 
 
 @deprecated("UnaryLogic subclasses are deprecated")
-def ClassicalNot(target: MemoryReference) -> UnaryLogic:
-    """Return a NOT instruction."""
-    return UnaryLogic(UnaryOperator.NOT, target)
+class ClassicalNot(metaclass=DeprecatedSubclass,
+                   base_cls=UnaryLogic,
+                   **_dep_args(UnaryLogic, "operator", operator="UnaryOperator.NOT", operand="target")):
+    def __new__(cls, target: MemoryReference) -> UnaryLogic:
+        """Return a NOT instruction."""
+        return UnaryLogic(UnaryOperator.NOT, target)
 
 
 @deprecated("BinaryLogic subclasses are deprecated")
