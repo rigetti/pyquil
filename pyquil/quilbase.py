@@ -17,7 +17,7 @@
 
 import abc
 import math
-from collections.abc import Container, Sequence
+from collections.abc import Callable, Container, Sequence
 from typing import TYPE_CHECKING, TypeAlias
 from warnings import deprecated
 import warnings
@@ -56,6 +56,7 @@ from quil.instructions import (
     Move,
     NopType,
     PauliSum,
+    PauliTargetDesignator,
     Qubit,
     QubitDesignator,
     Store,
@@ -359,6 +360,7 @@ class DeprecatedSubclass(type):
                 constructor_msg: str | None = None,
                 instance_check_msg: str | None = None,
                 subclass_check_msg: str | None = None,
+                matches: Callable[[object], bool] | None = None,
     ):
         cls = super().__new__(mcls, name, bases, namespace)
 
@@ -371,7 +373,8 @@ class DeprecatedSubclass(type):
             constructor_name = base_class_name
 
         if constructor is None:
-            constructor = base_cls.__new__
+            # Partial-application classes define `__new__` to build the underlying `quil` object.
+            constructor = namespace.get("__new__", base_cls.__new__)
 
         if constructor_msg is None:
             constructor_args_str = ", ".join(constructor_args or ())
@@ -382,6 +385,7 @@ class DeprecatedSubclass(type):
             subclass_check_msg = f"use `issubclass(cls, {base_class_name})` instead."
 
         cls._base_cls = base_cls
+        cls._matches = matches
         cls._constructor = constructor
         cls._constructor_dep = f"{deprecation_msg}; {constructor_msg}"
         cls._isinstance_dep = f"{deprecation_msg}; {instance_check_msg}"
@@ -394,7 +398,7 @@ class DeprecatedSubclass(type):
 
     def __instancecheck__(cls, instance) -> bool:
         warnings.warn(cls._isinstance_dep, category=DeprecationWarning, stacklevel=2)
-        return isinstance(instance, cls._base_cls)
+        return isinstance(instance, cls._base_cls) and (cls._matches is None or cls._matches(instance))
 
     def __subclasscheck__(cls, subclass) -> bool:
         warnings.warn(cls._issubclass_dep, category=DeprecationWarning, stacklevel=2)
@@ -418,226 +422,491 @@ def _dep_args[T](base: type[T], *consts: str, **kwargs: str):
     ))
 
     return dict(
-        constructor=base.__new__,
         constructor_args=tuple(f"{k}={v}" for k, v in kwargs.items()),
         instance_check_msg=isinstance_check_msg,
     )
 
 
-# TODO: Add deprecation warnings on import of these names.
-
 # These are essentially aliases for backwards compatibility.
 @deprecated("`quil` classes should not be subclassed; use them directly instead")
-class ArithmeticBinaryOp(metaclass=DeprecatedSubclass, base_cls=Arithmetic,
-                         constructor_args=("operator", "destination", "source")): ...
+class ArithmeticBinaryOp(
+    metaclass=DeprecatedSubclass, base_cls=Arithmetic, constructor_args=("operator", "destination", "source")
+): ...
 
-# ArithmeticBinaryOp: TypeAlias = Arithmetic
-ClassicalComparison: TypeAlias = Comparison
-ClassicalConvert: TypeAlias = Convert
-ClassicalExchange: TypeAlias = Exchange
-ClassicalLoad: TypeAlias = Load
-ClassicalMove: TypeAlias = Move
-ClassicalStore: TypeAlias = Store
-ClasssicalExchange: TypeAlias = Exchange
-Declare: TypeAlias = Declaration
-DefCalibration: TypeAlias = CalibrationDefinition
-DefCircuit: TypeAlias = CircuitDefinition
-DefFrame: TypeAlias = FrameDefinition
-DefMeasureCalibration: TypeAlias = MeasureCalibrationDefinition
-DefWaveform: TypeAlias = WaveformDefinition
-Frame: TypeAlias = FrameIdentifier
-JumpTarget: TypeAlias = Label
-LogicalBinaryOp: TypeAlias = BinaryLogic
-UnaryClassicalInstruction: TypeAlias = UnaryLogic
 
+@deprecated("`ClassicalComparison` is deprecated; use `Comparison` instead")
+class ClassicalComparison(
+    metaclass=DeprecatedSubclass,
+    base_cls=Comparison,
+    constructor_args=("operator", "destination", "lhs", "rhs"),
+): ...
+
+
+@deprecated("`ClassicalConvert` is deprecated; use `Convert` instead")
+class ClassicalConvert(metaclass=DeprecatedSubclass, base_cls=Convert, constructor_args=("destination", "source")): ...
+
+
+@deprecated("`ClassicalExchange` is deprecated; use `Exchange` instead")
+class ClassicalExchange(metaclass=DeprecatedSubclass, base_cls=Exchange, constructor_args=("left", "right")): ...
+
+
+@deprecated("`ClassicalLoad` is deprecated; use `Load` instead")
+class ClassicalLoad(
+    metaclass=DeprecatedSubclass, base_cls=Load, constructor_args=("destination", "source", "offset")
+): ...
+
+
+@deprecated("`ClassicalMove` is deprecated; use `Move` instead")
+class ClassicalMove(metaclass=DeprecatedSubclass, base_cls=Move, constructor_args=("destination", "source")): ...
+
+
+@deprecated("`ClassicalStore` is deprecated; use `Store` instead")
+class ClassicalStore(
+    metaclass=DeprecatedSubclass, base_cls=Store, constructor_args=("destination", "offset", "source")
+): ...
+
+
+@deprecated("`ClasssicalExchange` is deprecated; use `Exchange` instead")
+class ClasssicalExchange(metaclass=DeprecatedSubclass, base_cls=Exchange, constructor_args=("left", "right")): ...
+
+
+@deprecated("`Declare` is deprecated; use `Declaration` instead")
+class Declare(
+    metaclass=DeprecatedSubclass,
+    base_cls=Declaration,
+    constructor_args=("name", "memory_type", "memory_size", "shared_region", "offsets"),
+): ...
+
+
+@deprecated("`DefCalibration` is deprecated; use `CalibrationDefinition` instead")
+class DefCalibration(
+    metaclass=DeprecatedSubclass,
+    base_cls=CalibrationDefinition,
+    constructor_args=("identifier", "instructions", "qubits", "instrs", "modifiers"),
+): ...
+
+
+@deprecated("`DefCircuit` is deprecated; use `CircuitDefinition` instead")
+class DefCircuit(
+    metaclass=DeprecatedSubclass,
+    base_cls=CircuitDefinition,
+    constructor_args=("name", "parameters", "qubit_variables", "instructions"),
+): ...
+
+
+@deprecated("`DefFrame` is deprecated; use `FrameDefinition` instead")
+class DefFrame(
+    metaclass=DeprecatedSubclass, base_cls=FrameDefinition, constructor_args=("identifier", "attributes")
+): ...
+
+
+@deprecated("`DefMeasureCalibration` is deprecated; use `MeasureCalibrationDefinition` instead")
+class DefMeasureCalibration(
+    metaclass=DeprecatedSubclass,
+    base_cls=MeasureCalibrationDefinition,
+    constructor_args=("qubit", "memory_reference", "instructions"),
+): ...
+
+
+@deprecated("`DefWaveform` is deprecated; use `WaveformDefinition` instead")
+class DefWaveform(
+    metaclass=DeprecatedSubclass, base_cls=WaveformDefinition, constructor_args=("name", "parameters", "entries")
+): ...
+
+
+@deprecated("`Frame` is deprecated; use `FrameIdentifier` instead")
+class Frame(metaclass=DeprecatedSubclass, base_cls=FrameIdentifier, constructor_args=("qubits", "name")): ...
+
+
+@deprecated("`JumpTarget` is deprecated; use `Label` instead")
+class JumpTarget(metaclass=DeprecatedSubclass, base_cls=Label, constructor_args=("target",)): ...
+
+
+@deprecated("`LogicalBinaryOp` is deprecated; use `BinaryLogic` instead")
+class LogicalBinaryOp(
+    metaclass=DeprecatedSubclass, base_cls=BinaryLogic, constructor_args=("operator", "destination", "source")
+): ...
+
+
+@deprecated("`UnaryClassicalInstruction` is deprecated; use `UnaryLogic` instead")
+class UnaryClassicalInstruction(
+    metaclass=DeprecatedSubclass, base_cls=UnaryLogic, constructor_args=("operator", "operand")
+): ...
 
 
 # These are also for backwards compatibility with older classes,
-# but in these cases, the original subclasses were essentially partial functions. 
+# but in these cases, the original subclasses were essentially partial functions.
 # The older classes were removed because they can't round-trip through quil-based functions.
 @deprecated("UnaryLogic subclasses are deprecated")
-class ClassicalNeg(metaclass=DeprecatedSubclass,
-                   base_cls=UnaryLogic,
-                   **_dep_args(UnaryLogic, "operator", operator="UnaryOperator.NEG", operand="target")):
+class ClassicalNeg(
+    metaclass=DeprecatedSubclass,
+    base_cls=UnaryLogic,
+    matches=lambda obj: obj.operator == UnaryOperator.NEG,
+    **_dep_args(UnaryLogic, "operator", operator="UnaryOperator.NEG", operand="target"),
+):
     def __new__(cls, target: MemoryReference) -> UnaryLogic:
+        """Return a NEG instruction."""
         return UnaryLogic(UnaryOperator.NEG, target)
 
 
 @deprecated("UnaryLogic subclasses are deprecated")
-class ClassicalNot(metaclass=DeprecatedSubclass,
-                   base_cls=UnaryLogic,
-                   **_dep_args(UnaryLogic, "operator", operator="UnaryOperator.NOT", operand="target")):
+class ClassicalNot(
+    metaclass=DeprecatedSubclass,
+    base_cls=UnaryLogic,
+    matches=lambda obj: obj.operator == UnaryOperator.NOT,
+    **_dep_args(UnaryLogic, "operator", operator="UnaryOperator.NOT", operand="target"),
+):
     def __new__(cls, target: MemoryReference) -> UnaryLogic:
         """Return a NOT instruction."""
         return UnaryLogic(UnaryOperator.NOT, target)
 
 
 @deprecated("BinaryLogic subclasses are deprecated")
-def ClassicalAnd(left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
-    """Return an AND instruction."""
-    return BinaryLogic(BinaryOperator.AND, left, right)
+class ClassicalAnd(
+    metaclass=DeprecatedSubclass,
+    base_cls=BinaryLogic,
+    matches=lambda obj: obj.operator == BinaryOperator.AND,
+    **_dep_args(BinaryLogic, "operator", operator="BinaryOperator.AND", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
+        """Return an AND instruction."""
+        return BinaryLogic(BinaryOperator.AND, left, right)
 
 
 @deprecated("BinaryLogic subclasses are deprecated")
-def ClassicalInclusiveOr(left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
-    """Return an IOR instruction."""
-    return BinaryLogic(BinaryOperator.IOR, left, right)
+class ClassicalInclusiveOr(
+    metaclass=DeprecatedSubclass,
+    base_cls=BinaryLogic,
+    matches=lambda obj: obj.operator == BinaryOperator.IOR,
+    **_dep_args(BinaryLogic, "operator", operator="BinaryOperator.IOR", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
+        """Return an IOR instruction."""
+        return BinaryLogic(BinaryOperator.IOR, left, right)
 
 
 @deprecated("BinaryLogic subclasses are deprecated")
-def ClassicalExclusiveOr(left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
-    """Return an XOR instruction."""
-    return BinaryLogic(BinaryOperator.XOR, left, right)
+class ClassicalExclusiveOr(
+    metaclass=DeprecatedSubclass,
+    base_cls=BinaryLogic,
+    matches=lambda obj: obj.operator == BinaryOperator.XOR,
+    **_dep_args(BinaryLogic, "operator", operator="BinaryOperator.XOR", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
+        """Return an XOR instruction."""
+        return BinaryLogic(BinaryOperator.XOR, left, right)
 
 
 @deprecated("BinaryLogic subclasses are deprecated")
-def ClassicalArithmeticShiftRight(left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
-    """Return an arithmetic shift-right instruction."""
-    return BinaryLogic(BinaryOperator.ASHR, left, right)
+class ClassicalArithmeticShiftRight(
+    metaclass=DeprecatedSubclass,
+    base_cls=BinaryLogic,
+    matches=lambda obj: obj.operator == BinaryOperator.ASHR,
+    **_dep_args(BinaryLogic, "operator", operator="BinaryOperator.ASHR", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
+        """Return an arithmetic shift-right instruction."""
+        return BinaryLogic(BinaryOperator.ASHR, left, right)
 
 
 @deprecated("BinaryLogic subclasses are deprecated")
-def ClassicalShiftLeft(left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
-    """Return a shift-left instruction."""
-    return BinaryLogic(BinaryOperator.SHL, left, right)
+class ClassicalShiftLeft(
+    metaclass=DeprecatedSubclass,
+    base_cls=BinaryLogic,
+    matches=lambda obj: obj.operator == BinaryOperator.SHL,
+    **_dep_args(BinaryLogic, "operator", operator="BinaryOperator.SHL", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
+        """Return a shift-left instruction."""
+        return BinaryLogic(BinaryOperator.SHL, left, right)
 
 
 @deprecated("BinaryLogic subclasses are deprecated")
-def ClassicalShiftRight(left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
-    """Return a shift-right instruction."""
-    return BinaryLogic(BinaryOperator.SHR, left, right)
+class ClassicalShiftRight(
+    metaclass=DeprecatedSubclass,
+    base_cls=BinaryLogic,
+    matches=lambda obj: obj.operator == BinaryOperator.SHR,
+    **_dep_args(BinaryLogic, "operator", operator="BinaryOperator.SHR", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int) -> BinaryLogic:
+        """Return a shift-right instruction."""
+        return BinaryLogic(BinaryOperator.SHR, left, right)
 
 
-@deprecated("ArithmeticBinaryOp subclasses are deprecated")
-def ClassicalAdd(left: MemoryReference, right: MemoryReference | int | float) -> ArithmeticBinaryOp:
-    """Return an ADD instruction."""
-    return ArithmeticBinaryOp(ArithmeticOperator.ADD, left, right)
+@deprecated("Arithmetic subclasses are deprecated")
+class ClassicalAdd(
+    metaclass=DeprecatedSubclass,
+    base_cls=Arithmetic,
+    matches=lambda obj: obj.operator == ArithmeticOperator.ADD,
+    **_dep_args(Arithmetic, "operator", operator="ArithmeticOperator.ADD", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int | float) -> Arithmetic:
+        """Return an ADD instruction."""
+        return Arithmetic(ArithmeticOperator.ADD, left, right)
 
 
-@deprecated("ArithmeticBinaryOp subclasses are deprecated")
-def ClassicalSub(left: MemoryReference, right: MemoryReference | int | float) -> ArithmeticBinaryOp:
-    """Return a SUB instruction."""
-    return ArithmeticBinaryOp(ArithmeticOperator.SUBTRACT, left, right)
+@deprecated("Arithmetic subclasses are deprecated")
+class ClassicalSub(
+    metaclass=DeprecatedSubclass,
+    base_cls=Arithmetic,
+    matches=lambda obj: obj.operator == ArithmeticOperator.SUBTRACT,
+    **_dep_args(Arithmetic, "operator", operator="ArithmeticOperator.SUBTRACT", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int | float) -> Arithmetic:
+        """Return a SUB instruction."""
+        return Arithmetic(ArithmeticOperator.SUBTRACT, left, right)
 
 
-@deprecated("ArithmeticBinaryOp subclasses are deprecated")
-def ClassicalMul(left: MemoryReference, right: MemoryReference | int | float) -> ArithmeticBinaryOp:
-    """Return a MUL instruction."""
-    return ArithmeticBinaryOp(ArithmeticOperator.MULTIPLY, left, right)
+@deprecated("Arithmetic subclasses are deprecated")
+class ClassicalMul(
+    metaclass=DeprecatedSubclass,
+    base_cls=Arithmetic,
+    matches=lambda obj: obj.operator == ArithmeticOperator.MULTIPLY,
+    **_dep_args(Arithmetic, "operator", operator="ArithmeticOperator.MULTIPLY", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int | float) -> Arithmetic:
+        """Return a MUL instruction."""
+        return Arithmetic(ArithmeticOperator.MULTIPLY, left, right)
 
 
-@deprecated("ArithmeticBinaryOp subclasses are deprecated")
-def ClassicalDiv(left: MemoryReference, right: MemoryReference | int | float) -> ArithmeticBinaryOp:
-    """Return a DIV instruction."""
-    return ArithmeticBinaryOp(ArithmeticOperator.DIVIDE, left, right)
+@deprecated("Arithmetic subclasses are deprecated")
+class ClassicalDiv(
+    metaclass=DeprecatedSubclass,
+    base_cls=Arithmetic,
+    matches=lambda obj: obj.operator == ArithmeticOperator.DIVIDE,
+    **_dep_args(Arithmetic, "operator", operator="ArithmeticOperator.DIVIDE", destination="left", source="right"),
+):
+    def __new__(cls, left: MemoryReference, right: MemoryReference | int | float) -> Arithmetic:
+        """Return a DIV instruction."""
+        return Arithmetic(ArithmeticOperator.DIVIDE, left, right)
 
 
 @deprecated("Comparison subclasses are deprecated")
-def ClassicalEqual(target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float) -> Comparison:
-    """Return an EQ comparison instruction."""
-    return Comparison(ComparisonOperator.EQUAL, target, left, right)
+class ClassicalEqual(
+    metaclass=DeprecatedSubclass,
+    base_cls=Comparison,
+    matches=lambda obj: obj.operator == ComparisonOperator.EQUAL,
+    **_dep_args(Comparison, "operator", operator="ComparisonOperator.EQUAL", target="target", left="left", right="right"),
+):
+    def __new__(cls, target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float) -> Comparison:
+        """Return an EQ comparison instruction."""
+        return Comparison(ComparisonOperator.EQUAL, target, left, right)
 
 
 @deprecated("Comparison subclasses are deprecated")
-def ClassicalLessThan(
-    target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float
-) -> Comparison:
-    """Return a LT comparison instruction."""
-    return Comparison(ComparisonOperator.LESS_THAN, target, left, right)
+class ClassicalLessThan(
+    metaclass=DeprecatedSubclass,
+    base_cls=Comparison,
+    matches=lambda obj: obj.operator == ComparisonOperator.LESS_THAN,
+    **_dep_args(
+        Comparison, "operator", operator="ComparisonOperator.LESS_THAN", target="target", left="left", right="right"
+    ),
+):
+    def __new__(cls, target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float) -> Comparison:
+        """Return a LT comparison instruction."""
+        return Comparison(ComparisonOperator.LESS_THAN, target, left, right)
 
 
 @deprecated("Comparison subclasses are deprecated")
-def ClassicalLessEqual(
-    target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float
-) -> Comparison:
-    """Return a LE comparison instruction."""
-    return Comparison(ComparisonOperator.LESS_THAN_OR_EQUAL, target, left, right)
+class ClassicalLessEqual(
+    metaclass=DeprecatedSubclass,
+    base_cls=Comparison,
+    matches=lambda obj: obj.operator == ComparisonOperator.LESS_THAN_OR_EQUAL,
+    **_dep_args(
+        Comparison,
+        "operator",
+        operator="ComparisonOperator.LESS_THAN_OR_EQUAL",
+        target="target",
+        left="left",
+        right="right",
+    ),
+):
+    def __new__(cls, target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float) -> Comparison:
+        """Return a LE comparison instruction."""
+        return Comparison(ComparisonOperator.LESS_THAN_OR_EQUAL, target, left, right)
 
 
 @deprecated("Comparison subclasses are deprecated")
-def ClassicalGreaterThan(
-    target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float
-) -> Comparison:
-    """Return a GT comparison instruction."""
-    return Comparison(ComparisonOperator.GREATER_THAN, target, left, right)
+class ClassicalGreaterThan(
+    metaclass=DeprecatedSubclass,
+    base_cls=Comparison,
+    matches=lambda obj: obj.operator == ComparisonOperator.GREATER_THAN,
+    **_dep_args(
+        Comparison, "operator", operator="ComparisonOperator.GREATER_THAN", target="target", left="left", right="right"
+    ),
+):
+    def __new__(cls, target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float) -> Comparison:
+        """Return a GT comparison instruction."""
+        return Comparison(ComparisonOperator.GREATER_THAN, target, left, right)
 
 
 @deprecated("Comparison subclasses are deprecated")
-def ClassicalGreaterEqual(
-    target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float
-) -> Comparison:
-    """Return a GE comparison instruction."""
-    return Comparison(ComparisonOperator.GREATER_THAN_OR_EQUAL, target, left, right)
+class ClassicalGreaterEqual(
+    metaclass=DeprecatedSubclass,
+    base_cls=Comparison,
+    matches=lambda obj: obj.operator == ComparisonOperator.GREATER_THAN_OR_EQUAL,
+    **_dep_args(
+        Comparison,
+        "operator",
+        operator="ComparisonOperator.GREATER_THAN_OR_EQUAL",
+        target="target",
+        left="left",
+        right="right",
+    ),
+):
+    def __new__(cls, target: MemoryReference, left: MemoryReference, right: MemoryReference | int | float) -> Comparison:
+        """Return a GE comparison instruction."""
+        return Comparison(ComparisonOperator.GREATER_THAN_OR_EQUAL, target, left, right)
 
 
 @deprecated("DelayFrames is deprecated, use Delay.from_frames instead.")
-def DelayFrames(frames: list[FrameIdentifier], duration: float) -> Delay:
-    """Return a DELAY instruction operating on frames.
+class DelayFrames(
+    metaclass=DeprecatedSubclass,
+    base_cls=Delay,
+    constructor_name="quil.instructions.Delay.from_frames",
+    constructor_args=("duration", "frames"),
+    instance_check_msg="use `isinstance(obj, quil.instructions.Delay) and obj.has_frames()` instead.",
+    matches=lambda obj: obj.has_frames(),
+):
+    def __new__(cls, frames: list[FrameIdentifier], duration: float) -> Delay:
+        """Return a DELAY instruction operating on frames.
 
-    The `DelayFrames` class was removed because there is no corresponding Quil instruction,
-    meaning when added to a `Program`, it must be converted into a `Delay` instruction,
-    and hence is not returned from a `Program` as its original class.
-    To avoid confusion, the class was removed.
-    To replace creating instances, use the static `Delay.from_frames` alternate constructor;
-    to replace `isinstance` checks, use `isinstance(x, Delay)` and `x.has_frames()`
-    to check whether or not the `Delay` includes frames.
-    """
-    return Delay.from_frames(duration, frames)
+        The `DelayFrames` class was removed because there is no corresponding Quil instruction,
+        meaning when added to a `Program`, it must be converted into a `Delay` instruction,
+        and hence is not returned from a `Program` as its original class.
+        To avoid confusion, the class was removed.
+        To replace creating instances, use the static `Delay.from_frames` alternate constructor;
+        to replace `isinstance` checks, use `isinstance(x, Delay)` and `x.has_frames()`
+        to check whether or not the `Delay` includes frames.
+        """
+        return Delay.from_frames(duration, frames)
 
 
-@deprecated("DelayQubits is deprecated, use Delay.from_frames instead.")
-def DelayQubits(qubits: Sequence[QubitDesignator], duration: float) -> Delay:
-    """Return a DELAY instruction operating on qubits.
+@deprecated("DelayQubits is deprecated, use Delay instead.")
+class DelayQubits(
+    metaclass=DeprecatedSubclass,
+    base_cls=Delay,
+    constructor_args=("duration", "qubits"),
+    instance_check_msg="use `isinstance(obj, quil.instructions.Delay) and not obj.has_frames()` instead.",
+    matches=lambda obj: not obj.has_frames(),
+):
+    def __new__(cls, qubits: Sequence[QubitDesignator], duration: float) -> Delay:
+        """Return a DELAY instruction operating on qubits.
 
-    The `DelayQubits` class was removed because there is no corresponding Quil instruction,
-    meaning when added to a `Program`, it must be converted into a `Delay` instruction,
-    and hence is not returned from a `Program` as its original class.
-    To avoid confusion, the class was removed.
-    To replace creating instances, use the `Delay(duration, qubits)` constructor;
-    to replace `isinstance` checks, use `isinstance(x, Delay)` and `not x.has_frames()`
-    to check whether or not the `Delay` includes frames.
-    """
-    return Delay(duration, qubits)
+        The `DelayQubits` class was removed because there is no corresponding Quil instruction,
+        meaning when added to a `Program`, it must be converted into a `Delay` instruction,
+        and hence is not returned from a `Program` as its original class.
+        To avoid confusion, the class was removed.
+        To replace creating instances, use the `Delay(duration, qubits)` constructor;
+        to replace `isinstance` checks, use `isinstance(x, Delay)` and `not x.has_frames()`
+        to check whether or not the `Delay` includes frames.
+        """
+        return Delay(duration, qubits)
 
 
 @deprecated("FenceAll is deprecated, use Fence([]) instead.")
-def FenceAll() -> Fence:
-    """Return a FENCE instruction that operates on all qubits."""
-    return Fence([])
+class FenceAll(
+    metaclass=DeprecatedSubclass,
+    base_cls=Fence,
+    constructor_args=("[]",),
+    instance_check_msg="use `isinstance(obj, quil.instructions.Fence) and not obj.qubits` instead.",
+    matches=lambda obj: not obj.qubits,
+):
+    def __new__(cls) -> Fence:
+        """Return a FENCE instruction that operates on all qubits."""
+        return Fence([])
 
 
 @deprecated("ResetQubit is deprecated, use Reset(qubit) instead.")
-def ResetQubit(qubit: QubitDesignator) -> Reset:
-    """Return a RESET instruction that operates on a single qubit."""
-    if qubit is None:
-        raise TypeError("qubit should not be None")
-    return Reset(qubit)
+class ResetQubit(
+    metaclass=DeprecatedSubclass,
+    base_cls=Reset,
+    constructor_args=("qubit",),
+    instance_check_msg="use `isinstance(obj, quil.instructions.Reset) and obj.qubit is not None` instead.",
+    matches=lambda obj: obj.qubit is not None,
+):
+    def __new__(cls, qubit: QubitDesignator) -> Reset:
+        """Return a RESET instruction that operates on a single qubit."""
+        if qubit is None:
+            raise TypeError("qubit should not be None")
+        return Reset(qubit)
 
 
 @deprecated("GateDefinition subclasses are deprecated -- provide a GateSpecification directly")
-def DefGate(
-    name: str,
-    matrix: Sequence[Sequence[ExpressionDesignator]] | np.ndarray,
-    parameters: list[Parameter] | None = None,
-) -> GateDefinition:
-    """Initialize a new gate definition from a unitary matrix."""
-    return GateDefinition(name, parameters or [], GateSpecification.Matrix(matrix))
+class DefGate(
+    metaclass=DeprecatedSubclass,
+    base_cls=GateDefinition,
+    constructor_args=("name", "parameters", "specification=GateSpecification.Matrix(matrix)"),
+    instance_check_msg=(
+        "use `isinstance(obj, quil.instructions.GateDefinition)`"
+        " and `isinstance(obj.specification, GateSpecification.Matrix)` instead."
+    ),
+    matches=lambda obj: isinstance(obj.specification, GateSpecification.Matrix),
+):
+    def __new__(
+        cls,
+        name: str,
+        matrix: Sequence[Sequence[ExpressionDesignator]] | np.ndarray,
+        parameters: list[Parameter] | None = None,
+    ) -> GateDefinition:
+        """Initialize a new gate definition from a unitary matrix."""
+        return GateDefinition(name, parameters or [], GateSpecification.Matrix(matrix))
 
 
 @deprecated("GateDefinition subclasses are deprecated -- provide a GateSpecification directly")
-def DefPermutationGate(name: str, permutation: list[int] | np.ndarray) -> GateDefinition:
-    """Initialize a new gate definition with a permutation."""
-    return GateDefinition(name, [], GateSpecification.Permutation(permutation))
+class DefPermutationGate(
+    metaclass=DeprecatedSubclass,
+    base_cls=GateDefinition,
+    constructor_args=("name", "parameters=[]", "specification=GateSpecification.Permutation(permutation)"),
+    instance_check_msg=(
+        "use `isinstance(obj, quil.instructions.GateDefinition)`"
+        " and `isinstance(obj.specification, GateSpecification.Permutation)` instead."
+    ),
+    matches=lambda obj: isinstance(obj.specification, GateSpecification.Permutation),
+):
+    def __new__(cls, name: str, permutation: list[int] | np.ndarray) -> GateDefinition:
+        """Initialize a new gate definition with a permutation."""
+        return GateDefinition(name, [], GateSpecification.Permutation(permutation))
 
+if TYPE_CHECKING:
+    from pyquil.paulis import (PauliSum as _PauliSum, PauliTerm as _PauliTerm)
+
+from quil.instructions import PauliSum, PauliTerm
 
 @deprecated("GateDefinition subclasses are deprecated -- provide a GateSpecification directly")
-def DefGateByPaulis(
-    gate_name: str, parameters: list[Parameter], arguments: list[QubitDesignator], body: "PauliSum"
-) -> GateDefinition:
-    """Return a DEFGATE instruction with parameters."""
-    if isinstance(body, Sequence):
-        from pyquil.paulis import PauliSum
+class DefGateByPaulis(
+    metaclass=DeprecatedSubclass,
+    base_cls=GateDefinition,
+    constructor_args=(
+        "name=gate_name",
+        "parameters=parameters",
+        "specification=GateSpecification.PauliSum(PauliSum(body))",
+    ),
+    instance_check_msg=(
+        "use `isinstance(obj, quil.instructions.GateDefinition)`"
+        " and `isinstance(obj.specification, GateSpecification.PauliSum)` instead."
+    ),
+    matches=lambda obj: isinstance(obj.specification, GateSpecification.PauliSum),
+):
+    def __new__(
+        cls, gate_name: str, parameters: list[Parameter], arguments: list[PauliTargetDesignator],
+        body: PauliSum | _PauliSum | Sequence[PauliTerm] | Sequence[_PauliTerm]
+    ) -> GateDefinition:
+        """Return a DEFGATE instruction with parameters."""
+        # A valid call to the original `PauliSum.__init__` means `body` is a `Sequence[PauliTerm]`.
 
-        body = PauliSum(body)
-    specification = GateSpecification.PauliSum(body._to_rs_pauli_sum(arguments))
-    return GateDefinition(gate_name, parameters, specification)
+        terms = list(body) or [PauliTerm("I", None, 0)]
+
+        for i, term in enumerate(terms):
+            if isinstance(term, _PauliTerm):
+                terms[i] = PauliTerm.from_list(
+                    [(gate, arg) for arg, gate in term],
+                    coefficient=term.coefficient
+                )
+            elif not isinstance(term, PauliTerm):
+                raise TypeError(f"All terms in the body must be instances of PauliTerm, but term {i} is {type(term)}.")
+
+        specification = GateSpecification.PauliSum(PauliSum(terms=terms, arguments=arguments))
+        return GateDefinition(gate_name, parameters, specification)
+
+

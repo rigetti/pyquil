@@ -464,7 +464,7 @@ class TestDefCalibration:
         qubits: list[Qubit],
         instrs: list[AbstractInstruction],
     ) -> DefCalibration:
-        return DefCalibration.from_parts(name, parameters, qubits, instrs, None)
+        return CalibrationDefinition.from_parts(name, parameters, qubits, instrs, None)
 
     def test_str(self, calibration: DefCalibration, snapshot: SnapshotAssertion):
         assert str(calibration) == snapshot

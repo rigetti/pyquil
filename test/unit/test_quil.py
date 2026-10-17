@@ -1,4 +1,3 @@
-#!/usr/bin/python
 ##############################################################################
 # Copyright 2016-2017 Rigetti Computing
 #
@@ -22,7 +21,7 @@ import pytest
 import quil
 from quil import QuilError
 from syrupy.assertion import SnapshotAssertion
-from quil.instructions import Qubit
+from quil.instructions import CalibrationDefinition, Qubit
 
 from pyquil.gates import (
     ADD,
@@ -150,7 +149,7 @@ def test_defgate_redefintion():
 def test_defcal_redefinition(snapshot: SnapshotAssertion):
     """Test that adding a DefCalibration with the same name updates the definition."""
     program = Program()
-    defcal = DefCalibration.from_parts("TEST", [], [Qubit(1)], [RX(np.pi, 1)], None)
+    defcal = CalibrationDefinition.from_parts("TEST", [], [Qubit(1)], [RX(np.pi, 1)], None)
     program += defcal
 
     assert len(program.calibrations) == 1
@@ -160,7 +159,7 @@ def test_defcal_redefinition(snapshot: SnapshotAssertion):
 
     assert len(program.calibrations) == 1
 
-    new_defcal = DefCalibration.from_parts("TEST", [], [Qubit(1)], [RX(np.pi / 2, 1)], None)
+    new_defcal = CalibrationDefinition.from_parts("TEST", [], [Qubit(1)], [RX(np.pi / 2, 1)], None)
 
     program += new_defcal
     assert len(program.calibrations) == 1

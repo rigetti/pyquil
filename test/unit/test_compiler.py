@@ -2,6 +2,7 @@ import math
 
 import pytest
 from qcs_sdk.qpu.translation import TranslationBackend
+from quil.instructions import CalibrationDefinition
 
 from pyquil import Program
 from pyquil.api._compiler import (
@@ -25,7 +26,7 @@ def simple_program():
 def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
     program = simple_program()
     q = Qubit("q")
-    defn = DefCalibration.from_parts(
+    defn = CalibrationDefinition.from_parts(
         "H", [], [q], [RZ(math.pi / 2, q), RX(math.pi / 2, q), RZ(math.pi / 2, q)], None
     )
     cals = [defn]

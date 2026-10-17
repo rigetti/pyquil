@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import pytest
-from quil.instructions import Qubit
+from quil.instructions import Qubit, CalibrationDefinition
 from quil.program import ProgramError
 from syrupy.assertion import SnapshotAssertion
 
@@ -172,8 +172,8 @@ def test_measure_calibration_match():
 
 
 def test_program_match_last():
-    first = DefCalibration.from_parts("X", [], [Qubit(0)], [RX(np.pi / 2, 0)], None)
-    second = DefCalibration.from_parts("X", [], [Qubit(0)], [RX(-np.pi / 2, 0)], None)
+    first = CalibrationDefinition.from_parts("X", [], [Qubit(0)], [RX(np.pi / 2, 0)], None)
+    second = CalibrationDefinition.from_parts("X", [], [Qubit(0)], [RX(-np.pi / 2, 0)], None)
     prog = Program(first, second)
     match = prog.match_calibrations(Gate("X", [], [Qubit(0)]))
     assert match.cal.to_quil() == second.to_quil()
