@@ -8,7 +8,7 @@ from pyquil.gates import CCNOT, CNOT, MEASURE, RX, H, X
 from pyquil.paulis import sX, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare, DefGate
+from pyquil.quilbase import Declaration, GateDefinition, GateSpecification
 from pyquil.simulation._numpy import (
     NumpyWavefunctionSimulator,
     _term_expectation,
@@ -105,7 +105,7 @@ def test_einsum_simulator_10q():
 
 def test_measure():
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
+    qam.execute(Program(Declaration("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
     measured_bit = qam.ram["ro"][-1]
     should_be = np.zeros((2, 2, 2))
     if measured_bit == 1:
@@ -211,7 +211,7 @@ def test_defgate():
         ]
     )
 
-    gate_definition = DefGate("U_test", U)
+    gate_definition = GateDefinition("U_test", [], GateSpecification.Matrix(U))
     U_test = gate_definition.get_constructor()
 
     p = Program()

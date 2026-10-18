@@ -9,8 +9,9 @@ from pyquil.gates import CNOT, RX, RY, RZ, H, I, X
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Qubit
 from pyquil.quilbase import (
-    Declare,
-    DefGate,
+    Declaration,
+    GateDefinition,
+    GateSpecification,
 )
 from pyquil.quilbase import (
     Gate as QuilGate,
@@ -92,7 +93,7 @@ class TestMultiQubitGates:
 class TestParameterizedPrograms:
     def test_parameterized_rx(self):
         p = Program(
-            Declare("theta", "REAL"),
+            Declaration("theta", "REAL"),
             RX(MemoryReference("theta"), 0),
         )
         angle = np.pi / 3
@@ -107,7 +108,7 @@ class TestCustomGates:
         """Test that DefGate-defined gates work correctly."""
         cnot_matrix = np.asarray(qx.gates.CNOT.matrix)
         p = Program()
-        p += DefGate("MY_CNOT", cnot_matrix)
+        p += GateDefinition("MY_CNOT", [], GateSpecification.Matrix(cnot_matrix))
         p += QuilGate("MY_CNOT", [], [Qubit(0), Qubit(1)])
         # Prepare |1,0> first
         p2 = Program(X(0)) + p

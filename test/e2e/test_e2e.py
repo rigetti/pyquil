@@ -22,10 +22,10 @@ from pyquil import Program
 from pyquil.api import QPU, QuantumComputer
 from pyquil.gates import CNOT, MEASURE, RX, H
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare
+from pyquil.quilbase import Declaration
 
 TEST_PROGRAM = Program(
-    Declare("ro", "BIT", 2),
+    Declaration("ro", "BIT", 2),
     H(0),
     CNOT(0, 1),
     MEASURE(0, ("ro", 0)),
@@ -44,8 +44,8 @@ def test_basic_program(qc: QuantumComputer):
 def test_parametric_program(qc: QuantumComputer):
     compiled = qc.compile(
         Program(
-            Declare("ro", "BIT", 1),
-            Declare("theta", "REAL", 1),
+            Declaration("ro", "BIT", 1),
+            Declaration("theta", "REAL", 1),
             RX(MemoryReference("theta"), 0),
             MEASURE(0, ("ro", 0)),
         ).wrap_in_numshots_loop(1000),

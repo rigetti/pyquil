@@ -59,7 +59,7 @@ from pyquil.noise._channels import (
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, quil_cis
-from pyquil.quilbase import Declare, Gate, ResetQubit
+from pyquil.quilbase import Declaration, Gate, Reset
 from pyquil.simulation._reference import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
 from pyquil.simulation._simulator import DensityMatrixSimulator
 from test.unit.simulation_programs import (
@@ -307,7 +307,7 @@ class TestDecoherence:
     def test_amplitude_damping_matches_exponential_decay(self):
         """Excited population after damping for t must be exp(-t/T1)."""
         t1, duration = 20e-6, 5e-6
-        channel = ResetChannel.from_amplitude_damping(ResetQubit(0), gamma=1.0 / t1, gate_time=duration)
+        channel = ResetChannel.from_amplitude_damping(Reset(0), gamma=1.0 / t1, gate_time=duration)
         rho = _dm(Program(X(0), RESET(0)), qubits=[0], noise_model=NoiseModel.from_channels([channel]))
         assert_physical(rho)
         assert rho[1, 1].real == pytest.approx(np.exp(-duration / t1), abs=1e-10)
@@ -406,7 +406,7 @@ class TestMeasurementAndReset:
 
     @pytest.mark.parametrize("fidelity", [1.0, 0.9, 0.75])
     def test_noisy_reset_fidelity_is_honoured(self, fidelity):
-        channel = SuperopResetChannel.from_reset_fidelity(ResetQubit(0), fidelity=fidelity)
+        channel = SuperopResetChannel.from_reset_fidelity(Reset(0), fidelity=fidelity)
         rho = _dm(Program(X(0), RESET(0)), qubits=[0], noise_model=NoiseModel.from_channels([channel]))
         assert_physical(rho)
         # depolarizing_p @ RESET on any input gives p|0><0| + (1-p)I/2, with p = 2F - 1.
@@ -416,7 +416,7 @@ class TestMeasurementAndReset:
     @pytest.mark.parametrize("reset", [RESET(0), RESET()])
     def test_reset_noise_applies_to_targeted_and_global_forms(self, reset):
         """Regression: global RESET used to ignore the noise model entirely."""
-        channel = SuperopResetChannel.from_reset_fidelity(ResetQubit(0), fidelity=0.5)
+        channel = SuperopResetChannel.from_reset_fidelity(Reset(0), fidelity=0.5)
         rho = _dm(Program(X(0)) + Program(reset), qubits=[0], noise_model=NoiseModel.from_channels([channel]))
         np.testing.assert_allclose(rho, np.eye(2) / 2, atol=1e-9)
 
@@ -427,7 +427,7 @@ class TestOutcomeProbabilities:
     @staticmethod
     def _measured(*instructions, qubits=(0,)):
         program = Program()
-        program += Declare("ro", "BIT", len(qubits))
+        program += Declaration("ro", "BIT", len(qubits))
         for inst in instructions:
             program += inst
         for i, q in enumerate(qubits):
@@ -448,7 +448,7 @@ class TestOutcomeProbabilities:
 
     def test_axes_follow_measurement_order_not_qubit_order(self):
         program = Program()
-        program += Declare("ro", "BIT", 2)
+        program += Declaration("ro", "BIT", 2)
         program += X(1)
         program += MEASURE(1, ("ro", 0))
         program += MEASURE(0, ("ro", 1))
@@ -471,7 +471,7 @@ class TestOutcomeProbabilities:
 
     def test_mid_circuit_measurement_is_not_read_out(self):
         program = Program()
-        program += Declare("ro", "BIT", 1)
+        program += Declaration("ro", "BIT", 1)
         program += H(0)
         program += MEASURE(0, ("ro", 0))
         program += X(0)
@@ -492,8 +492,8 @@ class TestOutcomeProbabilities:
 
     def test_jit_and_grad(self):
         program = Program()
-        program += Declare("ro", "BIT", 1)
-        program += Declare("theta", "REAL", 1)
+        program += Declaration("ro", "BIT", 1)
+        program += Declaration("theta", "REAL", 1)
         program += RX(MemoryReference("theta", 0), 0)
         program += MEASURE(0, ("ro", 0))
         sim = DensityMatrixSimulator(program)
@@ -532,7 +532,7 @@ class TestInitialState:
 
     def test_outcome_probabilities_from_a_prepared_state(self):
         qubits = [0, 1, 2]
-        measured = Program(Declare("ro", "BIT", 3)) + self.TAIL
+        measured = Program(Declaration("ro", "BIT", 3)) + self.TAIL
         measured += [MEASURE(q, ("ro", i)) for i, q in enumerate(qubits)]
         whole = DensityMatrixSimulator(self.PREFIX + measured, qubits=qubits).outcome_probabilities()
         prefix = DensityMatrixSimulator(self.PREFIX, qubits=qubits).compute()
@@ -645,7 +645,7 @@ class TestQutritsAndLeakage:
 
 class TestParametricPrograms:
     def test_parametric_matches_literal(self):
-        program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0))
+        program = Program(Declaration("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0))
         rho = _dm(program, qubits=[0], memory_map={"theta": [0.6]})
         np.testing.assert_allclose(rho, _dm(Program(RX(0.6, 0)), qubits=[0]), atol=1e-10)
 
@@ -658,7 +658,7 @@ class TestParametricPrograms:
         ``test_simulator_jit_grad.py::test_noise_model_does_not_apply_to_parametric_gates``.
         Here the channel sits on the literal ``X 0``, which does apply.
         """
-        program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0), X(0))
+        program = Program(Declaration("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0), X(0))
         noise_model = NoiseModel.from_channels([Channel.from_depolarizing_constant(X(0), 0.9)])
         sim = DensityMatrixSimulator(program, qubits=[0], noise_model=noise_model)
         rho = np.asarray(sim.compute(sim.linearize({"theta": [0.6]})).matrix)
@@ -710,7 +710,7 @@ class TestErrorHandling:
         )
 
     def test_wrong_parameter_count_reports_clearly(self):
-        program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0))
+        program = Program(Declaration("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0))
         sim = DensityMatrixSimulator(program, qubits=[0])
         with pytest.raises(ValueError, match="Expected 1 parameter"):
             sim.compute(jnp.array([]))
@@ -724,7 +724,7 @@ class TestErrorHandling:
         [
             (Program(RX(0.7, 0).dagger()), "DAGGER"),
             (Program(X(1).controlled(0)), "CONTROLLED"),
-            (Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0).dagger()), "DAGGER"),
+            (Program(Declaration("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0).dagger()), "DAGGER"),
         ],
         ids=["dagger", "controlled", "dagger_parametric"],
     )
@@ -739,7 +739,7 @@ class TestErrorHandling:
 
     def test_complex_valued_parameter_for_builtin_gate_reports_clearly(self):
         theta = MemoryReference("theta", 0)
-        program = Program(Declare("theta", "REAL", 1), RX(quil_cis(theta), 0))
+        program = Program(Declaration("theta", "REAL", 1), RX(quil_cis(theta), 0))
         with pytest.raises(ValueError, match="complex-valued"):
             DensityMatrixSimulator(program, qubits=[0])
 

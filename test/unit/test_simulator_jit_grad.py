@@ -32,7 +32,7 @@ from pyquil.noise._channels import Channel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare
+from pyquil.quilbase import Declaration
 from pyquil.simulation._simulator import DensityMatrixSimulator, PureStateVectorSimulator
 
 _Z = np.diag([1.0, -1.0]).astype(complex)
@@ -42,7 +42,7 @@ _FD_TOL = 1e-6
 
 def _parametric_program(n_params, n_qubits=1):
     """A program with ``n_params`` distinct runtime angles, entangling when multi-qubit."""
-    program = Program(Declare("theta", "REAL", n_params))
+    program = Program(Declaration("theta", "REAL", n_params))
     for i in range(n_params):
         gate = (RX, RY, RZ)[i % 3]
         program += gate(MemoryReference("theta", i), i % n_qubits)
@@ -218,7 +218,7 @@ class TestDensityMatrixJitAndGrad:
         derivative are both scaled by exactly p.
         """
         shrink = 0.8
-        program = Program(Declare("theta", "REAL", 1), RY(MemoryReference("theta", 0), 0), X(0))
+        program = Program(Declaration("theta", "REAL", 1), RY(MemoryReference("theta", 0), 0), X(0))
         noiseless = DensityMatrixSimulator(program, qubits=[0])
         noisy = DensityMatrixSimulator(
             program,
@@ -252,7 +252,7 @@ class TestDensityMatrixJitAndGrad:
 
         The test pins the behaviour so a future change to it is a considered one.
         """
-        program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0))
+        program = Program(Declaration("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0))
         symbolic = program.instructions[-1]
         noise_model = NoiseModel.from_channels([Channel.from_depolarizing_constant(RX(0.6, 0), 0.8)])
 
@@ -271,7 +271,7 @@ class TestDensityMatrixJitAndGrad:
         """MEASURE is a dephasing superop, so it must stay differentiable."""
         from pyquil.gates import MEASURE
 
-        program = Program(Declare("theta", "REAL", 1), RY(MemoryReference("theta", 0), 0), MEASURE(0, None))
+        program = Program(Declaration("theta", "REAL", 1), RY(MemoryReference("theta", 0), 0), MEASURE(0, None))
         sim = DensityMatrixSimulator(program, qubits=[0])
 
         def fn(p):
@@ -329,7 +329,7 @@ def _z_expectation(sim, params):
 def _shared_reference_program():
     """``RX(theta[0]) 0; RY(theta[0]) 0``: one memory reference read by two gates."""
     theta0 = MemoryReference("theta", 0)
-    return Program(Declare("theta", "REAL", 2), RX(theta0, 0), RY(theta0, 0))
+    return Program(Declaration("theta", "REAL", 2), RX(theta0, 0), RY(theta0, 0))
 
 
 class TestParameterLayout:
@@ -346,8 +346,8 @@ class TestParameterLayout:
 
     def test_slots_follow_first_use_not_declaration(self):
         program = Program(
-            Declare("theta", "REAL", 2),
-            Declare("phi", "REAL", 1),
+            Declaration("theta", "REAL", 2),
+            Declaration("phi", "REAL", 1),
             RX(MemoryReference("theta", 1), 0),
             RZ(MemoryReference("phi", 0), 0),
             RY(MemoryReference("theta", 0), 0),
@@ -362,7 +362,7 @@ class TestParameterLayout:
         """One slot feeding two gates yields d/dθ f(θ, θ) = ∂₁f + ∂₂f without manual summing."""
         shared = PureStateVectorSimulator(_shared_reference_program())
         split = PureStateVectorSimulator(
-            Program(Declare("theta", "REAL", 2), RX(MemoryReference("theta", 0), 0), RY(MemoryReference("theta", 1), 0))
+            Program(Declaration("theta", "REAL", 2), RX(MemoryReference("theta", 0), 0), RY(MemoryReference("theta", 1), 0))
         )
         theta = 0.7
         np.testing.assert_allclose(

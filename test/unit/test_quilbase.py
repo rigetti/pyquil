@@ -70,15 +70,8 @@ from pyquil.quilatom import (
 
 from pyquil.quilbase import (
     AbstractInstruction,
-    Declare,
-    DefCalibration,
-    DefCircuit,
-    DefFrame,
-    DefMeasureCalibration,
-    DefWaveform,
     ParameterDesignator,
     ResetQubit,
-    FenceAll,
 )
 
 from pyquil.quiltwaveforms import (
@@ -463,43 +456,43 @@ class TestDefCalibration:
         parameters: list[ParameterDesignator],
         qubits: list[Qubit],
         instrs: list[AbstractInstruction],
-    ) -> DefCalibration:
+    ) -> CalibrationDefinition:
         return CalibrationDefinition.from_parts(name, parameters, qubits, instrs, None)
 
-    def test_str(self, calibration: DefCalibration, snapshot: SnapshotAssertion):
+    def test_str(self, calibration: CalibrationDefinition, snapshot: SnapshotAssertion):
         assert str(calibration) == snapshot
 
-    def test_out(self, calibration: DefCalibration, snapshot: SnapshotAssertion):
+    def test_out(self, calibration: CalibrationDefinition, snapshot: SnapshotAssertion):
         assert calibration.to_quil() == snapshot
 
-    def test_name(self, calibration: DefCalibration, name: str):
+    def test_name(self, calibration: CalibrationDefinition, name: str):
         assert calibration.name == name
         calibration.name = "new_name"
         assert calibration.name == "new_name"
 
-    def test_parameters(self, calibration: DefCalibration, parameters: list[ParameterDesignator]):
+    def test_parameters(self, calibration: CalibrationDefinition, parameters: list[ParameterDesignator]):
         assert calibration.parameters == parameters
         calibration.parameters = [pi / 2]
         assert calibration.parameters == [Number(complex(pi / 2))]
 
-    def test_qubits(self, calibration: DefCalibration, qubits: list[QubitDesignator]):
+    def test_qubits(self, calibration: CalibrationDefinition, qubits: list[QubitDesignator]):
         assert calibration.qubits == qubits
         calibration.qubits = [Qubit(123)]
         assert calibration.qubits == [Qubit(123)]
 
-    def test_instrs(self, calibration: DefCalibration, instrs: list[AbstractInstruction]):
+    def test_instrs(self, calibration: CalibrationDefinition, instrs: list[AbstractInstruction]):
         assert calibration.instrs == instrs
         calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], [])]
         assert calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], [])]
 
-    def test_copy(self, calibration: DefCalibration):
-        assert isinstance(copy.copy(calibration), DefCalibration)
-        assert isinstance(copy.deepcopy(calibration), DefCalibration)
+    def test_copy(self, calibration: CalibrationDefinition):
+        assert isinstance(copy.copy(calibration), CalibrationDefinition)
+        assert isinstance(copy.deepcopy(calibration), CalibrationDefinition)
 
-    def test_pickle(self, calibration: DefCalibration):
+    def test_pickle(self, calibration: CalibrationDefinition):
         pickled = pickle.dumps(calibration)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, DefCalibration)
+        assert isinstance(unpickled, CalibrationDefinition)
         assert unpickled == calibration
 
 
@@ -511,23 +504,23 @@ class TestDefMeasureCalibration:
     @pytest.fixture
     def measure_calibration(
         self, qubit: Qubit, memory_reference: MemoryReference, instrs: list[AbstractInstruction]
-    ) -> DefMeasureCalibration:
-        return DefMeasureCalibration(qubit, memory_reference, instrs)
+    ) -> MeasureCalibrationDefinition:
+        return MeasureCalibrationDefinition(qubit, memory_reference, instrs)
 
-    def test_out(self, measure_calibration: DefMeasureCalibration, snapshot: SnapshotAssertion):
+    def test_out(self, measure_calibration: MeasureCalibrationDefinition, snapshot: SnapshotAssertion):
         assert measure_calibration.to_quil() == snapshot
 
-    def test_qubit(self, measure_calibration: DefMeasureCalibration, qubit: Qubit):
+    def test_qubit(self, measure_calibration: MeasureCalibrationDefinition, qubit: Qubit):
         assert measure_calibration.qubit == qubit
         measure_calibration.qubit = Qubit(123)
         assert measure_calibration.qubit == Qubit(123)
 
-    def test_memory_reference(self, measure_calibration: DefMeasureCalibration, memory_reference: MemoryReference):
+    def test_memory_reference(self, measure_calibration: MeasureCalibrationDefinition, memory_reference: MemoryReference):
         assert measure_calibration.memory_reference == memory_reference
         measure_calibration.memory_reference = MemoryReference("new_mem_ref")
         assert measure_calibration.memory_reference == MemoryReference("new_mem_ref")
 
-    def test_instrs(self, measure_calibration: DefMeasureCalibration, instrs: list[AbstractInstruction]):
+    def test_instrs(self, measure_calibration: MeasureCalibrationDefinition, instrs: list[AbstractInstruction]):
         assert measure_calibration.instrs == instrs
         measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
         assert isinstance(measure_calibration.instrs[0], Gate)
@@ -536,7 +529,7 @@ class TestDefMeasureCalibration:
         assert not isinstance(measure_calibration.instrs[1], Gate)
         assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
 
-    def test_instructions(self, measure_calibration: DefMeasureCalibration, instrs: list[AbstractInstruction]):
+    def test_instructions(self, measure_calibration: MeasureCalibrationDefinition, instrs: list[AbstractInstruction]):
         assert measure_calibration.instructions == instrs
         measure_calibration.instrs = [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
         assert isinstance(measure_calibration.instrs[0], Gate)
@@ -545,14 +538,14 @@ class TestDefMeasureCalibration:
         assert not isinstance(measure_calibration.instrs[1], Gate)
         assert measure_calibration.instrs == [Gate("SomeGate", [], [Qubit(0)], []), Fence([0])]
 
-    def test_copy(self, measure_calibration: DefMeasureCalibration):
-        assert isinstance(copy.copy(measure_calibration), DefMeasureCalibration)
-        assert isinstance(copy.deepcopy(measure_calibration), DefMeasureCalibration)
+    def test_copy(self, measure_calibration: MeasureCalibrationDefinition):
+        assert isinstance(copy.copy(measure_calibration), MeasureCalibrationDefinition)
+        assert isinstance(copy.deepcopy(measure_calibration), MeasureCalibrationDefinition)
 
-    def test_pickle(self, measure_calibration: DefMeasureCalibration):
+    def test_pickle(self, measure_calibration: MeasureCalibrationDefinition):
         pickled = pickle.dumps(measure_calibration)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, DefMeasureCalibration)
+        assert isinstance(unpickled, MeasureCalibrationDefinition)
         assert unpickled == measure_calibration
 
 
@@ -617,7 +610,7 @@ class TestDefFrame:
         sample_rate: float | None,
         center_frequency: float | None,
         channel_delay: float | None,
-    ) -> DefFrame:
+    ) -> FrameDefinition:
         args = dict(
             DIRECTION=direction,
             **{"INITIAL-FREQUENCY": initial_frequency},
@@ -626,9 +619,9 @@ class TestDefFrame:
             **{"CENTER-FREQUENCY": center_frequency},
             **{"CHANNEL-DELAY": channel_delay},
         )
-        return DefFrame(frame, {k: v for k, v in args.items() if v is not None})
+        return FrameDefinition(frame, {k: v for k, v in args.items() if v is not None})
 
-    def test_out(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
+    def test_out(self, def_frame: FrameDefinition, snapshot: SnapshotAssertion):
         # The ordering of attributes isn't stable and can be printed in different orders across calls.
         # We assert that the first line is definitely the `DEFFRAME` line, and that the following
         # attributes are the same, regardless of their order.
@@ -636,59 +629,59 @@ class TestDefFrame:
         assert quil_lines[0] == snapshot
         assert set(quil_lines[1:]) == snapshot
 
-    def test_str(self, def_frame: DefFrame, snapshot: SnapshotAssertion):
+    def test_str(self, def_frame: FrameDefinition, snapshot: SnapshotAssertion):
         quil_lines = str(def_frame).splitlines()
         assert quil_lines[0] == snapshot
         assert set(quil_lines[1:]) == snapshot
 
-    def test_frame(self, def_frame: DefFrame, frame: Frame):
+    def test_frame(self, def_frame: FrameDefinition, frame: Frame):
         # Note: `FrameDefinition.frame`/`.identifier` has no setter in the native API (no mutable
         # backing storage reachable from Python); this is a known gap, see MIGRATION-NOTES.md.
         assert def_frame.frame == frame
 
-    def test_direction(self, def_frame: DefFrame, direction: str | None):
+    def test_direction(self, def_frame: FrameDefinition, direction: str | None):
         assert def_frame.direction == direction
         def_frame.direction = "tx"
         assert def_frame.direction == "tx"
 
-    def test_initial_frequency(self, def_frame: DefFrame, initial_frequency: float | None):
+    def test_initial_frequency(self, def_frame: FrameDefinition, initial_frequency: float | None):
         assert def_frame.initial_frequency == initial_frequency
         def_frame.initial_frequency = 3.14
         assert def_frame.initial_frequency == 3.14
 
-    def test_hardware_object(self, def_frame: DefFrame, hardware_object: str | None):
+    def test_hardware_object(self, def_frame: FrameDefinition, hardware_object: str | None):
         assert def_frame.hardware_object == hardware_object
         def_frame.hardware_object = "bfg"
         assert def_frame.hardware_object == "bfg"
 
-    def test_hardware_object_json(self, def_frame: DefFrame, hardware_object: str | None):
+    def test_hardware_object_json(self, def_frame: FrameDefinition, hardware_object: str | None):
         assert def_frame.hardware_object == hardware_object
         def_frame.hardware_object = '{"string": "str", "int": 1, "float": 3.14}'
         assert def_frame.hardware_object == '{"string": "str", "int": 1, "float": 3.14}'
 
-    def test_sample_rate(self, def_frame: DefFrame, sample_rate: float | None):
+    def test_sample_rate(self, def_frame: FrameDefinition, sample_rate: float | None):
         assert def_frame.sample_rate == sample_rate
         def_frame.sample_rate = 96.0
         assert def_frame.sample_rate == 96.0
 
-    def test_center_frequency(self, def_frame: DefFrame, center_frequency: float | None):
+    def test_center_frequency(self, def_frame: FrameDefinition, center_frequency: float | None):
         assert def_frame.center_frequency == center_frequency
         def_frame.center_frequency = 432.0
         assert def_frame.center_frequency == 432.0
 
-    def test_channel_delay(self, def_frame: DefFrame, channel_delay: float | None):
+    def test_channel_delay(self, def_frame: FrameDefinition, channel_delay: float | None):
         assert def_frame.channel_delay == channel_delay
         def_frame.channel_delay = 571.0
         assert def_frame.channel_delay == 571.0
 
-    def test_copy(self, def_frame: DefFrame):
-        assert isinstance(copy.copy(def_frame), DefFrame)
-        assert isinstance(copy.deepcopy(def_frame), DefFrame)
+    def test_copy(self, def_frame: FrameDefinition):
+        assert isinstance(copy.copy(def_frame), FrameDefinition)
+        assert isinstance(copy.deepcopy(def_frame), FrameDefinition)
 
-    def test_pickle(self, def_frame: DefFrame):
+    def test_pickle(self, def_frame: FrameDefinition):
         pickled = pickle.dumps(def_frame)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, DefFrame)
+        assert isinstance(unpickled, FrameDefinition)
         assert unpickled == def_frame
 
 
@@ -711,42 +704,42 @@ class TestDeclare:
         memory_size: int,
         shared_region: str | None,
         offsets: Iterable[tuple[int, str]] | None,
-    ) -> Declare:
-        return Declare(name, memory_type, memory_size, shared_region, offsets)
+    ) -> Declaration:
+        return Declaration(name, memory_type, memory_size, shared_region, offsets)
 
-    def test_out(self, declare: Declare, snapshot: SnapshotAssertion):
+    def test_out(self, declare: Declaration, snapshot: SnapshotAssertion):
         assert declare.to_quil() == snapshot
 
-    def test_str(self, declare: Declare, snapshot: SnapshotAssertion):
+    def test_str(self, declare: Declaration, snapshot: SnapshotAssertion):
         assert str(declare) == snapshot
 
-    def test_asdict(self, declare: Declare, snapshot: SnapshotAssertion):
+    def test_asdict(self, declare: Declaration, snapshot: SnapshotAssertion):
         assert declare.asdict() == snapshot
 
-    def test_name(self, declare: Declare, name: str):
+    def test_name(self, declare: Declaration, name: str):
         assert declare.name == name
 
-    def test_memory_type(self, declare: Declare, memory_type: str | None):
+    def test_memory_type(self, declare: Declaration, memory_type: str | None):
         assert declare.memory_type == memory_type
 
-    def test_memory_size(self, declare: Declare, memory_size: int | None):
+    def test_memory_size(self, declare: Declaration, memory_size: int | None):
         assert declare.memory_size == memory_size
 
-    def test_shared_region(self, declare: Declare, shared_region: str | None):
+    def test_shared_region(self, declare: Declaration, shared_region: str | None):
         assert declare.shared_region == shared_region
 
-    def test_offsets(self, declare: Declare, offsets: Iterable[tuple[int, str]] | None):
+    def test_offsets(self, declare: Declaration, offsets: Iterable[tuple[int, str]] | None):
         expected_offsets = offsets or []
         assert declare.offsets() == expected_offsets
 
-    def test_copy(self, declare: Declare):
-        assert isinstance(copy.copy(declare), Declare)
-        assert isinstance(copy.deepcopy(declare), Declare)
+    def test_copy(self, declare: Declaration):
+        assert isinstance(copy.copy(declare), Declaration)
+        assert isinstance(copy.deepcopy(declare), Declaration)
 
-    def test_pickle(self, declare: Declare):
+    def test_pickle(self, declare: Declaration):
         pickled = pickle.dumps(declare)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, Declare)
+        assert isinstance(unpickled, Declaration)
         assert unpickled == declare
 
 
@@ -940,7 +933,7 @@ class TestFence:
 
 
 def test_fence_all():
-    fa = FenceAll()
+    fa = Fence([])
     assert fa.to_quil() == "FENCE"
     assert fa.qubits == []
 
@@ -962,27 +955,27 @@ class TestDefWaveform:
     def def_waveform(self, name: str, parameters: list[Parameter], entries: list[complex | Expression]):
         return WaveformDefinition(name, parameters, entries)
 
-    def test_out(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
+    def test_out(self, def_waveform: WaveformDefinition, snapshot: SnapshotAssertion):
         assert def_waveform.to_quil() == snapshot
 
-    def test_name(self, def_waveform: DefWaveform, name: str):
+    def test_name(self, def_waveform: WaveformDefinition, name: str):
         assert def_waveform.name == name
 
-    def test_parameters(self, def_waveform: DefWaveform, parameters: list[Parameter]):
+    def test_parameters(self, def_waveform: WaveformDefinition, parameters: list[Parameter]):
         assert def_waveform.parameters == [p.name for p in parameters]
 
-    def test_entries(self, def_waveform: DefWaveform, entries: list[Complex | Expression]):
+    def test_entries(self, def_waveform: WaveformDefinition, entries: list[Complex | Expression]):
         expected = [Number(complex(e)) if isinstance(e, complex) else e for e in entries]
         assert def_waveform.entries == expected
 
-    def test_copy(self, def_waveform: DefWaveform):
-        assert isinstance(copy.copy(def_waveform), DefWaveform)
-        assert isinstance(copy.deepcopy(def_waveform), DefWaveform)
+    def test_copy(self, def_waveform: WaveformDefinition):
+        assert isinstance(copy.copy(def_waveform), WaveformDefinition)
+        assert isinstance(copy.deepcopy(def_waveform), WaveformDefinition)
 
-    def test_pickle(self, def_waveform: DefWaveform, snapshot: SnapshotAssertion):
+    def test_pickle(self, def_waveform: WaveformDefinition, snapshot: SnapshotAssertion):
         pickled = pickle.dumps(def_waveform)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, DefWaveform)
+        assert isinstance(unpickled, WaveformDefinition)
         assert unpickled == snapshot
 
 
@@ -995,7 +988,7 @@ class TestDefWaveform:
             [Parameter("theta")],
             [Qubit("a")],
             [
-                Declare("ro", "BIT", 1),
+                Declaration("ro", "BIT", 1),
                 Measurement(Qubit("a"), MemoryReference("ro")),
             ],
         ),
@@ -1011,44 +1004,44 @@ class TestDefCircuit:
         qubit_variables: list[Qubit],
         instructions: list[Instruction],
     ):
-        return DefCircuit(
+        return CircuitDefinition(
             name,
             parameters,
             qubit_variables,
             instructions,
         )
 
-    def test_out(self, def_circuit: DefCircuit, snapshot: SnapshotAssertion):
+    def test_out(self, def_circuit: CircuitDefinition, snapshot: SnapshotAssertion):
         assert def_circuit.to_quil() == snapshot
 
-    def test_name(self, def_circuit: DefCircuit, name: str):
+    def test_name(self, def_circuit: CircuitDefinition, name: str):
         assert def_circuit.name == name
         def_circuit.name = "new_name"
         assert def_circuit.name == "new_name"
 
-    def test_parameters(self, def_circuit: DefCircuit, parameters: list[Parameter]):
+    def test_parameters(self, def_circuit: CircuitDefinition, parameters: list[Parameter]):
         assert def_circuit.parameters == [p.name for p in parameters]
         def_circuit.parameters = ["z"]
         assert def_circuit.parameters == ["z"]
 
-    def test_qubit_variables(self, def_circuit: DefCircuit, qubit_variables: list[Qubit]):
+    def test_qubit_variables(self, def_circuit: CircuitDefinition, qubit_variables: list[Qubit]):
         assert def_circuit.qubit_variables == [q.name for q in qubit_variables]
         def_circuit.qubit_variables = ["qubit"]
         assert def_circuit.qubit_variables == ["qubit"]
 
-    def test_instructions(self, def_circuit: DefCircuit, instructions: list[AbstractInstruction]):
+    def test_instructions(self, def_circuit: CircuitDefinition, instructions: list[AbstractInstruction]):
         assert def_circuit.instructions == instructions
         def_circuit.instructions = [Gate("new_gate", [], [Qubit(0)], [])]
         assert def_circuit.instructions == [Gate("new_gate", [], [Qubit(0)], [])]
 
-    def test_copy(self, def_circuit: DefCircuit):
-        assert isinstance(copy.copy(def_circuit), DefCircuit)
-        assert isinstance(copy.deepcopy(def_circuit), DefCircuit)
+    def test_copy(self, def_circuit: CircuitDefinition):
+        assert isinstance(copy.copy(def_circuit), CircuitDefinition)
+        assert isinstance(copy.deepcopy(def_circuit), CircuitDefinition)
 
-    def test_pickle(self, def_circuit: DefCircuit):
+    def test_pickle(self, def_circuit: CircuitDefinition):
         pickled = pickle.dumps(def_circuit)
         unpickled = pickle.loads(pickled)
-        assert isinstance(unpickled, DefCircuit)
+        assert isinstance(unpickled, CircuitDefinition)
         assert unpickled == def_circuit
 
 

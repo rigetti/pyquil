@@ -12,7 +12,7 @@ from pyquil.noise._channels import Channel, MeasurementChannel, SuperopResetChan
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Qubit
-from pyquil.quilbase import Declare, DefGate, Gate, Measurement
+from pyquil.quilbase import Declaration, Gate, GateDefinition, GateSpecification, Measurement
 from pyquil.simulation._simulator import (
     DensityMatrixSimulator,
     PureStateVectorSimulator,
@@ -217,7 +217,7 @@ class TestAllQutritGates:
     def test_parametric_qutrit_via_memory_map(self):
         """A parametric qutrit rotation resolves a runtime memory parameter."""
         p = Program()
-        p += Declare("theta", "REAL", 1)
+        p += Declaration("theta", "REAL", 1)
         p += Gate("TRX01", [MemoryReference("theta")], [0])
         sim = PureStateVectorSimulator(p, qubits=[0])
         params = sim.linearize({"theta": [np.pi]})
@@ -247,7 +247,7 @@ class TestAllQutritGates:
     def test_jit_and_grad_qutrit(self):
         """The qutrit pure-state simulator is jit- and grad-friendly."""
         p = Program()
-        p += Declare("theta", "REAL", 1)
+        p += Declaration("theta", "REAL", 1)
         p += Gate("TRX01", [MemoryReference("theta")], [0])
         sim = PureStateVectorSimulator(p, qubits=[0])
 
@@ -322,7 +322,7 @@ class TestMixedQubitQutrit:
         # DefGate rejects non-perfect-power matrices (6 = 2*3)
         mat = np.eye(6, dtype=complex)
         with pytest.raises(quil.ValueError, match="length of Matrix dimensions must be a prime power"):
-            DefGate("BAD_GATE", mat)
+            GateDefinition("BAD_GATE", [], GateSpecification.Matrix(mat))
 
         # Test entanglement using built-in gates instead:
         # Use TSWAP to entangle two qutrits
@@ -427,7 +427,7 @@ class TestDimensionInference:
         """DefGate accepts 3x3 unitary matrices for single-qutrit gates."""
         # 3x3 identity is a valid qutrit gate
         mat = np.eye(3, dtype=complex)
-        dg = DefGate("MY_QUTRIT_GATE", mat)
+        dg = GateDefinition("MY_QUTRIT_GATE", [], GateSpecification.Matrix(mat))
         assert dg.num_args() == 1
 
         # Built-in qutrit gates also work and infer dim=3
@@ -439,7 +439,7 @@ class TestDimensionInference:
     def test_custom_defgate_two_qutrit(self):
         """DefGate accepts 9x9 unitary matrices for two-qutrit gates."""
         mat = np.eye(9, dtype=complex)
-        dg = DefGate("TWO_QUTRIT_ID", mat)
+        dg = GateDefinition("TWO_QUTRIT_ID", [], GateSpecification.Matrix(mat))
         assert dg.num_args() == 2
 
         # Built-in TSWAP also works for two-qutrit systems
@@ -454,7 +454,7 @@ class TestDimensionInference:
         # 6 = 2*3 is not a prime power
         mat = np.eye(6, dtype=complex)
         with pytest.raises(quil.ValueError, match="length of Matrix dimensions must be a prime power"):
-            DefGate("BAD_GATE", mat)
+            GateDefinition("BAD_GATE", [], GateSpecification.Matrix(mat))
 
 
 # ══════════════════════════════════════════════════════════
@@ -497,11 +497,11 @@ class TestQutritMeasurements:
 
     def test_qutrit_ideal_reset(self):
         """An ideal qutrit reset returns any qutrit level to |0>."""
-        from pyquil.quilbase import ResetQubit
+        from pyquil.quilbase import Reset
 
         p = Program()
         p += Gate("TX", [], [0])
-        p += ResetQubit(Qubit(0))
+        p += Reset(Qubit(0))
         p += Measurement(qubit=Qubit(0), classical_reg=None)
 
         outcomes = _sample(p, qubits=[0], num_trajectories=100, random_seed=42)
@@ -604,9 +604,9 @@ class TestQutritNoiseChannels:
 
     def test_qutrit_reset_channel(self):
         """Noisy qutrit reset via ResetChannel."""
-        from pyquil.quilbase import ResetQubit
+        from pyquil.quilbase import Reset
 
-        reset_inst = ResetQubit(Qubit(0))
+        reset_inst = Reset(Qubit(0))
         reset_ch = SuperopResetChannel.from_reset_fidelity(inst=reset_inst, fidelity=0.9, dim=3)
         noise_model = NoiseModel.from_channels([reset_ch])
 
@@ -614,7 +614,7 @@ class TestQutritNoiseChannels:
         p = Program()
         p += Gate("TX", [], [0])
         p += Gate("TX", [], [0])  # |0> -> |1>
-        p += ResetQubit(Qubit(0))
+        p += Reset(Qubit(0))
         p += Measurement(qubit=Qubit(0), classical_reg=None)
 
         n_traj = 1000

@@ -36,7 +36,7 @@ from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
-from pyquil.quilbase import Declare, MemoryReference
+from pyquil.quilbase import Declaration, MemoryReference
 
 
 def test_flip_array_to_prog(snapshot: SnapshotAssertion):
@@ -191,7 +191,7 @@ def test_run(client_configuration: QCSClient, qvm_client: QVMClient):
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     p = Program(
-        Declare("ro", "BIT", 3),
+        Declaration("ro", "BIT", 3),
         H(0),
         CNOT(0, 1),
         CNOT(1, 2),
@@ -255,7 +255,7 @@ def test_readout_symmetrization(client_configuration: QCSClient, qvm_client: QVM
     )
 
     prog = Program(
-        Declare("ro", "BIT", 2),
+        Declaration("ro", "BIT", 2),
         I(0),
         X(1),
         MEASURE(0, MemoryReference("ro", 0)),
@@ -413,7 +413,7 @@ def test_qc(client_configuration: QCSClient, qvm_client: QVMClient):
 def test_qc_run(client_configuration: QCSClient, qvm_client: QVMClient):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration, qvm_client=qvm_client)
     program = Program(
-        Declare("ro", "BIT", 1),
+        Declaration("ro", "BIT", 1),
         X(0),
         MEASURE(0, ("ro", 0)),
     ).wrap_in_numshots_loop(3)
@@ -461,8 +461,8 @@ def test_run_with_parameters(client_configuration: QCSClient, qvm_client: QVMCli
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     executable = Program(
-        Declare(name="theta", memory_type="REAL"),
-        Declare(name="ro", memory_type="BIT"),
+        Declaration(name="theta", memory_type="REAL"),
+        Declaration(name="ro", memory_type="BIT"),
         RX(MemoryReference("theta"), 0),
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
@@ -482,8 +482,8 @@ def test_run_with_bad_parameters(client_configuration: QCSClient, qvm_client: QV
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     executable = Program(
-        Declare(name="theta", memory_type="REAL"),
-        Declare(name="ro", memory_type="BIT"),
+        Declaration(name="theta", memory_type="REAL"),
+        Declaration(name="ro", memory_type="BIT"),
         RX(MemoryReference("theta"), 0),
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
@@ -500,8 +500,8 @@ def test_reset(client_configuration: QCSClient, qvm_client: QVMClient):
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     p = Program(
-        Declare(name="theta", memory_type="REAL"),
-        Declare(name="ro", memory_type="BIT"),
+        Declaration(name="theta", memory_type="REAL"),
+        Declaration(name="ro", memory_type="BIT"),
         RX(MemoryReference("theta"), 0),
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(10)
@@ -543,7 +543,7 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClient, qvm_client: QV
         qc.run(
             qc.compile(
                 Program(
-                    Declare("ro", "BIT", 3),
+                    Declaration("ro", "BIT", 3),
                     X(5),
                     MEASURE(5, ("ro", 0)),
                     MEASURE(6, ("ro", 1)),
@@ -567,7 +567,7 @@ def test_parse_mix_qvm_and_noisy_flag():
 def test_noisy(client_configuration: QCSClient, qvm_client: QVMClient):
     # https://github.com/rigetti/pyquil/issues/764
     p = Program(
-        Declare("ro", "BIT", 1),
+        Declaration("ro", "BIT", 1),
         X(0),
         MEASURE(0, ("ro", 0)),
     ).wrap_in_numshots_loop(10000)

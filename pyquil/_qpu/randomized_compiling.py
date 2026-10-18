@@ -34,19 +34,18 @@ from quil import instructions as inst
 
 from pyquil.quil import InstructionDesignator, Program
 from pyquil.quilbase import (
-    ArithmeticBinaryOp,
+    Arithmetic,
     ArithmeticOperator,
     BinaryLogic,
     BinaryOperator,
     Call,
-    ClassicalLoad,
-    ClassicalMove,
+    Load,
+    Move,
     Comparison,
     ComparisonOperator,
-    Declare,
+    Declaration,
     Delay,
     Jump,
-    JumpTarget,
     JumpUnless,
     JumpWhen,
     Label,
@@ -353,11 +352,11 @@ class ShotsPerRandomization:
 
     @property
     def pulse_program_label(self) -> InstructionDesignator:
-        return JumpTarget(Label(self.variables.pulse_program_label))
+        return Label(self.variables.pulse_program_label)
 
     def generate_mod_shot_count_block(self, qubits_sorted: Sequence[int]) -> tuple[InstructionDesignator, ...]:
         instructions: list[InstructionDesignator] = [
-            ArithmeticBinaryOp(
+            Arithmetic(
                 ArithmeticOperator.ADD,
                 MemoryReference(self.variables.modulo_counter, 0),
                 1,
@@ -390,7 +389,7 @@ class ShotsPerRandomization:
             for qubit in qubits_sorted:
                 instructions.append(Delay(self.non_randomization_delay_seconds, [qubit], []))
         instructions.append(Jump(Label(self.variables.pulse_program_label)))
-        instructions.append(JumpTarget(Label(self.variables.randomization_label)))
+        instructions.append(Label(self.variables.randomization_label))
         return tuple(instructions)
 
 
@@ -931,15 +930,15 @@ class RandomizedCompilingConfiguration:
     def qubits_sorted(self) -> tuple[int, ...]:
         return tuple(sorted({qubit for cycle in self._base_twirled_cycles for qubit in cycle.all_qubits}))
 
-    def _generate_declarations(self) -> tuple[Declare, ...]:
-        declarations: list[Declare] = []
-        declarations.append(Declare(self.variables.pauli_conjugates_map, "INTEGER", _NUMBER_PAULI_PAIRS))
+    def _generate_declarations(self) -> tuple[Declaration, ...]:
+        declarations: list[Declaration] = []
+        declarations.append(Declaration(self.variables.pauli_conjugates_map, "INTEGER", _NUMBER_PAULI_PAIRS))
 
         for q in self.qubits_sorted:
-            declarations.append(Declare(self.variables.pauli_seed(q), "INTEGER", self._seed_length))
+            declarations.append(Declaration(self.variables.pauli_seed(q), "INTEGER", self._seed_length))
         for q in self.qubits_sorted:
             declarations.append(
-                Declare(
+                Declaration(
                     self.variables.twirled_unitaries(q),
                     "REAL",
                     self._managed_u2_layer_count * _ANGLES_PER_UNITARY,
@@ -949,30 +948,30 @@ class RandomizedCompilingConfiguration:
         if self.shots_per_randomization is not None:
             declarations.extend(
                 (
-                    Declare(self.shots_per_randomization.variables.modulo_counter, "INTEGER", 1),
-                    Declare(self.shots_per_randomization.variables.is_mod_zero, "BIT", 1),
+                    Declaration(self.shots_per_randomization.variables.modulo_counter, "INTEGER", 1),
+                    Declaration(self.shots_per_randomization.variables.is_mod_zero, "BIT", 1),
                 )
             )
 
         declarations.extend(
             (
-                Declare(self.variables.unitary_angle_offset, "INTEGER", 1),
-                Declare(self.variables.loop_break, "BIT", 1),
+                Declaration(self.variables.unitary_angle_offset, "INTEGER", 1),
+                Declaration(self.variables.loop_break, "BIT", 1),
             )
         )
         if self._seed_loop_length > 0 or self._base_cycle_length >= self._paulis_per_value:
             declarations.append(
-                Declare(self.variables.seed_index, "INTEGER", 1),
+                Declaration(self.variables.seed_index, "INTEGER", 1),
             )
         if self._base_cycle_loop_length > 0 or self._seed_loop_inner_length > 0:
             declarations.append(
-                Declare(self.variables.base_cycle_loop_index, "INTEGER", 1),
+                Declaration(self.variables.base_cycle_loop_index, "INTEGER", 1),
             )
         current_seed_length = (
             2 if self._seed_loop_length > 0 or self._base_cycle_length >= self._paulis_per_value else 1
         )
         for q in self.qubits_sorted:
-            declarations.append(Declare(self.variables.current_seeds(q), "INTEGER", current_seed_length))
+            declarations.append(Declaration(self.variables.current_seeds(q), "INTEGER", current_seed_length))
         return tuple(declarations)
 
     def generate_seed_values(self, rng: np.random.Generator) -> NDArray[np.int64]:
@@ -1087,7 +1086,7 @@ class RandomizedCompilingConfiguration:
 
             if not (is_final_cycle and is_final_base_cycle):
                 instructions.append(
-                    ArithmeticBinaryOp(
+                    Arithmetic(
                         ArithmeticOperator.ADD,
                         MemoryReference(self.variables.unitary_angle_offset, 0),
                         _ANGLES_PER_UNITARY,
@@ -1112,7 +1111,7 @@ class RandomizedCompilingConfiguration:
         instructions: list[InstructionDesignator] = []
         instructions.extend(
             [
-                ClassicalMove(
+                Move(
                     MemoryReference(self.variables.current_seeds(qubit), 1),
                     MemoryReference(self.variables.current_seeds(qubit), 0),
                 )
@@ -1122,7 +1121,7 @@ class RandomizedCompilingConfiguration:
         if advance_next_seed:
             instructions.extend(
                 [
-                    ClassicalLoad(
+                    Load(
                         MemoryReference(self.variables.current_seeds(qubit), 0),
                         self.variables.pauli_seed(qubit),
                         MemoryReference(self.variables.seed_index, 0),
@@ -1131,7 +1130,7 @@ class RandomizedCompilingConfiguration:
                 ]
             )
             instructions.append(
-                ArithmeticBinaryOp(
+                Arithmetic(
                     ArithmeticOperator.ADD,
                     MemoryReference(self.variables.seed_index, 0),
                     1,
@@ -1149,12 +1148,12 @@ class RandomizedCompilingConfiguration:
         loop_index_increment: int | None = 1,
     ) -> list[InstructionDesignator]:
         loop_instructions: list[InstructionDesignator] = []
-        loop_instructions.append(ClassicalMove(MemoryReference(loop_index_variable, 0), loop_index_start))
-        loop_instructions.append(JumpTarget(Label(loop_label)))
+        loop_instructions.append(Move(MemoryReference(loop_index_variable, 0), loop_index_start))
+        loop_instructions.append(Label(loop_label))
         loop_instructions.extend(instructions)
         if loop_index_increment is not None:
             loop_instructions.append(
-                ArithmeticBinaryOp(
+                Arithmetic(
                     ArithmeticOperator.ADD,
                     MemoryReference(loop_index_variable, 0),
                     loop_index_increment,
@@ -1210,14 +1209,14 @@ class RandomizedCompilingConfiguration:
                 if call is not None:
                     instructions.append(call)
         instructions.append(
-            ClassicalMove(
+            Move(
                 MemoryReference(self.variables.unitary_angle_offset, 0),
                 0 if self.skip_first_layer else _ANGLES_PER_UNITARY,
             ),
         )
         for qubit in self.qubits_sorted:
             instructions.append(
-                ClassicalMove(
+                Move(
                     MemoryReference(self.variables.current_seeds(qubit), 0),
                     MemoryReference(self.variables.pauli_seed(qubit), 0),
                 )
@@ -1248,7 +1247,7 @@ class RandomizedCompilingConfiguration:
             instructions.extend(seed_loop)
         elif self._base_cycle_length >= self._paulis_per_value:
             instructions.append(
-                ClassicalMove(
+                Move(
                     MemoryReference(self.variables.seed_index, 0),
                     1,
                 )

@@ -46,7 +46,7 @@ from typing import Any
 from pyquil.gates import CCNOT, CNOT, CPHASE, CSWAP, CZ, FSIM, MEASURE, RESET, RX, RY, RZ, SWAP, XY, H, I, S, T, X, Y, Z
 from pyquil.quil import Program
 from pyquil.quilatom import Qubit, qubit_index
-from pyquil.quilbase import Declare, Gate, Measurement, Reset
+from pyquil.quilbase import Declaration, Gate, Measurement, Reset
 from pyquil.simulation._simulator import (
     DensityMatrixSimulator,
     PureStateVectorSimulator,
@@ -207,7 +207,7 @@ DM_ONLY_EXPECTED: dict[str, np.ndarray] = {}
 _plus = np.array([1, 1], dtype=complex) / np.sqrt(2)
 
 program = Program()
-program += Declare("ro", "BIT", 1)
+program += Declaration("ro", "BIT", 1)
 program += H(0)
 program += MEASURE(0, ("ro", 0))
 program += H(0)
@@ -222,7 +222,7 @@ DM_ONLY_PROGRAMS["reset_midcircuit"] = program
 DM_ONLY_EXPECTED["reset_midcircuit"] = np.outer(_plus, _plus.conj())
 
 program = Program()
-program += Declare("ro", "BIT", 1)
+program += Declaration("ro", "BIT", 1)
 program += H(0)
 program += CNOT(0, 1)
 program += MEASURE(0, ("ro", 0))
@@ -230,7 +230,7 @@ DM_ONLY_PROGRAMS["bell_measure_one"] = program
 DM_ONLY_EXPECTED["bell_measure_one"] = np.diag([0.5, 0.0, 0.0, 0.5]).astype(complex)
 
 program = Program()
-program += Declare("ro", "BIT", 1)
+program += Declaration("ro", "BIT", 1)
 program += H(0)
 program += MEASURE(0, ("ro", 0))
 program += RESET(0)

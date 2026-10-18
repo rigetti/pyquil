@@ -23,7 +23,7 @@ from syrupy.assertion import SnapshotAssertion
 from pyquil import Program, gates
 from pyquil._qpu import randomized_compiling as rc
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Call, Declare
+from pyquil.quilbase import Call, Declaration
 from pyquil.simulation import matrices
 
 
@@ -322,10 +322,10 @@ class ReadoutRandomization:
 
     def build_quil_program(self) -> Program:
         program = Program()
-        program += Declare("readout_source_angles", "REAL", len(self.readout_source_angles) * rc._ANGLES_PER_UNITARY)
+        program += Declaration("readout_source_angles", "REAL", len(self.readout_source_angles) * rc._ANGLES_PER_UNITARY)
         for qubit in self.qubits_sorted:
-            program += Declare(f"readout_seed_q{qubit}", "INTEGER", 1)
-            program += Declare(f"readout_randomization_q{qubit}", "REAL", rc._ANGLES_PER_UNITARY)
+            program += Declaration(f"readout_seed_q{qubit}", "INTEGER", 1)
+            program += Declaration(f"readout_randomization_q{qubit}", "REAL", rc._ANGLES_PER_UNITARY)
 
         for qubit in self.qubits_sorted:
             program += Call(
@@ -518,13 +518,13 @@ def build_cycle_program(
     if not configuration.variables.twirled_overwrites_source_unitaries:
         for qubit in configuration.qubits_sorted:
             memory_region_name = configuration.variables.source_unitaries(qubit)
-            program += Declare(memory_region_name, "REAL", layer_count * rc._ANGLES_PER_UNITARY)
+            program += Declaration(memory_region_name, "REAL", layer_count * rc._ANGLES_PER_UNITARY)
     # layers excluded from the RC-managed twirled unitary memory (because they are never twirled) still need their
     # gate played, so we separately declare memory to hold their (untwirled) unitary.
     skipped_layer_regions = _skipped_layer_regions(configuration, readout_randomization)
     for which in skipped_layer_regions.values():
         for qubit in configuration.qubits_sorted:
-            program += Declare(_skipped_layer_region_name(qubit, which), "REAL", rc._ANGLES_PER_UNITARY)
+            program += Declaration(_skipped_layer_region_name(qubit, which), "REAL", rc._ANGLES_PER_UNITARY)
 
     for rep_index in range(configuration.base_cycle_repetitions):
         for base_index, cycle in enumerate(configuration._base_twirled_cycles):

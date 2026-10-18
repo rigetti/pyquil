@@ -36,7 +36,7 @@ from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX, I
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
 from pyquil.quilatom import MemoryReference, ParameterDesignator
-from pyquil.quilbase import Declare, Gate, Pragma
+from pyquil.quilbase import Declaration, Gate, Pragma
 
 if TYPE_CHECKING:
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
@@ -952,7 +952,7 @@ def estimate_assignment_probs(
     p_i = (
         p0
         + Program(
-            Declare("ro", "BIT", 1),
+            Declaration("ro", "BIT", 1),
             I(q),
             MEASURE(q, MemoryReference("ro", 0)),
         )
@@ -962,7 +962,7 @@ def estimate_assignment_probs(
     p_x = (
         p0
         + Program(
-            Declare("ro", "BIT", 1),
+            Declaration("ro", "BIT", 1),
             RX(np.pi, q),
             MEASURE(q, MemoryReference("ro", 0)),
         )

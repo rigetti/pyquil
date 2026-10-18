@@ -57,7 +57,7 @@ from pyquil.quilatom import (
     ParameterDesignator,
 )
 from pyquil.quilbase import (
-    DefCircuit,
+    CircuitDefinition,
     Gate,
     GateDefinition,
     Measurement,
@@ -860,7 +860,7 @@ class ChannelBase(ABC):
         """Tensor product with another channel on disjoint qubits, producing a CycleChannel.
 
         The result represents a cycle containing both operations acting in parallel
-        on disjoint qubits. The DefCircuit encodes the parallel operations as
+        on disjoint qubits. The CircuitDefinition encodes the parallel operations as
         formal instructions.
 
         :param other: Another gate, reset, or measurement channel — or a
@@ -2234,8 +2234,8 @@ class CycleChannel:
     inst: Gate
     """The cycle to which the channel applies."""
 
-    defcircuit: DefCircuit
-    """The DefCircuit representing the logical cycle to which instruction represents."""
+    defcircuit: CircuitDefinition
+    """The CircuitDefinition representing the logical cycle to which instruction represents."""
 
     channels: tuple[CycleConstituent, ...]
     """Constituent channels (one per operation in the cycle) on disjoint qubits."""
@@ -2246,11 +2246,11 @@ class CycleChannel:
         Downstream consumers (the resolver, the stim converter) use only ``channels`` and
         ignore ``defcircuit``; a missing channel would silently drop that operation's noise.
         Operations are matched by instruction equality (name, params, concrete qubits),
-        independent of the DefCircuit's formal-argument naming.
+        independent of the CircuitDefinition's formal-argument naming.
         """
         if len(self.expanded_instructions) != len(self.channels):
             raise ValueError(
-                "CycleChannel is incomplete: every instruction in the cycle's DefCircuit "
+                "CycleChannel is incomplete: every instruction in the cycle's CircuitDefinition "
                 "body must have a corresponding channel. "
                 f"\nDefCircuit body: {[str(i) for i in self.expanded_instructions]}"
                 f"\nChannels:        {[str(c.inst) for c in self.channels]}"
@@ -2258,7 +2258,7 @@ class CycleChannel:
         for instruction, channel in zip(self.expanded_instructions, self.channels, strict=True):
             if instruction != channel.inst:
                 raise ValueError(
-                    "CycleChannel is inconsistent: each instruction in the cycle's DefCircuit "
+                    "CycleChannel is inconsistent: each instruction in the cycle's CircuitDefinition "
                     "body must match its corresponding channel's instruction. "
                     f"\nDefCircuit body: {instruction}"
                     f"\nChannel:         {channel.inst}"
@@ -2427,7 +2427,7 @@ class CycleChannel:
         return f"<{self.inst.to_quil()} ~ ({100 * self.process_fidelity:.2f}%)>"
 
     def __eq__(self, other: object) -> bool:
-        """Check equality by cycle instruction, DefCircuit, and constituent channels."""
+        """Check equality by cycle instruction, CircuitDefinition, and constituent channels."""
         if not isinstance(other, CycleChannel):
             return False
         return self.inst == other.inst and self.defcircuit == other.defcircuit and self.channels == other.channels
@@ -2448,7 +2448,7 @@ class CycleChannel:
 
 
 def _channel_to_formal_inst(channel: CycleConstituent) -> Gate | Measurement | Reset:
-    """Convert a channel's instruction to use formal arguments for DefCircuit."""
+    """Convert a channel's instruction to use formal arguments for CircuitDefinition."""
     if isinstance(channel, ChannelBase):
         inst = channel.inst
         return Gate(
@@ -2477,7 +2477,7 @@ def _build_cycle_channel(
     cycle_name = "CYCLE"
     formal_insts = [_channel_to_formal_inst(ch) for ch in channels]
 
-    defcircuit = DefCircuit(
+    defcircuit = CircuitDefinition(
         name=cycle_name,
         parameters=[],
         qubit_variables=[f"q{q}" for q in all_qubits],
@@ -2512,9 +2512,9 @@ def _tensor_into_cycle(
     return _build_cycle_channel(constituents(left) + constituents(right))
 
 
-def _parse_defcircuit(quil_str: str) -> DefCircuit:
-    """Parse a ``DEFCIRCUIT`` block back into a pyquil :class:`~pyquil.quilbase.DefCircuit`."""
+def _parse_defcircuit(quil_str: str) -> CircuitDefinition:
+    """Parse a ``DEFCIRCUIT`` block back into a pyquil :class:`~pyquil.quilbase.CircuitDefinition`."""
     rs_inst = RSInstruction.parse(quil_str)
-    if not isinstance(rs_inst, DefCircuit):
+    if not isinstance(rs_inst, CircuitDefinition):
         raise ValueError(f"Expected a DEFCIRCUIT definition, got: {quil_str}")
     return rs_inst

@@ -41,7 +41,7 @@ from pyquil.noise._channels import (
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import FormalArgument, Qubit
-from pyquil.quilbase import DefCircuit, Gate, Measurement, ResetQubit
+from pyquil.quilbase import CircuitDefinition, Gate, Measurement, Reset
 from pyquil.simulation._simulator import DensityMatrixSimulator
 
 
@@ -572,15 +572,15 @@ class TestSuperopResetChannel:
         factor, so ``from_reset_fidelity(0.9).process_fidelity`` came out as 0.95. The ideal reset
         is rank one, giving F = (1 + (d - 1) p) / d rather than F = p.
         """
-        ch = SuperopResetChannel.from_reset_fidelity(inst=ResetQubit(0), fidelity=fidelity, dim=dim)
+        ch = SuperopResetChannel.from_reset_fidelity(inst=Reset(0), fidelity=fidelity, dim=dim)
         assert ch.process_fidelity == pytest.approx(fidelity, abs=1e-9)
 
     def test_from_reset_fidelity_rejects_out_of_range(self):
         """A fully depolarized reset already has process fidelity 1/d; below that is unreachable."""
         with pytest.raises(ValueError, match="must lie in"):
-            SuperopResetChannel.from_reset_fidelity(inst=ResetQubit(0), fidelity=0.4)
+            SuperopResetChannel.from_reset_fidelity(inst=Reset(0), fidelity=0.4)
         with pytest.raises(ValueError, match="must lie in"):
-            SuperopResetChannel.from_reset_fidelity(inst=ResetQubit(0), fidelity=1.5)
+            SuperopResetChannel.from_reset_fidelity(inst=Reset(0), fidelity=1.5)
 
     def test_qubits(self):
         """SuperopResetChannel.qubits returns the correct qubit."""
@@ -648,7 +648,7 @@ class TestSuperopResetChannel:
 
     def test_json_roundtrip_preserves_qutrit_dims(self):
         """SuperopResetChannel JSON includes explicit dims for non-qubit resets."""
-        channel = SuperopResetChannel.from_reset_fidelity(inst=ResetQubit(0), fidelity=0.9, dim=3)
+        channel = SuperopResetChannel.from_reset_fidelity(inst=Reset(0), fidelity=0.9, dim=3)
 
         restored = SuperopResetChannel.from_json(channel.to_json())
 
@@ -897,7 +897,7 @@ class TestFromIsa:
 
 class TestCycleChannel:
     def test_complete_cycle_constructs(self):
-        """A CycleChannel whose channels cover every DefCircuit body instruction is valid."""
+        """A CycleChannel whose channels cover every CircuitDefinition body instruction is valid."""
         channels = tuple(
             Channel.from_depolarizing_constant(inst, depolarizing_constant=0.99) for inst in (RX(0.1, 0), RZ(0.2, 1))
         )
@@ -907,8 +907,8 @@ class TestCycleChannel:
     def test_incomplete_cycle_rejected(self):
         """A body instruction with no corresponding channel is a footgun and must raise."""
         q0, q1 = FormalArgument("q0"), FormalArgument("q1")
-        # DefCircuit body has two gates, but only one channel is supplied for q0.
-        defcircuit = DefCircuit("CYCLE", [], [q0, q1], [RX(0.1, q0), RZ(0.2, q1)])
+        # CircuitDefinition body has two gates, but only one channel is supplied for q0.
+        defcircuit = CircuitDefinition("CYCLE", [], [q0, q1], [RX(0.1, q0), RZ(0.2, q1)])
         cycle_inst = Gate("CYCLE", [], [Qubit(0), Qubit(1)])
         channels = (Channel.from_depolarizing_constant(RX(0.1, 0), depolarizing_constant=0.99),)
 
@@ -918,7 +918,7 @@ class TestCycleChannel:
     def test_cycle_can_contain_reset_channel(self):
         """A cycle may mix a gate channel with a reset channel on disjoint qubits."""
         gate = Channel.from_depolarizing_constant(RX(0.1, 0), depolarizing_constant=0.99)
-        reset = ResetChannel.from_amplitude_damping(ResetQubit(1), gamma=0.5)
+        reset = ResetChannel.from_amplitude_damping(Reset(1), gamma=0.5)
         cycle = gate | reset
         assert isinstance(cycle, CycleChannel)
         assert cycle.channels == (gate, reset)
@@ -926,7 +926,7 @@ class TestCycleChannel:
 
     def test_reset_channel_or_from_reset_side(self):
         """`reset | other` builds a cycle from the reset channel's side too."""
-        reset = SuperopResetChannel.from_reset_fidelity(ResetQubit(0), fidelity=0.95)
+        reset = SuperopResetChannel.from_reset_fidelity(Reset(0), fidelity=0.95)
         measure = MeasurementChannel.from_readout_fidelity(MEASURE(1, None), fidelity=0.98)
         cycle = reset | measure
         assert isinstance(cycle, CycleChannel)
@@ -935,7 +935,7 @@ class TestCycleChannel:
     def test_cycle_with_reset_json_roundtrip(self):
         """A cycle containing a reset channel survives a JSON round-trip."""
         gate = Channel.from_depolarizing_constant(RX(0.1, 0), depolarizing_constant=0.99)
-        reset = ResetChannel.from_amplitude_damping(ResetQubit(1), gamma=0.5)
+        reset = ResetChannel.from_amplitude_damping(Reset(1), gamma=0.5)
         cycle = gate | reset
         assert CycleChannel.from_json(cycle.to_json()) == cycle
 
@@ -947,7 +947,7 @@ class TestCycleChannel:
         discarding a DEFCIRCUIT constructed by a caller.
         """
         qa, qb = FormalArgument("a"), FormalArgument("b")
-        defcircuit = DefCircuit("SYNDROME_ROUND", [], [qa, qb], [RZ(0.2, qb), RX(0.1, qa)])
+        defcircuit = CircuitDefinition("SYNDROME_ROUND", [], [qa, qb], [RZ(0.2, qb), RX(0.1, qa)])
         cycle_inst = Gate("SYNDROME_ROUND", [], [Qubit(5), Qubit(3)])
         channels = (
             Channel.from_depolarizing_constant(RZ(0.2, 3), depolarizing_constant=0.99),
@@ -1034,7 +1034,7 @@ class TestCycleChannel:
     def test_arity_mismatch_reports_clearly(self):
         """A cycle gate whose arity disagrees with its DEFCIRCUIT gets a real error message."""
         q0, q1 = FormalArgument("q0"), FormalArgument("q1")
-        defcircuit = DefCircuit("CYCLE", [], [q0, q1], [RX(0.1, q0), RZ(0.2, q1)])
+        defcircuit = CircuitDefinition("CYCLE", [], [q0, q1], [RX(0.1, q0), RZ(0.2, q1)])
         cycle_inst = Gate("CYCLE", [], [Qubit(0)])  # one qubit, two formal arguments
         channels = (Channel.from_depolarizing_constant(RX(0.1, 0), depolarizing_constant=0.99),)
         with pytest.raises(ValueError, match="formal argument"):
@@ -1216,10 +1216,10 @@ class TestCoherenceTimes:
 
     def test_reset_channel_shares_the_conversion(self):
         """ResetChannel.from_coherence_times has the same default and the same guard."""
-        reset = ResetChannel.from_coherence_times(ResetQubit(0), duration=1.0, t1=2.0)
+        reset = ResetChannel.from_coherence_times(Reset(0), duration=1.0, t1=2.0)
         assert np.isfinite(reset.process_fidelity)
         with pytest.raises(ValueError, match="T2 must not exceed"):
-            ResetChannel.from_coherence_times(ResetQubit(0), duration=1.0, t1=2.0, t2=5.0)
+            ResetChannel.from_coherence_times(Reset(0), duration=1.0, t1=2.0, t2=5.0)
 
 
 # ──────────────────────────────────────────────────────────
@@ -1229,13 +1229,13 @@ class TestCoherenceTimes:
 
 class TestResetChannel:
     def test_stronger_damping_gives_better_reset(self):
-        weak = ResetChannel.from_amplitude_damping(ResetQubit(0), gamma=0.5)
-        strong = ResetChannel.from_amplitude_damping(ResetQubit(0), gamma=5.0)
+        weak = ResetChannel.from_amplitude_damping(Reset(0), gamma=0.5)
+        strong = ResetChannel.from_amplitude_damping(Reset(0), gamma=5.0)
         assert isinstance(weak.process, qx.SuperOp)
         assert strong.process_fidelity > weak.process_fidelity
 
     def test_pow_scales_relaxation(self):
-        ch = ResetChannel.from_amplitude_damping(ResetQubit(0), gamma=0.5)
+        ch = ResetChannel.from_amplitude_damping(Reset(0), gamma=0.5)
         assert isinstance(ch**2.0, ResetChannel)
         assert (ch**2.0).process_fidelity > ch.process_fidelity
 
@@ -1246,7 +1246,7 @@ class TestResetChannel:
             ResetChannel.from_lindbladian(Reset(), qx.lindbladians.amplitude_damping(1.0, (2,)))
 
     def test_json_roundtrip(self):
-        ch = ResetChannel.from_coherence_times(ResetQubit(0), duration=1.0, t1=2.0, t2=1.5)
+        ch = ResetChannel.from_coherence_times(Reset(0), duration=1.0, t1=2.0, t2=1.5)
         assert ResetChannel.from_json(ch.to_json()) == ch
 
 

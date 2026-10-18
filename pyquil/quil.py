@@ -71,14 +71,12 @@ from pyquil.quilatom import (
 )
 
 from pyquil.quilbase import (
-    Declare,
-    DefCalibration,
-    DefFrame,
-    DefMeasureCalibration,
-    DefWaveform,
+    Declaration,
+    FrameDefinition,
+    WaveformDefinition,
     Gate,
     GateDefinition,
-    JumpTarget,
+    Label as LabelInstruction,
     Measurement,
     Pragma,
 )
@@ -154,28 +152,28 @@ class Program:
     # decorator to clear these caches.
 
     @functools.cached_property
-    def calibrations(self) -> list[DefCalibration]:
+    def calibrations(self) -> list[CalibrationDefinition]:
         """A list of Quil-T calibration definitions."""
         return list(self._program.calibrations.calibrations)
 
     @functools.cached_property
-    def measure_calibrations(self) -> list[DefMeasureCalibration]:
+    def measure_calibrations(self) -> list[MeasureCalibrationDefinition]:
         """A list of measure calibrations."""
         return list(self._program.calibrations.measure_calibrations)
 
     @functools.cached_property
-    def waveforms(self) -> dict[str, DefWaveform]:
+    def waveforms(self) -> dict[str, WaveformDefinition]:
         """A mapping from waveform names to their corresponding definitions."""
         return {
-            name: DefWaveform(name, waveform.parameters, waveform.matrix)
+            name: WaveformDefinition(name, waveform.parameters, waveform.matrix)
             for name, waveform in self._program.waveforms.items()
         }
 
     @functools.cached_property
-    def frames(self) -> dict[Frame, DefFrame]:
+    def frames(self) -> dict[Frame, FrameDefinition]:
         """A mapping from Quil-T frames to their definitions."""
         return {
-            frame: DefFrame(
+            frame: FrameDefinition(
                 frame,
                 {
                     # TODO: Check whether this is still true
@@ -191,7 +189,7 @@ class Program:
         }
 
     @functools.cached_property
-    def declarations(self) -> dict[str, Declare]:
+    def declarations(self) -> dict[str, Declaration]:
         """A mapping from declared region names to their declarations."""
         return dict(self._program.declarations)
 
@@ -344,7 +342,7 @@ class Program:
         iterations (i.e. to break the loop).
 
         The given ``start_label`` and ``end_label`` will be used as the entry and exit points for
-        the loop, respectively. You should provide unique ``JumpTarget``\\s that won't be used elsewhere
+        the loop, respectively. You should provide unique ``Label``\\s that won't be used elsewhere
         in the program.
 
         If ``num_iterations`` is 1, then a copy of the program is returned without any changes. Raises a
@@ -352,8 +350,8 @@ class Program:
 
         :param num_iterations: The number of times to execute the loop.
         :param loop_count_reference: The memory reference to use as the loop counter.
-        :param start_label: The ``JumpTarget`` to use at the start of the loop.
-        :param end_label: The ``JumpTarget`` to use to at the end of the loop.
+        :param start_label: The ``Label`` to use at the start of the loop.
+        :param end_label: The ``Label`` to use to at the end of the loop.
         """
         looped_program = Program(
             self._program.wrap_in_loop(
@@ -469,7 +467,7 @@ class Program:
             if existing_measure_calibration is None:
                 self._program.add_instruction(instruction)
             else:
-                warnings.warn(f"Redefining DefMeasureCalibration {instruction}", stacklevel=2)
+                warnings.warn(f"Redefining MeasureCalibrationDefinition {instruction}", stacklevel=2)
                 current_calibrations = self._program.calibrations
                 new_calibrations = CalibrationSet(
                     current_calibrations.calibrations,
@@ -685,11 +683,11 @@ class Program:
         """
         label_start = LabelPlaceholder("START")
         label_end = LabelPlaceholder("END")
-        self.inst(JumpTarget(label_start.target))
+        self.inst(LabelInstruction(label_start.target))
         self.inst(JumpUnless(target=label_end.target, condition=unpack_classical_reg(classical_reg)))
         self.inst(q_program)
         self.inst(Jump(label_start.target))
-        self.inst(JumpTarget(label_end.target))
+        self.inst(LabelInstruction(label_end.target))
         return self
 
     def if_then(
@@ -730,9 +728,9 @@ class Program:
         self.inst(jump_when)
         self.inst(else_program)
         self.inst(Jump(label_end.target))
-        self.inst(JumpTarget(label_then.target))
+        self.inst(LabelInstruction(label_then.target))
         self.inst(if_program)
-        self.inst(JumpTarget(label_end.target))
+        self.inst(LabelInstruction(label_end.target))
         return self
 
     def declare(
@@ -770,7 +768,7 @@ class Program:
             reference to ``name[0]``.
         """
         self.inst(
-            Declare(
+            Declaration(
                 name=name,
                 memory_type=memory_type,
                 memory_size=memory_size,
@@ -797,7 +795,7 @@ class Program:
             return self._program.to_quil()
         else:
             return self.filter_instructions(
-                lambda inst: not isinstance(inst, DefCalibration | DefMeasureCalibration)
+                lambda inst: not isinstance(inst, CalibrationDefinition | MeasureCalibrationDefinition)
             ).out()
 
     @deprecated(
@@ -863,7 +861,7 @@ class Program:
             return _convert_to_calibration_match(instr, measure_match)
         return None
 
-    def get_calibration(self, instr: Instruction) -> DefCalibration | DefMeasureCalibration | None:
+    def get_calibration(self, instr: Instruction) -> CalibrationDefinition | MeasureCalibrationDefinition | None:
         """Get the calibration corresponding to the provided instruction.
 
         :param instr: An instruction.
@@ -1090,9 +1088,9 @@ def instantiate_labels(instructions: Iterable[Instruction]) -> list[Instruction]
             new_target, label_mapping, label_i = _get_label(_convert_to_py_target(instr.target), label_mapping, label_i)
             cls = instr.__class__  # Make the correct subclass
             result.append(cls(_convert_to_rs_target(new_target), instr.condition))
-        elif isinstance(instr, JumpTarget) and isinstance(_convert_to_py_target(instr.target), LabelPlaceholder):
+        elif isinstance(instr, LabelInstruction) and isinstance(_convert_to_py_target(instr.target), LabelPlaceholder):
             new_label, label_mapping, label_i = _get_label(_convert_to_py_target(instr.target), label_mapping, label_i)
-            result.append(JumpTarget(_convert_to_rs_target(new_label)))
+            result.append(LabelInstruction(_convert_to_rs_target(new_label)))
         else:
             result.append(instr)
 

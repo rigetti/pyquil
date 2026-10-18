@@ -24,13 +24,13 @@ from pyquil.gates import CNOT, CZ, MEASURE, PHASE, RX, RZ, H
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare, Halt
+from pyquil.quilbase import Declaration, Halt
 from pyquil.simulation.tools import program_unitary
 
 EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(
-    Declare("ro", "BIT", 2),
+    Declaration("ro", "BIT", 2),
     H(0),
     CNOT(0, 1),
     MEASURE(0, MemoryReference("ro", 0)),

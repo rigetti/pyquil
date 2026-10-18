@@ -34,7 +34,7 @@ from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, Su
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import FormalArgument, MemoryReference, Qubit
-from pyquil.quilbase import Declare, DefCircuit, ResetQubit
+from pyquil.quilbase import Declaration, CircuitDefinition, Reset
 from pyquil.quilbase import Gate as QuilGate
 from pyquil.quilbase import Measurement as QuilMeasurement
 from pyquil.simulation._simulator import (
@@ -205,9 +205,9 @@ class TestCycleChannelGateApplication:
     def test_trajectory_applies_cycle_gate(self):
         """The cycle's ``X`` (carried in the channel's process) flips the qubit."""
         q = FormalArgument("q")
-        dc = DefCircuit("CX", [], [q], [X(q)])
+        dc = CircuitDefinition("CX", [], [q], [X(q)])
         cyc = QuilGate("CX", [], [Qubit(0)])
-        program = Program(dc, cyc, Declare("ro", "BIT", 1), QuilMeasurement(Qubit(0), MemoryReference("ro", 0)))
+        program = Program(dc, cyc, Declaration("ro", "BIT", 1), QuilMeasurement(Qubit(0), MemoryReference("ro", 0)))
         gate_channel = SuperopChannel(inst=X(0), process=qx.to_superop(qx.gates.X), ideal_unitary=qx.gates.X)
         nm = NoiseModel.from_channels([CycleChannel(inst=cyc, defcircuit=dc, channels=(gate_channel,))])
         sim = TrajectorySimulator(program, noise_model=nm, qubits=[0])
@@ -279,7 +279,7 @@ class TestTrajectoryReset:
 
     def test_reset_to_ground(self):
         """Reset should bring qubit to |0⟩."""
-        p = Program(X(0), ResetQubit(Qubit(0)))
+        p = Program(X(0), Reset(Qubit(0)))
         psi, _ = _simulate_trajectories(
             p,
             noise_model=None,
@@ -304,12 +304,12 @@ class TestTrajectoryReset:
     def test_noisy_reset(self):
         """Noisy reset should have imperfect fidelity."""
         qubit = Qubit(0)
-        reset_inst = ResetQubit(qubit)
+        reset_inst = Reset(qubit)
         reset_ch = SuperopResetChannel.from_reset_fidelity(inst=reset_inst, fidelity=0.9)
         noise_model = NoiseModel.from_channels([reset_ch])
 
         # Start in |1⟩, apply noisy reset
-        p = Program(X(0), ResetQubit(Qubit(0)))
+        p = Program(X(0), Reset(Qubit(0)))
         num_traj = 2048
         psi, _ = _simulate_trajectories(
             p,
@@ -360,8 +360,8 @@ class TestTrajectoryKernelContract:
     @staticmethod
     def _parametric_simulator():
         p = Program()
-        p += Declare("theta", "REAL", 1)
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("theta", "REAL", 1)
+        p += Declaration("ro", "BIT", 1)
         p += RX(MemoryReference("theta", 0), 0)
         p += MEASURE(0, MemoryReference("ro", 0))
         return TrajectorySimulator(p)
@@ -551,7 +551,7 @@ class TestBuildSimulationLinearizer:
 
     def test_no_params_returns_empty(self):
         p = Program(H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 0)))
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("ro", "BIT", 1)
         sim = TrajectorySimulator(p)
         params = sim.linearize({})
         assert params.shape == (0,)
@@ -559,8 +559,8 @@ class TestBuildSimulationLinearizer:
 
     def test_single_param(self):
         p = Program()
-        p += Declare("theta", "REAL", 1)
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("theta", "REAL", 1)
+        p += Declaration("ro", "BIT", 1)
         p += RZ(MemoryReference("theta", 0), 0)
         p += MEASURE(0, MemoryReference("ro", 0))
         sim = TrajectorySimulator(p)
@@ -570,9 +570,9 @@ class TestBuildSimulationLinearizer:
 
     def test_multiple_params_ordering(self):
         p = Program()
-        p += Declare("alpha", "REAL", 1)
-        p += Declare("beta", "REAL", 2)
-        p += Declare("ro", "BIT", 2)
+        p += Declaration("alpha", "REAL", 1)
+        p += Declaration("beta", "REAL", 2)
+        p += Declaration("ro", "BIT", 2)
         p += RZ(MemoryReference("alpha", 0), 0)
         p += RX(MemoryReference("beta", 0), 0)
         p += RY(MemoryReference("beta", 1), 1)
@@ -588,8 +588,8 @@ class TestBuildSimulationLinearizer:
     def test_ro_register_excluded(self):
         """Ensure 'ro' register is not treated as a parameter register."""
         p = Program()
-        p += Declare("theta", "REAL", 1)
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("theta", "REAL", 1)
+        p += Declaration("ro", "BIT", 1)
         p += RZ(MemoryReference("theta", 0), 0)
         p += MEASURE(0, MemoryReference("ro", 0))
         sim = TrajectorySimulator(p)
@@ -616,7 +616,7 @@ class TestCompressor:
     def test_parametric_non_contiguous_gate_embeds_in_larger_group(self):
         """Parametric multi-qubit gates should embed correctly into larger groups."""
         p = Program()
-        p += Declare("theta", "REAL", 1)
+        p += Declaration("theta", "REAL", 1)
         p += H(0)
         p += H(1)
         p += H(2)
@@ -648,8 +648,8 @@ class TestCompressor:
     def test_no_merge_parameterized_gate(self):
         """max_subsystem_size=0 should handle parameterized gates via the param vector."""
         p = Program()
-        p += Declare("theta", "REAL", 1)
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("theta", "REAL", 1)
+        p += Declaration("ro", "BIT", 1)
         p += RZ(MemoryReference("theta", 0), 0)
         p += MEASURE(0, MemoryReference("ro", 0))
 
@@ -671,7 +671,7 @@ class TestCompressor:
     def test_no_merge_noisy_ops_count(self):
         """max_subsystem_size=0 noisy: should have exactly one op per instruction."""
         p = Program(RX(np.pi / 2, 0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 0)))
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("ro", "BIT", 1)
 
         channels = [
             Channel.from_coherence_times(RX(np.pi / 2, 0), gate_duration=0.04, t1s=[30.0], t2s=[20.0]),
@@ -742,8 +742,8 @@ class TestCompressor:
     def test_parameterized_merge(self):
         """Parameterized gates in a 1Q run should merge correctly."""
         p = Program()
-        p += Declare("theta", "REAL", 2)
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("theta", "REAL", 2)
+        p += Declaration("ro", "BIT", 1)
         p += RZ(MemoryReference("theta", 0), 0)
         p += RX(MemoryReference("theta", 1), 0)
         p += MEASURE(0, MemoryReference("ro", 0))
@@ -784,7 +784,7 @@ class TestCompressor:
     def test_measurement_breaks_run(self):
         """A MEASURE should break 1Q runs."""
         p = Program()
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("ro", "BIT", 1)
         p += RZ(0.1, 0)
         p += MEASURE(0, MemoryReference("ro", 0))
         p += RZ(0.2, 0)
@@ -819,7 +819,7 @@ class TestBuildSimulationIntegration:
     def test_noisy_trajectory_via_simulator(self):
         """Full pipeline: TrajectorySimulator resolve + compress + adapt + apply_trajectory_operations."""
         p = Program(H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 0)), MEASURE(1, MemoryReference("ro", 1)))
-        p += Declare("ro", "BIT", 2)
+        p += Declaration("ro", "BIT", 2)
 
         channels = [
             Channel.from_coherence_times(CNOT(0, 1), gate_duration=0.1, t1s=[30.0, 30.0], t2s=[20.0, 20.0]),
@@ -839,8 +839,8 @@ class TestBuildSimulationIntegration:
     def test_parameterized_trajectory(self):
         """Parameterized circuit through TrajectorySimulator → trajectory sim."""
         p = Program()
-        p += Declare("theta", "REAL", 1)
-        p += Declare("ro", "BIT", 1)
+        p += Declaration("theta", "REAL", 1)
+        p += Declaration("ro", "BIT", 1)
         p += RX(MemoryReference("theta", 0), 0)
         p += MEASURE(0, MemoryReference("ro", 0))
 
@@ -875,7 +875,7 @@ class TestCompressorOpCounts:
 
     def test_cycle_channel_expands_and_compresses(self):
         formal_qubit = FormalArgument("q")
-        defcircuit = DefCircuit(
+        defcircuit = CircuitDefinition(
             "SINGLE_QUBIT_CYCLE",
             [],
             [formal_qubit],
@@ -901,7 +901,7 @@ class TestCompressorOpCounts:
 
     def test_expanded_cycle_without_cycle_channel_uses_gate_channels(self):
         formal_qubit = FormalArgument("q")
-        defcircuit = DefCircuit(
+        defcircuit = CircuitDefinition(
             "INDIVIDUAL_NOISE_CYCLE",
             [],
             [formal_qubit],
@@ -1149,7 +1149,7 @@ class TestKrausStackLayout:
     def test_structural_derivation_matches_measured_matrices(self, max_subsystem_size, noisy):
         """``from_plan`` and ``from_operations`` must agree, field for field."""
         p = Program(
-            Declare("theta", "REAL", 1),
+            Declaration("theta", "REAL", 1),
             H(0),
             RX(MemoryReference("theta", 0), 1),
             CNOT(0, 1),
@@ -1201,7 +1201,7 @@ class TestKrausStackLayout:
         under-counted and every other angle raised at ``stack()``.
         """
         noise_model = NoiseModel.from_channels([SuperopChannel.from_pauli_noise(inst=X(0), pauli_noise={"X": 0.2})])
-        p = Program(Declare("theta", "REAL", 1), X(0), RZ(MemoryReference("theta", 0), 0), X(0))
+        p = Program(Declaration("theta", "REAL", 1), X(0), RZ(MemoryReference("theta", 0), 0), X(0))
         sim = TrajectorySimulator(p, noise_model=noise_model, max_subsystem_size=2)
 
         # One group, so the layout's budget has to cover the *widest* angle, not theta = 0.
@@ -1315,7 +1315,7 @@ class TestTrajectoryInitialState:
         """Same keys and the same tail give the same trajectories, not merely the same statistics."""
         qubits = [0, 1, 2]
         prefix = Program(H(0), CNOT(0, 1), RX(0.3, 1), I(2))
-        tail = Program(Declare("ro", "BIT", 3), RX(1.1, 0), CNOT(1, 2))
+        tail = Program(Declaration("ro", "BIT", 3), RX(1.1, 0), CNOT(1, 2))
         tail += [MEASURE(q, ("ro", i)) for i, q in enumerate(qubits)]
 
         keys = jax.random.split(jax.random.key(3), 64)
@@ -1329,7 +1329,7 @@ class TestTrajectoryInitialState:
     def test_a_noisy_tail_from_a_prepared_state_matches_the_whole_circuit(self):
         qubits = [0, 1]
         prefix = Program(H(0), I(1))
-        tail = Program(Declare("ro", "BIT", 2), CNOT(0, 1))
+        tail = Program(Declaration("ro", "BIT", 2), CNOT(0, 1))
         tail += [MEASURE(q, ("ro", i)) for i, q in enumerate(qubits)]
         noise_model = NoiseModel.from_channels([Channel.from_depolarizing_constant(CNOT(0, 1), 0.9)])
 
@@ -1368,7 +1368,7 @@ class TestTracingAndPrecision:
     def test_compute_can_be_jitted(self):
         """No data-dependent shape survives in the pipeline, so a whole sweep can be compiled."""
         noise_model = NoiseModel.from_channels([SuperopChannel.from_pauli_noise(inst=X(0), pauli_noise={"X": 0.1})])
-        p = Program(Declare("theta", "REAL", 1), X(0), RX(MemoryReference("theta", 0), 0), MEASURE(0, None))
+        p = Program(Declaration("theta", "REAL", 1), X(0), RX(MemoryReference("theta", 0), 0), MEASURE(0, None))
         sim = TrajectorySimulator(p, noise_model=noise_model)
         keys = jax.random.split(jax.random.key(0), 16)
         params = jnp.array([0.4])

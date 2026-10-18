@@ -36,27 +36,27 @@ from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
-from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
+from pyquil.quilatom import LabelPlaceholder, MemoryReference
 from quil.instructions import ArithmeticOperand, BinaryOperand, Halt, Nop, Wait
 from pyquil.quilbase import (
-    ArithmeticBinaryOp,
+    Arithmetic,
     ArithmeticOperator,
     BinaryOperator,
-    ClassicalExchange,
-    ClassicalMove,
-    Declare,
+    Exchange,
+    Move,
+    Declaration,
     Gate,
     GateDefinition,
     GateSpecification,
     Jump,
-    JumpTarget,
+    Label,
     JumpUnless,
     JumpWhen,
-    LogicalBinaryOp,
+    BinaryLogic,
     Measurement,
     Pragma,
     Reset,
-    UnaryClassicalInstruction,
+    UnaryLogic,
     UnaryOperator,
     gate_definition_matrix,
 )
@@ -312,7 +312,7 @@ class PyQVM(QAM["PyQVM"]):
         return np.asarray(self._memory_results[region_name])
 
     def find_label(self, label: "Target") -> int:
-        """Iterate over the program and find a JumpTarget that has a Label matching the input label.
+        """Iterate over the program and find a Label instruction matching the input label.
 
         :param label: Label object to search for in program
         :return: Program index where ``label`` is found
@@ -320,7 +320,7 @@ class PyQVM(QAM["PyQVM"]):
         if self.program is None:
             raise RuntimeError("No program loaded into PyQVM.")
         for index, action in enumerate(self.program):
-            if isinstance(action, JumpTarget):
+            if isinstance(action, Label):
                 if label == action.target:
                     return index
 
@@ -362,7 +362,7 @@ class PyQVM(QAM["PyQVM"]):
             self.ram[meas_reg.name][meas_reg.offset] = measured_val
             self.program_counter += 1
 
-        elif isinstance(instruction, Declare):
+        elif isinstance(instruction, Declaration):
             if instruction.shared_region is not None:
                 raise NotImplementedError("SHARING is not (yet) implemented.")
 
@@ -379,7 +379,7 @@ class PyQVM(QAM["PyQVM"]):
             # unconditional Jump; go directly to Label
             self.program_counter = self.find_label(instruction.target)
 
-        elif isinstance(instruction, JumpTarget):
+        elif isinstance(instruction, Label):
             # Label; pass straight over
             self.program_counter += 1
 
@@ -400,14 +400,14 @@ class PyQVM(QAM["PyQVM"]):
                 raise TypeError(f"Invalid {type(instruction)}")
 
             if not (cond ^ jump_if_cond):
-                # jumping: set prog counter to JumpTarget
+                # jumping: set prog counter to Label
                 self.program_counter = dest_index
             else:
                 # not jumping: hop over this instruction
                 self.program_counter += 1
 
-        elif isinstance(instruction, UnaryClassicalInstruction):
-            # UnaryClassicalInstruction; set classical reg
+        elif isinstance(instruction, UnaryLogic):
+            # UnaryLogic; set classical reg
             target = instruction.target
             old = self.ram[target.name][target.offset]
             if instruction.operator == UnaryOperator.NEG:
@@ -419,11 +419,11 @@ class PyQVM(QAM["PyQVM"]):
                     raise ValueError(f"NOT requires a data type of BIT; not {type(old)}")
                 self.ram[target.name][target.offset] = not old
             else:
-                raise TypeError("Invalid UnaryClassicalInstruction")
+                raise TypeError("Invalid UnaryLogic")
 
             self.program_counter += 1
 
-        elif isinstance(instruction, (LogicalBinaryOp, ArithmeticBinaryOp, ClassicalMove)):
+        elif isinstance(instruction, (BinaryLogic, Arithmetic, Move)):
             left_ind = instruction.left
             left_val = self.ram[left_ind.name][left_ind.offset]
             right_operand = _unwrap_operand(instruction.right)
@@ -433,34 +433,34 @@ class PyQVM(QAM["PyQVM"]):
             else:
                 right_val = right_operand
 
-            if isinstance(instruction, LogicalBinaryOp) and instruction.operator == BinaryOperator.AND:
+            if isinstance(instruction, BinaryLogic) and instruction.operator == BinaryOperator.AND:
                 if not isinstance(left_val, int) or not isinstance(right_val, int):
                     raise ValueError("AND requires a data type of INTEGER; not {type(left_val)} and {type(right_val)}")
                 new_val: int | float = left_val & right_val
-            elif isinstance(instruction, LogicalBinaryOp) and instruction.operator == BinaryOperator.IOR:
+            elif isinstance(instruction, BinaryLogic) and instruction.operator == BinaryOperator.IOR:
                 if not isinstance(left_val, int) or not isinstance(right_val, int):
                     raise ValueError("OR requires a data type of INTEGER; not {type(left_val)} and {type(right_val)}")
                 new_val = left_val | right_val
-            elif isinstance(instruction, LogicalBinaryOp) and instruction.operator == BinaryOperator.XOR:
+            elif isinstance(instruction, BinaryLogic) and instruction.operator == BinaryOperator.XOR:
                 if not isinstance(left_val, int) or not isinstance(right_val, int):
                     raise ValueError("XOR requires a data type of INTEGER; not {type(left_val)} and {type(right_val)}")
                 new_val = left_val ^ right_val
-            elif isinstance(instruction, ArithmeticBinaryOp) and instruction.operator == ArithmeticOperator.ADD:
+            elif isinstance(instruction, Arithmetic) and instruction.operator == ArithmeticOperator.ADD:
                 new_val = left_val + right_val
-            elif isinstance(instruction, ArithmeticBinaryOp) and instruction.operator == ArithmeticOperator.SUBTRACT:
+            elif isinstance(instruction, Arithmetic) and instruction.operator == ArithmeticOperator.SUBTRACT:
                 new_val = left_val - right_val
-            elif isinstance(instruction, ArithmeticBinaryOp) and instruction.operator == ArithmeticOperator.MULTIPLY:
+            elif isinstance(instruction, Arithmetic) and instruction.operator == ArithmeticOperator.MULTIPLY:
                 new_val = left_val * right_val
-            elif isinstance(instruction, ArithmeticBinaryOp) and instruction.operator == ArithmeticOperator.DIVIDE:
+            elif isinstance(instruction, Arithmetic) and instruction.operator == ArithmeticOperator.DIVIDE:
                 new_val = left_val / right_val
-            elif isinstance(instruction, ClassicalMove):
+            elif isinstance(instruction, Move):
                 new_val = right_val
             else:
                 raise ValueError(f"Unknown BinaryOp {type(instruction)}")
             self.ram[left_ind.name][left_ind.offset] = new_val
             self.program_counter += 1
 
-        elif isinstance(instruction, ClassicalExchange):
+        elif isinstance(instruction, Exchange):
             left_ind_ex = instruction.left
             right_ind_ex = instruction.right
 

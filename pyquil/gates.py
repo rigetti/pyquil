@@ -41,36 +41,32 @@ from pyquil.quilatom import (
 )
 from pyquil.quilbase import (
     AbstractInstruction,
-    ArithmeticBinaryOp,
+    Arithmetic,
     Capture,
-    ClassicalComparison,
-    ClassicalConvert,
-    ClassicalExchange,
-    ClassicalLoad,
-    ClassicalMove,
-    ClassicalStore,
-    Declare,
-    DelayFrames,
-    DelayQubits,
+    Comparison,
+    Convert,
+    Exchange,
+    Load,
+    Move,
+    Store,
+    Declaration,
     Delay,
     Fence,
-    FenceAll,
     Gate,
     Halt,
-    LogicalBinaryOp,
+    BinaryLogic,
     Measurement,
     Nop,
     Pulse,
     RawCapture,
     Reset,
-    ResetQubit,
     SetFrequency,
     SetPhase,
     SetScale,
     ShiftFrequency,
     ShiftPhase,
     SwapPhases,
-    UnaryClassicalInstruction,
+    UnaryLogic,
     Wait,
 )
 
@@ -652,8 +648,7 @@ def RESET(qubit_index: QubitDesignator | None = None) -> Reset:
     :param qubit_index: The qubit to reset.
         This can be a qubit's index, a Qubit, or a QubitPlaceholder.
         If None, reset all qubits.
-    :returns: A Reset or ResetQubit Quil AST expression corresponding to a global or targeted
-        reset, respectively.
+    :returns: A Reset instruction, global if no qubit is given and targeted otherwise.
     """
     return Reset(qubit_index)
 
@@ -681,8 +676,8 @@ def DECLARE(
     memory_size: int = 1,
     shared_region: str | None = None,
     offsets: Sequence[tuple[int, ScalarTypeLike]] | None = None,
-) -> Declare:
-    return Declare(
+) -> Declaration:
+    return Declaration(
         name=name,
         memory_type=memory_type,
         memory_size=memory_size,
@@ -705,17 +700,17 @@ def MEASURE(qubit: QubitDesignator, classical_reg: MemoryReferenceDesignator | N
     return Measurement(qubit, address)
 
 
-def NEG(classical_reg: MemoryReferenceDesignator) -> UnaryClassicalInstruction:
+def NEG(classical_reg: MemoryReferenceDesignator) -> UnaryLogic:
     """Produce a NEG instruction."""
-    return UnaryClassicalInstruction(quil_rs.UnaryOperator.NEG, unpack_classical_reg(classical_reg))
+    return UnaryLogic(quil_rs.UnaryOperator.NEG, unpack_classical_reg(classical_reg))
 
 
-def NOT(classical_reg: MemoryReferenceDesignator) -> UnaryClassicalInstruction:
+def NOT(classical_reg: MemoryReferenceDesignator) -> UnaryLogic:
     """Produce a NOT instruction."""
-    return UnaryClassicalInstruction(quil_rs.UnaryOperator.NOT, unpack_classical_reg(classical_reg))
+    return UnaryLogic(quil_rs.UnaryOperator.NOT, unpack_classical_reg(classical_reg))
 
 
-def AND(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int) -> LogicalBinaryOp:
+def AND(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int) -> BinaryLogic:
     """Produce an AND instruction.
 
     NOTE: The order of operands was reversed in pyQuil <=1.9 .
@@ -723,163 +718,163 @@ def AND(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferen
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
     if not isinstance(right, (MemoryReference, int)):
         raise TypeError("Right operand of AND must be a memory address or integer.")
-    return LogicalBinaryOp(quil_rs.BinaryOperator.AND, left, right)
+    return BinaryLogic(quil_rs.BinaryOperator.AND, left, right)
 
 
-def IOR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int) -> LogicalBinaryOp:
+def IOR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int) -> BinaryLogic:
     """Produce an inclusive OR instruction."""
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
     if not isinstance(right, (MemoryReference, int)):
         raise TypeError("Right operand of IOR must be a memory address or integer.")
-    return LogicalBinaryOp(quil_rs.BinaryOperator.IOR, left, right)
+    return BinaryLogic(quil_rs.BinaryOperator.IOR, left, right)
 
 
-def XOR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int) -> LogicalBinaryOp:
+def XOR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int) -> BinaryLogic:
     """Produce an exclusive OR instruction."""
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
     if not isinstance(right, (MemoryReference, int)):
         raise TypeError("Right operand of XOR must be a memory address or integer.")
-    return LogicalBinaryOp(quil_rs.BinaryOperator.XOR, left, right)
+    return BinaryLogic(quil_rs.BinaryOperator.XOR, left, right)
 
 
 def MOVE(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator | int | float,
-) -> ClassicalMove:
+) -> Move:
     """Produce a MOVE instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
-    :return: A ClassicalMove instance.
+    :return: A Move instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
-    return ClassicalMove(left, right)
+    return Move(left, right)
 
 
-def EXCHANGE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalExchange:
+def EXCHANGE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> Exchange:
     """Produce an EXCHANGE instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register, which gets modified.
-    :return: A ClassicalExchange instance.
+    :return: A Exchange instance.
     """
     left = unpack_classical_reg(classical_reg1)
     right = unpack_classical_reg(classical_reg2)
-    return ClassicalExchange(left, right)
+    return Exchange(left, right)
 
 
 def LOAD(
     target_reg: MemoryReferenceDesignator, region_name: str, offset_reg: MemoryReferenceDesignator
-) -> ClassicalLoad:
+) -> Load:
     """Produce a LOAD instruction.
 
     :param target_reg: LOAD storage target.
     :param region_name: Named region of memory to load from.
     :param offset_reg: Offset into region of memory to load from. Must be a MemoryReference.
-    :return: A ClassicalLoad instance.
+    :return: A Load instance.
     """
-    return ClassicalLoad(unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg))
+    return Load(unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg))
 
 
 def STORE(
     region_name: str,
     offset_reg: MemoryReferenceDesignator,
     source: MemoryReferenceDesignator | int | float,
-) -> ClassicalStore:
+) -> Store:
     """Produce a STORE instruction.
 
     :param region_name: Named region of memory to store to.
     :param offset_reg: Offset into memory region. Must be a MemoryReference.
     :param source: Source data. Can be either a MemoryReference or a constant.
-    :return: A ClassicalStore instance.
+    :return: A Store instance.
     """
     if not isinstance(source, int) and not isinstance(source, float):
         source = unpack_classical_reg(source)
-    return ClassicalStore(region_name, unpack_classical_reg(offset_reg), source)
+    return Store(region_name, unpack_classical_reg(offset_reg), source)
 
 
-def CONVERT(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalConvert:
+def CONVERT(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> Convert:
     """Produce a CONVERT instruction.
 
     :param classical_reg1: MemoryReference to store to.
     :param classical_reg2: MemoryReference to read from.
-    :return: A ClassicalConvert instance.
+    :return: A Convert instance.
     """
-    return ClassicalConvert(unpack_classical_reg(classical_reg1), unpack_classical_reg(classical_reg2))
+    return Convert(unpack_classical_reg(classical_reg1), unpack_classical_reg(classical_reg2))
 
 
-def ADD(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> ArithmeticBinaryOp:
+def ADD(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> Arithmetic:
     """Produce an ADD instruction."""
     left, right = unpack_reg_val_pair(classical_reg, right)
-    return ArithmeticBinaryOp(quil_rs.ArithmeticOperator.ADD, left, right)
+    return Arithmetic(quil_rs.ArithmeticOperator.ADD, left, right)
 
 
-def SUB(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> ArithmeticBinaryOp:
+def SUB(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> Arithmetic:
     """Produce a SUB instruction."""
     left, right = unpack_reg_val_pair(classical_reg, right)
-    return ArithmeticBinaryOp(quil_rs.ArithmeticOperator.SUBTRACT, left, right)
+    return Arithmetic(quil_rs.ArithmeticOperator.SUBTRACT, left, right)
 
 
-def MUL(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> ArithmeticBinaryOp:
+def MUL(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> Arithmetic:
     """Produce a MUL instruction."""
     left, right = unpack_reg_val_pair(classical_reg, right)
-    return ArithmeticBinaryOp(quil_rs.ArithmeticOperator.MULTIPLY, left, right)
+    return Arithmetic(quil_rs.ArithmeticOperator.MULTIPLY, left, right)
 
 
-def DIV(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> ArithmeticBinaryOp:
+def DIV(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> Arithmetic:
     """Produce a DIV instruction."""
     left, right = unpack_reg_val_pair(classical_reg, right)
-    return ArithmeticBinaryOp(quil_rs.ArithmeticOperator.DIVIDE, left, right)
+    return Arithmetic(quil_rs.ArithmeticOperator.DIVIDE, left, right)
 
 
 def EQ(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: MemoryReferenceDesignator | int | float,
-) -> ClassicalComparison:
+) -> Comparison:
     """Produce an EQ instruction."""
     t, l, r = prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3)
-    return ClassicalComparison(quil_rs.ComparisonOperator.EQUAL, t, l, r)
+    return Comparison(quil_rs.ComparisonOperator.EQUAL, t, l, r)
 
 
 def LT(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: MemoryReferenceDesignator | int | float,
-) -> ClassicalComparison:
+) -> Comparison:
     """Produce a LT instruction."""
     t, l, r = prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3)
-    return ClassicalComparison(quil_rs.ComparisonOperator.LESS_THAN, t, l, r)
+    return Comparison(quil_rs.ComparisonOperator.LESS_THAN, t, l, r)
 
 
 def LE(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: MemoryReferenceDesignator | int | float,
-) -> ClassicalComparison:
+) -> Comparison:
     """Produce a LE instruction."""
     t, l, r = prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3)
-    return ClassicalComparison(quil_rs.ComparisonOperator.LESS_THAN_OR_EQUAL, t, l, r)
+    return Comparison(quil_rs.ComparisonOperator.LESS_THAN_OR_EQUAL, t, l, r)
 
 
 def GT(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: MemoryReferenceDesignator | int | float,
-) -> ClassicalComparison:
+) -> Comparison:
     """Produce a GT instruction."""
     t, l, r = prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3)
-    return ClassicalComparison(quil_rs.ComparisonOperator.GREATER_THAN, t, l, r)
+    return Comparison(quil_rs.ComparisonOperator.GREATER_THAN, t, l, r)
 
 
 def GE(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
     classical_reg3: MemoryReferenceDesignator | int | float,
-) -> ClassicalComparison:
+) -> Comparison:
     """Produce a GE instruction."""
     t, l, r = prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3)
-    return ClassicalComparison(quil_rs.ComparisonOperator.GREATER_THAN_OR_EQUAL, t, l, r)
+    return Comparison(quil_rs.ComparisonOperator.GREATER_THAN_OR_EQUAL, t, l, r)
 
 
 def PULSE(frame: FrameIdentifier, waveform: WaveformInvocation, nonblocking: bool = False) -> Pulse:
@@ -1003,7 +998,7 @@ def DELAY(*args) -> Delay:
     It is also possible to delay all frames on some qubits, e.g. `DELAY 0 1 2 1.0`.
 
     :param args: A list of delay targets, ending with a duration.
-    :returns: A DelayFrames or DelayQubits instance.
+    :returns: A Delay instance.
     """
     if len(args) < 2:
         raise ValueError(
@@ -1032,12 +1027,12 @@ def FENCE(*qubits: QubitDesignator) -> Fence:
     Note: If no qubits are specified, then this is interpreted as a global FENCE.
 
     :params qubits: A list of qubits or formal arguments.
-    :returns: A Fence or FenceAll instance.
+    :returns: A Fence instance.
     """
     if qubits:
         return Fence(list(qubits))
     else:
-        return FenceAll()
+        return Fence([])
 
 
 QUANTUM_GATES: Mapping[str, Callable[..., Gate]] = {

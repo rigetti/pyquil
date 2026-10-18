@@ -75,22 +75,22 @@ from pyquil.quilatom import _contained_mrefs
 # TODO: remove the deprecated imports/replace with quil imports
 from pyquil.quilbase import (
     AbstractInstruction,
-    ArithmeticBinaryOp,
-    ClassicalComparison,
-    ClassicalConvert,
-    ClassicalExchange,
-    ClassicalLoad,
-    ClassicalMove,
-    ClassicalStore,
-    DefCircuit,
+    Arithmetic,
+    Comparison,
+    Convert,
+    Exchange,
+    Load,
+    Move,
+    Store,
+    CircuitDefinition,
     Gate,
     Jump,
     JumpUnless,
     JumpWhen,
-    LogicalBinaryOp,
+    BinaryLogic,
     Measurement,
     Reset,
-    UnaryClassicalInstruction,
+    UnaryLogic,
 )
 from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
 
@@ -261,8 +261,8 @@ ExpandedOp: TypeAlias = CircuitOp | ParametricGate
 
 def expand_defcircuit_body(
     inst: Gate,
-    defcircuit: DefCircuit,
-    circuit_definitions: dict[str, DefCircuit],
+    defcircuit: CircuitDefinition,
+    circuit_definitions: dict[str, CircuitDefinition],
 ) -> Iterator[Gate | Measurement | Reset]:
     """Yield concrete instructions from a DEFCIRCUIT invocation.
 
@@ -270,7 +270,7 @@ def expand_defcircuit_body(
     from ``inst``.  Handles nested DEFCIRCUITs via recursion.
 
     :param inst: The Gate that invokes the DEFCIRCUIT.
-    :param defcircuit: The DefCircuit definition to expand.
+    :param defcircuit: The CircuitDefinition definition to expand.
     :param circuit_definitions: All known DEFCIRCUIT definitions (for nested expansion).
     :yields: Concrete instructions with physical qubits and resolved parameters.
     """
@@ -343,15 +343,15 @@ UNSUPPORTED_INSTRUCTIONS: tuple[type[AbstractInstruction], ...] = (
     Jump,
     JumpWhen,
     JumpUnless,
-    UnaryClassicalInstruction,
-    LogicalBinaryOp,
-    ArithmeticBinaryOp,
-    ClassicalMove,
-    ClassicalExchange,
-    ClassicalConvert,
-    ClassicalLoad,
-    ClassicalStore,
-    ClassicalComparison,
+    UnaryLogic,
+    BinaryLogic,
+    Arithmetic,
+    Move,
+    Exchange,
+    Convert,
+    Load,
+    Store,
+    Comparison,
 )
 
 
@@ -419,7 +419,7 @@ def expand_program(
     # resolve), which is not worth caching across the passes.
     # ``Program.instructions``/``__iter__`` never surfaces DEFCIRCUITs (mirroring
     # ``defined_gates``, they live in their own mapping); pull them from the native program.
-    circuit_definitions: dict[str, DefCircuit] = dict(program._program.circuits)
+    circuit_definitions: dict[str, CircuitDefinition] = dict(program._program.circuits)
     custom_gates = get_custom_gates_from_program(program) or None
     # A ``DEFGATE`` may not reuse a standard gate's name: the definition would silently replace
     # the built-in on every instruction of that name, on the fixed and the parametric path alike.
@@ -575,7 +575,7 @@ def expand_program(
                 "instructions change which quantum operations run, and this simulator evolves a "
                 "straight-line program. Resolve the instruction's effect before simulating."
             )
-        if isinstance(inst, DefCircuit):
+        if isinstance(inst, CircuitDefinition):
             continue
 
         if isinstance(inst, Gate) and inst.name in circuit_definitions:

@@ -24,7 +24,7 @@ from pyquil.gates import FSIM, PHASE, RX, RY, RZ, H
 from pyquil.noise._channels import get_custom_gates_from_program
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Parameter, quil_cis, quil_cos, quil_exp, quil_sin, quil_sqrt
-from pyquil.quilbase import Declare, DefGate, Gate
+from pyquil.quilbase import Declaration, Gate, GateDefinition, GateSpecification
 from pyquil.simulation._resolver import ParameterExpression, _compile_expression, expand_program
 from pyquil.simulation._simulator import DensityMatrixSimulator, PureStateVectorSimulator
 
@@ -34,7 +34,7 @@ PHI = MemoryReference("theta", 1)
 
 def _program(*gates):
     program = Program()
-    program += Declare("theta", "REAL", 2)
+    program += Declaration("theta", "REAL", 2)
     for gate in gates:
         program += gate
     return program
@@ -109,16 +109,16 @@ class TestCompileExpression:
 
 class TestCustomGateNames:
     def test_defgate_may_not_shadow_a_standard_gate(self):
-        # Quil reserves its own standard names (``DefGate("X", ...)`` fails in quil-rs), so the
+        # Quil reserves its own standard names (``GateDefinition("X", ...)`` fails in quil-rs), so the
         # simulator's check matters for the gates quax knows beyond the Quil standard set.
         program = _program(RX(np.pi, 0))
-        program += DefGate("ECR", np.eye(4))
+        program += GateDefinition("ECR", [], GateSpecification.Matrix(np.eye(4)))
         with pytest.raises(ValueError, match=r"redefines the standard gate\(s\) \['ECR'\]"):
             PureStateVectorSimulator(program)
 
     def test_fresh_defgate_name_is_accepted(self):
         program = Program()
-        program += DefGate("MY_X", np.array([[0, 1], [1, 0]]))
+        program += GateDefinition("MY_X", [], GateSpecification.Matrix(np.array([[0, 1], [1, 0]])))
         program += Gate("MY_X", [], [0])
         np.testing.assert_allclose(_state(program), [0, 1], atol=1e-12)
 
@@ -176,7 +176,7 @@ class TestSimulation:
     def test_cis_and_complex_literals_in_a_defgate_argument(self):
         """A DEFGATE with a complex parameter accepts CIS and complex arithmetic."""
         z = Parameter("z")
-        defgate = DefGate("CPH", [[1, 0], [0, z]], [z])
+        defgate = GateDefinition("CPH", [z], GateSpecification.Matrix([[1, 0], [0, z]]))
         theta = 0.8
 
         def run(argument):
@@ -214,7 +214,7 @@ class TestSimulation:
         from pyquil.gates import MEASURE
 
         program = Program()
-        program += Declare("ro", "BIT", 1)
+        program += Declaration("ro", "BIT", 1)
         program += MEASURE(0, ("ro", 0))
         program += RX(2 * MemoryReference("ro", 0), 0)
         with pytest.raises(ValueError, match="written by a MEASURE"):
@@ -269,23 +269,25 @@ class TestParametricDefGate:
     """
 
     @staticmethod
-    def _defgate() -> DefGate:
+    def _defgate() -> GateDefinition:
         theta, beta = Parameter("theta"), Parameter("beta")
-        return DefGate(
+        return GateDefinition(
             name="BLARG",
-            matrix=np.array(
-                [
-                    [1, 0, 0, 0],
-                    [0, quil_cos(theta / 2), 1j * quil_sin(theta / 2) * quil_exp(1j * beta), 0],
-                    [0, 1j * quil_sin(theta / 2) * quil_exp(-1j * beta), quil_cos(theta / 2), 0],
-                    [0, 0, 0, 1],
-                ]
-            ),
             parameters=[beta, theta],
+            specification=GateSpecification.Matrix(
+                np.array(
+                    [
+                        [1, 0, 0, 0],
+                        [0, quil_cos(theta / 2), 1j * quil_sin(theta / 2) * quil_exp(1j * beta), 0],
+                        [0, 1j * quil_sin(theta / 2) * quil_exp(-1j * beta), quil_cos(theta / 2), 0],
+                        [0, 0, 0, 1],
+                    ]
+                )
+            ),
         )
 
     @staticmethod
-    def _program(defgate: DefGate) -> Program:
+    def _program(defgate: GateDefinition) -> Program:
         program = Program()
         theta = program.declare("theta", "REAL", 1)
         beta = program.declare("beta", "REAL", 1)
@@ -341,8 +343,8 @@ class TestParametricDefGate:
     def test_rejects_a_parameter_with_no_binding(self):
         """A matrix naming a parameter the DEFGATE does not declare is a caller error."""
         rogue = Parameter("rogue")
-        defgate = DefGate(
-            name="ROGUE", matrix=np.array([[quil_cos(rogue), 0], [0, 1]]), parameters=[Parameter("theta")]
+        defgate = GateDefinition(
+            "ROGUE", [Parameter("theta")], GateSpecification.Matrix(np.array([[quil_cos(rogue), 0], [0, 1]]))
         )
 
         with pytest.raises(ValueError, match="No value supplied for DEFGATE parameter"):

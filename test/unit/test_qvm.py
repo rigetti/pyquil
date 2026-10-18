@@ -6,13 +6,13 @@ from pyquil import Program
 from pyquil.api import QVM
 from pyquil.api._qvm import validate_noise_probabilities, validate_qubit_list
 from pyquil.gates import MEASURE, X
-from pyquil.quilbase import Declare, MemoryReference
+from pyquil.quilbase import Declaration, MemoryReference
 
 
 def test_qvm__default_client(qvm_client: QVMClient):
     print(qvm_client)
     qvm = QVM(client=qvm_client)
-    p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
+    p = Program(Declaration("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     result = qvm.run(p.wrap_in_numshots_loop(1000))
     bitstrings = result.get_register_map().get("ro")
     assert bitstrings.shape == (1000, 1)
@@ -20,7 +20,7 @@ def test_qvm__default_client(qvm_client: QVMClient):
 
 def test_qvm_run_pqer(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01))
-    p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
+    p = Program(Declaration("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     result = qvm.run(p.wrap_in_numshots_loop(1000))
     bitstrings = result.get_register_map().get("ro")
     assert bitstrings.shape == (1000, 1)
@@ -29,7 +29,7 @@ def test_qvm_run_pqer(qvm_client: QVMClient):
 
 def test_qvm_run_just_program(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01))
-    p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
+    p = Program(Declaration("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     result = qvm.run(p.wrap_in_numshots_loop(1000))
     bitstrings = result.get_register_map().get("ro")
     assert bitstrings.shape == (1000, 1)
@@ -38,7 +38,7 @@ def test_qvm_run_just_program(qvm_client: QVMClient):
 
 def test_qvm_run_only_pqer(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client, gate_noise=(0.01, 0.01, 0.01))
-    p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
+    p = Program(Declaration("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
 
     result = qvm.run(p.wrap_in_numshots_loop(1000))
     bitstrings = result.get_register_map().get("ro")
@@ -48,7 +48,7 @@ def test_qvm_run_only_pqer(qvm_client: QVMClient):
 
 def test_qvm_run_region_declared_and_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
-    p = Program(Declare("reg", "BIT"), X(0), MEASURE(0, MemoryReference("reg")))
+    p = Program(Declaration("reg", "BIT"), X(0), MEASURE(0, MemoryReference("reg")))
     result = qvm.run(p.wrap_in_numshots_loop(100))
     bitstrings = result.get_register_map().get("reg")
     assert bitstrings.shape == (100, 1)
@@ -56,7 +56,7 @@ def test_qvm_run_region_declared_and_measured(qvm_client: QVMClient):
 
 def test_qvm_run_region_declared_not_measured(qvm_client: QVMClient):
     qvm = QVM(client=qvm_client)
-    p = Program(Declare("reg", "BIT"), X(0))
+    p = Program(Declaration("reg", "BIT"), X(0))
     result = qvm.run(p.wrap_in_numshots_loop(100))
     bitstrings = result.get_register_map().get("reg")
     assert bitstrings is not None

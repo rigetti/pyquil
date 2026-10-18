@@ -41,16 +41,16 @@ from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilatom import FormalArgument, Frame, Label, MemoryReference, Qubit
 from pyquil.quilbase import (
-    Declare,
-    DefCircuit,
+    Declaration,
+    CircuitDefinition,
     Gate,
     Jump,
-    JumpTarget,
+    Label as LabelInstruction,
     JumpUnless,
     JumpWhen,
     Measurement,
     Pragma,
-    ResetQubit,
+    Reset,
 )
 from pyquil.simulation._circuit import Circuit, dependency_edges
 from pyquil.simulation._resolver import (
@@ -82,7 +82,7 @@ class TestExpandProgram:
             assert isinstance(op, qx.Unitary)
 
     def test_measurement_emitted(self):
-        p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
+        p = Program(Declaration("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
         ops, qubit_tuples, _ = expand_program(p)
         assert len(ops) == 2
         # Measurement should be a concrete QuantumInstrument
@@ -104,7 +104,7 @@ class TestExpandProgram:
 
     def test_defcircuit_expansion_no_cycle_channel(self):
         q0, q1 = FormalArgument("q0"), FormalArgument("q1")
-        dc = DefCircuit("MY_CYCLE", [], [q0, q1], [H(q0), CNOT(q0, q1)])
+        dc = CircuitDefinition("MY_CYCLE", [], [q0, q1], [H(q0), CNOT(q0, q1)])
         p = Program(dc, Gate("MY_CYCLE", [], [Qubit(0), Qubit(1)]))
         ops, qubit_tuples, _ = expand_program(p)
         assert len(ops) == 2
@@ -117,14 +117,14 @@ class TestExpandProgram:
         for. Rejecting it here beats the downstream KeyError.
         """
         q0 = FormalArgument("q0")
-        dc = DefCircuit("LEAKY", [], [q0], [H(q0), X(Qubit(3))])
+        dc = CircuitDefinition("LEAKY", [], [q0], [H(q0), X(Qubit(3))])
         p = Program(dc, Gate("LEAKY", [], [Qubit(0)]))
         with pytest.raises(ValueError, match="not one of its formal arguments"):
             expand_program(p)
 
     def test_defcircuit_rejects_arity_mismatch(self):
         q0, q1 = FormalArgument("q0"), FormalArgument("q1")
-        dc = DefCircuit("PAIR", [], [q0, q1], [CNOT(q0, q1)])
+        dc = CircuitDefinition("PAIR", [], [q0, q1], [CNOT(q0, q1)])
         p = Program(dc, Gate("PAIR", [], [Qubit(0)]))
         with pytest.raises(ValueError, match="but DEFCIRCUIT PAIR declares 2"):
             expand_program(p)
@@ -132,7 +132,7 @@ class TestExpandProgram:
     def test_cycle_channel_expansion(self):
         """CycleChannel constituents are emitted instead of DEFCIRCUIT body."""
         q0 = FormalArgument("q")
-        dc = DefCircuit("SQC", [], [q0], [RX(0.1, q0), RZ(0.2, q0)])
+        dc = CircuitDefinition("SQC", [], [q0], [RX(0.1, q0), RZ(0.2, q0)])
         cycle_inst = Gate("SQC", [], [Qubit(0)])
         channels = tuple(
             Channel.from_depolarizing_constant(inst, depolarizing_constant=0.99) for inst in (RX(0.1, 0), RZ(0.2, 0))
@@ -156,7 +156,7 @@ class TestExpandProgram:
         point of construction, not something the resolver second-guesses.
         """
         q0 = FormalArgument("q")
-        dc = DefCircuit("VCYC", [], [q0], [X(q0)])
+        dc = CircuitDefinition("VCYC", [], [q0], [X(q0)])
         cycle_inst = Gate("VCYC", [], [Qubit(0)])
         # Noiseless X channel: the gate lives in the process (ideal_unitary == process action).
         gate_channel = SuperopChannel(inst=X(0), process=qx.to_superop(qx.gates.X), ideal_unitary=qx.gates.X)
@@ -168,7 +168,7 @@ class TestExpandProgram:
         assert jnp.allclose(qx.to_superop(ops[0]).matrix, qx.to_superop(qx.gates.X).matrix, atol=1e-6)
 
     def test_parameterized_gate_produces_callable(self):
-        p = Program(Declare("theta", "REAL", 1), RZ(MemoryReference("theta", 0), 0))
+        p = Program(Declaration("theta", "REAL", 1), RZ(MemoryReference("theta", 0), 0))
         ops, _, _ = expand_program(p)
         assert len(ops) == 1
         assert callable(ops[0])
@@ -222,7 +222,7 @@ class TestResolveProgram:
         assert isinstance(ops[1][0], qx.Unitary)
 
     def test_parameterized(self):
-        p = Program(Declare("theta", "REAL", 1), RZ(MemoryReference("theta", 0), 0))
+        p = Program(Declaration("theta", "REAL", 1), RZ(MemoryReference("theta", 0), 0))
         res = resolve_program(p)
         params = jnp.array([np.pi / 4])
         ops = res.resolve(params)
@@ -243,7 +243,7 @@ class TestResolveProgram:
         assert circuit.subsystems == ((0,), (0, 1))
 
     def test_measurement_and_reset(self):
-        p = Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
+        p = Program(Declaration("ro", "BIT", 1), H(0), MEASURE(0, MemoryReference("ro", 0)))
         res = resolve_program(p)
         ops = res.resolve()
         assert len(ops) == 2
@@ -294,14 +294,14 @@ class TestChannelFlavorDispatch:
         assert jnp.allclose(emitted, channel.process.matrix)
 
     def test_superop_reset_channel_noise_is_applied(self):
-        channel = SuperopResetChannel.from_reset_fidelity(ResetQubit(0), fidelity=0.9)
+        channel = SuperopResetChannel.from_reset_fidelity(Reset(0), fidelity=0.9)
         emitted = self._emitted_superop(Program(RESET(0)), NoiseModel.from_channels([channel]))
         assert jnp.allclose(emitted, channel.process.matrix)
         # Explicitly not the ideal reset.
         assert not jnp.allclose(emitted, qx.to_superop(qx.gates.RESET(dim=2)).matrix)
 
     def test_lindbladian_reset_channel_noise_is_applied(self):
-        channel = ResetChannel.from_amplitude_damping(ResetQubit(0), gamma=0.5)
+        channel = ResetChannel.from_amplitude_damping(Reset(0), gamma=0.5)
         emitted = self._emitted_superop(Program(RESET(0)), NoiseModel.from_channels([channel]))
         assert jnp.allclose(emitted, channel.process.matrix)
 
@@ -359,7 +359,7 @@ class TestMeasurementRepresentation:
         """``_prepare_ops`` collapses them, which is why that family has nothing atomic."""
         from pyquil.simulation._simulator import DensityMatrixSimulator
 
-        sim = DensityMatrixSimulator(Program(Declare("ro", "BIT", 1), H(0), MEASURE(0, ("ro", 0))))
+        sim = DensityMatrixSimulator(Program(Declaration("ro", "BIT", 1), H(0), MEASURE(0, ("ro", 0))))
         assert not any(isinstance(op, qx.QuantumInstrument) for op in sim._resolution.ops)
         # Nothing is pinned, so the measurement is free to merge with the gate before it.
         assert sim.plan.groups == (((0, 1), (0,)),)
@@ -393,12 +393,12 @@ class TestInstructionSupport:
     )
     def test_control_flow_and_classical_memory_raise(self, inst):
         program = Program(
-            Declare("ro", "BIT", 2),
-            Declare("x", "REAL", 1),
-            Declare("n", "INTEGER", 1),
+            Declaration("ro", "BIT", 2),
+            Declaration("x", "REAL", 1),
+            Declaration("n", "INTEGER", 1),
             H(0),
             inst,
-            JumpTarget(Label("end").target),
+            LabelInstruction("end"),
         )
         with pytest.raises(ValueError, match="cannot be simulated"):
             expand_program(program)
@@ -407,9 +407,9 @@ class TestInstructionSupport:
         """Declarations, pragmas, labels, HALT/NOP/WAIT and pulse-level Quil-T pass through silently."""
         frame = Frame([Qubit(0)], "rf")
         program = Program(
-            Declare("ro", "BIT", 1),
+            Declaration("ro", "BIT", 1),
             Pragma("INITIAL_REWIRING", freeform_string='"NAIVE"'),
-            JumpTarget(Label("start").target),
+            LabelInstruction("start"),
             H(0),
             FENCE(0),
             DELAY(0, 1e-8),
@@ -427,14 +427,14 @@ class TestInstructionSupport:
 class TestParameterSlots:
     def test_repeated_reference_shares_a_slot(self):
         theta0 = MemoryReference("theta", 0)
-        program = Program(Declare("theta", "REAL", 1), RX(theta0, 0), RZ(theta0, 1))
+        program = Program(Declaration("theta", "REAL", 1), RX(theta0, 0), RZ(theta0, 1))
         ops, _, parameters = expand_program(program)
         assert parameters == (("theta", 0),)
         assert [op.arguments[0].slot_indices for op in ops] == [(0,), (0,)]
 
     def test_distinct_references_get_distinct_slots_in_first_use_order(self):
         program = Program(
-            Declare("theta", "REAL", 2), RX(MemoryReference("theta", 1), 0), RZ(MemoryReference("theta", 0), 0)
+            Declaration("theta", "REAL", 2), RX(MemoryReference("theta", 1), 0), RZ(MemoryReference("theta", 0), 0)
         )
         _, _, parameters = expand_program(program)
         assert parameters == (("theta", 1), ("theta", 0))
@@ -442,6 +442,6 @@ class TestParameterSlots:
 
     def test_parametric_gate_with_a_modifier_is_rejected(self):
         """The parametric path must reject modifiers too, not just the fixed-gate path."""
-        program = Program(Declare("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0).dagger())
+        program = Program(Declaration("theta", "REAL", 1), RX(MemoryReference("theta", 0), 0).dagger())
         with pytest.raises(ValueError, match="modifiers are not supported.*DAGGER"):
             expand_program(program)

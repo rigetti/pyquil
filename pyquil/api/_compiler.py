@@ -34,7 +34,7 @@ from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, Qu
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare
+from pyquil.quilbase import Declaration
 
 QPUCompilerAPIOptions: TypeAlias = _TranslationOptions
 """
@@ -62,14 +62,14 @@ def parse_mref(val: str) -> MemoryReference:
 
 
 def _collect_memory_descriptors(program: Program) -> dict[str, ParameterSpec]:
-    """Collect Declare instructions that are important for building the patch table.
+    """Collect Declaration instructions that are important for building the patch table.
 
     :return: A dictionary of variable names to specs about the declared region.
     """
     return {
         instr.name: ParameterSpec(type=instr.memory_type, length=instr.memory_size)
         for instr in program
-        if isinstance(instr, Declare)
+        if isinstance(instr, Declaration)
     }
 
 

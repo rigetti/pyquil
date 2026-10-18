@@ -6,15 +6,15 @@ from quil import instructions as inst
 from pyquil import quilbase as qb
 from pyquil.quil import Program
 
-_QUIL_BLOCK_DELIMITERS = (qb.JumpTarget, qb.Jump, qb.JumpUnless, qb.JumpWhen, qb.Label)
+_QUIL_BLOCK_DELIMITERS = (qb.Jump, qb.JumpUnless, qb.JumpWhen, qb.Label)
 _CLASSICAL_INSTRUCTION = (
-    qb.ClassicalStore,
-    qb.ClassicalMove,
-    qb.ClassicalLoad,
-    qb.ClassicalComparison,
-    qb.LogicalBinaryOp,
+    qb.Store,
+    qb.Move,
+    qb.Load,
+    qb.Comparison,
+    qb.BinaryLogic,
     qb.Call,
-    qb.ArithmeticBinaryOp,
+    qb.Arithmetic,
 )
 _GATE_OR_PULSE_INSTRUCTION = (qb.Gate, qb.Measurement, qb.Reset, qb.Pulse, qb.Capture, qb.RawCapture)
 
@@ -65,9 +65,9 @@ def add_leading_delay_to_first_pulse_block(
 
     instructions = program.instructions
     # note that we explicitly sort declarations to ensure determinism.
-    declarations = [instruction for instruction in instructions if isinstance(instruction, qb.Declare)]
+    declarations = [instruction for instruction in instructions if isinstance(instruction, qb.Declaration)]
     declarations.sort(key=lambda declare: declare.name)
-    instructions = [instruction for instruction in instructions if not isinstance(instruction, qb.Declare)]
+    instructions = [instruction for instruction in instructions if not isinstance(instruction, qb.Declaration)]
     blocks = _into_blocks(instructions)
 
     first_gate_or_pulse_block_index = None

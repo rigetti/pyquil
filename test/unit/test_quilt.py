@@ -14,8 +14,7 @@ from pyquil.quilatom import (
 )
 from pyquil.quilbase import (
     AbstractInstruction,
-    DefCalibration,
-    DefMeasureCalibration,
+    MeasureCalibrationDefinition,
     Gate,
 )
 from pyquil.quiltcalibrations import (
@@ -69,7 +68,7 @@ def test_waveform_samples_optional_args():
     assert np.array_equal(np.exp(1j) * flat(), flat(phase=1.0))
 
 
-def _match(cal: DefCalibration, instr: AbstractInstruction) -> CalibrationMatch | None:
+def _match(cal: CalibrationDefinition, instr: AbstractInstruction) -> CalibrationMatch | None:
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast
@@ -81,7 +80,7 @@ def _match(cal: DefCalibration, instr: AbstractInstruction) -> CalibrationMatch 
     return match_calibration(instr, cal)
 
 
-def _match_measure(cal: DefMeasureCalibration, instr: AbstractInstruction) -> CalibrationMatch | None:
+def _match_measure(cal: MeasureCalibrationDefinition, instr: AbstractInstruction) -> CalibrationMatch | None:
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast

@@ -13,7 +13,6 @@ from pyquil.api._compiler import (
 from quil.instructions import Qubit
 
 from pyquil.gates import MEASURE, RX, RZ
-from pyquil.quilbase import DefCalibration
 
 
 def simple_program():
