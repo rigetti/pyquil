@@ -27,14 +27,13 @@ from qcs_sdk.qpu.translation import (
 from qcs_sdk.qpu.translation import (
     TranslationOptions as _TranslationOptions,
 )
+from quil.instructions import Declaration, MemoryReference
 from rpcq.messages import ParameterSpec
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, QuantumExecutable
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declaration
 
 QPUCompilerAPIOptions: TypeAlias = _TranslationOptions
 """

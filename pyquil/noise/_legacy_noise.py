@@ -29,14 +29,13 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 
 import numpy as np
 from deprecated.sphinx import deprecated
-from quil.expression import Expression
+from quil.expression import Expression, ParameterDesignator
+from quil.instructions import Declaration, Gate, MemoryReference, Pragma
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import MEASURE, RX, I
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
-from pyquil.quilatom import MemoryReference, ParameterDesignator
-from pyquil.quilbase import Declaration, Gate, Pragma
 
 if TYPE_CHECKING:
     from pyquil.api import QuantumComputer as PyquilApiQuantumComputer

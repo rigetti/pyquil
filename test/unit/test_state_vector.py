@@ -1,22 +1,16 @@
 """Unit tests for the quax-based state vector simulator."""
 
+from test.unit.simulation_programs import simulate_state_vector
+
 import jax.numpy as jnp
 import numpy as np
 import pytest
 import quax as qx
+from quil.instructions import Declaration, GateDefinition, GateSpecification, MemoryReference, Qubit
+from quil.instructions import Gate as QuilGate
 
 from pyquil.gates import CNOT, RX, RY, RZ, H, I, X
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, Qubit
-from pyquil.quilbase import (
-    Declaration,
-    GateDefinition,
-    GateSpecification,
-)
-from pyquil.quilbase import (
-    Gate as QuilGate,
-)
-from test.unit.simulation_programs import simulate_state_vector
 
 _sv = simulate_state_vector
 

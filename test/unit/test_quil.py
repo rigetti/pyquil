@@ -20,8 +20,22 @@ import numpy as np
 import pytest
 import quil
 from quil import QuilError
+from quil.expression import Address, InfixOperator, Parameter, quil_cos, quil_sin
+from quil.instructions import (
+    CalibrationDefinition,
+    Declaration,
+    FrameDefinition,
+    Gate,
+    GateDefinition,
+    GateSpecification,
+    JumpWhen,
+    MeasureCalibrationDefinition,
+    MemoryReference,
+    Qubit,
+    QubitPlaceholder,
+    WaveformDefinition,
+)
 from syrupy.assertion import SnapshotAssertion
-from quil.instructions import CalibrationDefinition, Qubit
 
 from pyquil.gates import (
     ADD,
@@ -77,19 +91,8 @@ from pyquil.quil import (
     get_classical_addresses_from_program,
     merge_with_pauli_noise,
 )
-from pyquil.quilatom import Frame, MemoryReference, Parameter, QubitPlaceholder, quil_cos, quil_sin
-from quil.expression import Address, InfixOperator
-from pyquil.quilbase import (
-    AbstractInstruction,
-    Declaration,
-    FrameDefinition,
-    MeasureCalibrationDefinition,
-    GateSpecification,
-    WaveformDefinition,
-    Gate,
-    GateDefinition,
-    JumpWhen,
-)
+from pyquil.quilatom import Frame
+from pyquil.quilbase import AbstractInstruction
 
 
 def test_gate(snapshot):

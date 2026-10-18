@@ -1,4 +1,5 @@
-from pyquil.control_flow_graph import BasicBlock
+from quil.program import BasicBlock
+
 from pyquil.quil import Program
 from pyquil.quilbase import AbstractInstruction
 

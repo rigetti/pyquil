@@ -21,30 +21,32 @@ from typing import cast
 from warnings import warn
 
 from deprecated.sphinx import deprecated
-
-from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
-from pyquil.quil import Program
-from pyquil.quilatom import ParameterDesignator, QubitDesignator, format_parameter
-from pyquil.quilbase import (
-    AbstractInstruction,
+from quil.expression import ParameterDesignator
+from quil.instructions import (
     Arithmetic,
+    BinaryLogic,
     Comparison,
     Convert,
     Exchange,
-    Load,
-    Move,
-    Store,
     Gate,
     Jump,
     JumpUnless,
     JumpWhen,
-    BinaryLogic,
+    Load,
     Measurement,
+    Move,
     Pragma,
+    QubitDesignator,
     Reset,
+    Store,
     UnaryLogic,
     Wait,
 )
+
+from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
+from pyquil.quil import Program
+from pyquil.quilatom import format_parameter
+from pyquil.quilbase import AbstractInstruction
 
 
 @deprecated(

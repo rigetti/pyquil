@@ -28,15 +28,9 @@ from typing import TypeAlias, Union, cast
 import numpy as np
 import quil.instructions as quil_rs
 from numpy.typing import NDArray
+from quil.expression import Expression, ExpressionDesignator
+from quil.instructions import FormalArgument, QubitDesignator, QubitPlaceholder
 from scipy.linalg import expm
-
-from pyquil.quilatom import (
-    Expression,
-    ExpressionDesignator,
-    FormalArgument,
-    QubitDesignator,
-    QubitPlaceholder,
-)
 
 from .gates import CNOT, PHASE, QUANTUM_GATES, RX, RZ, H, X
 from .quil import Program

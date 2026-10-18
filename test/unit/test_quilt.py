@@ -1,22 +1,16 @@
 import os
+from test.unit.conftest import TEST_DATA_DIR
 
 import numpy as np
 import pytest
-from quil.instructions import Qubit, CalibrationDefinition
+from quil.expression import Parameter
+from quil.instructions import CalibrationDefinition, Gate, MeasureCalibrationDefinition, MemoryReference, Qubit
 from quil.program import ProgramError
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil.gates import RX
 from pyquil.quil import Program
-from pyquil.quilatom import (
-    MemoryReference,
-    Parameter,
-)
-from pyquil.quilbase import (
-    AbstractInstruction,
-    MeasureCalibrationDefinition,
-    Gate,
-)
+from pyquil.quilbase import AbstractInstruction
 from pyquil.quiltcalibrations import (
     CalibrationMatch,
     match_calibration,
@@ -29,7 +23,6 @@ from pyquil.quiltwaveforms import (
     GaussianWaveform,
     HrmGaussianWaveform,
 )
-from test.unit.conftest import TEST_DATA_DIR
 
 
 def test_waveform_samples():

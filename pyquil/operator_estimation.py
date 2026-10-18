@@ -13,6 +13,7 @@ from typing import cast
 
 import numpy as np
 from deprecated.sphinx import deprecated
+from quil.instructions import QubitDesignator
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.api import QuantumComputer
@@ -43,7 +44,6 @@ from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET, RX, RY, RZ, X
 from pyquil.paulis import is_identity
 from pyquil.quil import Program
-from pyquil.quilatom import QubitDesignator
 
 warnings.warn(
     f"The module {__name__} is deprecated and will be removed in pyQuil v5 in favor of the "

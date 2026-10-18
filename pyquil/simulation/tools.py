@@ -19,12 +19,12 @@ from collections.abc import Sequence
 from typing import cast
 
 import numpy as np
-from quil.instructions import GateModifier
+from quil.expression import Expression, Parameter
+from quil.instructions import Gate, GateModifier, Halt
 
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
-from pyquil.quilatom import Expression, Parameter
-from pyquil.quilbase import Gate, Halt, _strip_modifiers
+from pyquil.quilbase import _strip_modifiers
 from pyquil.simulation.matrices import QUANTUM_GATES, STATES, SWAP
 
 

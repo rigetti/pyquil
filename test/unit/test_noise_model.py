@@ -21,6 +21,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 import quax as qx
+from quil.instructions import CircuitDefinition, FormalArgument, Gate, Measurement, Qubit, Reset
 
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, RZ, X
@@ -40,8 +41,6 @@ from pyquil.noise._channels import (
 )
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import FormalArgument, Qubit
-from pyquil.quilbase import CircuitDefinition, Gate, Measurement, Reset
 from pyquil.simulation._simulator import DensityMatrixSimulator
 
 
@@ -1240,7 +1239,7 @@ class TestResetChannel:
         assert (ch**2.0).process_fidelity > ch.process_fidelity
 
     def test_rejects_global_reset(self):
-        from pyquil.quilbase import Reset
+        from quil.instructions import Reset
 
         with pytest.raises(TypeError, match="targeted"):
             ResetChannel.from_lindbladian(Reset(), qx.lindbladians.amplitude_damping(1.0, (2,)))

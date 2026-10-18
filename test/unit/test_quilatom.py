@@ -2,10 +2,11 @@ from collections.abc import Sequence
 
 import numpy as np
 import pytest
-from quil.instructions import Qubit
+from quil.expression import Parameter
+from quil.instructions import Qubit, QubitPlaceholder
 from syrupy.assertion import SnapshotAssertion
 
-from pyquil.quilatom import Add, Frame, Label, LabelPlaceholder, Parameter, QubitPlaceholder
+from pyquil.quilatom import Add, Frame, Label, LabelPlaceholder
 
 
 @pytest.mark.parametrize(

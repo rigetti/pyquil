@@ -23,6 +23,7 @@ from operator import mul
 
 import numpy as np
 import pytest
+from quil.instructions import QubitPlaceholder
 
 from pyquil.gates import CNOT, PHASE, RX, RZ, H, X
 from pyquil.paulis import (
@@ -44,7 +45,6 @@ from pyquil.paulis import (
     trotterize,
 )
 from pyquil.quil import Program, address_qubits
-from pyquil.quilatom import QubitPlaceholder
 
 
 def test_simplify_terms():

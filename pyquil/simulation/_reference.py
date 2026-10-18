@@ -20,11 +20,11 @@ from typing import Any
 import numpy as np
 from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
+from quil.instructions import Gate
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._pyqvm import AbstractQuantumSimulator
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import KRAUS_OPS, P0, P1, QUANTUM_GATES
 from pyquil.simulation.tools import all_bitstrings, lifted_gate, lifted_gate_matrix
 

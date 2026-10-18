@@ -44,27 +44,26 @@ import numpy as np
 import quax as qx
 from jax import Array
 from jax.scipy.linalg import expm as jax_expm
-from quil.expression import (EvaluationError, ExpressionFunction, InfixOperator, PrefixOperator,
-                            InfixExpression, PrefixExpression, FunctionCallExpression, Number, Pi)
+from quil.expression import (
+    EvaluationError,
+    Expression,
+    ExpressionFunction,
+    FunctionCallExpression,
+    InfixExpression,
+    InfixOperator,
+    Number,
+    Parameter,
+    ParameterDesignator,
+    Pi,
+    PrefixExpression,
+    PrefixOperator,
+)
+from quil.instructions import CircuitDefinition, FormalArgument, Gate, GateDefinition, Measurement, Reset
 from quil.instructions import Instruction as RSInstruction
 from scipy.linalg import logm as scipy_logm
 from scipy.optimize import brentq
 
-from pyquil.quilatom import (
-    Expression,
-    FormalArgument,
-    Parameter,
-    ParameterDesignator,
-)
-from pyquil.quilbase import (
-    CircuitDefinition,
-    Gate,
-    GateDefinition,
-    Measurement,
-    Reset,
-    _integer_base_and_exponent,
-    gate_definition_matrix,
-)
+from pyquil.quilbase import _integer_base_and_exponent, gate_definition_matrix
 
 if TYPE_CHECKING:
     from plotly.graph_objs import Figure

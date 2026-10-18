@@ -1,15 +1,7 @@
 import numpy as np
+from quil.expression import Parameter, quil_cis, quil_cos, quil_exp, quil_sin, quil_sqrt
 
-from pyquil.quilatom import (
-    Parameter,
-    quil_cis,
-    quil_cos,
-    quil_exp,
-    quil_sin,
-    quil_sqrt,
-    substitute,
-    substitute_array,
-)
+from pyquil.quilatom import substitute, substitute_array
 
 
 def test_expression_to_string():

@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 from qcs_sdk.qvm import QVMClient, QVMError
+from quil.instructions import Declaration, MemoryReference
 
 from pyquil import Program
 from pyquil.api import QVM
 from pyquil.api._qvm import validate_noise_probabilities, validate_qubit_list
 from pyquil.gates import MEASURE, X
-from pyquil.quilbase import Declaration, MemoryReference
 
 
 def test_qvm__default_client(qvm_client: QVMClient):

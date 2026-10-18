@@ -23,20 +23,27 @@ the trajectory simulator's ``resolve``/``compress``/``adapt`` pipeline.  Compres
     The simulators are **big-endian**: ``qubits[0]`` is the most significant subsystem.
 """
 
+from test.unit.simulation_programs import (
+    apply_trajectory_operations,
+    simulate_state_vector,
+)
+from test.unit.simulation_programs import (
+    simulate_trajectories as _simulate_trajectories,
+)
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
 import quax as qx
+from quil.instructions import CircuitDefinition, Declaration, FormalArgument, MemoryReference, Qubit, Reset
+from quil.instructions import Gate as QuilGate
+from quil.instructions import Measurement as QuilMeasurement
 
 from pyquil.gates import CNOT, CPHASE, CZ, MEASURE, RESET, RX, RY, RZ, H, I, X
 from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel, SuperopChannel, SuperopResetChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import FormalArgument, MemoryReference, Qubit
-from pyquil.quilbase import Declaration, CircuitDefinition, Reset
-from pyquil.quilbase import Gate as QuilGate
-from pyquil.quilbase import Measurement as QuilMeasurement
 from pyquil.simulation._simulator import (
     PureStateVectorSimulator,
     TrajectorySimulator,
@@ -44,13 +51,6 @@ from pyquil.simulation._simulator import (
     _KrausStackLayout,
     _op_to_kraus_matrix,
     _trajectory_keys,
-)
-from test.unit.simulation_programs import (
-    apply_trajectory_operations,
-    simulate_state_vector,
-)
-from test.unit.simulation_programs import (
-    simulate_trajectories as _simulate_trajectories,
 )
 
 _sv = simulate_state_vector

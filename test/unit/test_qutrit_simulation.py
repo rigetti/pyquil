@@ -1,24 +1,24 @@
 """Unit tests for qutrit (d=3) and mixed qubit/qutrit simulation."""
 
+from test.unit.simulation_programs import simulate_density_matrix, simulate_state_vector
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
 import quax as qx
 import quil
+from quil.instructions import Declaration, Gate, GateDefinition, GateSpecification, Measurement, MemoryReference, Qubit
 
 from pyquil.gates import H, X
 from pyquil.noise._channels import Channel, MeasurementChannel, SuperopResetChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, Qubit
-from pyquil.quilbase import Declaration, Gate, GateDefinition, GateSpecification, Measurement
 from pyquil.simulation._simulator import (
     DensityMatrixSimulator,
     PureStateVectorSimulator,
     TrajectorySimulator,
 )
-from test.unit.simulation_programs import simulate_density_matrix, simulate_state_vector
 
 _sv = simulate_state_vector
 _dm = simulate_density_matrix
@@ -497,7 +497,7 @@ class TestQutritMeasurements:
 
     def test_qutrit_ideal_reset(self):
         """An ideal qutrit reset returns any qutrit level to |0>."""
-        from pyquil.quilbase import Reset
+        from quil.instructions import Reset
 
         p = Program()
         p += Gate("TX", [], [0])
@@ -604,7 +604,7 @@ class TestQutritNoiseChannels:
 
     def test_qutrit_reset_channel(self):
         """Noisy qutrit reset via ResetChannel."""
-        from pyquil.quilbase import Reset
+        from quil.instructions import Reset
 
         reset_inst = Reset(Qubit(0))
         reset_ch = SuperopResetChannel.from_reset_fidelity(inst=reset_inst, fidelity=0.9, dim=3)

@@ -26,13 +26,12 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from quil.instructions import Declaration, MemoryReference
 
 from pyquil.gates import CNOT, RX, RY, RZ, H, X
 from pyquil.noise._channels import Channel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declaration
 from pyquil.simulation._simulator import DensityMatrixSimulator, PureStateVectorSimulator
 
 _Z = np.diag([1.0, -1.0]).astype(complex)

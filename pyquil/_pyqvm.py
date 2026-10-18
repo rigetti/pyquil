@@ -30,36 +30,41 @@ from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
 from qcs_sdk import ExecutionData, RegisterData
 from qcs_sdk.qvm import QVMResultData
+from quil.instructions import (
+    Arithmetic,
+    ArithmeticOperand,
+    ArithmeticOperator,
+    BinaryLogic,
+    BinaryOperand,
+    BinaryOperator,
+    Declaration,
+    Exchange,
+    Gate,
+    GateDefinition,
+    GateSpecification,
+    Halt,
+    Jump,
+    JumpUnless,
+    JumpWhen,
+    Label,
+    Measurement,
+    MemoryReference,
+    Move,
+    Nop,
+    Pragma,
+    Reset,
+    UnaryLogic,
+    UnaryOperator,
+    Wait,
+)
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
-from pyquil.quilatom import LabelPlaceholder, MemoryReference
-from quil.instructions import ArithmeticOperand, BinaryOperand, Halt, Nop, Wait
-from pyquil.quilbase import (
-    Arithmetic,
-    ArithmeticOperator,
-    BinaryOperator,
-    Exchange,
-    Move,
-    Declaration,
-    Gate,
-    GateDefinition,
-    GateSpecification,
-    Jump,
-    Label,
-    JumpUnless,
-    JumpWhen,
-    BinaryLogic,
-    Measurement,
-    Pragma,
-    Reset,
-    UnaryLogic,
-    UnaryOperator,
-    gate_definition_matrix,
-)
+from pyquil.quilatom import LabelPlaceholder
+from pyquil.quilbase import gate_definition_matrix
 
 log = logging.getLogger(__name__)
 

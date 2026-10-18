@@ -5,7 +5,6 @@ implementation details but they provide a robust scaffolding for testing the ove
 randomized compiling implementation.
 """
 
-from pyquil._qpu import add_leading_delay_to_first_pulse_block
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -18,12 +17,12 @@ import pytest
 from numpy.typing import NDArray
 from qcs_sdk.qpu.experimental.random import PrngSeedValue, choose_random_real_sub_region_indices
 from quil import instructions as inst
+from quil.instructions import Call, Declaration, MemoryReference
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program, gates
+from pyquil._qpu import add_leading_delay_to_first_pulse_block
 from pyquil._qpu import randomized_compiling as rc
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Call, Declaration
 from pyquil.simulation import matrices
 
 

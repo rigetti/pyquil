@@ -6,6 +6,7 @@ import pytest
 from qcs_sdk import ExecutionData
 from qcs_sdk.qpu import MemoryValues, QPUResultData, ReadoutValues
 from qcs_sdk.qpu.api import ExecutionResult, ExecutionResults
+from quil.instructions import MemoryReference
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import (
@@ -19,7 +20,6 @@ from pyquil.api import (
 from pyquil.api._abstract_compiler import EncryptedProgram
 from pyquil.api._qpu import QPU
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
 
 
 @pytest.fixture

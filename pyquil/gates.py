@@ -19,56 +19,50 @@ from collections.abc import Callable, Mapping, Sequence
 from numbers import Real
 from typing import Literal, TypeAlias, no_type_check
 
-from deprecated.sphinx import versionadded
-
 import numpy as np
 import quil.instructions as quil_rs
-from quil.instructions import Qubit
-
+from deprecated.sphinx import versionadded
+from quil.expression import Expression, ParameterDesignator
 from quil.instructions import (
-    FrameIdentifier,
-    ScalarType,
-    WaveformInvocation,
-)
-from pyquil.quilatom import (
-    Expression,
-    MemoryReference,
-    MemoryReferenceDesignator,
-    ParameterDesignator,
-    QubitDesignator,
-    Waveform,
-    unpack_classical_reg,
-)
-from pyquil.quilbase import (
-    AbstractInstruction,
     Arithmetic,
+    BinaryLogic,
     Capture,
     Comparison,
     Convert,
-    Exchange,
-    Load,
-    Move,
-    Store,
     Declaration,
     Delay,
+    Exchange,
     Fence,
+    FrameIdentifier,
     Gate,
     Halt,
-    BinaryLogic,
+    Load,
     Measurement,
+    MemoryReference,
+    MemoryReferenceDesignator,
+    Move,
     Nop,
     Pulse,
+    Qubit,
+    QubitDesignator,
     RawCapture,
     Reset,
+    ScalarType,
     SetFrequency,
     SetPhase,
     SetScale,
     ShiftFrequency,
     ShiftPhase,
+    Store,
     SwapPhases,
     UnaryLogic,
     Wait,
+    WaveformInvocation,
 )
+from quil.waveform import Waveform
+
+from pyquil.quilatom import unpack_classical_reg
+from pyquil.quilbase import AbstractInstruction
 
 
 def unpack_reg_val_pair(

@@ -18,13 +18,12 @@ from math import pi
 
 import numpy as np
 import pytest
+from quil.instructions import Declaration, Halt, MemoryReference
 
 from pyquil.external.rpcq import CompilerISA, Edge, Qubit
 from pyquil.gates import CNOT, CZ, MEASURE, PHASE, RX, RZ, H
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declaration, Halt
 from pyquil.simulation.tools import program_unitary
 
 EMPTY_PROGRAM = Program()

@@ -32,13 +32,11 @@ from qcs_sdk.qpu.api import (
     retrieve_results,
     submit_with_parameter_batch,
 )
+from quil.instructions import MemoryReference
 from rpcq.messages import ParameterSpec
 
 from pyquil.api import EncryptedProgram, QuantumExecutable
 from pyquil.api._qam import QAM, MemoryMap, QAMExecutionResult
-from pyquil.quilatom import (
-    MemoryReference,
-)
 
 
 def decode_buffer(buffer: ExecutionResult) -> NDArray[np.complex64] | NDArray[np.int32]:

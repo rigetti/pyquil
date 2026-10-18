@@ -22,6 +22,7 @@ from typing import Any, TypeAlias
 
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import CompilationResult, CompilerOpts, QuilcClient, TargetDevice, compile_program
+from quil.instructions import Gate, MemoryReference
 from rpcq.messages import ParameterSpec
 
 from pyquil._version import pyquil_version
@@ -30,8 +31,6 @@ from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
 from pyquil.paulis import PauliTerm
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Gate
 
 
 class QuilcVersionMismatch(Exception):

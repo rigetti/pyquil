@@ -4,6 +4,23 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 import quax as qx
+from quil.instructions import (
+    CircuitDefinition,
+    Declaration,
+    FormalArgument,
+    Gate,
+    Jump,
+    JumpUnless,
+    JumpWhen,
+    Measurement,
+    MemoryReference,
+    Pragma,
+    Qubit,
+    Reset,
+)
+from quil.instructions import (
+    Label as LabelInstruction,
+)
 
 from pyquil.gates import (
     ADD,
@@ -39,19 +56,7 @@ from pyquil.noise._channels import (
 )
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import FormalArgument, Frame, Label, MemoryReference, Qubit
-from pyquil.quilbase import (
-    Declaration,
-    CircuitDefinition,
-    Gate,
-    Jump,
-    Label as LabelInstruction,
-    JumpUnless,
-    JumpWhen,
-    Measurement,
-    Pragma,
-    Reset,
-)
+from pyquil.quilatom import Frame, Label
 from pyquil.simulation._circuit import Circuit, dependency_edges
 from pyquil.simulation._resolver import (
     expand_program,

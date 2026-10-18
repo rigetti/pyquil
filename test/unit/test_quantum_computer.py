@@ -10,6 +10,7 @@ import respx
 from qcs_sdk import QCSClient
 from qcs_sdk.qpu.isa import InstructionSetArchitecture
 from qcs_sdk.qvm import QVMClient
+from quil.instructions import Declaration, MemoryReference
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil import Program, list_quantum_computers
@@ -36,7 +37,6 @@ from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
-from pyquil.quilbase import Declaration, MemoryReference
 
 
 def test_flip_array_to_prog(snapshot: SnapshotAssertion):

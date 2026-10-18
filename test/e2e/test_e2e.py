@@ -17,12 +17,11 @@ from multiprocessing.pool import ThreadPool
 
 import numpy as np
 import pytest
+from quil.instructions import Declaration, MemoryReference
 
 from pyquil import Program
 from pyquil.api import QPU, QuantumComputer
 from pyquil.gates import CNOT, MEASURE, RX, H
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declaration
 
 TEST_PROGRAM = Program(
     Declaration("ro", "BIT", 2),

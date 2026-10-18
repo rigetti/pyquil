@@ -19,12 +19,12 @@ from typing import Any, cast
 import numpy as np
 from deprecated.sphinx import deprecated
 from numpy.random.mtrand import RandomState
+from quil.expression import Expression
+from quil.instructions import Gate
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._pyqvm import AbstractQuantumSimulator
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilatom import Expression
-from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import QUANTUM_GATES
 
 # The following function is lovingly copied from the Cirq project

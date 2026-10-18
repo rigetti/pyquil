@@ -48,13 +48,12 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 import quax as qx
+from quil.instructions import Gate, Measurement, Qubit
 
 from pyquil.gates import CNOT, CZ, RX, RZ, H, X
 from pyquil.noise._channels import Channel, MeasurementChannel, SuperopChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
-from pyquil.quilatom import Qubit
-from pyquil.quilbase import Gate, Measurement
 from pyquil.simulation._simulator import (
     DensityMatrixSimulator,
     TrajectorySimulator,

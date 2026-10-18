@@ -39,14 +39,15 @@ Three collections are exported:
     :func:`reverse_endianness` before comparing against the reference simulators.
 """
 
+from typing import Any
+
 import jax
 import numpy as np
-from typing import Any
+from quil.instructions import Declaration, Gate, Measurement, Qubit, Reset
 
 from pyquil.gates import CCNOT, CNOT, CPHASE, CSWAP, CZ, FSIM, MEASURE, RESET, RX, RY, RZ, SWAP, XY, H, I, S, T, X, Y, Z
 from pyquil.quil import Program
-from pyquil.quilatom import Qubit, qubit_index
-from pyquil.quilbase import Declaration, Gate, Measurement, Reset
+from pyquil.quilatom import qubit_index
 from pyquil.simulation._simulator import (
     DensityMatrixSimulator,
     PureStateVectorSimulator,

@@ -40,27 +40,43 @@ import jax.numpy as jnp
 import numpy as np
 import quax as qx
 from jax import Array
-from quil.instructions import (
-    FormalArgument,
-    MemoryReference,
-    Qubit,
-)
 from quil.expression import (
-    ExpressionFunction,
-    PrefixOperator,
     Address,
+    ExpressionFunction,
     FunctionCallExpression,
     InfixExpression,
-    PrefixExpression,
     Parameter,
+    PrefixExpression,
+    PrefixOperator,
+)
+from quil.instructions import (
+    Arithmetic,
+    BinaryLogic,
+    CircuitDefinition,
+    Comparison,
+    Convert,
+    Exchange,
+    FormalArgument,
+    Gate,
+    Jump,
+    JumpUnless,
+    JumpWhen,
+    Load,
+    Measurement,
+    MemoryReference,
+    Move,
+    Qubit,
+    Reset,
+    Store,
+    UnaryLogic,
 )
 
 from pyquil.noise._channels import (
+    QUIL_FUNCTIONS,
+    QUIL_INFIX_OPERATORS,
     ChannelBase,
     CycleChannel,
     MeasurementChannel,
-    QUIL_FUNCTIONS,
-    QUIL_INFIX_OPERATORS,
     ResetChannelBase,
     _reject_gate_modifiers,
     get_custom_gates_from_program,
@@ -73,25 +89,7 @@ from pyquil.quil import Program
 from pyquil.quilatom import _contained_mrefs
 
 # TODO: remove the deprecated imports/replace with quil imports
-from pyquil.quilbase import (
-    AbstractInstruction,
-    Arithmetic,
-    Comparison,
-    Convert,
-    Exchange,
-    Load,
-    Move,
-    Store,
-    CircuitDefinition,
-    Gate,
-    Jump,
-    JumpUnless,
-    JumpWhen,
-    BinaryLogic,
-    Measurement,
-    Reset,
-    UnaryLogic,
-)
+from pyquil.quilbase import AbstractInstruction
 from pyquil.simulation._circuit import Circuit, CircuitOp, Placement
 
 # ──────────────────────────────────────────────────────────

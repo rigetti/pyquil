@@ -8,34 +8,53 @@ from typing import Any
 import numpy as np
 import pytest
 import quil
+from quil.expression import (
+    Address,
+    Expression,
+    InfixExpression,
+    Number,
+    Parameter,
+    ParameterDesignator,
+    quil_cos,
+    quil_sin,
+)
 from quil.instructions import (
     Arithmetic,
-    ArithmeticOperator, BinaryLogic, BinaryOperator, CallArgument, Instruction, Qubit, UnaryLogic, UnaryOperator, WaveformInvocation, GateDefinition,
+    ArithmeticOperator,
+    BinaryLogic,
+    BinaryOperator,
+    CalibrationDefinition,
+    Call,
+    CallArgument,
+    Capture,
+    CircuitDefinition,
     Comparison,
     ComparisonOperator,
-    Convert, Exchange, Load, Move, Store, Declaration, CalibrationDefinition,
-    CircuitDefinition, FrameDefinition, MeasureCalibrationDefinition,
-    WaveformDefinition,
-    FrameIdentifier,
-
+    Convert,
+    Declaration,
+    Delay,
+    Exchange,
+    Fence,
     FixedQubit,
     FormalArgument,
-    Label,
-    Call,
-    Capture,
-    Delay,
-    Fence,
+    FrameDefinition,
+    FrameIdentifier,
     Gate,
     GateDefinition,
     GateSpecification,
     Halt,
     Include,
-    BinaryLogic,
+    Instruction,
+    Label,
+    Load,
+    MeasureCalibrationDefinition,
     Measurement,
     MemoryReference,
+    Move,
     Nop,
     Pragma,
     Pulse,
+    Qubit,
     QubitDesignator,
     RawCapture,
     Reset,
@@ -44,36 +63,23 @@ from quil.instructions import (
     SetScale,
     ShiftFrequency,
     ShiftPhase,
+    Store,
     SwapPhases,
+    UnaryLogic,
+    UnaryOperator,
     Wait,
+    WaveformDefinition,
+    WaveformInvocation,
 )
-
-from quil.expression import (
-    Address, InfixExpression, Number, Parameter,
-    quil_cos, quil_sin
-)
-
+from quil.waveform import Waveform
 from syrupy.assertion import SnapshotAssertion
 
 from pyquil.api._compiler import QPUCompiler
 from pyquil.gates import X
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
-from pyquil.quilatom import (
-
-    Expression,
-    Frame,
-    TemplateWaveform,
-    Waveform,
-    qubit_index,
-)
-
-from pyquil.quilbase import (
-    AbstractInstruction,
-    ParameterDesignator,
-    ResetQubit,
-)
-
+from pyquil.quilatom import Frame, TemplateWaveform, qubit_index
+from pyquil.quilbase import AbstractInstruction, ResetQubit
 from pyquil.quiltwaveforms import (
     BoxcarAveragerKernel,
     DragGaussianWaveform,

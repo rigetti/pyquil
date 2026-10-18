@@ -19,12 +19,12 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from quil.expression import Parameter, quil_cis, quil_cos, quil_exp, quil_sin, quil_sqrt
+from quil.instructions import Declaration, Gate, GateDefinition, GateSpecification, MemoryReference
 
 from pyquil.gates import FSIM, PHASE, RX, RY, RZ, H
 from pyquil.noise._channels import get_custom_gates_from_program
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, Parameter, quil_cis, quil_cos, quil_exp, quil_sin, quil_sqrt
-from pyquil.quilbase import Declaration, Gate, GateDefinition, GateSpecification
 from pyquil.simulation._resolver import ParameterExpression, _compile_expression, expand_program
 from pyquil.simulation._simulator import DensityMatrixSimulator, PureStateVectorSimulator
 

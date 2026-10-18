@@ -1,14 +1,17 @@
 import itertools
+from test.unit.test_reference_wavefunction import (
+    _generate_random_pauli,
+    _generate_random_program,
+)
 
 import numpy as np
 import pytest
+from quil.instructions import Declaration, GateDefinition, GateSpecification, MemoryReference
 
 from pyquil import Program
 from pyquil.gates import CCNOT, CNOT, MEASURE, RX, H, X
 from pyquil.paulis import sX, sZ
 from pyquil.pyqvm import PyQVM
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declaration, GateDefinition, GateSpecification
 from pyquil.simulation._numpy import (
     NumpyWavefunctionSimulator,
     _term_expectation,
@@ -18,10 +21,6 @@ from pyquil.simulation._numpy import (
 )
 from pyquil.simulation._reference import ReferenceWavefunctionSimulator
 from pyquil.simulation.matrices import QUANTUM_GATES as GATES
-from test.unit.test_reference_wavefunction import (
-    _generate_random_pauli,
-    _generate_random_program,
-)
 
 
 def test_H_einsum():

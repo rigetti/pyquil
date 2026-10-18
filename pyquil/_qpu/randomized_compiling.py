@@ -31,16 +31,12 @@ from typing import cast
 import numpy as np
 from numpy.typing import NDArray
 from quil import instructions as inst
-
-from pyquil.quil import InstructionDesignator, Program
-from pyquil.quilbase import (
+from quil.instructions import (
     Arithmetic,
     ArithmeticOperator,
     BinaryLogic,
     BinaryOperator,
     Call,
-    Load,
-    Move,
     Comparison,
     ComparisonOperator,
     Declaration,
@@ -49,8 +45,12 @@ from pyquil.quilbase import (
     JumpUnless,
     JumpWhen,
     Label,
+    Load,
     MemoryReference,
+    Move,
 )
+
+from pyquil.quil import InstructionDesignator, Program
 from pyquil.simulation import matrices
 
 from ._classical_computations import build_extern_function_signatures

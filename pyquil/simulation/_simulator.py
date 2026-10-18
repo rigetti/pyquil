@@ -78,11 +78,11 @@ import jax.numpy as jnp
 import numpy as np
 import quax as qx
 from jax import Array
+from quil.instructions import Measurement, Reset
 
 from pyquil.api import MemoryMap
 from pyquil.noise._noise_model import NoiseModelLike
 from pyquil.quil import Program
-from pyquil.quilbase import Measurement, Reset
 from pyquil.simulation._circuit import Circuit, CircuitOp, Group, MergePlan, Placement
 from pyquil.simulation._resolver import (
     ExpandedOp,

@@ -41,27 +41,6 @@ Three independent yardsticks are used, in decreasing order of preference:
 """
 
 import warnings
-
-import jax
-import jax.numpy as jnp
-import numpy as np
-import pytest
-import quax as qx
-
-from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, H, I, X
-from pyquil.noise._channels import (
-    Channel,
-    MeasurementChannel,
-    ResetChannel,
-    SuperopChannel,
-    SuperopResetChannel,
-)
-from pyquil.noise._noise_model import NoiseModel
-from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, quil_cis
-from pyquil.quilbase import Declaration, Gate, Reset
-from pyquil.simulation._reference import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
-from pyquil.simulation._simulator import DensityMatrixSimulator
 from test.unit.simulation_programs import (
     COMPARABLE,
     DM_ONLY_EXPECTED,
@@ -74,6 +53,27 @@ from test.unit.simulation_programs import (
     simulate_density_matrix,
     simulate_state_vector,
 )
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+import pytest
+import quax as qx
+from quil.expression import quil_cis
+from quil.instructions import Declaration, Gate, MemoryReference, Reset
+
+from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, H, I, X
+from pyquil.noise._channels import (
+    Channel,
+    MeasurementChannel,
+    ResetChannel,
+    SuperopChannel,
+    SuperopResetChannel,
+)
+from pyquil.noise._noise_model import NoiseModel
+from pyquil.quil import Program
+from pyquil.simulation._reference import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
+from pyquil.simulation._simulator import DensityMatrixSimulator
 
 # quax's qutrit X: the cyclic shift |0> -> |2> -> |1> -> |0>.
 _QUTRIT_X = np.asarray(qx.gates.QUANTUM_GATES["TX"].matrix)

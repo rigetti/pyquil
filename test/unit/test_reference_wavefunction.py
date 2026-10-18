@@ -10,6 +10,7 @@ from operator import mul
 
 import numpy as np
 import pytest
+from quil.instructions import Declaration, MemoryReference
 
 from pyquil.api import WavefunctionSimulator
 from pyquil.gates import (
@@ -32,8 +33,6 @@ from pyquil.gates import (
 from pyquil.paulis import PauliTerm, exponentiate, sI, sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declaration
 from pyquil.simulation._reference import ReferenceWavefunctionSimulator
 
 QFT_8_INSTRUCTIONS = [

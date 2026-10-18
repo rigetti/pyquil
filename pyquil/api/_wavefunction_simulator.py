@@ -19,6 +19,7 @@ import numpy as np
 from deprecated.sphinx import deprecated
 from qcs_sdk import QCSClient, qvm
 from qcs_sdk.qvm import QVMOptions
+from quil.instructions import MemoryReference
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._wavefunction import Wavefunction
@@ -29,7 +30,6 @@ from pyquil.api._qvm import (
 from pyquil.gates import MOVE
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference
 
 
 @deprecated(

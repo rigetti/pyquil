@@ -44,6 +44,7 @@ from typing import (
 )
 
 from deprecated import deprecated
+from quil.instructions import Gate, Measurement, Reset
 
 from pyquil.external.rpcq import CompilerISA
 from pyquil.noise._channels import (
@@ -55,7 +56,6 @@ from pyquil.noise._channels import (
     SuperopChannel,
     SuperopResetChannel,
 )
-from pyquil.quilbase import Gate, Measurement, Reset
 
 if TYPE_CHECKING:
     from qcs_sdk.qpu.isa import InstructionSetArchitecture
@@ -234,8 +234,9 @@ class NoiseModel:
         :param compiler_isa: The compiler ISA.
         :return: A NoiseModel with channels according to the provided fidelities.
         """
+        from quil.instructions import Qubit as QuilQubit
+
         from pyquil.external.rpcq import GateInfo, MeasureInfo
-        from pyquil.quilatom import Qubit as QuilQubit
 
         channels: dict[NoiseInstruction, ChannelType] = {}
         seen_measure_qubits: set[int] = set()

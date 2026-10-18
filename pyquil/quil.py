@@ -32,55 +32,48 @@ from typing import (
 import numpy as np
 from deprecated.sphinx import deprecated
 from qcs_sdk.compiler.quilc import NativeQuilMetadata
-
+from quil.expression import Parameter, ParameterDesignator
 from quil.instructions import (
     CalibrationDefinition,
+    Declaration,
     FixedQubit,
+    FrameDefinition,
+    Gate,
+    GateDefinition,
     GateSpecification,
     Instruction,
     Jump,
     JumpUnless,
     JumpWhen,
     MeasureCalibrationDefinition,
+    Measurement,
+    MemoryReference,
+    MemoryReferenceDesignator,
+    Pragma,
+    Qubit,
+    QubitDesignator,
     QubitPlaceholder,
     TargetPlaceholder,
-    Qubit,
+    WaveformDefinition,
 )
-
-from quil.program import CalibrationSet
+from quil.instructions import (
+    Label as LabelInstruction,
+)
+from quil.program import CalibrationSet, ControlFlowGraph
 from quil.program import Program as RSProgram
 
-
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
-from pyquil.control_flow_graph import ControlFlowGraph
 from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Frame,
     Label,
     LabelPlaceholder,
-    MemoryReference,
-    MemoryReferenceDesignator,
-    Parameter,
-    ParameterDesignator,
-    QubitDesignator,
     _convert_to_py_target,
     _convert_to_rs_target,
     unpack_classical_reg,
     unpack_qubit,
 )
-
-from pyquil.quilbase import (
-    Declaration,
-    FrameDefinition,
-    WaveformDefinition,
-    Gate,
-    GateDefinition,
-    Label as LabelInstruction,
-    Measurement,
-    Pragma,
-)
-
 from pyquil.quiltcalibrations import (
     CalibrationMatch,
     _convert_to_calibration_match,

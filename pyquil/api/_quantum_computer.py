@@ -34,6 +34,7 @@ from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import QuilcClient
 from qcs_sdk.qpu import list_quantum_processors
 from qcs_sdk.qvm import QVMClient
+from quil.instructions import QubitDesignator
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._pyqvm import PyQVM
@@ -53,7 +54,6 @@ from pyquil.quantum_processor import (
     get_qcs_quantum_processor,
 )
 from pyquil.quil import Program
-from pyquil.quilatom import QubitDesignator
 
 if TYPE_CHECKING:
     # ``pyquil.experiment`` is deprecated. It is imported lazily, where used, so that importing

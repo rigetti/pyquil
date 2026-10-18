@@ -30,6 +30,7 @@ from typing import (
 )
 
 from deprecated.sphinx import deprecated
+from quil.instructions import Reset
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, PyQuilDeprecationWarning
 from pyquil.experiment._calibration import CalibrationMethod
@@ -49,7 +50,6 @@ from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import Program
-from pyquil.quilbase import Reset
 
 log = logging.getLogger(__name__)
 

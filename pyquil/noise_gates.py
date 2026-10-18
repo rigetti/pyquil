@@ -3,11 +3,12 @@
 import logging
 
 from deprecated.sphinx import deprecated
+from quil.expression import Parameter
+from quil.instructions import Gate
 
 from pyquil._deprecation import PENDING_DEPRECATION_RELEASE, QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil.external.rpcq import CompilerISA, Edge, GateInfo, Supported1QGate, Supported2QGate
-from pyquil.quilatom import Parameter, unpack_qubit
-from pyquil.quilbase import Gate
+from pyquil.quilatom import unpack_qubit
 
 _log = logging.getLogger(__name__)
 THETA = Parameter("theta")

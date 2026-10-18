@@ -9,6 +9,7 @@ import pytest
 from pytest_mock import MockerFixture
 from qcs_sdk import ExecutionData, RegisterData
 from qcs_sdk.qvm import QVMResultData
+from quil.instructions import Gate, GateDefinition, Pragma
 
 from pyquil.api._qam import QAMExecutionResult
 from pyquil.gates import CZ, RX, RZ, I
@@ -34,8 +35,7 @@ from pyquil.noise import (
     pauli_kraus_map,
     tensor_kraus_maps,
 )
-from pyquil.quil import Pragma, Program
-from pyquil.quilbase import Gate, GateDefinition
+from pyquil.quil import Program
 
 
 def test_pauli_kraus_map():

@@ -24,12 +24,12 @@ from qcs_sdk.compiler.quilc import (
 from qcs_sdk.compiler.quilc import (
     PauliTerm as QuilcPauliTerm,
 )
+from quil.instructions import Gate
 
 from pyquil.api._abstract_compiler import AbstractBenchmarker
 from pyquil.api._compiler_client import CompilerClient
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import Program, address_qubits
-from pyquil.quilbase import Gate
 
 
 class BenchmarkConnection(AbstractBenchmarker):
