@@ -39,93 +39,129 @@
   returned `False` for real values under the old alias. This was a latent bug (the alias existed but
   could never match anything), not an accepted breaking change, since nothing could have relied on
   the old (non-functional) behavior. Callers must now unwrap the underlying `InfixExpression` via
-  `expr._0` to access `.left`/`.operator`/`.right` (related to the pending `quil-rs` ergonomics gap
-  noted for `Function`, just above). `test/unit/test_quilbase.py::TestGate`'s `program` fixture was
-  updated to match (it also needed to unwrap `Expression.Address` on each side of the infix
-  expression to compare against `MemoryReference`, for the same reason).
+  `expr._0` to access `.left`/`.operator`/`.right`.
+  `test/unit/test_quilbase.py::TestGate`'s `program` fixture was updated to match (it also needed to
+  unwrap `Expression.Address` on each side of the infix expression to compare against
+  `MemoryReference`, for the same reason).
 
 * `CircuitDefinition.qubit_variables` is a `list[str]`, not `list[FormalArgument]`.
   Callers must now wrap each name in `Qubit(name)` or `FormalArgument` to get a variable object.
 
-## Confirmed `quil-rs` Python-binding gaps (not pyquil-side issues; flagged for `quil-rs` work)
+## Deprecated names in `pyquil.quilbase` (backwards-compatibility layer)
 
-* `ExternParameterType.VariableLengthVector` is missing from the PyO3 bindings, so pyquil cannot
-  construct/compare `DefExtern`/`ExternSignatureMap` parameter types representing variable-length
-  vectors. One test in `test/unit/test_qpu_randomized_compiling.py` was skipped pending this.
-* Several native instruction types (`Jump`, `JumpWhen`, `JumpUnless`, `Label`) do not support
-  Python-side subclassing in this build (`class Foo(Jump): pass` silently discards the subclass and
-  returns a plain `Jump` instance), unlike `quil-rs`'s `master`/future build, which clearly supports
-  `#[pyclass(subclass)]` for these types. This blocked porting `origin/master`'s `pyquil/quilbase.py`
-  patterns for these classes; pyquil instead keeps them as plain native re-exports and fixes
-  individual call sites (e.g. unwrapping `.target`) or uses method-level monkeypatching where subclassing
-  would otherwise have been used.
+Many pyQuil v4 names were thin aliases for, or "function classes" (`def`s that pretended to be
+`class`es) around, native `quil.instructions` types. They are all kept importable, but now emit a
+`DeprecationWarning` that names the replacement. They are all implemented with the
+`DeprecatedSubclass` metaclass (plus `@deprecated`, so static tools see the deprecation) in
+`pyquil/quilbase.py`:
+
+* Calling the name warns and returns an instance of the native type (never an instance of the
+  deprecated name itself), so `type(Declare(...)) is Declaration`.
+* `isinstance(x, OldName)` and `issubclass(cls, OldName)` also warn, and are answered by checking
+  against the native type.
+* Names that were really partial applications of a native type (e.g. `ClassicalNeg`,
+  `ClassicalAnd`, `ClassicalAdd`, `ClassicalEqual`, `DelayFrames`, `DelayQubits`, `FenceAll`,
+  `ResetQubit`, `DefGate`, `DefPermutationGate`, `DefGateByPaulis`) additionally check the
+  discriminating property in `isinstance` (the `operator`, `has_frames()`, `qubits`/`qubit`, or
+  `specification` variant), so `isinstance(UnaryLogic(UnaryOperator.NOT, r), ClassicalNeg)` is
+  `False`. This is done via the `matches=` argument of `DeprecatedSubclass`; a `__new__` defined on
+  the deprecated class is used as the constructor.
+
+| Deprecated name | Replacement |
+|---|---|
+| `ArithmeticBinaryOp` | `Arithmetic` |
+| `LogicalBinaryOp` | `BinaryLogic` |
+| `UnaryClassicalInstruction` | `UnaryLogic` |
+| `ClassicalComparison` | `Comparison` |
+| `ClassicalConvert` / `ClassicalExchange` / `ClasssicalExchange` (sic) | `Convert` / `Exchange` |
+| `ClassicalLoad` / `ClassicalMove` / `ClassicalStore` | `Load` / `Move` / `Store` |
+| `Declare` | `Declaration` |
+| `DefCalibration` / `DefMeasureCalibration` | `CalibrationDefinition` / `MeasureCalibrationDefinition` |
+| `DefCircuit` / `DefFrame` / `DefWaveform` | `CircuitDefinition` / `FrameDefinition` / `WaveformDefinition` |
+| `Frame` | `FrameIdentifier` |
+| `JumpTarget` | `Label` (the instruction; not `pyquil.quilatom.Label`, which is a target) |
+| `ClassicalNeg` / `ClassicalNot` | `UnaryLogic(UnaryOperator.NEG / NOT, ...)` |
+| `ClassicalAnd` / `ClassicalInclusiveOr` / `ClassicalExclusiveOr` / `ClassicalArithmeticShiftRight` / `ClassicalShiftLeft` / `ClassicalShiftRight` | `BinaryLogic(BinaryOperator.AND / IOR / XOR / ASHR / SHL / SHR, ...)` |
+| `ClassicalAdd` / `ClassicalSub` / `ClassicalMul` / `ClassicalDiv` | `Arithmetic(ArithmeticOperator.ADD / SUBTRACT / MULTIPLY / DIVIDE, ...)` |
+| `ClassicalEqual` / `ClassicalLessThan` / `ClassicalLessEqual` / `ClassicalGreaterThan` / `ClassicalGreaterEqual` | `Comparison(ComparisonOperator.EQUAL / LESS_THAN / LESS_THAN_OR_EQUAL / GREATER_THAN / GREATER_THAN_OR_EQUAL, ...)` |
+| `DelayFrames` / `DelayQubits` | `Delay.from_frames(duration, frames)` / `Delay(duration, qubits)` |
+| `FenceAll` | `Fence([])` |
+| `ResetQubit` | `Reset(qubit)` |
+| `DefGate` / `DefPermutationGate` / `DefGateByPaulis` | `GateDefinition(name, parameters, GateSpecification.Matrix / Permutation / PauliSum(...))` |
+
+(`pyquil.quilatom.Frame` is a separate, still-supported alias for `FrameIdentifier`.)
+
+### Internal use of the deprecated names removed
+
+pyQuil's own code and unit tests no longer use any of these names, so the only way to see these
+warnings is to use the names directly (running the unit tests with
+`-W error::DeprecationWarning:pyquil` is a quick check). Call-site changes, all non-breaking:
+
+* `pyquil/_pyqvm.py`, `_qpu/randomized_compiling.py`, `_qpu/_classical_computations.py`,
+  `api/_compiler.py`, `gates.py`, `latex/_diagram.py`, `noise/_channels.py`,
+  `noise/_legacy_noise.py`, `quil.py`, `simulation/_resolver.py`: switched to the native names in
+  imports, annotations, constructors, and `isinstance` checks.
+* `JumpTarget(...)` became the `Label` instruction. Where the module also uses
+  `pyquil.quilatom.Label` (`quil.py`, `_pyqvm.py`), the instruction is imported as `LabelInstruction`.
+  The redundant `Label(...)` wrapping in `randomized_compiling.py` was dropped.
+* `FENCE()` returns `Fence([])`; stale docstrings mentioning `DelayFrames`/`FenceAll`/`ResetQubit`
+  were corrected.
+* Unit tests were migrated the same way, with `DefGate`/`DefPermutationGate` calls rewritten to
+  `GateDefinition(..., GateSpecification.Matrix/Permutation(...))`.
+  `TestReset::test_deprecated` intentionally still uses `ResetQubit`, since it tests the warning.
+
+Earlier fixes in the same vein (all pure bug fixes): `isinstance` checks against the old function
+shims `ResetQubit` (in `pyquil/experiment/_main.py`, `pyquil/noise/_noise_model.py`,
+`pyquil/latex/_diagram.py`) and `DefGate` (tests and `test/benchmarks/test_simulators.py`) never
+matched or crashed, and now check the real types (`Reset`/`GateDefinition`). `Program.defined_gates`'s
+return annotation was corrected to `GateDefinition`.
+
+Not yet migrated: `docs/` still shows `DefGate`, `DefPermutationGate` and `JumpTarget` in examples.
+
+## `quil-rs` Python-binding gaps
+
+Resolved upstream (verified against the current `quil` build):
+
+* `ExternParameterType.VariableLengthVector` is now exposed, so the test in
+  `test/unit/test_qpu_randomized_compiling.py` that was skipped for it no longer needs to be.
+* `Jump`, `JumpWhen`, `JumpUnless` and `Label` can now be subclassed from Python (the subclass is
+  preserved instead of being silently replaced by the base type). The earlier workaround, keeping
+  them as plain native re-exports with call-site fixes and method-level monkeypatching, still
+  works, so it has not been reworked; subclassing is available if `origin/master`-style patterns for
+  these classes are wanted.
+
+Still open:
+
+* `qcs-sdk-python` 0.26.x pins `quil <0.37`, so testing against a `quil` 0.37 release candidate
+  requires either a `qcs-sdk-python` build that relaxes the bound (e.g. a git/path dependency) or
+  overriding the dependency after install; Poetry has no override mechanism. The local-build
+  `poetry.lock`/`pyproject.toml` changes used for this are deliberately uncommitted.
 
 ## Known out-of-scope / environment-dependent test failures (not pyquil bugs)
 
-* `test/unit/test_api.py::test_quil_to_native_quil` is marked `xfail` (non-strict). The locally
-  configured `quilc` (invoked via this development environment's local `qcs-sdk-rust` build, per
-  `pyproject.toml`'s `qcs-sdk-python` path dependency) compiles the test's `BELL_STATE` program
-  (`H(0); CNOT(0, 1)`) to a native-quil `RZ`/`RX`/`CZ` sequence that was verified, by direct
-  simulation, to **not** actually reproduce a Bell state (its output on `|00>` is a separable state,
-  not an entangled one) -- a different circuit entirely, not just a different-but-equivalent
-  decomposition or a global/local phase difference. Every individual gate matrix involved (`RZ`,
-  `RX`, `CZ`) was checked independently against `pyquil.simulation.matrices`'s standard definitions
-  and matches; `program_unitary`/`lifted_gate` were independently confirmed correct by reproducing
-  the expected Bell state for the original, uncompiled `BELL_STATE` program. This rules out a
-  pyquil-side simulation bug, leaving the locally-built `quilc`/`qcs-sdk-rust` compilation pipeline
-  as the suspect. Not investigated further per the user's request not to access the `qcs-sdk-rust`
-  repository directly; left `xfail` so it surfaces again (and should be re-triaged) once run against
-  a stable/released `qcs-sdk-python`.
+* `test/unit/test_api.py::test_quil_to_native_quil` is marked `xfail` (non-strict) and still
+  `xfail`s with the locally built `qcs-sdk-python`. The locally configured `quilc` compiles the
+  test's `BELL_STATE` program (`H(0); CNOT(0, 1)`) to a native-quil `RZ`/`RX`/`CZ` sequence that was
+  verified, by direct simulation, to **not** reproduce a Bell state (a different circuit, not just
+  a different-but-equivalent decomposition). Every gate matrix involved matches
+  `pyquil.simulation.matrices`, and `program_unitary`/`lifted_gate` correctly reproduce the Bell
+  state for the uncompiled program, which rules out a pyquil-side simulation bug and leaves the
+  locally built `quilc`/`qcs-sdk-rust` pipeline as the suspect. Re-triage against a released
+  `qcs-sdk-python`.
 
-* Several `test/unit/test_quantum_computer.py` tests that perform real round-trips against a live
-  QVM server (`test_qc_calibration_1q`/`_2q`, `test_qc_joint_expectation`, `test_qc_joint_calibration`,
-  `test_qc_expectation_on_qvm`, `test_undeclared_memory_region`, and the pre-existing `test_run`) are
-  intermittently flaky when run as part of the full suite, failing with
-  `qcs_sdk._qcs_sdk.qvm.QVMError: Could not communicate with QVM at http://127.0.0.1:5000`, even though
-  the QVM server remains reachable throughout (confirmed via direct `curl`/manual `qvm.run()` calls,
-  including repeated runs and multiple fresh `QVM`/`QVMClient` instances in a standalone script, all of
-  which succeed). The failures only reproduce when multiple of these tests run together in the same
-  pytest session using the session-scoped `qvm_client`/`client_configuration` fixtures (never in
-  isolation), pointing to some shared async-runtime/connection state in the local `qcs-sdk-rust`
-  dev build (loaded as a `file://` path dependency, not a released version -- see above) rather than a
-  pyquil-side bug. Not investigated further per the user's request not to access the `qcs-sdk-rust`
-  repository directly. These tests are left as-is (no `xfail`, matching how the pre-existing `test_run`
-  flakiness has always been handled) since they do pass correctly in isolation and the failure mode is
-  purely an artifact of this development environment.
+* Several `test/unit/test_quantum_computer.py` and `test/unit/test_reference_wavefunction.py` tests
+  that round-trip against a live QVM server are intermittently flaky when run as part of the full
+  suite (especially under `pytest-xdist`), failing with
+  `qcs_sdk._qcs_sdk.qvm.QVMError: Could not communicate with QVM at http://127.0.0.1:5000`, even
+  though the QVM stays reachable (direct `curl`/standalone `qvm.run()` calls succeed). Failures
+  vary from run to run (0 to ~20 tests) and the affected tests pass when run on their own, which
+  points at shared async-runtime/connection state in the local `qcs-sdk-rust` dev build (a `file://`
+  path dependency) rather than at pyquil. No `xfail` is applied, matching how the pre-existing
+  `test_run` flakiness has been handled.
 
-* Restored `QuantumComputer.calibrate()` and `QuantumComputer.run_experiment()` (and their
-  `test_qc_expectation*`/`test_qc_calibration*`/`test_qc_joint*` tests), which had been prematurely
-  removed on this branch under the mistaken belief that they depended on the since-removed
-  `pyquil.experiment` module. `pyquil.experiment` is only deprecated-for-v5-removal (per the user's
-  policy), not yet removed, and `origin/master` still keeps these `@deprecated`-but-functional methods
-  and their tests intact, so they were restored verbatim (using `TYPE_CHECKING`-guarded imports of
-  `Experiment`/`ExperimentResult` for type hints) to match upstream. Not a breaking change relative to
-  pyquil v4's intended deprecation timeline.
-
-* Fixed several latent `isinstance(x, DeprecatedShimFunctionName)` bugs uncovered while restoring the
-  tests above (same shim-vs-type pattern as the earlier `Halt`/`Nop`/`Wait`/`JumpTarget` fixes):
-  `ResetQubit` (a deprecated function returning a plain `Reset`) was used as an `isinstance` target in
-  `pyquil/experiment/_main.py` (2 call sites -- this one was an active, crashing bug blocking the
-  restored `calibrate`/`run_experiment` tests above), `pyquil/noise/_noise_model.py` (type annotations
-  only, not a runtime crash), and `pyquil/latex/_diagram.py` (a real but previously-untriggered crash in
-  instruction-reordering logic). Likewise `DefGate` (a deprecated function returning a `GateDefinition`)
-  was used as an `isinstance` target in `test/unit/test_quilbase.py`'s `TestDefGate.test_copy`/
-  `test_pickle` (currently-skipped tests, so latent) and in `test/benchmarks/test_simulators.py`. All
-  fixed to check against the real underlying type (`Reset`/`GateDefinition` respectively). Pure bug
-  fixes, not breaking changes.
-
-* Reduced internal use of deprecated shim functions in non-deprecated pyquil modules, so that
-  pyquil's own code no longer emits `PyQuilDeprecationWarning`s against itself (users calling these
-  non-deprecated public APIs should no longer see unrelated deprecation warnings bubble up):
-  - `Program.defgate()` called the deprecated `DefGate(...)` function internally; factored the
-    shared validation/construction logic out into a private `pyquil.quilbase._defgate_from_matrix`
-    helper that both `DefGate` (deprecated, public) and `Program.defgate()` (non-deprecated, public)
-    now call. Also fixed `Program.defined_gates`'s return-type annotation, which incorrectly
-    referenced `DefGate` (a function) instead of the actual `GateDefinition` type it returns.
-  - `pyquil/_qpu/randomized_compiling.py` called the deprecated `ClassicalAdd`/`ClassicalGreaterEqual`/
-    `ClassicalShiftRight` functions internally; replaced with direct construction of their underlying
-    types (`ArithmeticBinaryOp(ArithmeticOperator.ADD, ...)`, `Comparison(ComparisonOperator.
-    GREATER_THAN_OR_EQUAL, ...)`, `BinaryLogic(BinaryOperator.SHR, ...)`).
-  - `pyquil/_qpu/_classical_computations.py` called the deprecated `FenceAll()` function internally;
-    replaced with `Fence([])` directly.
-  All of these are internal-only call-site changes (no public API surface changed) and not breaking.
+* `QuantumComputer.calibrate()` and `QuantumComputer.run_experiment()` (and their
+  `test_qc_expectation*`/`test_qc_calibration*`/`test_qc_joint*` tests) were restored after being
+  prematurely removed on this branch. `pyquil.experiment` is only deprecated-for-v5-removal, and
+  `origin/master` still keeps these `@deprecated`-but-functional methods and their tests, so they
+  were restored verbatim (with `TYPE_CHECKING`-guarded imports of `Experiment`/`ExperimentResult`).
+  Not a breaking change relative to the intended deprecation timeline.
