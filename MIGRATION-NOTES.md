@@ -1,3 +1,70 @@
+# pyQuil v5 → `quil` migration: summary
+
+**Idea:** pyQuil's own Python instruction/expression classes are replaced by the native `quil`
+(quil-rs) bindings. pyQuil now re-exports or thin-wraps them, so `Program`, `Gate`, `Declare`, etc.
+are Rust-backed values.
+
+## 1. Breaking changes for pyQuil users (deprecations aside)
+```python
+# Mutability / hashing
+{Declare("ro", "BIT"): 1}            # mutable instruction types are now unhashable
+gate.name = "Y"                      # hashable types (e.g. Gate) are immutable: build a new one
+
+# Halt / Nop / Wait are singleton instances
+isinstance(inst, Halt)               # now fails -> `inst is Halt` (or isinstance(inst, HaltType))
+
+# BinaryExp now matches real values; unwrap the payload
+isinstance(expr, BinaryExp); expr._0.left, expr._0.operator, expr._0.right
+
+# CircuitDefinition.qubit_variables
+circuit_def.qubit_variables          # list[str], not list[FormalArgument]; wrap with Qubit(name)
+
+# Expression formatting (cosmetic, but breaks string comparisons/snapshots)
+str(Parameter("x") + Parameter("y")) # "%x+%y" (was "%x + %y"); also extra parens, `sin` not `SIN`
+```
+Not breaking: `pyquil.paulis` is unchanged, deprecated names keep working (with warnings), and the
+extra `duration`/`fidelity` keys in RPCQ `Operator` JSON are additive.
+
+## 2. Import from `quil`; pyQuil names still work
+```python
+# before                                         # after
+from pyquil.quilbase import Gate, Measurement    from quil.instructions import Gate, Measurement
+from pyquil.quilatom import MemoryReference      from quil.instructions import MemoryReference
+```
+Library and tests now import re-exported names directly from `quil`. The `pyquil.*` import paths
+still work.
+
+## 3. Old names are deprecated, not removed
+Old aliases and "function classes" (`def`s that pretended to be classes) are now
+`DeprecatedSubclass` shims: calling one warns and returns the native type, and `isinstance` also warns.
+```python
+ResetQubit(0)               # DeprecationWarning -> use quil.instructions.Reset(0)
+Declare("ro", "BIT", 1)     # -> Declaration(...)
+DefGate("G", matrix)        # -> GateDefinition("G", [], GateSpecification.Matrix(matrix))
+JumpTarget(Label("x"))      # -> quil.instructions.Label("x")
+```
+Full old → new table is in the "Deprecated names" section below. Internal use of the old names has been removed, so the
+unit suite emits no `pyquil.quilbase` deprecation warnings.
+
+## 4. Not migrated: `PauliTerm` / `PauliSum`
+`pyquil.paulis` still uses its own Python classes. Native `quil.instructions.PauliTerm`/`PauliSum`
+are not drop-in yet (see `test/unit/test_paulis_native_parity.py`; all `[quil]` cases fail):
+```python
+PauliTerm("X", 12).get_qubits()   # pyquil: [12]        quil: [FormalArgument("q12")]
+PauliTerm("X", 0) + PauliTerm("X", 0)   # pyquil: 2*X0  quil: PauliSum of two 1*Xq0 terms
+1 - PauliTerm("X", 0)             # pyquil: I - X0      quil: 0*Xq0   (looks like a bug)
+PauliTerm("X", QubitPlaceholder())      # pyquil: ok    quil: TypeError
+```
+Also missing natively: `PauliSum.simplify/get_programs/compact_str/from_compact_str`.
+
+## 5. Status
+* Serial `pytest test/unit`: 2143 passed. Under xdist, QVM-connection failures are intermittent
+  and unrelated.
+* Open: `qcs-sdk-python` pins `quil <0.37`, so RC testing needs a relaxed build (local-build
+  `pyproject.toml`/`poetry.lock` changes are intentionally uncommitted); Pauli gaps above.
+
+---
+
 
 
 ## Known breaking changes 
@@ -132,6 +199,21 @@ Resolved upstream (verified against the current `quil` build):
 
 Still open:
 
+* **`quil.instructions.PauliTerm`/`PauliSum` are not yet a drop-in replacement for `pyquil.paulis`**
+  (migration evaluated and deliberately not done). Observed against the current build:
+  * Qubits are always normalized to `FormalArgument("q<N>")`: `PauliTerm("X", 12).get_qubits()` is
+    `[<FormalArgument q12>]`, not `[12]`, so `term[0]`, `pauli_string(qubits=[0, 2])`, `from_list`
+    round trips, `operator_estimation`, `PyQVM`/numpy simulation, and the QPU code that all rely on
+    integer qubits break (`term[0]` raises `TypeError`).
+  * `QubitPlaceholder` indices are rejected (`cannot use Qubit::Placeholder as a PauliTerm argument`).
+  * `PauliSum` and `+`/`-` on terms do not simplify: `X0 + X0` yields two terms, `X0 - X0` does not
+    cancel, `s * s` leaves `1*I + 4*I`; `1 + X0` and `1 - X0` return `2*Xq0` / `0*Xq0` (the scalar is
+    added to the coefficient instead of being an identity term).
+  * `PauliSum.simplify`, `get_programs`, `compact_str`, `from_compact_str` and `PauliTerm`'s
+    `id(sort_ops=...)` keyword do not exist/work; `PauliTerm.from_compact_str("(2+0j)*X1Z2")` fails.
+  * `from_list` with duplicate qubits multiplies instead of raising `ValueError`; `==` against other
+    types returns `False` instead of raising `TypeError`; coefficients are `Number` expressions rather
+    than `complex`.
 * `qcs-sdk-python` 0.26.x pins `quil <0.37`, so testing against a `quil` 0.37 release candidate
   requires either a `qcs-sdk-python` build that relaxes the bound (e.g. a git/path dependency) or
   overriding the dependency after install; Poetry has no override mechanism. The local-build
