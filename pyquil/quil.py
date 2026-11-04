@@ -796,6 +796,10 @@ class Program:
         Note: this function is a prototype of what will exist in the future when users will
         be responsible for writing this loop instead of having it happen automatically.
 
+        .. note::
+            This method sets shot-count metadata; it does not add Quil control flow. If execution
+            returns fewer shots than requested, see :ref:`troubleshooting_shot_count`.
+
         :param shots: Number of iterations to loop through.
         """
         self.num_shots = shots

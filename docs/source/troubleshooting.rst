@@ -35,6 +35,46 @@ Live Rigetti QPUs are **only accessible from Rigetti-provided environments**, su
 script on your local computer or a public cloud virtual machine,
 **your program won't be able to reach a QPU and will time out**.
 
+.. _troubleshooting_shot_count:
+
+Fewer shots than requested
+--------------------------
+
+:py:meth:`~pyquil.quil.Program.wrap_in_numshots_loop` stores the requested shot count as program
+metadata; it does not add loop instructions to the Quil program. If a locally compiled program
+returns fewer shots than requested, potentially only one, check how the ``quilc`` server was
+started. On affected execution paths, compiling without ProtoQuil mode can cause this shot-count
+metadata to be disregarded.
+
+Start a local ``quilc`` server with ``-P`` (the short form of ``--protoquil``), in addition to its
+server-mode option. For example:
+
+.. code-block:: console
+
+   $ quilc -R -P
+
+If you run ``quilc`` in Docker, inspect the container's command and restart it with the ProtoQuil
+flag if necessary:
+
+.. code-block:: console
+
+   $ docker run --rm -it -p 5555:5555 rigetti/quilc -R -P
+
+The ``-P`` option requires both the compiler input and output to be ProtoQuil: memory declarations,
+gates, and measurements in that order, without control flow. For an individual compilation,
+``protoquil=True`` requests the same restriction, while ``protoquil=False`` overrides a server
+started with ``-P`` and ``None`` defers to the server configuration. It can be passed to either
+``qc.compile`` or ``qc.compiler.quil_to_native_quil``.
+
+Execution behavior differs by backend. The QVM reads ``Program.num_shots`` metadata directly, so a
+QVM shot-count problem does not by itself indicate a missing ``-P`` option. Current live-QPU
+workflows instead require an explicit shot loop in Quil; shot-count metadata alone is insufficient.
+Add this loop after any optional ``quilc`` compilation, because ProtoQuil excludes control flow.
+Dynamic control flow can additionally produce nonrectangular readout when different loop iterations
+execute different measurements. See Rigetti's `Manual Shot-Count and Non-Rectangular Readout
+<https://docs.rigetti.com/qcs/guides/quil/manual-shot-count-and-nonrectangular-readout>`_ guide for
+that workflow.
+
 Collect debug information
 -------------------------
 
