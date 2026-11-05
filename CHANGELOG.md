@@ -11,6 +11,11 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Changed
+
+- Updated QCS SDK to 0.31.3, which is built against the latest `rigetti-pyo3` and allows
+  `qcs-api-client-common` 0.27.
+
 ## 4.23.0 (2026-10-30)
 
 ### Changed
