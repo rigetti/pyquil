@@ -125,3 +125,19 @@ class TestAutoQubitDetection:
         # Should use qubits [2, 5] in sorted order
         target = qx.StateVector.from_matrix(jnp.array([1.0, 0.0, 0.0, 1.0], dtype=complex) / jnp.sqrt(2), dims=(2, 2))
         assert qx.fidelity(psi, target) > 0.9999
+
+    def test_auto_qubits_include_literal_qubit_in_defcircuit_body(self):
+        """A literal qubit in a DEFCIRCUIT body is part of the auto-detected register (#1868)."""
+        p = Program(
+            """
+DEFCIRCUIT BELL q:
+    H q
+    CNOT q 3
+
+BELL 0
+"""
+        )
+        psi = _sv(p)
+        # Should use qubits [0, 3] in sorted order
+        target = qx.StateVector.from_matrix(jnp.array([1.0, 0.0, 0.0, 1.0], dtype=complex) / jnp.sqrt(2), dims=(2, 2))
+        assert qx.fidelity(psi, target) > 0.9999

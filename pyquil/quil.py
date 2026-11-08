@@ -837,14 +837,46 @@ class Program:
         """
         if indices:
             return self.get_qubit_indices()
-        return set(_convert_to_py_qubits(self._program.get_used_qubits()))
+        return set(_convert_to_py_qubits(self._get_used_qubits()))
 
     def get_qubit_indices(self) -> set[int]:
         """Return the index of each qubit used in the program.
 
         Will raise an exception if any of the qubits are placeholders.
         """
-        return {q.to_fixed() for q in self._program.get_used_qubits()}
+        return {q.to_fixed() for q in self._get_used_qubits()}
+
+    def _get_used_qubits(self) -> set[quil_rs.Qubit]:
+        """Return the qubits used by the program, including those used by the DEFCIRCUITs it invokes.
+
+        ``RSProgram.get_used_qubits`` only reports the qubits named by top-level instructions, so a
+        literal qubit in the body of a DEFCIRCUIT (``DEFCIRCUIT C q: X q; X 3``) would otherwise go
+        unreported, even though invoking the circuit acts on it. Formal arguments are not qubits of
+        the program and are left out.
+        """
+        used_qubits = set(self._program.get_used_qubits())
+        circuits: dict[str, quil_rs.CircuitDefinition] = {}
+        to_visit: list[str] = []
+        for instruction in self._program.body_instructions:
+            if instruction.is_circuit_definition():
+                circuit = instruction.to_circuit_definition()
+                circuits[circuit.name] = circuit
+            elif instruction.is_gate():
+                to_visit.append(instruction.to_gate().name)
+        if not circuits:
+            return used_qubits
+
+        visited: set[str] = set()
+        while to_visit:
+            name = to_visit.pop()
+            if name in visited or name not in circuits:
+                continue
+            visited.add(name)
+            body = RSProgram()
+            body.add_instructions(circuits[name].instructions)
+            used_qubits.update(qubit for qubit in body.get_used_qubits() if not qubit.is_variable())
+            to_visit.extend(inst.to_gate().name for inst in circuits[name].instructions if inst.is_gate())
+        return used_qubits
 
     def match_calibrations(self, instr: AbstractInstruction) -> CalibrationMatch | None:
         """Attempt to match a calibration to the provided instruction.

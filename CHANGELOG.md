@@ -11,6 +11,13 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Fixes
+
+- `Program.get_qubit_indices()` and `Program.get_qubits()` include the literal qubits named in the
+  body of a `DEFCIRCUIT` the program invokes, so the experimental simulators now accept such a
+  circuit and size their register to include those qubits.
+  ([#1868](https://github.com/rigetti/pyquil/issues/1868))
+
 ## 4.23.0 (2026-10-30)
 
 ### Changed
