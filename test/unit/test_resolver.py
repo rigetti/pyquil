@@ -109,15 +109,18 @@ class TestExpandProgram:
         ops, qubit_tuples, _ = expand_program(p)
         assert len(ops) == 2
 
-    def test_defcircuit_body_rejects_literal_qubits(self):
-        """A DEFCIRCUIT body must reference only its own formal arguments.
-
-        Quil permits a literal qubit in a body, but such a qubit is invisible to
-        ``Program.get_qubit_indices``, so it escapes the register the simulator sizes itself
-        for. Rejecting it here beats the downstream KeyError.
-        """
+    def test_defcircuit_body_literal_qubits(self):
+        """A literal qubit in a DEFCIRCUIT body acts on that qubit (#1868)."""
         q0 = FormalArgument("q0")
         dc = DefCircuit("LEAKY", [], [q0], [H(q0), X(Qubit(3))])
+        p = Program(dc, Gate("LEAKY", [], [Qubit(0)]))
+        ops, qubit_tuples, _ = expand_program(p)
+        assert len(ops) == 2
+        assert list(qubit_tuples) == [(0,), (3,)]
+
+    def test_defcircuit_body_rejects_unknown_formal_argument(self):
+        q0, q1 = FormalArgument("q0"), FormalArgument("q1")
+        dc = DefCircuit("LEAKY", [], [q0], [H(q0), X(q1)])
         p = Program(dc, Gate("LEAKY", [], [Qubit(0)]))
         with pytest.raises(ValueError, match="not one of its formal arguments"):
             expand_program(p)

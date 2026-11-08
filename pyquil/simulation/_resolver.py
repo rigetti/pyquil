@@ -58,6 +58,7 @@ from pyquil.noise._noise_model import (
 from pyquil.quil import Program
 from pyquil.quilatom import (
     BinaryExp,
+    FormalArgument,
     Function,
     MemoryReference,
     Parameter,
@@ -271,22 +272,13 @@ def expand_defcircuit_body(
     parg_to_arg_map = {parg: param for param, parg in zip(inst.params, defcircuit.parameters, strict=True)}
 
     def resolve_qubit(qarg: Any) -> Any:
-        """Map a formal argument to its concrete qubit.
-
-        A DEFCIRCUIT body must reference only the circuit's own formal arguments. Quil permits
-        a literal qubit in a body (``DEFCIRCUIT C q: X q; X 3``), but simulating one is a trap:
-        the qubit is invisible to ``Program.get_qubit_indices`` (pyQuil issue #1868), so it
-        silently escapes the register the simulator sizes itself for. Rejecting it here is
-        clearer than the downstream failure; the check can be dropped once #1868 is fixed.
-        """
-        if qarg not in qarg_to_arg_map:
+        """Map a formal argument to its concrete qubit; a literal qubit maps to itself."""
+        if isinstance(qarg, FormalArgument) and qarg not in qarg_to_arg_map:
             raise ValueError(
                 f"DEFCIRCUIT {defcircuit.name} body references {qarg}, which is not one of its "
-                f"formal arguments ({[str(a) for a in defcircuit.qubit_variables]}). Literal "
-                "qubits in a DEFCIRCUIT body are not supported; parameterize the circuit over "
-                "all the qubits it touches."
+                f"formal arguments ({[str(a) for a in defcircuit.qubit_variables]})."
             )
-        return qarg_to_arg_map[qarg]
+        return qarg_to_arg_map.get(qarg, qarg)
 
     for circuit_inst in defcircuit.instructions:
         if isinstance(circuit_inst, Gate):
@@ -396,7 +388,8 @@ def expand_program(
     :raises ValueError: If the program contains control flow or classical memory
         instructions (see :data:`UNSUPPORTED_INSTRUCTIONS`), a gate modifier, an
         expression-valued or feed-forward gate parameter, a DEFCIRCUIT body that names a
-        literal qubit, or a DEFGATE that reuses a standard gate's name.
+        qubit variable that is not one of its formal arguments, or a DEFGATE that reuses a
+        standard gate's name.
     """
     # Program-level derivations. These are independent of qubit dimensions, so
     # ``resolve_program``'s two passes each recompute them; measured at 1-4 ms (under 6% of a

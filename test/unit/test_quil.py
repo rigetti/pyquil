@@ -78,11 +78,21 @@ from pyquil.quil import (
     merge_with_pauli_noise,
     validate_supported_quil,
 )
-from pyquil.quilatom import Frame, MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
+from pyquil.quilatom import (
+    FormalArgument,
+    Frame,
+    MemoryReference,
+    Parameter,
+    QubitPlaceholder,
+    Sub,
+    quil_cos,
+    quil_sin,
+)
 from pyquil.quilbase import (
     AbstractInstruction,
     Declare,
     DefCalibration,
+    DefCircuit,
     DefFrame,
     DefGate,
     DefMeasureCalibration,
@@ -822,6 +832,43 @@ def test_get_qubit_placeholders():
 def test_get_qubits_not_as_indices():
     pq = Program(Declare("ro", "BIT"), X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro", 0)))
     assert set(pq.get_qubits(indices=False)) == set(Qubit(i) for i in [0, 4, 5])
+
+
+def test_get_qubits_includes_literal_qubits_in_defcircuit_body():
+    """A literal qubit in the body of an invoked DEFCIRCUIT is used by the program (#1868)."""
+    q = FormalArgument("q")
+    dc = DefCircuit("C", [], [q], [X(q), X(Qubit(3))])
+    p = Program(dc, Gate("C", [], [Qubit(0)]), H(1))
+    assert p.get_qubit_indices() == {0, 1, 3}
+    assert set(p.get_qubits(indices=False)) == {Qubit(0), Qubit(1), Qubit(3)}
+
+
+def test_get_qubits_includes_literal_qubits_in_nested_defcircuit_body():
+    p = Program(
+        """
+DEFCIRCUIT INNER q:
+    CNOT q 7
+
+DEFCIRCUIT OUTER q:
+    INNER q
+    MEASURE 5
+
+OUTER 0
+"""
+    )
+    assert p.get_qubit_indices() == {0, 5, 7}
+
+
+def test_get_qubits_ignores_defcircuit_that_is_never_invoked():
+    p = Program(
+        """
+DEFCIRCUIT UNUSED q:
+    X 9
+
+H 0
+"""
+    )
+    assert p.get_qubit_indices() == {0}
 
 
 def test_eq():
