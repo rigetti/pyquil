@@ -961,6 +961,11 @@ def exponentiate_pauli_sum(
 
     A global phase is applied to the unitary such that the [0,0] element is always real.
 
+    Tensor factors are ordered in descending qubit order so that the least active
+    qubit index is rightmost, matching the Quil and QVM convention. The resulting
+    matrix is compactly dimensioned to include only the active qubits present in
+    the sum.
+
     :param pauli_sum: PauliSum to exponentiate.
     :returns: The matrix exponent of the PauliSum
     """
@@ -978,7 +983,7 @@ def exponentiate_pauli_sum(
     for q in qubits:
         if not isinstance(q, int):
             raise ValueError("PauliSum must be defined on qubits, not placeholders.")
-    qubits.sort()
+    qubits.sort(reverse=True)
 
     matrices = []
     for term in pauli_sum.terms:
