@@ -11,6 +11,11 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Fixed
+
+- `exponentiate_pauli_sum` now orders tensor factors in descending qubit order so that the least
+  active qubit index is rightmost, matching the Quil and QVM convention.
+
 ## 4.23.0 (2026-10-30)
 
 ### Changed

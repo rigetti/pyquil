@@ -23,6 +23,7 @@ from operator import mul
 
 import numpy as np
 import pytest
+from scipy.linalg import expm
 
 from pyquil.gates import CNOT, PHASE, RX, RZ, H, X
 from pyquil.paulis import (
@@ -447,6 +448,41 @@ def test_exponentiate_pauli_sum_fsim():
         for phi in np.linspace(-0.5, 0.5):
             generated_unitary = exponentiate_pauli_sum(xy_generators * theta + cphase_generators * phi)
             assert unitary_equal(generated_unitary, matrices.FSIM(2 * np.pi * (-2 * theta), 2 * np.pi * (-2 * phi)))
+
+
+SIGMA_I = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex)
+SIGMA_X = np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex)
+SIGMA_Y = np.array([[0.0, -1.0j], [1.0j, 0.0]], dtype=complex)
+SIGMA_Z = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)
+
+
+@pytest.mark.parametrize(
+    ("pauli_sum", "expected_generator"),
+    [
+        # Asymmetric different local terms (qubit 0 rightmost, qubit 1 leftmost)
+        (
+            0.23 * PauliTerm("X", 0) + 0.37 * PauliTerm("Z", 1),
+            0.23 * np.kron(SIGMA_I, SIGMA_X) + 0.37 * np.kron(SIGMA_Z, SIGMA_I),
+        ),
+        # Noncommuting complex-Y two-qubit Hamiltonian
+        (
+            0.2 * (PauliTerm("X", 0) * PauliTerm("Y", 1)) + 0.35 * PauliTerm("Z", 0),
+            0.2 * np.kron(SIGMA_Y, SIGMA_X) + 0.35 * np.kron(SIGMA_I, SIGMA_Z),
+        ),
+        # Sparse qubit labels 2 and 5 protecting compact 4x4 dimension
+        (
+            0.18 * PauliTerm("X", 2) + 0.42 * PauliTerm("Z", 5),
+            0.18 * np.kron(SIGMA_I, SIGMA_X) + 0.42 * np.kron(SIGMA_Z, SIGMA_I),
+        ),
+    ],
+)
+def test_exponentiate_pauli_sum_asymmetric(pauli_sum, expected_generator):
+    generated = exponentiate_pauli_sum(pauli_sum)
+    analytic_unitary = expm(-1j * np.pi * expected_generator)
+    phase = np.exp(-1j * np.angle(analytic_unitary[0, 0]))
+    expected = phase * analytic_unitary
+    assert generated.shape == (4, 4)
+    assert np.allclose(generated, expected)
 
 
 def test_exponentiate_identity():
