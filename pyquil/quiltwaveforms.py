@@ -1,10 +1,9 @@
 """Waveform templates that are commonly useful when working with pulse programs."""
 
-from typing import Optional
+from typing import Self
 
 import numpy as np
 from scipy.special import erf
-from typing_extensions import Self
 
 from pyquil.quilatom import (
     TemplateWaveform,
@@ -22,9 +21,9 @@ class FlatWaveform(TemplateWaveform):
         cls,
         duration: float,
         iq: complex,
-        scale: Optional[float] = None,
-        phase: Optional[float] = None,
-        detuning: Optional[float] = None,
+        scale: float | None = None,
+        phase: float | None = None,
+        detuning: float | None = None,
     ) -> Self:
         """Initialize a new FlatWaveform."""
         return super().__new__(cls, cls.NAME, duration=duration, iq=iq, scale=scale, phase=phase, detuning=detuning)
@@ -50,9 +49,9 @@ class GaussianWaveform(TemplateWaveform):
         duration: float,
         fwhm: float,
         t0: float,
-        scale: Optional[float] = None,
-        phase: Optional[float] = None,
-        detuning: Optional[float] = None,
+        scale: float | None = None,
+        phase: float | None = None,
+        detuning: float | None = None,
     ) -> Self:
         """Initialize a new GaussianWaveform."""
         return super().__new__(
@@ -89,9 +88,9 @@ class DragGaussianWaveform(TemplateWaveform):
         t0: float,
         anh: float,
         alpha: float,
-        scale: Optional[float] = None,
-        phase: Optional[float] = None,
-        detuning: Optional[float] = None,
+        scale: float | None = None,
+        phase: float | None = None,
+        detuning: float | None = None,
     ) -> Self:
         """Initialize a new DragGaussianWaveform."""
         return super().__new__(
@@ -149,9 +148,9 @@ class HrmGaussianWaveform(TemplateWaveform):
         anh: float,
         alpha: float,
         second_order_hrm_coeff: float,
-        scale: Optional[float] = None,
-        phase: Optional[float] = None,
-        detuning: Optional[float] = None,
+        scale: float | None = None,
+        phase: float | None = None,
+        detuning: float | None = None,
     ) -> Self:
         """Initialize a new HrmGaussianWaveform."""
         return super().__new__(
@@ -216,9 +215,9 @@ class ErfSquareWaveform(TemplateWaveform):
         risetime: float,
         pad_left: float,
         pad_right: float,
-        scale: Optional[float] = None,
-        phase: Optional[float] = None,
-        detuning: Optional[float] = None,
+        scale: float | None = None,
+        phase: float | None = None,
+        detuning: float | None = None,
     ) -> Self:
         """Initialize a new ErfSquareWaveform."""
         return super().__new__(
@@ -273,9 +272,9 @@ class BoxcarAveragerKernel(TemplateWaveform):
     def __new__(
         cls,
         duration: float,
-        scale: Optional[float] = None,
-        phase: Optional[float] = None,
-        detuning: Optional[float] = None,
+        scale: float | None = None,
+        phase: float | None = None,
+        detuning: float | None = None,
     ) -> Self:
         """Initialize a new BoxcarAveragerKernel."""
         return super().__new__(cls, cls.NAME, duration=duration, scale=scale, phase=phase, detuning=detuning)

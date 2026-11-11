@@ -17,11 +17,11 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from qcs_sdk import ExecutionData, QCSClient, ResultData
+from qcs_sdk import ExecutionData, QCSClient
 from qcs_sdk.qpu import QPUResultData, ReadoutValues
 from qcs_sdk.qpu.api import (
     ConnectionStrategy,
@@ -41,16 +41,16 @@ from pyquil.quilatom import (
 )
 
 
-def decode_buffer(buffer: ExecutionResult) -> Union[NDArray[np.complex64], NDArray[np.int32]]:
+def decode_buffer(buffer: ExecutionResult) -> NDArray[np.complex64] | NDArray[np.int32]:
     """Translate a DataBuffer into a numpy array.
 
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
     :return: NumPy array of decoded data
     """
     if buffer.dtype == "complex":
-        return np.array(buffer.data.to_complex32(), dtype=np.complex64)
+        return np.array(buffer.data, dtype=np.complex64)
     elif buffer.dtype == "integer":
-        return np.array(buffer.data.to_i32(), dtype=np.int32)
+        return np.array(buffer.data, dtype=np.int32)
     return np.array([], np.int32)
 
 
@@ -97,8 +97,7 @@ def _extract_memory_regions(
         region_width = memory_descriptors[mref.name].length
         if end > region_width:
             raise ValueError(
-                f"Attempted to fill {mref.name}[{mref.offset}, {end})"
-                f"but the declared region has width {region_width}."
+                f"Attempted to fill {mref.name}[{mref.offset}, {end})but the declared region has width {region_width}."
             )
 
         regions[mref.name][:, mref.offset : end] = buf
@@ -110,7 +109,7 @@ def _extract_memory_regions(
 class QPUExecuteResponse:
     job_id: str
     _executable: EncryptedProgram
-    execution_options: Optional[ExecutionOptions]
+    execution_options: ExecutionOptions | None
 
 
 class QPU(QAM[QPUExecuteResponse]):
@@ -119,10 +118,10 @@ class QPU(QAM[QPUExecuteResponse]):
         *,
         quantum_processor_id: str,
         priority: int = 1,
-        timeout: Optional[float] = 30.0,
-        client_configuration: Optional[QCSClient] = None,
-        endpoint_id: Optional[str] = None,
-        execution_options: Optional[ExecutionOptions] = None,
+        timeout: float | None = 30.0,
+        client_configuration: QCSClient | None = None,
+        endpoint_id: str | None = None,
+        execution_options: ExecutionOptions | None = None,
     ) -> None:
         """Connect to the QPU.
 
@@ -141,14 +140,14 @@ class QPU(QAM[QPUExecuteResponse]):
 
         self._client_configuration = client_configuration or QCSClient.load()
         self._last_results: dict[str, np.ndarray] = {}
-        self._memory_results: dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
+        self._memory_results: dict[str, np.ndarray | None] = defaultdict(lambda: None)
         self._quantum_processor_id = quantum_processor_id
         if execution_options is None:
             execution_options_builder = ExecutionOptionsBuilder.default()
             execution_options_builder.timeout_seconds = timeout
             execution_options_builder.connection_strategy = ConnectionStrategy.default()
             if endpoint_id is not None:
-                execution_options_builder.connection_strategy = ConnectionStrategy.endpoint_id(endpoint_id)
+                execution_options_builder.connection_strategy = ConnectionStrategy.EndpointId(endpoint_id)
             execution_options = execution_options_builder.build()
         self.execution_options = execution_options
 
@@ -160,8 +159,8 @@ class QPU(QAM[QPUExecuteResponse]):
     def execute(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[MemoryMap] = None,
-        execution_options: Optional[ExecutionOptions] = None,
+        memory_map: MemoryMap | None = None,
+        execution_options: ExecutionOptions | None = None,
         **__: Any,
     ) -> QPUExecuteResponse:
         """Enqueue a job for execution on the QPU.
@@ -186,7 +185,7 @@ class QPU(QAM[QPUExecuteResponse]):
         self,
         executable: QuantumExecutable,
         memory_maps: Iterable[MemoryMap],
-        execution_options: Optional[ExecutionOptions] = None,
+        execution_options: ExecutionOptions | None = None,
         **__: Any,
     ) -> list[QPUExecuteResponse]:
         """Execute a compiled program on a QPU with multiple sets of `memory_maps`.
@@ -249,15 +248,13 @@ class QPU(QAM[QPUExecuteResponse]):
             client=self._client_configuration,
             execution_options=execute_response.execution_options,
         )
-
-        readout_values = {key: ReadoutValues(value.data.inner()) for key, value in results.buffers.items()}
+        readout_values = {key: ReadoutValues(value.data) for key, value in results.buffers.items()}
         mappings = {
             mref.out(): readout_name
             for mref, readout_name in execute_response._executable.ro_sources.items()
             if mref.name in execute_response._executable.memory_descriptors
         }
         result_data = QPUResultData(mappings=mappings, readout_values=readout_values, memory_values=results.memory)
-        result_data = ResultData(result_data)
         duration = None
         if results.execution_duration_microseconds is not None:
             # The result duration can be `None` to account for `QVM` runs, but should never

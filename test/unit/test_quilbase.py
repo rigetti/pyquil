@@ -59,6 +59,7 @@ from pyquil.quilbase import (
     DefGateByPaulis,
     DefMeasureCalibration,
     DefPermutationGate,
+    _integer_base_and_exponent,
     DefWaveform,
     DelayFrames,
     DelayQubits,
@@ -319,6 +320,84 @@ class TestDefPermutationGate:
 
     def test_parameters(self, def_permutation_gate: DefPermutationGate):
         assert not def_permutation_gate.parameters
+
+
+class TestQuditGateDefinitions:
+    """Qudit dimensions for ``DefGate``: matrix sizes may be any prime power, not just ``2**k``.
+
+    A prime-power dimension is always read with the *prime* as the qudit dimension, so 4 means two
+    qubits (never one ququart) and 16 means four qubits. Non-prime qudit dimensions cannot be
+    inferred from a matrix size and are rejected outright.
+    """
+
+    @staticmethod
+    def _identity(dimension: int) -> np.ndarray:
+        return np.eye(dimension, dtype=complex)
+
+    @pytest.mark.parametrize(
+        ("dimension", "expected_num_args"),
+        [
+            (2, 1),  # one qubit
+            (4, 2),  # two qubits, not one ququart
+            (8, 3),
+            (16, 4),  # four qubits, not two ququarts
+            (3, 1),  # one qutrit
+            (9, 2),  # two qutrits
+            (27, 3),
+            (5, 1),
+            (25, 2),
+        ],
+    )
+    def test_num_args_for_prime_power_dimensions(self, dimension: int, expected_num_args: int):
+        def_gate = DefGate(f"QUDIT{dimension}", self._identity(dimension))
+        assert def_gate.num_args() == expected_num_args
+
+    @pytest.mark.parametrize("dimension", [1, 6, 10, 12, 15, 18, 20, 24])
+    def test_rejects_non_prime_power_dimensions(self, dimension: int):
+        """6 = 2*3 is ambiguous: a qubit-qutrit pair, or a single six-level system?"""
+        with pytest.raises(ValueError, match="prime"):
+            DefGate(f"BAD{dimension}", self._identity(dimension))
+
+    @pytest.mark.parametrize(
+        ("levels", "expected_num_args"),
+        [(2, 1), (4, 2), (8, 3), (3, 1), (9, 2), (27, 3)],
+    )
+    def test_permutation_gate_num_args_matches_def_gate(self, levels: int, expected_num_args: int):
+        """DefPermutationGate must read its length the way DefGate reads its matrix size."""
+        def_gate = DefPermutationGate(f"PERM{levels}", list(reversed(range(levels))))
+        assert def_gate.num_args() == expected_num_args
+
+    @pytest.mark.parametrize("levels", [6, 10, 12])
+    def test_permutation_gate_rejects_non_prime_power_length(self, levels: int):
+        def_gate = DefPermutationGate(f"PERM{levels}", list(reversed(range(levels))))
+        with pytest.raises(ValueError, match="prime"):
+            def_gate.num_args()
+
+    def test_qutrit_gate_constructor_takes_one_argument(self):
+        """A 3x3 definition builds a single-qudit gate."""
+        def_gate = DefGate("QUTRIT_X", np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]], dtype=complex))
+        gate = def_gate.get_constructor()(Qubit(7))
+        assert gate.out() == "QUTRIT_X 7"  # type: ignore[union-attr]
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            (1, None),
+            (2, (2, 1)),
+            (3, (3, 1)),
+            (4, (2, 2)),
+            (6, None),
+            (8, (2, 3)),
+            (9, (3, 2)),
+            (12, None),
+            (64, (2, 6)),  # composite exponent: 64 = 8**2 = 4**3 = 2**6; the maximal exponent wins
+            (729, (3, 6)),  # composite exponent for an odd prime
+            (1024, (2, 10)),
+            (2**61, (2, 61)),  # large enough to be slow if the search were linear in n
+        ],
+    )
+    def test_integer_base_and_exponent(self, value: int, expected: Optional[Tuple[int, int]]):
+        assert _integer_base_and_exponent(value) == expected
 
 
 @pytest.mark.parametrize(

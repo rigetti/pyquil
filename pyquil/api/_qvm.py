@@ -15,12 +15,14 @@
 ##############################################################################
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
-from qcs_sdk import ExecutionData, QCSClient, ResultData, qvm
+from deprecated.sphinx import deprecated
+from qcs_sdk import ExecutionData, QCSClient, qvm
 from qcs_sdk.qvm import QVMClient, QVMOptions, QVMResultData
 
+from pyquil._deprecation import QUAX_REPLACEMENT_NOTE, PyQuilDeprecationWarning
 from pyquil._version import pyquil_version
 from pyquil.api import QAM, MemoryMap, QAMExecutionResult, QuantumExecutable
 from pyquil.noise import NoiseModel, apply_noise_model
@@ -43,7 +45,7 @@ def check_qvm_version(version: str) -> None:
     major, minor = map(int, version.split(".")[:2])
     if major == 1 and minor < 8:
         raise QVMVersionMismatch(
-            "Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you " f"have QVM {version} and pyquil {pyquil_version}"
+            f"Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you have QVM {version} and pyquil {pyquil_version}"
         )
 
 
@@ -57,15 +59,21 @@ class QVMExecuteResponse:
         return {key: matrix.as_ndarray() for key, matrix in self.data.memory.items()}
 
 
+@deprecated(
+    version="4.22.0",
+    line_length=0,
+    reason=f"To be removed in pyQuil v5, where TrajectorySimulator samples program outcomes instead. {QUAX_REPLACEMENT_NOTE}",
+    category=PyQuilDeprecationWarning,
+)
 class QVM(QAM[QVMExecuteResponse]):
     def __init__(
         self,
-        noise_model: Optional[NoiseModel] = None,
-        gate_noise: Optional[tuple[float, float, float]] = None,
-        measurement_noise: Optional[tuple[float, float, float]] = None,
-        random_seed: Optional[int] = None,
+        noise_model: NoiseModel | None = None,
+        gate_noise: tuple[float, float, float] | None = None,
+        measurement_noise: tuple[float, float, float] | None = None,
+        random_seed: int | None = None,
         timeout: float = 10.0,
-        client: Optional[QVMClient] = None,
+        client: QVMClient | None = None,
     ) -> None:
         """Return a virtual machine that classically emulates the execution of Quil programs.
 
@@ -138,7 +146,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
     def execute(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[MemoryMap] = None,
+        memory_map: MemoryMap | None = None,
         **__: Any,
     ) -> QVMExecuteResponse:
         """Execute the input program to completion."""
@@ -146,7 +154,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
         # Request all memory back from the QVM.
-        addresses = {address: qvm.api.AddressRequest.include_all() for address in executable.declarations.keys()}
+        addresses = {address: qvm.api.AddressRequest.IncludeAll() for address in executable.declarations.keys()}
 
         trials = executable.num_shots
         if self.noise_model is not None:
@@ -168,8 +176,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """Return the results of execution on the QVM."""
-        result_data = ResultData(execute_response.data)
-        data = ExecutionData(result_data=result_data, duration=None)
+        data = ExecutionData(result_data=execute_response.data, duration=None)
         return QAMExecutionResult(executable=execute_response.executable, data=data)
 
     def get_version_info(self) -> str:
@@ -177,10 +184,10 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         :return: String with version information
         """
-        return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))
+        return qvm.api.get_version_info(self._client, options=QVMOptions(timeout_seconds=self.timeout))  # type: ignore
 
 
-def validate_noise_probabilities(noise_parameter: Optional[tuple[float, float, float]]) -> None:
+def validate_noise_probabilities(noise_parameter: tuple[float, float, float] | None) -> None:
     """Validate the noise probabilities.
 
     This function checks that the provided noise parameters are in the correct format and within the expected ranges.

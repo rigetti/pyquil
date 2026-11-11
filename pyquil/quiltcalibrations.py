@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 import quil.expression as quil_expr
 import quil.instructions as quil_rs
@@ -39,20 +39,20 @@ class CalibrationDoesntMatch(CalibrationError):
 class CalibrationMatch:
     """A match between a calibration definition and an instruction."""
 
-    cal: Union[DefCalibration, DefMeasureCalibration]
-    settings: dict[Union[QubitDesignator, ExpressionDesignator], Any]
+    cal: DefCalibration | DefMeasureCalibration
+    settings: dict[QubitDesignator | ExpressionDesignator, Any]
 
 
 def _convert_to_calibration_match(
-    instruction: Union[quil_rs.Gate, quil_rs.Measurement],
-    calibration: Optional[Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition]],
-) -> Optional[CalibrationMatch]:
+    instruction: quil_rs.Gate | quil_rs.Measurement,
+    calibration: quil_rs.Calibration | quil_rs.MeasureCalibrationDefinition | None,
+) -> CalibrationMatch | None:
     if isinstance(instruction, quil_rs.Gate) and isinstance(calibration, quil_rs.Calibration):
         target_qubits = instruction.qubits
-        target_values: Sequence[Union[quil_expr.Expression, MemoryReference]] = instruction.parameters
+        target_values: Sequence[quil_expr.Expression | MemoryReference] = instruction.parameters
         parameter_qubits = calibration.identifier.qubits
-        parameter_values: Sequence[Union[quil_expr.Expression, MemoryReference]] = calibration.identifier.parameters
-        py_calibration: Union[DefCalibration, DefMeasureCalibration] = DefCalibration._from_rs_calibration(calibration)
+        parameter_values: Sequence[quil_expr.Expression | MemoryReference] = calibration.identifier.parameters
+        py_calibration: DefCalibration | DefMeasureCalibration = DefCalibration._from_rs_calibration(calibration)
     elif isinstance(instruction, quil_rs.Measurement) and isinstance(calibration, quil_rs.MeasureCalibrationDefinition):
         target_qubits = [instruction.qubit]
         target_values = (
@@ -65,15 +65,15 @@ def _convert_to_calibration_match(
     else:
         return None
 
-    settings: dict[Union[QubitDesignator, ExpressionDesignator], Union[QubitDesignator, ExpressionDesignator]] = {
+    settings: dict[QubitDesignator | ExpressionDesignator, QubitDesignator | ExpressionDesignator] = {
         _convert_to_py_qubit(param): _convert_to_py_qubit(qubit)
-        for param, qubit in zip(parameter_qubits, target_qubits)
+        for param, qubit in zip(parameter_qubits, target_qubits, strict=False)
         if isinstance(param, MemoryReference) or param.is_variable()
     }
     settings.update(
         {
             _convert_to_py_expression(param): _convert_to_py_expression(value)
-            for param, value in zip(parameter_values, target_values)
+            for param, value in zip(parameter_values, target_values, strict=False)
             if isinstance(param, MemoryReference) or param.is_variable()
         }
     )
@@ -82,8 +82,8 @@ def _convert_to_calibration_match(
 
 
 def match_calibration(
-    instr: AbstractInstruction, cal: Union[DefCalibration, DefMeasureCalibration]
-) -> Optional[CalibrationMatch]:
+    instr: AbstractInstruction, cal: DefCalibration | DefMeasureCalibration
+) -> CalibrationMatch | None:
     """Match a calibration definition to an instruction.
 
     On a successful match, return a (possibly empty) dictionary mapping calibration
@@ -97,7 +97,7 @@ def match_calibration(
         instruction = _convert_to_rs_instruction(instr)
         gate = instruction.to_gate()
         calibration_set = CalibrationSet([calibration.to_calibration_definition()], [])
-        matched_calibration: Optional[Union[quil_rs.Calibration, quil_rs.MeasureCalibrationDefinition]] = (
+        matched_calibration: quil_rs.Calibration | quil_rs.MeasureCalibrationDefinition | None = (
             calibration_set.get_match_for_gate(gate)
         )
         return _convert_to_calibration_match(gate, matched_calibration)

@@ -56,7 +56,7 @@ In pyQuil v4, Gateway is enabled by default and it is generally recommended to k
 
     # Use an ``ExecutionOptionsBuilder`` to build a custom ``ExecutionOptions``
     execution_options_builder = ExecutionOptionsBuilder()
-    execution_options_builder.connection_strategy = ConnectionStrategy.direct_access()
+    execution_options_builder.connection_strategy = ConnectionStrategy.DirectAccess()
     execution_options = execution_options_builder.build()
 
     # Option 1: Override execution options on a per-request basis.

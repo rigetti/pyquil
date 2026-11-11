@@ -15,9 +15,9 @@
 ##############################################################################
 """Standard Gate definitions to use in a ``Program``."""
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from numbers import Real
-from typing import Callable, Optional, Union, no_type_check
+from typing import no_type_check
 
 import numpy as np
 from deprecated.sphinx import deprecated, versionadded
@@ -82,8 +82,8 @@ from pyquil.quilbase import (
 
 def unpack_reg_val_pair(
     classical_reg1: MemoryReferenceDesignator,
-    classical_reg2: Union[MemoryReferenceDesignator, int, float],
-) -> tuple[MemoryReference, Union[MemoryReference, int, float]]:
+    classical_reg2: MemoryReferenceDesignator | int | float,
+) -> tuple[MemoryReference, MemoryReference | int | float]:
     """Type check/coerce arguments to constructors for binary classical operators.
 
     :param classical_reg1: Specifier for the classical memory address to be modified.
@@ -100,8 +100,8 @@ def unpack_reg_val_pair(
 def prepare_ternary_operands(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
-    classical_reg3: Union[MemoryReferenceDesignator, int, float],
-) -> tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
+    classical_reg3: MemoryReferenceDesignator | int | float,
+) -> tuple[MemoryReference, MemoryReference, MemoryReference | int | float]:
     """Type check/coerce arguments to constructors for ternary classical operators.
 
     :param classical_reg1: Specifier for the classical memory address to be modified.
@@ -420,7 +420,7 @@ def CPHASE10(angle: ParameterDesignator, control: QubitDesignator, target: Qubit
 #   Cannot resolve forward reference in type annotations of "pyquil.gates.CPHASE":
 #   name 'Expression' is not defined
 def CPHASE(
-    angle: Union[Expression, MemoryReference, np.int_, int, float, complex],
+    angle: Expression | MemoryReference | np.int_ | int | float | complex,
     control: QubitDesignator,
     target: QubitDesignator,
 ) -> Gate:
@@ -651,7 +651,7 @@ memory is being manipulated by a CPU in a hybrid classical/quantum algorithm.
 """
 
 
-def RESET(qubit_index: Optional[QubitDesignator] = None) -> Union[Reset, ResetQubit]:
+def RESET(qubit_index: QubitDesignator | None = None) -> Reset | ResetQubit:
     """Reset all qubits or just one specific qubit.
 
     :param qubit_index: The qubit to reset.
@@ -685,8 +685,8 @@ def DECLARE(
     name: str,
     memory_type: str = "BIT",
     memory_size: int = 1,
-    shared_region: Optional[str] = None,
-    offsets: Optional[Sequence[tuple[int, str]]] = None,
+    shared_region: str | None = None,
+    offsets: Sequence[tuple[int, str]] | None = None,
 ) -> Declare:
     return Declare(
         name=name,
@@ -697,7 +697,7 @@ def DECLARE(
     )
 
 
-def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> Measurement:
+def MEASURE(qubit: QubitDesignator, classical_reg: MemoryReferenceDesignator | None) -> Measurement:
     """Produce a MEASURE instruction.
 
     :param qubit: The qubit to measure.
@@ -730,9 +730,7 @@ def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
     return ClassicalNot(unpack_classical_reg(classical_reg))
 
 
-def AND(
-    classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
-) -> ClassicalAnd:
+def AND(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int) -> ClassicalAnd:
     """Produce an AND instruction.
 
     NOTE: The order of operands was reversed in pyQuil <=1.9 .
@@ -748,7 +746,7 @@ def AND(
 
 
 def IOR(
-    classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
+    classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int
 ) -> ClassicalInclusiveOr:
     """Produce an inclusive OR instruction.
 
@@ -763,7 +761,7 @@ def IOR(
 
 
 def XOR(
-    classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
+    classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator | int
 ) -> ClassicalExclusiveOr:
     """Produce an exclusive OR instruction.
 
@@ -779,7 +777,7 @@ def XOR(
 
 def MOVE(
     classical_reg1: MemoryReferenceDesignator,
-    classical_reg2: Union[MemoryReferenceDesignator, int, float],
+    classical_reg2: MemoryReferenceDesignator | int | float,
 ) -> ClassicalMove:
     """Produce a MOVE instruction.
 
@@ -819,7 +817,7 @@ def LOAD(
 def STORE(
     region_name: str,
     offset_reg: MemoryReferenceDesignator,
-    source: Union[MemoryReferenceDesignator, int, float],
+    source: MemoryReferenceDesignator | int | float,
 ) -> ClassicalStore:
     """Produce a STORE instruction.
 
@@ -843,7 +841,7 @@ def CONVERT(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryRef
     return ClassicalConvert(unpack_classical_reg(classical_reg1), unpack_classical_reg(classical_reg2))
 
 
-def ADD(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalAdd:
+def ADD(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> ClassicalAdd:
     """Produce an ADD instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
@@ -855,7 +853,7 @@ def ADD(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
     return ClassicalAdd(left, right)
 
 
-def SUB(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalSub:
+def SUB(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> ClassicalSub:
     """Produce a SUB instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
@@ -867,7 +865,7 @@ def SUB(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
     return ClassicalSub(left, right)
 
 
-def MUL(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMul:
+def MUL(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> ClassicalMul:
     """Produce a MUL instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
@@ -879,7 +877,7 @@ def MUL(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
     return ClassicalMul(left, right)
 
 
-def DIV(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalDiv:
+def DIV(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceDesignator | int | float) -> ClassicalDiv:
     """Produce an DIV instruction.
 
     :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
@@ -894,7 +892,7 @@ def DIV(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDe
 def EQ(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
-    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+    classical_reg3: MemoryReferenceDesignator | int | float,
 ) -> ClassicalEqual:
     """Produce an EQ instruction.
 
@@ -913,7 +911,7 @@ def EQ(
 def LT(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
-    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+    classical_reg3: MemoryReferenceDesignator | int | float,
 ) -> ClassicalLessThan:
     """Produce an LT instruction.
 
@@ -931,7 +929,7 @@ def LT(
 def LE(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
-    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+    classical_reg3: MemoryReferenceDesignator | int | float,
 ) -> ClassicalLessEqual:
     """Produce an LE instruction.
 
@@ -949,7 +947,7 @@ def LE(
 def GT(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
-    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+    classical_reg3: MemoryReferenceDesignator | int | float,
 ) -> ClassicalGreaterThan:
     """Produce an GT instruction.
 
@@ -967,7 +965,7 @@ def GT(
 def GE(
     classical_reg1: MemoryReferenceDesignator,
     classical_reg2: MemoryReferenceDesignator,
-    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+    classical_reg3: MemoryReferenceDesignator | int | float,
 ) -> ClassicalGreaterEqual:
     """Produce an GE instruction.
 
@@ -1101,7 +1099,7 @@ def RAW_CAPTURE(
 # with a float, and everything in between should be of a particular
 # type T.
 @no_type_check
-def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
+def DELAY(*args) -> DelayFrames | DelayQubits:
     """Produce a DELAY instruction.
 
     Note: There are two variants of DELAY. One applies to specific frames on some
@@ -1133,7 +1131,7 @@ def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
         )
 
 
-def FENCE(*qubits: Union[int, Qubit, FormalArgument]) -> Union[FenceAll, Fence]:
+def FENCE(*qubits: int | Qubit | FormalArgument) -> FenceAll | Fence:
     """Produce a FENCE instruction.
 
     Note: If no qubits are specified, then this is interpreted as a global FENCE.
@@ -1200,7 +1198,7 @@ QUILT_INSTRUCTIONS: Mapping[str, Callable[..., AbstractInstruction]] = {
 Dictionary of Quil-T AST construction functions keyed by instruction name.
 """
 
-STANDARD_INSTRUCTIONS: Mapping[str, Union[AbstractInstruction, Callable[..., AbstractInstruction]]] = {
+STANDARD_INSTRUCTIONS: Mapping[str, AbstractInstruction | Callable[..., AbstractInstruction]] = {
     "WAIT": WAIT,
     "RESET": RESET,
     "DECLARE": DECLARE,

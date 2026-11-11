@@ -31,6 +31,15 @@ For information on constructing quantum programs, please refer back to :ref:`bas
 The Quantum Virtual Machine (QVM)
 *********************************
 
+.. deprecated:: 4.22.0
+
+   The QVM is deprecated in pyQuil: :py:class:`~pyquil.api.QVM`, :py:class:`~pyquil.pyqvm.PyQVM`,
+   :py:class:`~pyquil.api.QVMCompiler`, :py:class:`~pyquil.api.WavefunctionSimulator`, and getting a QVM-backed
+   ``QuantumComputer`` from :py:func:`~pyquil.api.get_qc` (a ``-qvm`` or ``-pyqvm`` name, or ``as_qvm=True``) will
+   be removed in pyQuil v5 in favor of the Quax-based simulators described in :ref:`simulation_architecture`. Those
+   simulators are available in pyQuil v4, but are private, experimental and subject to change, so we recommend
+   continuing to use the QVM until you upgrade to pyQuil v5.
+
 The Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from *A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
 executes programs specified in Quil.
 
@@ -228,6 +237,10 @@ concurrently - for that, please see "Advanced Usage."
 ********************************
 Simulating the QPU using the QVM
 ********************************
+
+.. note::
+
+   The QVM is deprecated and will be removed in pyQuil v5; see :ref:`the deprecation note above <qvm_use>`.
 
 The :py:class:`~pyquil.api.QAM` methods are intended to be used in the same way, whether a QVM or QPU is being targeted.
 For everywhere on this page, you can swap out the type of the QAM (QVM <=> QPU) and you will still

@@ -184,10 +184,13 @@ fabric.properties
 ### MyPi ###
 .mypy_cache
 
+.ruff_cache
+
 ### VSCode ###
 **/.vscode/
 
 pyrightconfig.json
+pyrefly.toml
 
 # unversioned developer notes
 .scratch/

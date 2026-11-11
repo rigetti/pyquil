@@ -4,6 +4,15 @@
 Noise and quantum computation
 =============================
 
+.. deprecated:: 4.22.0
+
+   The QVM and the Kraus-map noise model used throughout this page (``NoiseModel``, ``KrausModel``,
+   ``add_decoherence_noise``, ``pauli_kraus_map`` and the readout-noise helpers in ``pyquil.noise``, as well as
+   ``Program.define_noisy_gate``, ``Program.define_noisy_readout`` and ``merge_with_pauli_noise``) are
+   deprecated and will be removed in pyQuil v5 in favor of the Quax-based simulators and noise model described in
+   :ref:`simulation_architecture`. Those are available in pyQuil v4, but are private, experimental and subject to
+   change, so we recommend continuing to use the QVM and this noise model until you upgrade to pyQuil v5.
+
 ****************************
 Modeling noisy quantum gates
 ****************************

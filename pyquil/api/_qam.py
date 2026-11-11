@@ -17,12 +17,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Any, Generic, TypeVar, cast
 
 import numpy as np
 from deprecated import deprecated
 from qcs_sdk import ExecutionData
-from qcs_sdk.qpu import MemoryValues, RawQPUReadoutData
+from qcs_sdk.qpu import MemoryValues, QPUResultData, RawQPUReadoutData
 from qcs_sdk.qvm import RawQVMReadoutData
 
 from pyquil.api._abstract_compiler import QuantumExecutable
@@ -35,7 +35,7 @@ class QAMError(RuntimeError):
 T = TypeVar("T")
 """A generic parameter describing the opaque job handle returned from QAM#execute and subclasses."""
 
-MemoryMap = Mapping[str, Union[Sequence[int], Sequence[float]]]
+MemoryMap = Mapping[str, Sequence[int] | Sequence[float]]
 """A mapping of memory regions to a list containing the values to be written into that memory region."""
 
 
@@ -51,7 +51,7 @@ class QAMExecutionResult:
     to get at the data in a more convenient format.
     """
 
-    def get_register_map(self) -> dict[str, Optional[np.ndarray]]:
+    def get_register_map(self) -> dict[str, np.ndarray | None]:
         """Map a register name (ie. "ro") to a ``np.ndarray`` containing the values for the register.
 
         Raises a ``RegisterMatrixConversionError`` if the inner execution data for any of the
@@ -74,7 +74,7 @@ class QAMExecutionResult:
         register_map = self.data.result_data.to_register_map()
         return {key: matrix.to_ndarray() for key, matrix in register_map.items()}
 
-    def get_raw_readout_data(self) -> Union[RawQVMReadoutData, RawQPUReadoutData]:
+    def get_raw_readout_data(self) -> RawQVMReadoutData | RawQPUReadoutData:
         """Get the raw result data.
 
         This will be a flattened structure derived
@@ -96,8 +96,9 @@ class QAMExecutionResult:
         This method will only return the final value in memory after the job has completed. Because of this, memory
         values should not be used to get readout data. Instead, use `get_register_map()` or `get_raw_readout_data()`.
         """
-        if self.data.result_data.is_qpu():
-            return self.data.result_data.to_qpu().memory_values
+        result_data = self.data.result_data
+        if isinstance(result_data, QPUResultData):
+            return cast(Mapping[str, MemoryValues], result_data.memory_values)
         return {}
 
     @property
@@ -108,12 +109,12 @@ class QAMExecutionResult:
             "and will be removed in future versions. Use the `get_register_map()` method instead."
         ),
     )
-    def readout_data(self) -> Mapping[str, Optional[np.ndarray]]:
+    def readout_data(self) -> Mapping[str, np.ndarray | None]:
         """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
         return self.get_register_map()
 
     @property
-    def execution_duration_microseconds(self) -> Optional[float]:
+    def execution_duration_microseconds(self) -> float | None:
         """Duration job held exclusive hardware access. Defaults to ``None`` when information is not available."""
         if isinstance(self.data.duration, timedelta):
             return self.data.duration.total_seconds() * 1e6
@@ -127,7 +128,7 @@ class QAM(ABC, Generic[T]):
     def execute(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[MemoryMap] = None,
+        memory_map: MemoryMap | None = None,
         **kwargs: Any,
     ) -> T:
         """Run an executable on a QAM, returning a handle to be used to retrieve results.
@@ -160,7 +161,7 @@ class QAM(ABC, Generic[T]):
         """
 
     def run(
-        self, executable: QuantumExecutable, memory_map: Optional[MemoryMap] = None, **kwargs: Any
+        self, executable: QuantumExecutable, memory_map: MemoryMap | None = None, **kwargs: Any
     ) -> QAMExecutionResult:
         """Run an executable to completion on the QAM."""
         return self.get_result(self.execute(executable, memory_map, **kwargs))

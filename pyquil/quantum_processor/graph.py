@@ -1,6 +1,6 @@
 """An implementation of an AbstractQuantumProcessor based on a NetworkX graph topology."""
 
-from typing import Any, Optional
+from typing import Any
 
 import networkx as nx
 
@@ -19,8 +19,8 @@ class NxQuantumProcessor(AbstractQuantumProcessor):
     def __init__(
         self,
         topology: nx.Graph,
-        gates_1q: Optional[list[str]] = None,
-        gates_2q: Optional[list[str]] = None,
+        gates_1q: list[str] | None = None,
+        gates_2q: list[str] | None = None,
     ) -> None:
         """Initialize a new NxQuantumProcessor.
 

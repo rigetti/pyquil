@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from collections.abc import Sequence
-from typing import Optional, cast
+from typing import cast
 
 from qcs_sdk import QCSClient
 from qcs_sdk.compiler.quilc import (
@@ -35,7 +35,7 @@ from pyquil.quilbase import Gate
 class BenchmarkConnection(AbstractBenchmarker):
     """Represents a connection to a server that generates benchmarking data."""
 
-    def __init__(self, *, timeout: float = 10.0, client_configuration: Optional[QCSClient] = None):
+    def __init__(self, *, timeout: float = 10.0, client_configuration: QCSClient | None = None):
         """Client to communicate with the benchmarking data endpoint.
 
         :param timeout: Time limit for requests, in seconds.
@@ -60,7 +60,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         if is_identity(pauli_in):
             return pauli_in
 
-        indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
+        indices_and_terms = list(zip(*list(pauli_in.operations_as_set()), strict=False))
 
         request = ConjugateByCliffordRequest(
             pauli=QuilcPauliTerm(
@@ -87,8 +87,8 @@ class BenchmarkConnection(AbstractBenchmarker):
         self,
         depth: int,
         gateset: Sequence[Gate],
-        seed: Optional[int] = None,
-        interleaver: Optional[Program] = None,
+        seed: int | None = None,
+        interleaver: Program | None = None,
     ) -> list[Program]:
         """Construct a randomized benchmarking experiment on the given qubits, decomposing into gateset.
 
@@ -124,7 +124,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         gateset_as_program = address_qubits(sum(gateset, Program()))  # type: ignore
         qubits = len(gateset_as_program.get_qubits())
         gateset_for_api = gateset_as_program.out().splitlines()
-        interleaver_out: Optional[str] = None
+        interleaver_out: str | None = None
         if interleaver:
             if not isinstance(interleaver, Program):
                 raise ValueError("interleaver must be a Program")

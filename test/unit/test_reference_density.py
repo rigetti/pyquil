@@ -1,3 +1,7 @@
+# TODO(pyquil-5.0): Remove this file. These tests exercise ReferenceDensitySimulator/PyQVM,
+# which are superseded by DensityMatrixSimulator. Equivalent coverage lives in
+# test_state_vector.py and test_noise_model.py.
+
 import networkx as nx
 import numpy as np
 import pytest

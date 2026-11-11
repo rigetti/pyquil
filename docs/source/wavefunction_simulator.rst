@@ -4,6 +4,13 @@
 The wavefunction simulator
 ==========================
 
+.. deprecated:: 4.22.0
+
+   :py:class:`~pyquil.api.WavefunctionSimulator` and :py:class:`~pyquil.wavefunction.Wavefunction` are deprecated
+   and will be removed in pyQuil v5 in favor of the Quax-based simulators described in
+   :ref:`simulation_architecture`. Those simulators are available in pyQuil v4, but are private, experimental and
+   subject to change, so we recommend continuing to use the wavefunction simulator until you upgrade to pyQuil v5.
+
 The wavefunction simulator allows you to directly inspect the wavefunction of a quantum state prepared by your program.
 Because of the probabilistic nature of quantum information, the programs you'll be running on the QPU can give a distribution
 of outputs. When running on the QPU or QVM, you would aggregate results (anywhere from tens of trials to 100k+!) that you can

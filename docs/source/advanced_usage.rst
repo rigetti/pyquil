@@ -116,6 +116,11 @@ Using libquil for Quilc and QVM
 *******************************
 
 .. note::
+
+   pyQuil's use of the QVM, including through ``libquil``, is deprecated and will be removed in pyQuil v5; see
+   :ref:`the deprecation note <qvm_use>`.
+
+.. note::
     This feature is experimental and may not work for all platforms.
 
 `libquil <https://github.com/rigetti/libquil>`_ provides the functionality of Quilc and QVM in a library
