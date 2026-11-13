@@ -1192,7 +1192,9 @@ class TestKrausStackLayout:
         assert sim._layout == measured
         if max_subsystem_size == 0:
             # The channel's own d^2 = 4, not the register's d^2 = 9.
-            assert sim._layout.base_max_k == (4,)
+            # The unitary TX takes its own one-operator branch on the same qutrit.
+            assert sim._layout.base_max_k == (4, 1)
+            assert sim._layout.base_unitary == (False, True)
 
     def test_kraus_counts_do_not_depend_on_the_parameters(self):
         """A merged group holding two channels around a parametric gate used to break this.

@@ -239,6 +239,37 @@ Expansion does several things at once:
   channel describing the joint noise of a whole parallel cycle — the cycle is
   replaced by the channel's constituent operators directly.
 
+* **Crosstalk between the operations of a cycle.** A ``CycleChannel`` is a tensor product: its
+  constituents act on disjoint qubits and cannot entangle them. A
+  :class:`~pyquil.noise._crosstalk.CrosstalkCycleChannel` wraps one and adds
+  :class:`~pyquil.noise._crosstalk.Coupling` terms -- small Hamiltonians such as static ZZ or XY
+  exchange, built with ``Coupling.zz`` and ``Coupling.xy`` -- that act across those constituents
+  for the cycle's ``duration``. The joint generator is a sum of local terms, so it scales with
+  the register; its superoperator does not, so the cycle is lowered to small operators instead:
+
+  1. each coupling is moved into the toggling frame of the ideal gates it touches and replaced
+     by its exact time average over each of ``steps`` slices of the cycle (first-order Magnus);
+  2. qubits on which the averaged term acts trivially are dropped, so a coupling that commutes
+     with its gates, such as ZZ during CZ, stays a two-qubit term and is reproduced exactly;
+  3. the terms of a slice are fused into unitaries on at most ``max_fused_qubits`` qubits and
+     Strang-split against each other where they do not commute;
+  4. the resulting unitaries are emitted first, followed by the constituents' own processes.
+
+  With coupling angle :math:`\epsilon = \lVert V\rVert T` and decoherence :math:`\gamma T` the
+  error is :math:`O(\epsilon^2/\mathrm{steps}^2)` from the average, :math:`O(\epsilon^3)` from
+  the splitting and :math:`O(\epsilon\,\gamma T)` from using the ideal gates as the frame. At
+  100 kHz on a 40 ns single-qubit cycle a single step is within 1% of the crosstalk's own effect;
+  XY exchange during a 200 ns CZ is within about 4%, falling roughly fourfold per doubling of
+  ``steps``.
+  ``CrosstalkCycleChannel.exact_process`` evolves the joint generator densely on small cycles
+  and is what the lowering is tested against.
+
+  Coupling the cycles has a cost beyond the extra unitaries: operations of consecutive cycles
+  can no longer be fused across them (see `Memory`_ and the merge plan), so a program whose
+  cycles used to collapse into a few merged channels is simulated nearly one operation at a
+  time. The trajectory kernel applies unitaries without Kraus sampling, on their own switch
+  branch, which keeps the crosstalk operators themselves cheap.
+
   A body must reference **only its own formal arguments**. Quil allows a literal qubit in a
   body (``DEFCIRCUIT GADGET q: X q; X 3``), but such a qubit is invisible to
   ``Program.get_qubit_indices`` (`pyQuil issue #1868

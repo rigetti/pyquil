@@ -52,6 +52,7 @@ from pyquil.noise._channels import (
     get_custom_gates_from_program,
     get_instruction_unitary,
 )
+from pyquil.noise._crosstalk import CrosstalkCycleChannel
 from pyquil.noise._noise_model import (
     NoiseModelLike,
 )
@@ -365,6 +366,8 @@ def expand_program(
 
     * If a cycle invocation matches a :class:`CycleChannel` in the noise
       model, the cycle is expanded using the channel's constituent operators.
+    * If it matches a :class:`CrosstalkCycleChannel`, the cycle is expanded into that channel's
+      crosstalk unitaries followed by its constituent operators.
     * Otherwise the DEFCIRCUIT body is expanded via qubit/param substitution
       and each resulting instruction is resolved individually.
 
@@ -445,8 +448,8 @@ def expand_program(
         channel = noise_model.get_channel(inst) if noise_model is not None else None
         if isinstance(channel, ChannelBase):
             return channel.process, qubits
-        if isinstance(channel, CycleChannel):
-            raise ValueError(f"CycleChannel for {inst.name} was not expanded before gate resolution.")
+        if isinstance(channel, (CycleChannel, CrosstalkCycleChannel)):
+            raise ValueError(f"{type(channel).__name__} for {inst.name} was not expanded before gate resolution.")
 
         # Parameterized gate → callable that resolves params at call time.
         if any(_contained_mrefs(p) for p in inst.params):  # type: ignore[arg-type]
@@ -574,6 +577,11 @@ def expand_program(
                     # `inst.get_qubit_indices()`, whose return type varies across the constituent
                     # families (a list for gates, a set-or-None for resets).
                     _emit_op(sub_ch.process, tuple(sub_ch.qubits))
+            elif isinstance(channel, CrosstalkCycleChannel):
+                # The crosstalk between the cycle's operations is already lowered to small
+                # unitaries, which precede the constituents' own processes.
+                for op, op_qubits in channel.operations():
+                    _emit_op(op, op_qubits)
             else:
                 # Expand DEFCIRCUIT body and resolve each instruction.
                 for expanded_inst in expand_defcircuit_body(inst, circuit_definitions[inst.name], circuit_definitions):

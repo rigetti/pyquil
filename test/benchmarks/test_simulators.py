@@ -1,5 +1,6 @@
 """Benchmarks for the quax-backed exact and trajectory simulators."""
 
+import time
 from pathlib import Path
 
 import jax
@@ -9,6 +10,7 @@ import quax as qx
 
 from pyquil.gates import CNOT, RX, RZ
 from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel
+from pyquil.noise._crosstalk import Coupling, CrosstalkCycleChannel
 from pyquil.noise._noise_model import NoiseModel
 from pyquil.quil import Program
 from pyquil.quilbase import DefCircuit, ResetQubit
@@ -42,6 +44,17 @@ _SURFACE17_CYCLES = {
     "MEASURE_ANCILLA",
     "MEASURE_ALL",
 }
+# Nominal cycle lengths in seconds, by cycle-name prefix; single-qubit cycles take the default.
+_SURFACE17_CYCLE_DURATIONS = {"CZ": 200e-9, "MEASURE": 1e-6}
+_SURFACE17_DEFAULT_DURATION = 40e-9
+# Largest tolerated per-trajectory slowdown from 100 kHz ZZ + XY crosstalk on every coupler.
+# Against the same cycles simulated one operation at a time, which isolates the crosstalk
+# operators themselves (measured: about 1.7x).
+_SURFACE17_CROSSTALK_SLOWDOWN_UNFUSED = 3.0
+# Against the fully fused baseline (measured: about 14x). Most of this is not the crosstalk
+# operators: coupling the cycles stops noisy gates of consecutive cycles from fusing, which is
+# what takes the baseline from 265 operations down to 32.
+_SURFACE17_CROSSTALK_SLOWDOWN_FUSED = 25.0
 _DEFAULT_NUM_QUBITS = 15
 _DEFAULT_NUM_LAYERS = 10
 _DEFAULT_NUM_TRAJECTORIES = 128
@@ -167,6 +180,76 @@ def _build_surface17_cycle_noise_model(program, depolarizing_constant=0.99, read
     return NoiseModel(channels=cycle_channels)
 
 
+def _surface17_edges(program):
+    """Every qubit pair joined by a CZ somewhere in the fixture: the couplers of the lattice."""
+    defcircuits = _surface17_defcircuits(program)
+    edges = set()
+    for inst in program.instructions:
+        if not isinstance(inst, QuilGate) or inst.name not in defcircuits:
+            continue
+        defcircuit = defcircuits[inst.name]
+        qubit_map = dict(zip(defcircuit.qubit_variables, inst.get_qubit_indices(), strict=True))
+        for cycle_inst in defcircuit.instructions:
+            if isinstance(cycle_inst, QuilGate) and len(cycle_inst.qubits) == 2:
+                edges.add(tuple(sorted(qubit_map[qubit] for qubit in cycle_inst.qubits)))
+    return sorted(edges)
+
+
+def _surface17_cycle_duration(name):
+    for prefix, duration in _SURFACE17_CYCLE_DURATIONS.items():
+        if name.startswith(prefix):
+            return duration
+    return _SURFACE17_DEFAULT_DURATION
+
+
+def _build_surface17_crosstalk_noise_model(program, zz_hz=1e5, xy_hz=0.0, steps=1, max_fused_qubits=4, **kwargs):
+    """Wrap every cycle of the independent noise model with ZZ / XY crosstalk on every coupler."""
+    base = _build_surface17_cycle_noise_model(program, **kwargs)
+    edges = _surface17_edges(program)
+    channels = {}
+    for inst, cycle in base.channels.items():
+        present = set(cycle.qubits)
+        couplings = []
+        for q0, q1 in edges:
+            if q0 not in present or q1 not in present:
+                continue
+            if zz_hz:
+                couplings.append(Coupling.zz(q0, q1, zz_hz))
+            if xy_hz:
+                couplings.append(Coupling.xy(q0, q1, xy_hz))
+        channels[inst] = CrosstalkCycleChannel(
+            cycle=cycle,
+            couplings=tuple(couplings),
+            duration=_surface17_cycle_duration(inst.name),
+            steps=steps,
+            max_fused_qubits=max_fused_qubits,
+        )
+    return NoiseModel(channels=channels)
+
+
+def _time_trajectories(sim, operations, *, num_trajectories, batch_size, repeats=3):
+    """Best post-compilation wall time per trajectory of the trajectory kernel."""
+
+    def apply_batch(matrix, key):
+        psi = qx.StateVector.from_matrix(matrix, sim.dims)
+        psi_out, outcomes = apply_trajectory_operations(operations, psi, key)
+        return psi_out.matrix, outcomes
+
+    apply_batch = jax.jit(apply_batch)
+    psi = qx.zero_state_vector(dims=sim.dims, ensemble_size=(batch_size,))
+    _block_until_ready(*apply_batch(psi.matrix, jax.random.key(0)))
+
+    best = float("inf")
+    for repeat in range(repeats):
+        start = time.perf_counter()
+        key = jax.random.key(repeat)
+        for _ in range(num_trajectories // batch_size):
+            key, batch_key = jax.random.split(key)
+            _block_until_ready(*apply_batch(psi.matrix, batch_key))
+        best = min(best, time.perf_counter() - start)
+    return best / num_trajectories
+
+
 def _prepare_trajectory_operations(program, noise_model, max_subsystem_size=0):
     sim = TrajectorySimulator(program, noise_model=noise_model, max_subsystem_size=max_subsystem_size)
     params = sim.linearize({})
@@ -272,13 +355,22 @@ def _run_surface17_benchmark(
     depolarizing_constant=0.99,
     readout_fidelity=1.0,
     use_jit=False,
+    crosstalk=None,
 ):
     program = _surface17_program_variant(variant)
-    noise_model = _build_surface17_cycle_noise_model(
-        program,
-        depolarizing_constant=depolarizing_constant,
-        readout_fidelity=readout_fidelity,
-    )
+    if crosstalk is None:
+        noise_model = _build_surface17_cycle_noise_model(
+            program,
+            depolarizing_constant=depolarizing_constant,
+            readout_fidelity=readout_fidelity,
+        )
+    else:
+        noise_model = _build_surface17_crosstalk_noise_model(
+            program,
+            depolarizing_constant=depolarizing_constant,
+            readout_fidelity=readout_fidelity,
+            **crosstalk,
+        )
     sim, resolved, compressed, operations = _prepare_trajectory_operations(program, noise_model, max_subsystem_size)
     _record_counts(benchmark, resolved, compressed, operations)
     if hasattr(benchmark, "extra_info"):
@@ -289,6 +381,8 @@ def _run_surface17_benchmark(
                 "batch_size": batch_size,
                 "max_subsystem_size": max_subsystem_size,
                 "use_jit": use_jit,
+                "crosstalk": crosstalk,
+                "widest_op": max(len(qubits) for _, qubits in operations),
             }
         )
     _benchmark_trajectory_operations(
@@ -340,6 +434,55 @@ def test_surface17_cycle_noise_compression_preserves_instruments(variant):
     else:
         assert counts[2][1] < counts[1][1] < counts[0][1]
     assert counts[0][3]["instrument_ops"] == counts[1][3]["instrument_ops"] == counts[2][3]["instrument_ops"]
+
+
+def test_surface17_crosstalk_structure():
+    """What the crosstalk model costs in operations; none of this depends on the machine."""
+    program = _surface17_program_variant("first_measurement")
+    assert len(_surface17_edges(program)) == 24
+
+    _, _, _, baseline = _prepare_trajectory_operations(
+        program, _build_surface17_cycle_noise_model(program), max_subsystem_size=0
+    )
+    noise_model = _build_surface17_crosstalk_noise_model(program, zz_hz=1e5, xy_hz=1e5)
+    sim, _, _, operations = _prepare_trajectory_operations(program, noise_model, max_subsystem_size=1)
+    counts, baseline_counts = _operation_counts(operations), _operation_counts(baseline)
+    cycles = sum(1 for inst in program.instructions if isinstance(inst, QuilGate))
+
+    # The gates and measurements are untouched; crosstalk only adds unitaries.
+    assert counts["instrument_ops"] == baseline_counts["instrument_ops"] == 8
+    assert counts["kraus_ops"] == baseline_counts["kraus_ops"]
+    # Two couplings on each of 24 couplers fuse to fewer unitaries per cycle than there are couplers.
+    assert 0 < counts["unitary_ops"] < 24 * cycles
+    assert max(len(qubits) for _, qubits in operations) == 4
+    # The unitaries are applied on their own branches and do not widen the Kraus stack.
+    assert sim._layout.max_k == 16
+    unitary_bases = {base for base, unitary in zip(sim._layout.bases, sim._layout.base_unitary, strict=True) if unitary}
+    assert all(
+        k == 1
+        for base, k, unitary in zip(sim._layout.bases, sim._layout.base_max_k, sim._layout.base_unitary, strict=True)
+        if unitary
+    )
+    assert any(len(base) == 4 for base in unitary_bases)
+
+
+@pytest.mark.slow
+def test_surface17_crosstalk_slowdown():
+    """ZZ + XY crosstalk on every coupler stays within a fixed multiple of the crosstalk-free run."""
+    program = _surface17_program_variant("first_measurement")
+    baseline_model = _build_surface17_cycle_noise_model(program)
+    crosstalk_model = _build_surface17_crosstalk_noise_model(program, zz_hz=1e5, xy_hz=1e5)
+
+    def per_trajectory(noise_model, max_subsystem_size):
+        sim, _, _, operations = _prepare_trajectory_operations(program, noise_model, max_subsystem_size)
+        return _time_trajectories(sim, operations, num_trajectories=8, batch_size=8)
+
+    fused = per_trajectory(baseline_model, 2)
+    unfused = per_trajectory(baseline_model, 0)
+    crosstalk = per_trajectory(crosstalk_model, 1)
+
+    assert crosstalk < _SURFACE17_CROSSTALK_SLOWDOWN_UNFUSED * unfused
+    assert crosstalk < _SURFACE17_CROSSTALK_SLOWDOWN_FUSED * fused
 
 
 class TestPerformance:
@@ -413,6 +556,32 @@ class TestPerformance:
 
     def test_surface17_depth5_cycle_noise_micro_jit(self, benchmark):
         _run_surface17_benchmark(benchmark, variant="first_measurement", num_trajectories=1, batch_size=1, use_jit=True)
+
+    @pytest.mark.parametrize(
+        "crosstalk",
+        [{"zz_hz": 1e5}, {"zz_hz": 1e5, "xy_hz": 1e5}, {"zz_hz": 1e5, "xy_hz": 1e5, "steps": 2}],
+        ids=["zz", "zz_xy", "zz_xy_2steps"],
+    )
+    def test_surface17_depth5_crosstalk_micro(self, benchmark, crosstalk):
+        _run_surface17_benchmark(
+            benchmark,
+            variant="first_measurement",
+            num_trajectories=8,
+            batch_size=8,
+            max_subsystem_size=1,
+            use_jit=True,
+            crosstalk=crosstalk,
+        )
+
+    def test_surface17_depth5_crosstalk_low_trajectory(self, benchmark):
+        _run_surface17_benchmark(
+            benchmark,
+            num_trajectories=4,
+            batch_size=4,
+            max_subsystem_size=1,
+            use_jit=True,
+            crosstalk={"zz_hz": 1e5, "xy_hz": 1e5},
+        )
 
     def test_surface17_depth5_cycle_noise_no_measurements_micro(self, benchmark):
         _run_surface17_benchmark(benchmark, variant="no_measurements", num_trajectories=4, batch_size=4)

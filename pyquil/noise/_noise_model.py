@@ -55,6 +55,7 @@ from pyquil.noise._channels import (
     SuperopChannel,
     SuperopResetChannel,
 )
+from pyquil.noise._crosstalk import CrosstalkCycleChannel
 from pyquil.quilbase import Gate, Measurement, ResetQubit
 
 if TYPE_CHECKING:
@@ -70,7 +71,13 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────
 
 ChannelType: TypeAlias = (
-    SuperopChannel | Channel | MeasurementChannel | SuperopResetChannel | ResetChannel | CycleChannel
+    SuperopChannel
+    | Channel
+    | MeasurementChannel
+    | SuperopResetChannel
+    | ResetChannel
+    | CycleChannel
+    | CrosstalkCycleChannel
 )
 """Any noise channel that :meth:`NoiseModelLike.get_channel` may return."""
 
@@ -96,7 +103,7 @@ class NoiseModelLike(Protocol):
     """
 
     @overload
-    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | None: ...
+    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | CrosstalkCycleChannel | None: ...
 
     @overload
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
@@ -154,7 +161,7 @@ class NoiseModel:
         object.__setattr__(self, "channels", MappingProxyType(dict(state["channels"])))
 
     @overload
-    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | None: ...
+    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | CrosstalkCycleChannel | None: ...
 
     @overload
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
@@ -334,6 +341,7 @@ class NoiseModel:
             "SuperopResetChannel": SuperopResetChannel,
             "ResetChannel": ResetChannel,
             "CycleChannel": CycleChannel,
+            "CrosstalkCycleChannel": CrosstalkCycleChannel,
         }
         channels: list[ChannelType] = []
         for ch_data in data["channels"]:
@@ -415,7 +423,7 @@ class DepolarizingNoiseModel:
     depolarizing_constant: float
 
     @overload
-    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | None: ...
+    def get_channel(self, inst: Gate) -> SuperopChannel | Channel | CycleChannel | CrosstalkCycleChannel | None: ...
 
     @overload
     def get_channel(self, inst: Measurement) -> MeasurementChannel | None: ...
@@ -467,7 +475,7 @@ def estimate_program_fidelity(program: Program, noise_model: NoiseModelLike) -> 
             channel = noise_model.get_channel(inst)
             # Gate channels (SuperopChannel, Channel) and cycle channels both expose a
             # process (Pauli) fidelity; treat all gate-based channels the same.
-            if isinstance(channel, (ChannelBase, CycleChannel)):
+            if isinstance(channel, (ChannelBase, CycleChannel, CrosstalkCycleChannel)):
                 gate_fidelities.append(channel.process_fidelity)
 
     return math.prod(gate_fidelities)
