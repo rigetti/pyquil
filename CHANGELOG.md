@@ -11,6 +11,11 @@ A pull request that changes something a user would notice adds a bullet under
 
 ## Unreleased
 
+### Fixes
+
+- `compiler_isa_to_target_quantum_processor` no longer calls the deprecated `CompilerISA.dict()`, so
+  compiling against `quilc` stops emitting a `DeprecationWarning` that pointed at pyQuil itself.
+
 ## 4.23.0 (2026-10-30)
 
 ### Changed

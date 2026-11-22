@@ -322,7 +322,7 @@ def get_edge(quantum_processor: CompilerISA, qubit1: int, qubit2: int) -> Edge |
 
 def compiler_isa_to_target_quantum_processor(compiler_isa: CompilerISA) -> TargetQuantumProcessor:
     """Convert a CompilerISA object to a TargetQuantumProcessor object."""
-    return TargetQuantumProcessor(isa=compiler_isa.dict(by_alias=True), specs={})
+    return TargetQuantumProcessor(isa=compiler_isa._dict(by_alias=True), specs={})
 
 
 class Supported1QGate:
