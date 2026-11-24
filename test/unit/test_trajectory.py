@@ -534,6 +534,7 @@ class TestSampleProgramTrajectories:
             bases=wide.bases,
             branch_index=wide.branch_index,
             base_max_k=wide.base_max_k,
+            base_unitary=wide.base_unitary,
             divisors=wide.divisors,
             measure_positions=wide.measure_positions,
             d_max=wide.d_max,

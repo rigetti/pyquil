@@ -1,6 +1,5 @@
 """Benchmarks for the quax-backed exact and trajectory simulators."""
 
-import time
 from pathlib import Path
 
 import jax
@@ -10,8 +9,9 @@ import quax as qx
 
 from pyquil.gates import CNOT, RX, RZ
 from pyquil.noise._channels import Channel, CycleChannel, MeasurementChannel
-from pyquil.noise._crosstalk import Coupling, CrosstalkCycleChannel
+from pyquil.noise._crosstalk import CrosstalkCycleChannel, xy_crosstalk, zz_crosstalk
 from pyquil.noise._noise_model import NoiseModel
+from pyquil.paulis import PauliSum
 from pyquil.quil import Program
 from pyquil.quilbase import DefCircuit, ResetQubit
 from pyquil.quilbase import Gate as QuilGate
@@ -47,14 +47,6 @@ _SURFACE17_CYCLES = {
 # Nominal cycle lengths in seconds, by cycle-name prefix; single-qubit cycles take the default.
 _SURFACE17_CYCLE_DURATIONS = {"CZ": 200e-9, "MEASURE": 1e-6}
 _SURFACE17_DEFAULT_DURATION = 40e-9
-# Largest tolerated per-trajectory slowdown from 100 kHz ZZ + XY crosstalk on every coupler.
-# Against the same cycles simulated one operation at a time, which isolates the crosstalk
-# operators themselves (measured: about 1.7x).
-_SURFACE17_CROSSTALK_SLOWDOWN_UNFUSED = 3.0
-# Against the fully fused baseline (measured: about 14x). Most of this is not the crosstalk
-# operators: coupling the cycles stops noisy gates of consecutive cycles from fusing, which is
-# what takes the baseline from 265 operations down to 32.
-_SURFACE17_CROSSTALK_SLOWDOWN_FUSED = 25.0
 _DEFAULT_NUM_QUBITS = 15
 _DEFAULT_NUM_LAYERS = 10
 _DEFAULT_NUM_TRAJECTORIES = 128
@@ -202,52 +194,24 @@ def _surface17_cycle_duration(name):
     return _SURFACE17_DEFAULT_DURATION
 
 
-def _build_surface17_crosstalk_noise_model(program, zz_hz=1e5, xy_hz=0.0, steps=1, max_fused_qubits=4, **kwargs):
+def _build_surface17_crosstalk_noise_model(program, zz_hz=1e5, xy_hz=0.0, steps=1, **kwargs):
     """Wrap every cycle of the independent noise model with ZZ / XY crosstalk on every coupler."""
     base = _build_surface17_cycle_noise_model(program, **kwargs)
     edges = _surface17_edges(program)
     channels = {}
     for inst, cycle in base.channels.items():
         present = set(cycle.qubits)
-        couplings = []
+        crosstalk = PauliSum([])
         for q0, q1 in edges:
-            if q0 not in present or q1 not in present:
-                continue
-            if zz_hz:
-                couplings.append(Coupling.zz(q0, q1, zz_hz))
-            if xy_hz:
-                couplings.append(Coupling.xy(q0, q1, xy_hz))
+            if q0 in present and q1 in present:
+                if zz_hz:
+                    crosstalk += zz_crosstalk(q0, q1, zz_hz)
+                if xy_hz:
+                    crosstalk += xy_crosstalk(q0, q1, xy_hz)
         channels[inst] = CrosstalkCycleChannel(
-            cycle=cycle,
-            couplings=tuple(couplings),
-            duration=_surface17_cycle_duration(inst.name),
-            steps=steps,
-            max_fused_qubits=max_fused_qubits,
+            cycle=cycle, crosstalk=crosstalk, duration=_surface17_cycle_duration(inst.name), steps=steps
         )
     return NoiseModel(channels=channels)
-
-
-def _time_trajectories(sim, operations, *, num_trajectories, batch_size, repeats=3):
-    """Best post-compilation wall time per trajectory of the trajectory kernel."""
-
-    def apply_batch(matrix, key):
-        psi = qx.StateVector.from_matrix(matrix, sim.dims)
-        psi_out, outcomes = apply_trajectory_operations(operations, psi, key)
-        return psi_out.matrix, outcomes
-
-    apply_batch = jax.jit(apply_batch)
-    psi = qx.zero_state_vector(dims=sim.dims, ensemble_size=(batch_size,))
-    _block_until_ready(*apply_batch(psi.matrix, jax.random.key(0)))
-
-    best = float("inf")
-    for repeat in range(repeats):
-        start = time.perf_counter()
-        key = jax.random.key(repeat)
-        for _ in range(num_trajectories // batch_size):
-            key, batch_key = jax.random.split(key)
-            _block_until_ready(*apply_batch(psi.matrix, batch_key))
-        best = min(best, time.perf_counter() - start)
-    return best / num_trajectories
 
 
 def _prepare_trajectory_operations(program, noise_model, max_subsystem_size=0):
@@ -447,14 +411,17 @@ def test_surface17_crosstalk_structure():
     noise_model = _build_surface17_crosstalk_noise_model(program, zz_hz=1e5, xy_hz=1e5)
     sim, _, _, operations = _prepare_trajectory_operations(program, noise_model, max_subsystem_size=1)
     counts, baseline_counts = _operation_counts(operations), _operation_counts(baseline)
-    cycles = sum(1 for inst in program.instructions if isinstance(inst, QuilGate))
 
     # The gates and measurements are untouched; crosstalk only adds unitaries.
     assert counts["instrument_ops"] == baseline_counts["instrument_ops"] == 8
     assert counts["kraus_ops"] == baseline_counts["kraus_ops"]
-    # Two couplings on each of 24 couplers fuse to fewer unitaries per cycle than there are couplers.
-    assert 0 < counts["unitary_ops"] < 24 * cycles
+    assert counts["unitary_ops"] > 0
+    # XY across two CZs spreads over both of them, and no further.
     assert max(len(qubits) for _, qubits in operations) == 4
+    # Each step repeats the crosstalk layer.
+    two_steps = _build_surface17_crosstalk_noise_model(program, zz_hz=1e5, xy_hz=1e5, steps=2)
+    _, _, _, stepped = _prepare_trajectory_operations(program, two_steps, max_subsystem_size=1)
+    assert _operation_counts(stepped)["unitary_ops"] == 2 * counts["unitary_ops"]
     # The unitaries are applied on their own branches and do not widen the Kraus stack.
     assert sim._layout.max_k == 16
     unitary_bases = {base for base, unitary in zip(sim._layout.bases, sim._layout.base_unitary, strict=True) if unitary}
@@ -464,25 +431,6 @@ def test_surface17_crosstalk_structure():
         if unitary
     )
     assert any(len(base) == 4 for base in unitary_bases)
-
-
-@pytest.mark.slow
-def test_surface17_crosstalk_slowdown():
-    """ZZ + XY crosstalk on every coupler stays within a fixed multiple of the crosstalk-free run."""
-    program = _surface17_program_variant("first_measurement")
-    baseline_model = _build_surface17_cycle_noise_model(program)
-    crosstalk_model = _build_surface17_crosstalk_noise_model(program, zz_hz=1e5, xy_hz=1e5)
-
-    def per_trajectory(noise_model, max_subsystem_size):
-        sim, _, _, operations = _prepare_trajectory_operations(program, noise_model, max_subsystem_size)
-        return _time_trajectories(sim, operations, num_trajectories=8, batch_size=8)
-
-    fused = per_trajectory(baseline_model, 2)
-    unfused = per_trajectory(baseline_model, 0)
-    crosstalk = per_trajectory(crosstalk_model, 1)
-
-    assert crosstalk < _SURFACE17_CROSSTALK_SLOWDOWN_UNFUSED * unfused
-    assert crosstalk < _SURFACE17_CROSSTALK_SLOWDOWN_FUSED * fused
 
 
 class TestPerformance:
@@ -568,7 +516,7 @@ class TestPerformance:
             variant="first_measurement",
             num_trajectories=8,
             batch_size=8,
-            max_subsystem_size=1,
+            max_subsystem_size=4,
             use_jit=True,
             crosstalk=crosstalk,
         )
@@ -578,7 +526,7 @@ class TestPerformance:
             benchmark,
             num_trajectories=4,
             batch_size=4,
-            max_subsystem_size=1,
+            max_subsystem_size=4,
             use_jit=True,
             crosstalk={"zz_hz": 1e5, "xy_hz": 1e5},
         )

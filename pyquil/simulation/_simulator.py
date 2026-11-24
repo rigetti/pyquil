@@ -71,7 +71,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from functools import partial
-from typing import Any, Generic, TypeAlias, TypeVar, cast, final
+from typing import Any, Generic, NamedTuple, TypeAlias, TypeVar, cast, final
 
 import jax
 import jax.numpy as jnp
@@ -1418,6 +1418,11 @@ _TrajectoryRun: TypeAlias = Callable[[Array, qx.StateVector, Array], tuple[qx.St
 _KrausBranch: TypeAlias = Callable[[Array, qx.StateVector, Array], tuple[qx.StateVector, Array]]
 
 
+def _is_unitary_group(members: Sequence[ExpandedOp]) -> bool:
+    """Whether a merged group fuses only unitaries, and so needs no Kraus sampling."""
+    return all(isinstance(member, ParametricGate | qx.Unitary) for member in members)
+
+
 def _kraus_count(members: Sequence[ExpandedOp], base_dim: int) -> tuple[int, int, bool]:
     """Derive a merged group's Kraus count from its members' *types* alone.
 
@@ -1441,7 +1446,7 @@ def _kraus_count(members: Sequence[ExpandedOp], base_dim: int) -> tuple[int, int
     """
     # A ParametricGate is a resolver callable, not a quax operator, so it has no ``dims``; the
     # unitary test has to come first.
-    if all(isinstance(member, ParametricGate | qx.Unitary) for member in members):
+    if _is_unitary_group(members):
         return 1, 1, False
     if len(members) == 1 and isinstance(members[0], qx.QuantumInstrument):
         per_outcome = base_dim**2
@@ -1456,33 +1461,33 @@ def _kraus_count(members: Sequence[ExpandedOp], base_dim: int) -> tuple[int, int
     return base_dim**2, 1, False
 
 
-@dataclass
-class _BranchTable:
-    """Assigns each operation of a layout to a switch branch.
+class _Branches(NamedTuple):
+    """The switch branches of a layout; see :func:`_assign_branches`."""
 
-    A subsystem gets one branch for its unitary operations and another for everything else.
-    A unitary needs no sampling: it is applied directly, at about a third of the cost of a
-    Kraus step, and sharing a branch would instead make every unitary on a pair of qubits pay
-    for the widest channel that ever lands on that pair.
+    bases: tuple[tuple[int, ...], ...]
+    branch_index: tuple[int, ...]
+    base_max_k: tuple[int, ...]
+    base_unitary: tuple[bool, ...]
+
+
+def _assign_branches(operations: Sequence[tuple[tuple[int, ...], int, bool]]) -> _Branches:
+    """Assign each operation, given as ``(subsystem, kraus_count, is_unitary)``, to a switch branch.
+
+    A subsystem gets one branch for its unitaries and another for everything else. A unitary is
+    applied directly, with nothing to sample; sharing a branch would pad it to the largest Kraus
+    set on its subsystem.
     """
-
-    bases: list[tuple[int, ...]] = field(default_factory=list)
-    base_max_k: list[int] = field(default_factory=list)
-    base_unitary: list[bool] = field(default_factory=list)
-    branch_index: list[int] = field(default_factory=list)
-    _index: dict[tuple[tuple[int, ...], bool], int] = field(default_factory=dict)
-
-    def add(self, subsystem: tuple[int, ...], count: int, unitary: bool) -> None:
-        """Record one operation on *subsystem* carrying *count* Kraus operators."""
-        key = (subsystem, unitary)
-        if key not in self._index:
-            self._index[key] = len(self.bases)
-            self.bases.append(subsystem)
-            self.base_max_k.append(1)
-            self.base_unitary.append(unitary)
-        index = self._index[key]
-        self.branch_index.append(index)
-        self.base_max_k[index] = max(self.base_max_k[index], count)
+    keys = [(subsystem, unitary) for subsystem, _, unitary in operations]
+    index = {key: position for position, key in enumerate(dict.fromkeys(keys))}
+    base_max_k = [1] * len(index)
+    for key, (_, count, _) in zip(keys, operations, strict=True):
+        base_max_k[index[key]] = max(base_max_k[index[key]], count)
+    return _Branches(
+        bases=tuple(subsystem for subsystem, _ in index),
+        branch_index=tuple(index[key] for key in keys),
+        base_max_k=tuple(base_max_k),
+        base_unitary=tuple(unitary for _, unitary in index),
+    )
 
 
 @dataclass(frozen=True)
@@ -1501,14 +1506,13 @@ class _KrausStackLayout:
     :param dims: Per-qudit register dimensions.
     :param subsystems: The subsystem each operation acts on, in application order.
     :param bases: The subsystem of each switch branch, in first-seen order.  A subsystem appears
-        twice when it carries both unitary and non-unitary operations (see :class:`_BranchTable`).
+        twice when it carries both unitary and non-unitary operations (see :func:`_assign_branches`).
     :param branch_index: For each operation, its index into ``bases``.
     :param base_max_k: Kraus operators each base needs, one entry per entry of ``bases``.
     :param divisors: Per-operation Kraus-count divisor; measurement outcome = ``index // divisor``.
     :param measure_positions: Indices of the measurement operations, in outcome-column order.
+    :param base_unitary: Whether each branch holds only unitaries, one entry per entry of ``bases``.
     :param d_max: Matrix dimension per stack row.
-    :param base_unitary: Whether each branch holds only unitaries, one entry per entry of
-        ``bases``; empty means none does.
     """
 
     dims: tuple[int, ...]
@@ -1516,10 +1520,10 @@ class _KrausStackLayout:
     bases: tuple[tuple[int, ...], ...]
     branch_index: tuple[int, ...]
     base_max_k: tuple[int, ...]
+    base_unitary: tuple[bool, ...]
     divisors: tuple[int, ...]
     measure_positions: tuple[int, ...]
     d_max: int
-    base_unitary: tuple[bool, ...] = ()
 
     @property
     def n_ops(self) -> int:
@@ -1548,15 +1552,14 @@ class _KrausStackLayout:
         :param dims: Per-qudit register dimensions.
         """
         dims = tuple(dims)
-        branches = _BranchTable()
+        branch_entries: list[tuple[tuple[int, ...], int, bool]] = []
         divisors: list[int] = []
         measure_positions: list[int] = []
         for position, (nodes, subsystem) in enumerate(plan.groups):
             members = [ops[node] for node in nodes]
             base_dim = math.prod(dims[q] for q in subsystem)
             count, divisor, is_measure = _kraus_count(members, base_dim)
-            unitary = all(isinstance(member, ParametricGate | qx.Unitary) for member in members)
-            branches.add(subsystem, count, unitary)
+            branch_entries.append((subsystem, count, _is_unitary_group(members)))
             divisors.append(divisor)
             if is_measure:
                 measure_positions.append(position)
@@ -1564,16 +1567,14 @@ class _KrausStackLayout:
         # two independent measurements in either order (see the warning on ``MergePlan``), so
         # each position is ordered by the program index its group carries.
         measure_positions.sort(key=lambda position: plan.groups[position][0][0])
+        branches = _assign_branches(branch_entries)
         return cls(
             dims=dims,
             subsystems=tuple(subsystem for _, subsystem in plan.groups),
-            bases=tuple(branches.bases),
-            branch_index=tuple(branches.branch_index),
-            base_max_k=tuple(branches.base_max_k),
+            **branches._asdict(),
             divisors=tuple(divisors),
             measure_positions=tuple(measure_positions),
             d_max=max((math.prod(dims[q] for q in base) for base in branches.bases), default=1),
-            base_unitary=tuple(branches.base_unitary),
         )
 
     @classmethod
@@ -1600,7 +1601,7 @@ class _KrausStackLayout:
         """
         dims = tuple(dims)
         subsystems: list[tuple[int, ...]] = []
-        branches = _BranchTable()
+        branch_entries: list[tuple[tuple[int, ...], int, bool]] = []
         divisors: list[int] = []
         measure_positions: list[int] = []
         d_max = 1
@@ -1608,7 +1609,7 @@ class _KrausStackLayout:
             subsystem = tuple(subsystem)
             mat, divisor, is_measure = _op_to_kraus_matrix(_promote_to_register(op, subsystem, dims))
             subsystems.append(subsystem)
-            branches.add(subsystem, mat.shape[0], isinstance(op, qx.Unitary))
+            branch_entries.append((subsystem, mat.shape[0], isinstance(op, qx.Unitary)))
             divisors.append(divisor)
             if is_measure:
                 measure_positions.append(i)
@@ -1620,13 +1621,10 @@ class _KrausStackLayout:
         return cls(
             dims=dims,
             subsystems=tuple(subsystems),
-            bases=tuple(branches.bases),
-            branch_index=tuple(branches.branch_index),
-            base_max_k=tuple(branches.base_max_k),
+            **_assign_branches(branch_entries)._asdict(),
             divisors=tuple(divisors),
             measure_positions=tuple(measure_positions),
             d_max=d_max,
-            base_unitary=tuple(branches.base_unitary),
         )
 
     def stack(self, operations: _Operations) -> Array:
@@ -1785,12 +1783,11 @@ def _build_trajectory_kernel(layout: _KrausStackLayout) -> _TrajectoryRun:
     """
     if layout.n_ops == 0:
         return _run_empty
-    unitary = layout.base_unitary or (False,) * len(layout.bases)
     branches = tuple(
         partial(_unitary_branch, base, tuple(layout.dims[q] for q in base))
         if is_unitary
         else partial(_kraus_branch, base, tuple(layout.dims[q] for q in base), k)
-        for base, k, is_unitary in zip(layout.bases, layout.base_max_k, unitary, strict=True)
+        for base, k, is_unitary in zip(layout.bases, layout.base_max_k, layout.base_unitary, strict=True)
     )
     run = jax.custom_jvp(partial(_run_trajectory, layout, branches))
     run.defjvp(_reject_differentiation)
