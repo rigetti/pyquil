@@ -239,6 +239,34 @@ Expansion does several things at once:
   channel describing the joint noise of a whole parallel cycle — the cycle is
   replaced by the channel's constituent operators directly.
 
+* **Crosstalk between the operations of a cycle.** A ``CycleChannel`` is a tensor product: its
+  constituents act on disjoint qubits and cannot entangle them. A
+  :class:`~pyquil.noise._crosstalk.CrosstalkCycleChannel` wraps one and adds a crosstalk
+  Hamiltonian, a :class:`~pyquil.paulis.PauliSum` such as static ZZ or XY exchange (built with
+  ``zz_crosstalk`` and ``xy_crosstalk``), that acts across those constituents for the cycle's
+  ``duration``. The joint generator is a sum of local terms, so it scales with the register; its
+  superoperator does not, so the cycle is lowered to small operators instead:
+
+  1. each term of the Hamiltonian is moved into the toggling frame of the ideal gates it touches
+     and replaced by its exact time average over each of ``steps`` slices of the cycle
+     (first-order Magnus, :func:`quax.toggling_frame_average`);
+  2. qubits on which the averaged term acts trivially are dropped (:func:`quax.support`), so a
+     term that commutes with its gates, such as ZZ during CZ, stays a two-qubit term and is
+     reproduced exactly;
+  3. the terms of a slice are Strang-split against each other where they do not commute;
+  4. the resulting unitaries are emitted first, followed by the constituents' own processes.
+
+  With coupling angle :math:`\epsilon = \lVert V\rVert T` and decoherence :math:`\gamma T` the
+  error is :math:`O(\epsilon^2/\mathrm{steps}^2)` from the average,
+  :math:`O(\epsilon^3/\mathrm{steps}^2)` from the splitting and :math:`O(\epsilon\,\gamma T)` from
+  using the ideal gates as the frame. ``CrosstalkCycleChannel.exact_process`` evolves the joint
+  generator densely on small cycles and is what the lowering is tested against.
+
+  The crosstalk unitaries span the constituents of a cycle, so the merge plan can only fuse
+  across cycles at a ``max_subsystem_size`` as wide as the widest crosstalk term. The trajectory
+  kernel applies unitaries without Kraus sampling, on their own switch branch, so a crosstalk
+  unitary does not pay for the channels that share its qubits.
+
   A body must reference **only its own formal arguments**. Quil allows a literal qubit in a
   body (``DEFCIRCUIT GADGET q: X q; X 3``), but such a qubit is invisible to
   ``Program.get_qubit_indices`` (`pyQuil issue #1868
