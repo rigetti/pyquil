@@ -249,7 +249,7 @@ Expansion does several things at once:
 
   1. each term of the Hamiltonian is moved into the toggling frame of the ideal gates it touches
      and replaced by its exact time average over each of ``steps`` slices of the cycle
-     (first-order Magnus, :func:`quax.interaction_picture_average`);
+     (first-order Magnus, :func:`quax.toggling_frame_average`);
   2. qubits on which the averaged term acts trivially are dropped (:func:`quax.support`), so a
      term that commutes with its gates, such as ZZ during CZ, stays a two-qubit term and is
      reproduced exactly;

@@ -32,7 +32,7 @@ is a sum of local terms and so scales with the number of qubits, but its superop
    :math:`\tilde V_e(s) = U_0(s)^\dagger V_e U_0(s)`. Each :math:`\tilde V_e` acts only on the
    operations its term touches.
 2. **First-order Magnus.** The cycle is cut into ``steps`` slices and :math:`\tilde V_e` is replaced
-   on each by its exact time average (:func:`quax.interaction_picture_average`).
+   on each by its exact time average (:func:`quax.toggling_frame_average`).
 3. **Support.** Qudits on which an averaged term acts as the identity are dropped
    (:func:`quax.support`), so a term that commutes with its gates, such as ZZ during CZ, stays as
    small as it was written.
@@ -50,6 +50,11 @@ Terms that commute with the gates and with each other incur only the last.
     The frame assumes each gate is driven at a constant rate for the whole cycle: its gate
     Hamiltonian is stretched from ``gate_time`` to the cycle's ``duration``. Measurement and reset
     constituents have no frame, so crosstalk on them is applied as written, before the operation.
+    A gate's generator is only defined by its unitary up to a multiple of :math:`2\pi` per
+    eigenvalue, and :func:`quax.unitary_to_hamiltonian` takes the principal branch. For CZ this
+    is :math:`-\pi\,|11\rangle\langle 11|`; a CZ that accumulates the opposite phase has the same
+    unitary but the opposite frame, and so reverses the error from any crosstalk term that does not
+    commute with it, such as XY.
     The crosstalk acts on the computational subspace; on a qudit with leakage levels it is
     zero-padded.
 """
@@ -301,9 +306,12 @@ class CrosstalkCycleChannel:
                 (qx.embed(frames[b], dims, positions(self.channels[b].qubits)) for b in blocks[1:]),
                 start=qx.embed(frames[blocks[0]], dims, positions(self.channels[blocks[0]].qubits)),
             )
-            averages = qx.interaction_picture_average(qx.embed(bare, dims, positions(term_qubits)), frame, edges)
+            # embed returns a plain Operator; the average keeps the type of its input.
+            coupling = qx.embed(bare, dims, positions(term_qubits))
+            coupling = qx.Observable.from_matrix(coupling.matrix, coupling.dims)
+            averages = qx.toggling_frame_average(coupling, frame, edges[:-1], edges[1:])
             for index in range(steps):
-                average = qx.Observable.from_matrix(averages.matrix[index], (dims, dims))
+                average = averages[index]
                 kept = qx.support(average)
                 # A term reduced to a multiple of the identity is a global phase.
                 if kept:
