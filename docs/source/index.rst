@@ -16,7 +16,7 @@ using `Rigetti's Quantum Cloud Services (QCS) <https://docs.rigetti.com/qcs/>`_.
 
 To learn more about Quil, the Quil SDK, and QCS, see `Rigetti's documentation <https://docs.rigetti.com>`_.
 
-If you’re new to pyQuil, head to the `getting started <getting_started>`_ guide to get setup and run your first program!
+If you’re new to pyQuil, head to the `getting started <getting_started.html>`_ guide to get setup and run your first program!
 
 .. note::
 
