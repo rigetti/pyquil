@@ -118,31 +118,36 @@ import cmath
 
 import numpy as np
 
-I = np.array([[1.0, 0.0], [0.0, 1.0]])  # noqa: E741
+I = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.complex128)  # noqa: E741
 
-X = np.array([[0.0, 1.0], [1.0, 0.0]])
+X = np.array([[0.0, 1.0], [1.0, 0.0]], dtype=np.complex128)
 
-Y = np.array([[0.0, 0.0 - 1.0j], [0.0 + 1.0j, 0.0]])
+Y = np.array([[0.0, 0.0 - 1.0j], [0.0 + 1.0j, 0.0]], dtype=np.complex128)
 
-Z = np.array([[1.0, 0.0], [0.0, -1.0]])
+Z = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=np.complex128)
 
-H = (1.0 / np.sqrt(2.0)) * np.array([[1.0, 1.0], [1.0, -1.0]])
+H = (1.0 / np.sqrt(2.0)) * np.array([[1.0, 1.0], [1.0, -1.0]], dtype=np.complex128)
 
-S = np.array([[1.0, 0.0], [0.0, 1.0j]])
+S = np.array([[1.0, 0.0], [0.0, 1.0j]], dtype=np.complex128)
 
-T = np.array([[1.0, 0.0], [0.0, cmath.exp(1.0j * np.pi / 4.0)]])
+T = np.array([[1.0, 0.0], [0.0, cmath.exp(1.0j * np.pi / 4.0)]], dtype=np.complex128)
 
 
 def PHASE(phi: float) -> np.ndarray:
-    return np.array([[1.0, 0.0], [0.0, np.exp(1j * phi)]])
+    return np.array([[1.0, 0.0], [0.0, np.exp(1j * phi)]], dtype=np.complex128)
 
 
 def RX(phi: float) -> np.ndarray:
-    return np.array([[np.cos(phi / 2.0), -1j * np.sin(phi / 2.0)], [-1j * np.sin(phi / 2.0), np.cos(phi / 2.0)]])
+    return np.array(
+        [[np.cos(phi / 2.0), -1j * np.sin(phi / 2.0)], [-1j * np.sin(phi / 2.0), np.cos(phi / 2.0)]],
+        dtype=np.complex128,
+    )
 
 
 def RY(phi: float) -> np.ndarray:
-    return np.array([[np.cos(phi / 2.0), -np.sin(phi / 2.0)], [np.sin(phi / 2.0), np.cos(phi / 2.0)]])
+    return np.array(
+        [[np.cos(phi / 2.0), -np.sin(phi / 2.0)], [np.sin(phi / 2.0), np.cos(phi / 2.0)]], dtype=np.complex128
+    )
 
 
 def RZ(phi: float) -> np.ndarray:
@@ -150,7 +155,8 @@ def RZ(phi: float) -> np.ndarray:
         [
             [np.cos(phi / 2.0) - 1j * np.sin(phi / 2.0), 0],
             [0, np.cos(phi / 2.0) + 1j * np.sin(phi / 2.0)],
-        ]
+        ],
+        dtype=np.complex128,
     )
 
 
@@ -159,13 +165,14 @@ def U(theta: float, phi: float, lam: float) -> np.ndarray:
         [
             [np.cos(theta / 2.0), -1 * np.exp(1j * lam) * np.sin(theta / 2.0)],
             [np.exp(1j * phi) * np.sin(theta / 2.0), np.exp(1j * (phi + lam)) * np.cos(theta / 2.0)],
-        ]
+        ],
+        dtype=np.complex128,
     )
 
 
-CZ = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]])
+CZ = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=np.complex128)
 
-CNOT = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])
+CNOT = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dtype=np.complex128)
 
 CCNOT = np.array(
     [
@@ -177,24 +184,25 @@ CCNOT = np.array(
         [0, 0, 0, 0, 0, 1, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 1],
         [0, 0, 0, 0, 0, 0, 1, 0],
-    ]
+    ],
+    dtype=np.complex128,
 )
 
 
 def CPHASE00(phi: float) -> np.ndarray:
-    return np.diag([np.exp(1j * phi), 1.0, 1.0, 1.0])
+    return np.diag([np.exp(1j * phi), 1.0, 1.0, 1.0]).astype(np.complex128)
 
 
 def CPHASE01(phi: float) -> np.ndarray:
-    return np.diag([1.0, np.exp(1j * phi), 1.0, 1.0])
+    return np.diag([1.0, np.exp(1j * phi), 1.0, 1.0]).astype(np.complex128)
 
 
 def CPHASE10(phi: float) -> np.ndarray:
-    return np.diag([1.0, 1.0, np.exp(1j * phi), 1.0])
+    return np.diag([1.0, 1.0, np.exp(1j * phi), 1.0]).astype(np.complex128)
 
 
 def CPHASE(phi: float) -> np.ndarray:
-    return np.diag([1.0, 1.0, 1.0, np.exp(1j * phi)])
+    return np.diag([1.0, 1.0, 1.0, np.exp(1j * phi)]).astype(np.complex128)
 
 
 SWAP = np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
@@ -209,14 +217,17 @@ CSWAP = np.array(
         [0, 0, 0, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 0, 1, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 1],
-    ]
+    ],
+    dtype=np.complex128,
 )
 
-ISWAP = np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
+ISWAP = np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=np.complex128)
 
 
 def PSWAP(phi: float) -> np.ndarray:
-    return np.array([[1, 0, 0, 0], [0, 0, np.exp(1j * phi), 0], [0, np.exp(1j * phi), 0, 0], [0, 0, 0, 1]])
+    return np.array(
+        [[1, 0, 0, 0], [0, 0, np.exp(1j * phi), 0], [0, np.exp(1j * phi), 0, 0], [0, 0, 0, 1]], dtype=np.complex128
+    )
 
 
 def XY(phi: float) -> np.ndarray:
@@ -226,7 +237,8 @@ def XY(phi: float) -> np.ndarray:
             [0, np.cos(phi / 2), 1j * np.sin(phi / 2), 0],
             [0, 1j * np.sin(phi / 2), np.cos(phi / 2), 0],
             [0, 0, 0, 1],
-        ]
+        ],
+        dtype=np.complex128,
     )
 
 
@@ -237,7 +249,8 @@ def FSIM(theta: float, phi: float) -> np.ndarray:
             [0, np.cos(theta / 2), 1j * np.sin(theta / 2), 0],
             [0, 1j * np.sin(theta / 2), np.cos(theta / 2), 0],
             [0, 0, 0, np.exp(1j * phi)],
-        ]
+        ],
+        dtype=np.complex128,
     )
 
 
@@ -258,7 +271,8 @@ def PHASEDFSIM(theta: float, zeta: float, chi: float, gamma: float, phi: float) 
                 0,
             ],
             [0, 0, 0, np.exp(1j * phi - 2j * gamma)],
-        ]
+        ],
+        dtype=np.complex128,
     )
 
 
@@ -269,7 +283,8 @@ def RZZ(phi: float) -> np.ndarray:
             [0, np.exp(+1j * phi / 2), 0, 0],
             [0, 0, np.exp(+1j * phi / 2), 0],
             [0, 0, 0, np.exp(-1j * phi / 2)],
-        ]
+        ],
+        dtype=np.complex128,
     )
 
 
@@ -280,7 +295,8 @@ def RXX(phi: float) -> np.ndarray:
             [0, np.cos(phi / 2), -1j * np.sin(phi / 2), 0],
             [0, -1j * np.sin(phi / 2), np.cos(phi / 2), 0],
             [-1j * np.sin(phi / 2), 0, 0, np.cos(phi / 2)],
-        ]
+        ],
+        dtype=np.complex128,
     )
 
 
@@ -291,7 +307,8 @@ def RYY(phi: float) -> np.ndarray:
             [0, np.cos(phi / 2), -1j * np.sin(phi / 2), 0],
             [0, -1j * np.sin(phi / 2), np.cos(phi / 2), 0],
             [+1j * np.sin(phi / 2), 0, 0, np.cos(phi / 2)],
-        ]
+        ],
+        dtype=np.complex128,
     )
 
 
@@ -301,13 +318,14 @@ SQISW = np.array(
         [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
         [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
         [0, 0, 0, 1],
-    ]
+    ],
+    dtype=np.complex128,
 )
 
 # Utility gates for internal QVM use
-P0 = np.array([[1, 0], [0, 0]])
+P0 = np.array([[1, 0], [0, 0]], dtype=np.complex128)
 
-P1 = np.array([[0, 0], [0, 1]])
+P1 = np.array([[0, 0], [0, 1]], dtype=np.complex128)
 
 
 # Specialized useful gates; not officially in standard gate set
@@ -316,7 +334,8 @@ def BARENCO(alpha: float, phi: float, theta: float) -> np.ndarray:
         [
             [np.exp(1j * phi) * np.cos(theta), -1j * np.exp(1j * (alpha - phi)) * np.sin(theta)],
             [-1j * np.exp(1j * (alpha + phi)) * np.sin(theta), np.exp(1j * alpha) * np.cos(theta)],
-        ]
+        ],
+        dtype=np.complex128,
     )
     return np.kron(P0, np.eye(2)) + np.kron(P1, lower_unitary)
 
@@ -357,8 +376,8 @@ QUANTUM_GATES = {
 
 def relaxation_operators(p: float) -> tuple[np.ndarray, np.ndarray]:
     """Return the amplitude damping Kraus operators."""
-    k0 = np.array([[1.0, 0.0], [0.0, np.sqrt(1 - p)]])
-    k1 = np.array([[0.0, np.sqrt(p)], [0.0, 0.0]])
+    k0 = np.array([[1.0, 0.0], [0.0, np.sqrt(1 - p)]], dtype=np.complex128)
+    k1 = np.array([[0.0, np.sqrt(p)], [0.0, 0.0]], dtype=np.complex128)
     return k0, k1
 
 
@@ -408,10 +427,10 @@ KRAUS_OPS = {
     "bitphase_flip": bitphase_flip_operators,
 }
 
-SIC0 = np.array([1, 0])
-SIC1 = np.array([1, np.sqrt(2)]) / np.sqrt(3)
-SIC2 = np.array([1, np.exp(-np.pi * 2j / 3) * np.sqrt(2)]) / np.sqrt(3)
-SIC3 = np.array([1, np.exp(np.pi * 2j / 3) * np.sqrt(2)]) / np.sqrt(3)
+SIC0 = np.array([1, 0], dtype=np.complex128)
+SIC1 = np.array([1, np.sqrt(2)], dtype=np.complex128) / np.sqrt(3)
+SIC2 = np.array([1, np.exp(-np.pi * 2j / 3) * np.sqrt(2)], dtype=np.complex128) / np.sqrt(3)
+SIC3 = np.array([1, np.exp(np.pi * 2j / 3) * np.sqrt(2)], dtype=np.complex128) / np.sqrt(3)
 """
 The symmetric informationally complete POVMs for a qubit.
 
@@ -420,9 +439,9 @@ For more information, please see http://info.phys.unm.edu/~caves/reports/infopov
 """
 
 STATES = {
-    "X": [np.array([1, 1]) / np.sqrt(2), np.array([1, -1]) / np.sqrt(2)],
-    "Y": [np.array([1, 1j]) / np.sqrt(2), np.array([1, -1j]) / np.sqrt(2)],
-    "Z": [np.array([1, 0]), np.array([0, 1])],
+    "X": [np.array([1, 1], dtype=np.complex128) / np.sqrt(2), np.array([1, -1], dtype=np.complex128) / np.sqrt(2)],
+    "Y": [np.array([1, 1j], dtype=np.complex128) / np.sqrt(2), np.array([1, -1j], dtype=np.complex128) / np.sqrt(2)],
+    "Z": [np.array([1, 0], dtype=np.complex128), np.array([0, 1], dtype=np.complex128)],
     "SIC": [SIC0, SIC1, SIC2, SIC3],
 }
 
