@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "4.23.0rc1"
+version = "4.23.0"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = [
     "Rigetti Benchmarking Software <benchmarking-software@rigetti.com>",
@@ -28,7 +28,7 @@ numpy = ">=1.26,<3"
 scipy = "^1.11"
 rpcq = "^3.11.0"
 networkx = ">=2.5"
-qcs-sdk-python = ">=0.30.0,<0.31.0"
+qcs-sdk-python = ">=0.31.1,<0.32.0"
 packaging = ">=23.1"
 deprecated = "^1.2.14"
 types-deprecated = "^1.2.9.3"
