@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pyquil.experiment import plusX
 from pyquil.experiment._result import (
@@ -26,6 +27,19 @@ def test_bitstrings_to_expectations():
     assert np.allclose(
         bitstrings_to_expectations(bitstrings, joint_expectations=[[0, 1]]),
         np.array([[1], [-1], [-1], [1]]),
+    )
+
+
+@pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.uint32, np.uint64])
+def test_bitstrings_to_expectations_unsigned(dtype):
+    bitstrings = np.array([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=dtype)
+
+    np.testing.assert_array_equal(
+        bitstrings_to_expectations(bitstrings), np.array([[1, 1], [1, -1], [-1, 1], [-1, -1]])
+    )
+    np.testing.assert_array_equal(
+        bitstrings_to_expectations(bitstrings, joint_expectations=[[0], [1], [0, 1]]),
+        np.array([[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]]),
     )
 
 

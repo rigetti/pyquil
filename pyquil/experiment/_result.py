@@ -123,7 +123,7 @@ def bitstrings_to_expectations(bitstrings: np.ndarray, joint_expectations: list[
         "width" could be different than the length of an individual bitstring (n) depending on
         the value of the ``joint_expectations`` parameter.
     """
-    expectations: np.ndarray = 1 - 2 * bitstrings
+    expectations: np.ndarray = 1 - 2 * bitstrings.astype(int)
 
     if joint_expectations is None:
         return expectations
